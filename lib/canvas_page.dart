@@ -24,6 +24,7 @@ class _CanvasPageState extends State<CanvasPage> {
   final _textBlocks = <TextBlockModel>[];
   late final PenTool _penTool;
   var _penEnabled = false;
+  var _textPlacementEnabled = false;
   var _spaceHeld = false;
 
   @override
@@ -39,13 +40,32 @@ class _CanvasPageState extends State<CanvasPage> {
         Offset(viewport.width, viewport.height) / (2 * _canvasController.scale);
   }
 
-  void _addTextBlock() {
+  void _toggleTextPlacement() {
+    setState(() {
+      _textPlacementEnabled = !_textPlacementEnabled;
+      _penEnabled = false;
+      _spaceHeld = false;
+    });
+    if (_textPlacementEnabled) {
+      FocusManager.instance.primaryFocus?.unfocus();
+    }
+  }
+
+  void _handleCanvasPointerDown(PointerDownEvent event) {
+    if (!_textPlacementEnabled) return;
+    setState(() => _textPlacementEnabled = false);
+    _addTextBlock(
+      _canvasController.offset + event.localPosition / _canvasController.scale,
+    );
+  }
+
+  void _addTextBlock(Offset position) {
     const size = Size(280, 52);
     final model = TextBlockModel();
 
     _textBlocks.add(model);
     _canvasController.addChild(
-      _viewportCenter() - Offset(size.width / 2, size.height / 2),
+      position,
       TextBlock(model: model),
       childSize: size,
     );
@@ -93,6 +113,7 @@ class _CanvasPageState extends State<CanvasPage> {
   void _togglePen() {
     setState(() {
       _penEnabled = !_penEnabled;
+      _textPlacementEnabled = false;
       _spaceHeld = false;
     });
     if (_penEnabled) {
@@ -134,7 +155,11 @@ class _CanvasPageState extends State<CanvasPage> {
     return Scaffold(
       body: Stack(
         children: [
-          LazyCanvas(controller: _canvasController),
+          Listener(
+            behavior: HitTestBehavior.opaque,
+            onPointerDown: _handleCanvasPointerDown,
+            child: LazyCanvas(controller: _canvasController),
+          ),
           if (_penEnabled)
             Positioned.fill(
               child: IgnorePointer(
@@ -156,11 +181,21 @@ class _CanvasPageState extends State<CanvasPage> {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Tooltip(
-                          message: 'Add text',
-                          child: TextButton.icon(
-                            onPressed: _addTextBlock,
-                            icon: const Icon(Icons.title),
-                            label: const Text('Text'),
+                          message: 'Place text',
+                          child: Semantics(
+                            selected: _textPlacementEnabled,
+                            child: TextButton.icon(
+                              onPressed: _toggleTextPlacement,
+                              style: _textPlacementEnabled
+                                  ? TextButton.styleFrom(
+                                      backgroundColor: Theme.of(
+                                        context,
+                                      ).colorScheme.secondaryContainer,
+                                    )
+                                  : null,
+                              icon: const Icon(Icons.title),
+                              label: const Text('Text'),
+                            ),
                           ),
                         ),
                         Tooltip(

@@ -51,6 +51,35 @@ void main() {
     expect(find.byType(ScribbleSketch), findsNothing);
   });
 
+  testWidgets('text places one block at the clicked position', (tester) async {
+    await tester.pumpWidget(const MaterialApp(home: CanvasPage()));
+    await tester.pump();
+
+    expect(find.byType(TextField), findsNothing);
+    await tester.tap(find.text('Text'));
+    await tester.pump();
+
+    const firstPosition = Offset(120, 200);
+    await tester.tapAt(firstPosition);
+    await tester.pump();
+
+    expect(find.byType(TextField), findsOneWidget);
+    expect(tester.getTopLeft(find.byType(TextField)), firstPosition);
+
+    await tester.tapAt(const Offset(400, 300));
+    await tester.pump();
+    expect(find.byType(TextField), findsOneWidget);
+
+    await tester.tap(find.text('Text'));
+    await tester.pump();
+    const secondPosition = Offset(400, 300);
+    await tester.tapAt(secondPosition);
+    await tester.pump();
+
+    expect(find.byType(TextField), findsNWidgets(2));
+    expect(tester.getTopLeft(find.byType(TextField).at(1)), secondPosition);
+  });
+
   testWidgets('space temporarily hands dragging back to the canvas', (
     tester,
   ) async {
