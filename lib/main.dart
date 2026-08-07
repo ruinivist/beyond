@@ -35,7 +35,9 @@ class CanvasPage extends StatefulWidget {
 }
 
 class _CanvasPageState extends State<CanvasPage> {
-  final _canvasController = LazyCanvasController();
+  final _canvasController = LazyCanvasController(
+    buildCacheExtent: const Offset(600, 400),
+  );
   final _blocks = <_CodeBlockModel>[];
 
   void _addCodeBlock() {
