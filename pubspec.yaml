@@ -14,8 +14,11 @@ dependencies:
     git: https://github.com/ruinivist/infinite_lazy_grid.git
   re_editor: ^0.10.0
   re_highlight: ^0.0.3
+  scribble: ^0.10.0+1
 
 dev_dependencies:
+  flutter_test:
+    sdk: flutter
   flutter_lints: ^6.0.0
 
 flutter:
