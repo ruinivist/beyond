@@ -6,6 +6,7 @@ import 'package:infinite_lazy_grid/infinite_lazy_grid.dart';
 import 'package:scribble/scribble.dart';
 
 import 'tools/code_block/code_block.dart';
+import 'tools/markdown/markdown_block.dart';
 import 'tools/pen/pen_tool.dart';
 import 'tools/text/text_block.dart';
 
@@ -21,8 +22,10 @@ class _CanvasPageState extends State<CanvasPage> {
     buildCacheExtent: const Offset(600, 400),
   );
   final _codeBlocks = <CodeBlockModel, ({String id, Offset position})>{};
+  final _markdownBlocks =
+      <MarkdownBlockModel, ({String id, Offset position})>{};
   final _textBlocks = <TextBlockModel, ({String id, Offset position})>{};
-  final _codeBlockPointerIds = <int>{};
+  final _interactiveBlockPointerIds = <int>{};
   late final PenTool _penTool;
   var _penEnabled = false;
   var _textPlacementEnabled = false;
@@ -53,7 +56,9 @@ class _CanvasPageState extends State<CanvasPage> {
   }
 
   void _handleCanvasPointerDown(PointerDownEvent event) {
-    final onCodeBlock = _codeBlockPointerIds.remove(event.pointer);
+    final onInteractiveBlock = _interactiveBlockPointerIds.remove(
+      event.pointer,
+    );
     if (_textPlacementEnabled) {
       setState(() => _textPlacementEnabled = false);
       _addTextBlock(
@@ -62,27 +67,51 @@ class _CanvasPageState extends State<CanvasPage> {
       );
       return;
     }
-    if (onCodeBlock) return;
-    _clearCodeBlockSelection();
+    if (onInteractiveBlock) return;
+    _clearBlockSelection();
   }
 
   void _handleCodeBlockPointerDown(
     CodeBlockModel model,
     PointerDownEvent event,
   ) {
-    _codeBlockPointerIds.add(event.pointer);
+    _interactiveBlockPointerIds.add(event.pointer);
     if (_textPlacementEnabled || _penEnabled) return;
     _selectCodeBlock(model);
+  }
+
+  void _handleMarkdownBlockPointerDown(
+    MarkdownBlockModel model,
+    PointerDownEvent event,
+  ) {
+    _interactiveBlockPointerIds.add(event.pointer);
+    if (_textPlacementEnabled || _penEnabled) return;
+    _selectMarkdownBlock(model);
   }
 
   void _selectCodeBlock(CodeBlockModel selected) {
     for (final model in _codeBlocks.keys) {
       model.selected = model == selected;
     }
+    for (final model in _markdownBlocks.keys) {
+      model.selected = false;
+    }
   }
 
-  void _clearCodeBlockSelection() {
+  void _selectMarkdownBlock(MarkdownBlockModel selected) {
     for (final model in _codeBlocks.keys) {
+      model.selected = false;
+    }
+    for (final model in _markdownBlocks.keys) {
+      model.selected = model == selected;
+    }
+  }
+
+  void _clearBlockSelection() {
+    for (final model in _codeBlocks.keys) {
+      model.selected = false;
+    }
+    for (final model in _markdownBlocks.keys) {
       model.selected = false;
     }
   }
@@ -107,6 +136,16 @@ class _CanvasPageState extends State<CanvasPage> {
     _canvasController.updatePosition(entry.id, position);
   }
 
+  void _moveMarkdownBlock(MarkdownBlockModel model, Offset screenDelta) {
+    if (_textPlacementEnabled || _penEnabled) return;
+    final entry = _markdownBlocks[model];
+    if (entry == null) return;
+
+    final position = entry.position + screenDelta / _canvasController.scale;
+    _markdownBlocks[model] = (id: entry.id, position: position);
+    _canvasController.updatePosition(entry.id, position);
+  }
+
   void _addTextBlock(Offset position) {
     const size = Size(280, 52);
     final model = TextBlockModel();
@@ -123,18 +162,8 @@ class _CanvasPageState extends State<CanvasPage> {
   }
 
   void _addCodeBlock() {
-    final scale = _canvasController.scale;
-    final viewport = _canvasController.canvasSize;
-    final size = Size(
-      math.max(
-        codeBlockMinimumSize.width,
-        math.min(600, (viewport.width - 32) / scale),
-      ),
-      math.max(
-        codeBlockMinimumSize.height,
-        math.min(400, (viewport.height - 32) / scale),
-      ),
-    );
+    _prepareInteractiveBlock();
+    final size = _fittedBlockSize(const Size(600, 400), codeBlockMinimumSize);
     final model = CodeBlockModel(size);
     final position =
         _viewportCenter() - Offset(size.width / 2, size.height / 2);
@@ -152,6 +181,55 @@ class _CanvasPageState extends State<CanvasPage> {
     WidgetsBinding.instance.addPostFrameCallback(
       (_) => model.focusNode.requestFocus(),
     );
+  }
+
+  void _addMarkdownBlock() {
+    _prepareInteractiveBlock();
+    final size = _fittedBlockSize(
+      const Size(560, 420),
+      markdownBlockMinimumSize,
+    );
+    final model = MarkdownBlockModel(size);
+    final position =
+        _viewportCenter() - Offset(size.width / 2, size.height / 2);
+
+    final id = _canvasController.addChild(
+      position,
+      MarkdownBlock(
+        model: model,
+        onSelect: (event) => _handleMarkdownBlockPointerDown(model, event),
+        onMove: (delta) => _moveMarkdownBlock(model, delta),
+      ),
+      childSize: size,
+    );
+    _markdownBlocks[model] = (id: id, position: position);
+    WidgetsBinding.instance.addPostFrameCallback(
+      (_) => model.focusNode.requestFocus(),
+    );
+  }
+
+  Size _fittedBlockSize(Size preferred, Size minimum) {
+    final scale = _canvasController.scale;
+    final viewport = _canvasController.canvasSize;
+    return Size(
+      math.max(
+        minimum.width,
+        math.min(preferred.width, (viewport.width - 32) / scale),
+      ),
+      math.max(
+        minimum.height,
+        math.min(preferred.height, (viewport.height - 32) / scale),
+      ),
+    );
+  }
+
+  void _prepareInteractiveBlock() {
+    setState(() {
+      _penEnabled = false;
+      _textPlacementEnabled = false;
+      _spaceHeld = false;
+    });
+    FocusManager.instance.primaryFocus?.unfocus();
   }
 
   void _addStroke(Sketch sketch) {
@@ -199,6 +277,9 @@ class _CanvasPageState extends State<CanvasPage> {
   @override
   void dispose() {
     for (final block in _codeBlocks.keys) {
+      block.dispose();
+    }
+    for (final block in _markdownBlocks.keys) {
       block.dispose();
     }
     for (final block in _textBlocks.keys) {
@@ -264,6 +345,14 @@ class _CanvasPageState extends State<CanvasPage> {
                             onPressed: _addCodeBlock,
                             icon: const Icon(Icons.code),
                             label: const Text('Code'),
+                          ),
+                        ),
+                        Tooltip(
+                          message: 'Add markdown block',
+                          child: TextButton.icon(
+                            onPressed: _addMarkdownBlock,
+                            icon: const Icon(Icons.description_outlined),
+                            label: const Text('Markdown'),
                           ),
                         ),
                         Tooltip(
