@@ -4,6 +4,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:re_editor/re_editor.dart';
 
+import '../../smooth_scroll_controller.dart';
 import 'code_language.dart';
 
 const codeBlockMinimumSize = Size(280, 240);
@@ -17,6 +18,10 @@ class CodeBlockModel extends ChangeNotifier {
     options: const CodeLineOptions(indentSize: 2),
   );
   final focusNode = FocusNode();
+  final scrollController = CodeScrollController(
+    verticalScroller: SmoothScrollController(),
+    horizontalScroller: SmoothScrollController(),
+  );
   CodeLanguage _language = CodeLanguage.dart;
 
   Size get size => _size;
@@ -48,6 +53,10 @@ class CodeBlockModel extends ChangeNotifier {
   void dispose() {
     controller.dispose();
     focusNode.dispose();
+    scrollController
+      ..verticalScroller.dispose()
+      ..horizontalScroller.dispose()
+      ..dispose();
     super.dispose();
   }
 }
@@ -101,6 +110,7 @@ class CodeBlock extends StatelessWidget {
                     Expanded(
                       child: CodeEditor(
                         controller: model.controller,
+                        scrollController: model.scrollController,
                         focusNode: model.focusNode,
                         wordWrap: false,
                         autocompleteSymbols: true,

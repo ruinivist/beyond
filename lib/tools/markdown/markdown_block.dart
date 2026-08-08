@@ -6,6 +6,8 @@ import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:flutter_markdown_plus_latex/flutter_markdown_plus_latex.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../smooth_scroll_controller.dart';
+
 const markdownBlockMinimumSize = Size(320, 240);
 
 class MarkdownBlockModel extends ChangeNotifier {
@@ -13,6 +15,7 @@ class MarkdownBlockModel extends ChangeNotifier {
 
   final controller = TextEditingController();
   final focusNode = FocusNode();
+  final scrollController = SmoothScrollController();
   Size _size;
   bool _selected = false;
   bool _previewing = false;
@@ -46,6 +49,7 @@ class MarkdownBlockModel extends ChangeNotifier {
   void dispose() {
     controller.dispose();
     focusNode.dispose();
+    scrollController.dispose();
     super.dispose();
   }
 }
@@ -96,7 +100,10 @@ class MarkdownBlock extends StatelessWidget {
                     const Divider(height: 1),
                     Expanded(
                       child: model.previewing
-                          ? _MarkdownPreview(source: model.controller.text)
+                          ? _MarkdownPreview(
+                              source: model.controller.text,
+                              controller: model.scrollController,
+                            )
                           : TextField(
                               key: const ValueKey('markdown-editor'),
                               controller: model.controller,
@@ -134,14 +141,16 @@ class MarkdownBlock extends StatelessWidget {
 }
 
 class _MarkdownPreview extends StatelessWidget {
-  const _MarkdownPreview({required this.source});
+  const _MarkdownPreview({required this.source, required this.controller});
 
   final String source;
+  final ScrollController controller;
 
   @override
   Widget build(BuildContext context) {
     return Markdown(
       key: const ValueKey('markdown-preview'),
+      controller: controller,
       data: source,
       selectable: true,
       blockSyntaxes: [LatexBlockSyntax()],
