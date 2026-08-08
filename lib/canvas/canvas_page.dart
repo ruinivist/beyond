@@ -27,6 +27,7 @@ class _CanvasPageState extends State<CanvasPage> {
   final _markdownBlocks =
       <MarkdownBlockModel, ({String id, Offset position})>{};
   final _textBlocks = <TextBlockModel, ({String id, Offset position})>{};
+  final _strokeIds = <String>[];
   final _interactiveBlockPointerIds = <int>{};
   late final PenTool _penTool;
   CanvasTokens? _canvasTokens;
@@ -97,7 +98,7 @@ class _CanvasPageState extends State<CanvasPage> {
     if (_textPlacementEnabled || _penEnabled) return;
     final entry = _codeBlocks[model];
     if (entry == null) return;
-    _canvasController.bringToFront(entry.id);
+    _bringBlockToFront(entry.id);
     _selectCodeBlock(model);
   }
 
@@ -109,7 +110,7 @@ class _CanvasPageState extends State<CanvasPage> {
     if (_textPlacementEnabled || _penEnabled) return;
     final entry = _markdownBlocks[model];
     if (entry == null) return;
-    _canvasController.bringToFront(entry.id);
+    _bringBlockToFront(entry.id);
     _selectMarkdownBlock(model);
   }
 
@@ -117,7 +118,19 @@ class _CanvasPageState extends State<CanvasPage> {
     if (_textPlacementEnabled || _penEnabled) return;
     final entry = _textBlocks[model];
     if (entry == null) return;
-    _canvasController.bringToFront(entry.id);
+    _bringBlockToFront(entry.id);
+  }
+
+  void _bringBlockToFront(String id) {
+    _canvasController.bringToFront(id);
+    _bringStrokesToFront();
+  }
+
+  void _bringStrokesToFront() {
+    // ponytail: linear in stroke count; add canvas layers if profiling demands it.
+    for (final id in _strokeIds) {
+      _canvasController.bringToFront(id);
+    }
   }
 
   void _selectCodeBlock(CodeBlockModel selected) {
@@ -191,6 +204,7 @@ class _CanvasPageState extends State<CanvasPage> {
       childSize: size,
     );
     _textBlocks[model] = (id: id, position: position);
+    _bringStrokesToFront();
     WidgetsBinding.instance.addPostFrameCallback(
       (_) => model.focusNode.requestFocus(),
     );
@@ -213,6 +227,7 @@ class _CanvasPageState extends State<CanvasPage> {
       childSize: size,
     );
     _codeBlocks[model] = (id: id, position: position);
+    _bringStrokesToFront();
     WidgetsBinding.instance.addPostFrameCallback(
       (_) => model.focusNode.requestFocus(),
     );
@@ -238,6 +253,7 @@ class _CanvasPageState extends State<CanvasPage> {
       childSize: size,
     );
     _markdownBlocks[model] = (id: id, position: position);
+    _bringStrokesToFront();
     WidgetsBinding.instance.addPostFrameCallback(
       (_) => model.focusNode.requestFocus(),
     );
@@ -273,13 +289,15 @@ class _CanvasPageState extends State<CanvasPage> {
       canvasOffset: _canvasController.offset,
       canvasScale: _canvasController.scale,
     );
-    _canvasController.addChild(
-      stroke.position,
-      SizedBox.fromSize(
-        size: stroke.size,
-        child: ScribbleSketch(sketch: stroke.sketch),
+    _strokeIds.add(
+      _canvasController.addChild(
+        stroke.position,
+        SizedBox.fromSize(
+          size: stroke.size,
+          child: ScribbleSketch(sketch: stroke.sketch),
+        ),
+        childSize: stroke.size,
       ),
-      childSize: stroke.size,
     );
   }
 
