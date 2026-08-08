@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'canvas_page.dart';
+import 'canvas/canvas_page.dart';
 
 void main() => runApp(const PlaneApp());
 

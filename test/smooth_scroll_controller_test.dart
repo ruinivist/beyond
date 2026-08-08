@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:plane/smooth_scroll_controller.dart';
+import 'package:plane/canvas/smooth_scroll_controller.dart';
 
 void main() {
   testWidgets('wheel scrolling eases, accumulates, and clamps', (tester) async {

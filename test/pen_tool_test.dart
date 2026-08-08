@@ -3,11 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:infinite_lazy_grid/infinite_lazy_grid.dart';
-import 'package:plane/canvas_page.dart';
-import 'package:plane/tools/code_block/code_block.dart';
-import 'package:plane/tools/markdown/markdown_block.dart';
-import 'package:plane/tools/pen/pen_tool.dart';
-import 'package:plane/tools/text/text_block.dart';
+import 'package:plane/canvas/canvas_page.dart';
+import 'package:plane/canvas/tools/code_block/code_block.dart';
+import 'package:plane/canvas/tools/markdown/markdown_block.dart';
+import 'package:plane/canvas/tools/pen/pen_tool.dart';
+import 'package:plane/canvas/tools/text/text_block.dart';
 import 'package:scribble/scribble.dart';
 
 void main() {

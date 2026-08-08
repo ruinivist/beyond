@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:infinite_lazy_grid/infinite_lazy_grid.dart';
 import 'package:scribble/scribble.dart';
 
+import '../widgets/settings_dialog.dart';
 import 'tools/code_block/code_block.dart';
 import 'tools/markdown/markdown_block.dart';
 import 'tools/pen/pen_tool.dart';
@@ -276,6 +277,10 @@ class _CanvasPageState extends State<CanvasPage> {
     }
   }
 
+  void _showSettingsDialog() {
+    showDialog<void>(context: context, builder: (_) => const SettingsDialog());
+  }
+
   bool _handleKeyEvent(KeyEvent event) {
     final focusContext = FocusManager.instance.primaryFocus?.context;
     final editingText =
@@ -392,6 +397,24 @@ class _CanvasPageState extends State<CanvasPage> {
                         ),
                       ],
                     ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          SafeArea(
+            child: Align(
+              alignment: Alignment.topRight,
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Material(
+                  elevation: 4,
+                  borderRadius: BorderRadius.circular(8),
+                  child: IconButton(
+                    key: const ValueKey('settings-button'),
+                    tooltip: 'Settings',
+                    onPressed: _showSettingsDialog,
+                    icon: const Icon(Icons.settings_outlined),
                   ),
                 ),
               ),

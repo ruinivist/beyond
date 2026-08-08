@@ -4,8 +4,8 @@ import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:flutter_math_fork/flutter_math.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:infinite_lazy_grid/infinite_lazy_grid.dart';
-import 'package:plane/canvas_page.dart';
-import 'package:plane/tools/markdown/markdown_block.dart';
+import 'package:plane/canvas/canvas_page.dart';
+import 'package:plane/canvas/tools/markdown/markdown_block.dart';
 import 'package:url_launcher_platform_interface/link.dart';
 import 'package:url_launcher_platform_interface/url_launcher_platform_interface.dart';
 
