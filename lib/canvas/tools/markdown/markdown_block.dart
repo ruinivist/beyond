@@ -6,6 +6,7 @@ import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:flutter_markdown_plus_latex/flutter_markdown_plus_latex.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../../theme/app_theme.dart';
 import '../../smooth_scroll_controller.dart';
 
 const markdownBlockMinimumSize = Size(320, 240);
@@ -73,6 +74,7 @@ class MarkdownBlock extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final block = context.appTheme.components.block;
     return Listener(
       onPointerDown: onSelect,
       child: ListenableBuilder(
@@ -80,16 +82,17 @@ class MarkdownBlock extends StatelessWidget {
         builder: (context, _) => SizedBox.fromSize(
           size: model.size,
           child: Material(
-            color: Theme.of(context).colorScheme.surface,
-            elevation: model.selected ? 12 : 8,
+            key: const ValueKey('markdown-block-surface'),
+            color: block.background,
+            elevation: model.selected
+                ? block.selectedElevation
+                : block.elevation,
+            shadowColor: block.shadow,
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(block.radius),
               side: model.selected
-                  ? BorderSide(
-                      color: Theme.of(context).colorScheme.primary,
-                      width: 2,
-                    )
-                  : BorderSide.none,
+                  ? BorderSide(color: block.selectedBorder, width: 2)
+                  : BorderSide(color: block.border),
             ),
             clipBehavior: Clip.antiAlias,
             child: Stack(
@@ -97,7 +100,7 @@ class MarkdownBlock extends StatelessWidget {
                 Column(
                   children: [
                     _MarkdownBlockHeader(model: model, onMove: onMove),
-                    const Divider(height: 1),
+                    Divider(height: 1, color: block.divider),
                     Expanded(
                       child: model.previewing
                           ? _MarkdownPreview(
@@ -112,15 +115,20 @@ class MarkdownBlock extends StatelessWidget {
                               minLines: null,
                               maxLines: null,
                               textAlignVertical: TextAlignVertical.top,
-                              decoration: const InputDecoration(
+                              cursorColor: block.selectedBorder,
+                              decoration: InputDecoration(
                                 border: InputBorder.none,
-                                contentPadding: EdgeInsets.all(16),
+                                contentPadding: const EdgeInsets.all(16),
                                 hintText: 'Write Markdown…',
+                                hintStyle: TextStyle(
+                                  color: block.mutedForeground,
+                                ),
                               ),
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontFamily: 'monospace',
                                 fontSize: 14,
                                 height: 1.4,
+                                color: block.foreground,
                               ),
                             ),
                     ),
@@ -148,6 +156,7 @@ class _MarkdownPreview extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final block = context.appTheme.components.block;
     return Markdown(
       key: const ValueKey('markdown-preview'),
       controller: controller,
@@ -156,6 +165,10 @@ class _MarkdownPreview extends StatelessWidget {
       blockSyntaxes: [LatexBlockSyntax()],
       inlineSyntaxes: [LatexInlineSyntax()],
       builders: {'latex': LatexElementBuilder()},
+      styleSheet: MarkdownStyleSheet.fromTheme(Theme.of(context)).copyWith(
+        a: TextStyle(color: block.selectedBorder),
+        p: TextStyle(color: block.foreground),
+      ),
       imageBuilder: (uri, title, alt) {
         if (uri.scheme != 'https' || uri.host.isEmpty) {
           return _ImageError(alt: alt);
@@ -211,6 +224,7 @@ class _MarkdownBlockHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final block = context.appTheme.components.block;
     return SizedBox(
       height: 48,
       child: Row(
@@ -229,11 +243,15 @@ class _MarkdownBlockHeader extends StatelessWidget {
                         recognizer.onStart = (_) => _MarkdownBlockDrag(onMove);
                       }),
                 },
-                child: const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 12),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
                   child: Align(
                     alignment: Alignment.centerLeft,
-                    child: Icon(Icons.description_outlined, size: 18),
+                    child: Icon(
+                      Icons.description_outlined,
+                      size: 18,
+                      color: block.secondaryForeground,
+                    ),
                   ),
                 ),
               ),
@@ -241,26 +259,88 @@ class _MarkdownBlockHeader extends StatelessWidget {
           ),
           Padding(
             padding: const EdgeInsets.only(right: 8),
-            child: SegmentedButton<bool>(
+            child: Row(
               key: const ValueKey('markdown-mode-toggle'),
-              segments: const [
-                ButtonSegment(value: false, label: Text('Edit')),
-                ButtonSegment(value: true, label: Text('Preview')),
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _MarkdownModeTab(
+                  label: 'Edit',
+                  selected: !model.previewing,
+                  onPressed: () => _setPreviewing(false),
+                ),
+                _MarkdownModeTab(
+                  label: 'Preview',
+                  selected: model.previewing,
+                  onPressed: () => _setPreviewing(true),
+                ),
               ],
-              selected: {model.previewing},
-              showSelectedIcon: false,
-              style: const ButtonStyle(
-                visualDensity: VisualDensity.compact,
-                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _setPreviewing(bool previewing) {
+    model.previewing = previewing;
+    if (!previewing) {
+      WidgetsBinding.instance.addPostFrameCallback(
+        (_) => model.focusNode.requestFocus(),
+      );
+    }
+  }
+}
+
+class _MarkdownModeTab extends StatelessWidget {
+  const _MarkdownModeTab({
+    required this.label,
+    required this.selected,
+    required this.onPressed,
+  });
+
+  final String label;
+  final bool selected;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final block = context.appTheme.components.block;
+    return Semantics(
+      selected: selected,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          TextButton(
+            onPressed: onPressed,
+            style: ButtonStyle(
+              foregroundColor: WidgetStatePropertyAll(
+                selected ? block.selectedBorder : block.secondaryForeground,
               ),
-              onSelectionChanged: (selection) {
-                model.previewing = selection.single;
-                if (!model.previewing) {
-                  WidgetsBinding.instance.addPostFrameCallback(
-                    (_) => model.focusNode.requestFocus(),
-                  );
+              backgroundColor: WidgetStateProperty.resolveWith((states) {
+                if (states.contains(WidgetState.pressed)) {
+                  return block.pressedBackground;
                 }
-              },
+                if (states.contains(WidgetState.hovered)) {
+                  return block.hoverBackground;
+                }
+                return Colors.transparent;
+              }),
+              side: WidgetStateProperty.resolveWith(
+                (states) => states.contains(WidgetState.focused)
+                    ? BorderSide(color: block.focus)
+                    : BorderSide.none,
+              ),
+              visualDensity: VisualDensity.compact,
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              shape: const WidgetStatePropertyAll(RoundedRectangleBorder()),
+            ),
+            child: Text(label),
+          ),
+          SizedBox(
+            height: 2,
+            width: 56,
+            child: ColoredBox(
+              color: selected ? block.selectedBorder : Colors.transparent,
             ),
           ),
         ],
@@ -276,6 +356,7 @@ class _MarkdownBlockResizeHandle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final color = context.appTheme.components.block.mutedForeground;
     return MouseRegion(
       cursor: SystemMouseCursors.resizeDownRight,
       child: Semantics(
@@ -290,18 +371,14 @@ class _MarkdownBlockResizeHandle extends StatelessWidget {
               model.size.height + details.focalPointDelta.dy,
             );
           },
-          child: const SizedBox(
+          child: SizedBox(
             width: 28,
             height: 28,
             child: Align(
               alignment: Alignment.bottomRight,
               child: Padding(
-                padding: EdgeInsets.all(4),
-                child: Icon(
-                  Icons.open_in_full,
-                  size: 16,
-                  color: Colors.black54,
-                ),
+                padding: const EdgeInsets.all(4),
+                child: Icon(Icons.open_in_full, size: 16, color: color),
               ),
             ),
           ),

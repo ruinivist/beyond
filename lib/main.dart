@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'canvas/canvas_page.dart';
+import 'theme/app_theme.dart';
 
 void main() => runApp(const PlaneApp());
 
@@ -11,7 +12,7 @@ class PlaneApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(colorSchemeSeed: Colors.deepPurple),
+      theme: starlessLightThemeData,
       home: const CanvasPage(),
     );
   }

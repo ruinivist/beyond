@@ -6,7 +6,7 @@ import 'package:re_highlight/languages/python.dart';
 import 'package:re_highlight/languages/rust.dart';
 import 'package:re_highlight/languages/typescript.dart';
 import 'package:re_highlight/re_highlight.dart';
-import 'package:re_highlight/styles/atom-one-dark.dart';
+import 'package:flutter/painting.dart';
 
 enum CodeLanguage {
   dart('Dart'),
@@ -31,10 +31,10 @@ enum CodeLanguage {
     plainText => null,
   };
 
-  CodeHighlightTheme? get theme => mode == null
+  CodeHighlightTheme? theme(Map<String, TextStyle> styles) => mode == null
       ? null
       : CodeHighlightTheme(
           languages: {name: CodeHighlightThemeMode(mode: mode!)},
-          theme: atomOneDarkTheme,
+          theme: styles,
         );
 }

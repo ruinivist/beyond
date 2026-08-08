@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:infinite_lazy_grid/infinite_lazy_grid.dart';
 import 'package:scribble/scribble.dart';
 
+import '../theme/app_theme.dart';
 import '../widgets/settings_dialog.dart';
 import 'tools/code_block/code_block.dart';
 import 'tools/markdown/markdown_block.dart';
@@ -28,6 +29,7 @@ class _CanvasPageState extends State<CanvasPage> {
   final _textBlocks = <TextBlockModel, ({String id, Offset position})>{};
   final _interactiveBlockPointerIds = <int>{};
   late final PenTool _penTool;
+  CanvasTokens? _canvasTokens;
   var _penEnabled = false;
   var _textPlacementEnabled = false;
   var _spaceHeld = false;
@@ -37,6 +39,21 @@ class _CanvasPageState extends State<CanvasPage> {
     super.initState();
     _penTool = PenTool(onStroke: _addStroke);
     HardwareKeyboard.instance.addHandler(_handleKeyEvent);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final tokens = context.appTheme.components.canvas;
+    if (_canvasTokens == tokens) return;
+    _canvasTokens = tokens;
+    _canvasController.background = DotGridBackground(
+      size: tokens.dotRadius,
+      spacing: tokens.gridSpacing,
+      dotColor: tokens.grid,
+      backgroundColor: tokens.background,
+    );
+    _penTool.setColor(tokens.penStroke);
   }
 
   Offset _viewportCenter() {
@@ -278,7 +295,11 @@ class _CanvasPageState extends State<CanvasPage> {
   }
 
   void _showSettingsDialog() {
-    showDialog<void>(context: context, builder: (_) => const SettingsDialog());
+    showDialog<void>(
+      context: context,
+      barrierColor: context.appTheme.components.settings.scrim,
+      builder: (_) => const SettingsDialog(),
+    );
   }
 
   bool _handleKeyEvent(KeyEvent event) {
@@ -315,6 +336,7 @@ class _CanvasPageState extends State<CanvasPage> {
 
   @override
   Widget build(BuildContext context) {
+    final toolbar = context.appTheme.components.toolbar;
     return Scaffold(
       body: Stack(
         children: [
@@ -336,8 +358,14 @@ class _CanvasPageState extends State<CanvasPage> {
               child: Padding(
                 padding: const EdgeInsets.only(top: 12),
                 child: Material(
-                  elevation: 4,
-                  borderRadius: BorderRadius.circular(8),
+                  key: const ValueKey('toolbar-surface'),
+                  color: toolbar.background,
+                  elevation: toolbar.elevation,
+                  shadowColor: toolbar.shadow,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(toolbar.radius),
+                    side: BorderSide(color: toolbar.border),
+                  ),
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 4),
                     child: Row(
@@ -349,13 +377,10 @@ class _CanvasPageState extends State<CanvasPage> {
                             selected: _textPlacementEnabled,
                             child: TextButton.icon(
                               onPressed: _toggleTextPlacement,
-                              style: _textPlacementEnabled
-                                  ? TextButton.styleFrom(
-                                      backgroundColor: Theme.of(
-                                        context,
-                                      ).colorScheme.secondaryContainer,
-                                    )
-                                  : null,
+                              style: _toolbarButtonStyle(
+                                toolbar,
+                                selected: _textPlacementEnabled,
+                              ),
                               icon: const Icon(Icons.title),
                               label: const Text('Text'),
                             ),
@@ -365,6 +390,7 @@ class _CanvasPageState extends State<CanvasPage> {
                           message: 'Add code block',
                           child: TextButton.icon(
                             onPressed: _addCodeBlock,
+                            style: _toolbarButtonStyle(toolbar),
                             icon: const Icon(Icons.code),
                             label: const Text('Code'),
                           ),
@@ -373,6 +399,7 @@ class _CanvasPageState extends State<CanvasPage> {
                           message: 'Add markdown block',
                           child: TextButton.icon(
                             onPressed: _addMarkdownBlock,
+                            style: _toolbarButtonStyle(toolbar),
                             icon: const Icon(Icons.description_outlined),
                             label: const Text('Markdown'),
                           ),
@@ -383,13 +410,10 @@ class _CanvasPageState extends State<CanvasPage> {
                             selected: _penEnabled,
                             child: TextButton.icon(
                               onPressed: _togglePen,
-                              style: _penEnabled
-                                  ? TextButton.styleFrom(
-                                      backgroundColor: Theme.of(
-                                        context,
-                                      ).colorScheme.secondaryContainer,
-                                    )
-                                  : null,
+                              style: _toolbarButtonStyle(
+                                toolbar,
+                                selected: _penEnabled,
+                              ),
                               icon: const Icon(Icons.draw),
                               label: const Text('Pen'),
                             ),
@@ -408,12 +432,19 @@ class _CanvasPageState extends State<CanvasPage> {
               child: Padding(
                 padding: const EdgeInsets.all(12),
                 child: Material(
-                  elevation: 4,
-                  borderRadius: BorderRadius.circular(8),
+                  key: const ValueKey('settings-button-surface'),
+                  color: toolbar.background,
+                  elevation: toolbar.elevation,
+                  shadowColor: toolbar.shadow,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(toolbar.radius),
+                    side: BorderSide(color: toolbar.border),
+                  ),
                   child: IconButton(
                     key: const ValueKey('settings-button'),
                     tooltip: 'Settings',
                     onPressed: _showSettingsDialog,
+                    style: _toolbarIconButtonStyle(toolbar),
                     icon: const Icon(Icons.settings_outlined),
                   ),
                 ),
@@ -424,4 +455,42 @@ class _CanvasPageState extends State<CanvasPage> {
       ),
     );
   }
+}
+
+ButtonStyle _toolbarButtonStyle(ToolbarTokens tokens, {bool selected = false}) {
+  return ButtonStyle(
+    foregroundColor: WidgetStateProperty.resolveWith((states) {
+      if (!selected) return tokens.foreground;
+      if (states.contains(WidgetState.pressed)) {
+        return tokens.selectedPressedForeground;
+      }
+      if (states.contains(WidgetState.hovered)) {
+        return tokens.selectedHoverForeground;
+      }
+      return tokens.selectedForeground;
+    }),
+    backgroundColor: WidgetStateProperty.resolveWith((states) {
+      if (states.contains(WidgetState.pressed)) {
+        return tokens.pressedBackground;
+      }
+      if (states.contains(WidgetState.hovered)) return tokens.hoverBackground;
+      return selected ? tokens.selectedBackground : Colors.transparent;
+    }),
+    side: WidgetStateProperty.resolveWith(
+      (states) => states.contains(WidgetState.focused)
+          ? BorderSide(color: tokens.focus)
+          : BorderSide.none,
+    ),
+    shape: WidgetStatePropertyAll(
+      RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(tokens.radius - 2),
+      ),
+    ),
+  );
+}
+
+ButtonStyle _toolbarIconButtonStyle(ToolbarTokens tokens) {
+  return _toolbarButtonStyle(
+    tokens,
+  ).copyWith(padding: const WidgetStatePropertyAll(EdgeInsets.all(8)));
 }

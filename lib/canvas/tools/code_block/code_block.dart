@@ -4,6 +4,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:re_editor/re_editor.dart';
 
+import '../../../theme/app_theme.dart';
 import '../../smooth_scroll_controller.dart';
 import 'code_language.dart';
 
@@ -82,6 +83,9 @@ class CodeBlock extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = context.appTheme.components;
+    final block = theme.block;
+    final code = theme.codeEditor;
     return Listener(
       onPointerDown: onSelect,
       child: ListenableBuilder(
@@ -89,16 +93,17 @@ class CodeBlock extends StatelessWidget {
         builder: (context, _) => SizedBox.fromSize(
           size: model.size,
           child: Material(
-            color: const Color(0xff282c34),
-            elevation: model.selected ? 12 : 8,
+            key: const ValueKey('code-block-surface'),
+            color: code.background,
+            elevation: model.selected
+                ? block.selectedElevation
+                : block.elevation,
+            shadowColor: block.shadow,
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(block.radius),
               side: model.selected
-                  ? BorderSide(
-                      color: Theme.of(context).colorScheme.primary,
-                      width: 2,
-                    )
-                  : BorderSide.none,
+                  ? BorderSide(color: block.selectedBorder, width: 2)
+                  : BorderSide(color: block.border),
             ),
             clipBehavior: Clip.antiAlias,
             child: Stack(
@@ -106,7 +111,7 @@ class CodeBlock extends StatelessWidget {
                 Column(
                   children: [
                     _CodeBlockHeader(model: model, onMove: onMove),
-                    const Divider(height: 1, color: Colors.white12),
+                    Divider(height: 1, color: code.divider),
                     Expanded(
                       child: CodeEditor(
                         controller: model.controller,
@@ -119,25 +124,36 @@ class CodeBlock extends StatelessWidget {
                           fontFamily: 'monospace',
                           fontSize: 14,
                           fontHeight: 1.4,
-                          textColor: const Color(0xffabb2bf),
-                          backgroundColor: const Color(0xff282c34),
-                          cursorLineColor: Colors.white.withValues(alpha: 0.04),
-                          codeTheme: model.language.theme,
+                          textColor: code.foreground,
+                          backgroundColor: code.background,
+                          cursorColor: code.cursor,
+                          cursorLineColor: code.cursorLine,
+                          selectionColor: code.selection,
+                          codeTheme: model.language.theme(code.syntaxTheme),
                         ),
                         indicatorBuilder:
                             (context, controller, chunkController, notifier) =>
-                                Row(
-                                  children: [
-                                    DefaultCodeLineNumber(
-                                      controller: controller,
-                                      notifier: notifier,
-                                    ),
-                                    DefaultCodeChunkIndicator(
-                                      width: 16,
-                                      controller: chunkController,
-                                      notifier: notifier,
-                                    ),
-                                  ],
+                                ColoredBox(
+                                  color: code.gutterBackground,
+                                  child: Row(
+                                    children: [
+                                      DefaultCodeLineNumber(
+                                        controller: controller,
+                                        notifier: notifier,
+                                        textStyle: TextStyle(
+                                          color: code.mutedForeground,
+                                        ),
+                                        focusedTextStyle: TextStyle(
+                                          color: code.cursor,
+                                        ),
+                                      ),
+                                      DefaultCodeChunkIndicator(
+                                        width: 16,
+                                        controller: chunkController,
+                                        notifier: notifier,
+                                      ),
+                                    ],
+                                  ),
                                 ),
                       ),
                     ),
@@ -164,6 +180,7 @@ class _CodeBlockResizeHandle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final color = context.appTheme.components.codeEditor.mutedForeground;
     return MouseRegion(
       cursor: SystemMouseCursors.resizeDownRight,
       child: Semantics(
@@ -178,18 +195,14 @@ class _CodeBlockResizeHandle extends StatelessWidget {
               model.size.height + details.focalPointDelta.dy,
             );
           },
-          child: const SizedBox(
+          child: SizedBox(
             width: 28,
             height: 28,
             child: Align(
               alignment: Alignment.bottomRight,
               child: Padding(
-                padding: EdgeInsets.all(4),
-                child: Icon(
-                  Icons.open_in_full,
-                  size: 16,
-                  color: Colors.white54,
-                ),
+                padding: const EdgeInsets.all(4),
+                child: Icon(Icons.open_in_full, size: 16, color: color),
               ),
             ),
           ),
@@ -207,6 +220,7 @@ class _CodeBlockHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final code = context.appTheme.components.codeEditor;
     return SizedBox(
       height: 40,
       child: MouseRegion(
@@ -226,14 +240,14 @@ class _CodeBlockHeader extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 12),
             child: Row(
               children: [
-                const Icon(Icons.code, size: 18, color: Colors.white70),
+                Icon(Icons.code, size: 18, color: code.mutedForeground),
                 const SizedBox(width: 8),
                 DropdownButtonHideUnderline(
                   child: DropdownButton<CodeLanguage>(
                     value: model.language,
-                    dropdownColor: const Color(0xff21252b),
-                    style: const TextStyle(color: Colors.white, fontSize: 13),
-                    iconEnabledColor: Colors.white70,
+                    dropdownColor: code.dropdownBackground,
+                    style: TextStyle(color: code.foreground, fontSize: 13),
+                    iconEnabledColor: code.mutedForeground,
                     items: [
                       for (final language in CodeLanguage.values)
                         DropdownMenuItem(

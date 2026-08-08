@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:plane/canvas/canvas_page.dart';
+import 'package:plane/main.dart';
 
 void main() {
   testWidgets('settings opens the about overlay', (tester) async {
-    await tester.pumpWidget(const MaterialApp(home: CanvasPage()));
+    await tester.pumpWidget(const PlaneApp());
     await tester.pump();
 
     await tester.tap(find.byKey(const ValueKey('settings-button')));
