@@ -20,8 +20,9 @@ class _CanvasPageState extends State<CanvasPage> {
   final _canvasController = LazyCanvasController(
     buildCacheExtent: const Offset(600, 400),
   );
-  final _codeBlocks = <CodeBlockModel>[];
+  final _codeBlocks = <CodeBlockModel, ({String id, Offset position})>{};
   final _textBlocks = <TextBlockModel>[];
+  final _codeBlockPointerIds = <int>{};
   late final PenTool _penTool;
   var _penEnabled = false;
   var _textPlacementEnabled = false;
@@ -52,11 +53,48 @@ class _CanvasPageState extends State<CanvasPage> {
   }
 
   void _handleCanvasPointerDown(PointerDownEvent event) {
-    if (!_textPlacementEnabled) return;
-    setState(() => _textPlacementEnabled = false);
-    _addTextBlock(
-      _canvasController.offset + event.localPosition / _canvasController.scale,
-    );
+    final onCodeBlock = _codeBlockPointerIds.remove(event.pointer);
+    if (_textPlacementEnabled) {
+      setState(() => _textPlacementEnabled = false);
+      _addTextBlock(
+        _canvasController.offset +
+            event.localPosition / _canvasController.scale,
+      );
+      return;
+    }
+    if (onCodeBlock) return;
+    _clearCodeBlockSelection();
+  }
+
+  void _handleCodeBlockPointerDown(
+    CodeBlockModel model,
+    PointerDownEvent event,
+  ) {
+    _codeBlockPointerIds.add(event.pointer);
+    if (_textPlacementEnabled || _penEnabled) return;
+    _selectCodeBlock(model);
+  }
+
+  void _selectCodeBlock(CodeBlockModel selected) {
+    for (final model in _codeBlocks.keys) {
+      model.selected = model == selected;
+    }
+  }
+
+  void _clearCodeBlockSelection() {
+    for (final model in _codeBlocks.keys) {
+      model.selected = false;
+    }
+  }
+
+  void _moveCodeBlock(CodeBlockModel model, Offset screenDelta) {
+    if (_textPlacementEnabled || _penEnabled) return;
+    final entry = _codeBlocks[model];
+    if (entry == null) return;
+
+    final position = entry.position + screenDelta / _canvasController.scale;
+    _codeBlocks[model] = (id: entry.id, position: position);
+    _canvasController.updatePosition(entry.id, position);
   }
 
   void _addTextBlock(Offset position) {
@@ -88,13 +126,19 @@ class _CanvasPageState extends State<CanvasPage> {
       ),
     );
     final model = CodeBlockModel(size);
+    final position =
+        _viewportCenter() - Offset(size.width / 2, size.height / 2);
 
-    _codeBlocks.add(model);
-    _canvasController.addChild(
-      _viewportCenter() - Offset(size.width / 2, size.height / 2),
-      CodeBlock(model: model),
+    final id = _canvasController.addChild(
+      position,
+      CodeBlock(
+        model: model,
+        onSelect: (event) => _handleCodeBlockPointerDown(model, event),
+        onMove: (delta) => _moveCodeBlock(model, delta),
+      ),
       childSize: size,
     );
+    _codeBlocks[model] = (id: id, position: position);
     WidgetsBinding.instance.addPostFrameCallback(
       (_) => model.focusNode.requestFocus(),
     );
@@ -144,7 +188,7 @@ class _CanvasPageState extends State<CanvasPage> {
 
   @override
   void dispose() {
-    for (final block in _codeBlocks) {
+    for (final block in _codeBlocks.keys) {
       block.dispose();
     }
     for (final block in _textBlocks) {

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:infinite_lazy_grid/infinite_lazy_grid.dart';
 import 'package:plane/canvas_page.dart';
 import 'package:plane/tools/code_block/code_block.dart';
 import 'package:plane/tools/pen/pen_tool.dart';
@@ -107,6 +108,41 @@ void main() {
     await tester.pump();
 
     expect(tester.getSize(block), codeBlockMinimumSize);
+
+    FocusManager.instance.primaryFocus?.unfocus();
+    await tester.pump();
+  });
+
+  testWidgets('code blocks select and move from the header', (tester) async {
+    await tester.pumpWidget(const MaterialApp(home: CanvasPage()));
+    await tester.pump();
+
+    await tester.tap(find.text('Code'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+
+    final block = find.byType(CodeBlock);
+    final header = find.byKey(const ValueKey('code-block-header'));
+    final canvas = tester.widget<LazyCanvas>(find.byType(LazyCanvas));
+    final originalTopLeft = tester.getTopLeft(block);
+    final originalCanvasOffset = canvas.controller.offset;
+
+    expect(tester.widget<CodeBlock>(block).model.selected, isFalse);
+
+    await tester.tap(header);
+    await tester.pump();
+    expect(tester.widget<CodeBlock>(block).model.selected, isTrue);
+
+    const delta = Offset(80, 60);
+    await tester.drag(header, delta);
+    await tester.pump();
+
+    expect(tester.getTopLeft(block), originalTopLeft + delta);
+    expect(canvas.controller.offset, originalCanvasOffset);
+
+    await tester.tapAt(const Offset(24, 200));
+    await tester.pump();
+    expect(tester.widget<CodeBlock>(block).model.selected, isFalse);
 
     FocusManager.instance.primaryFocus?.unfocus();
     await tester.pump();
