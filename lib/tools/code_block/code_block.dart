@@ -1,17 +1,30 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:re_editor/re_editor.dart';
 
 import 'code_language.dart';
 
-class CodeBlockModel extends ChangeNotifier {
-  CodeBlockModel(this.size);
+const codeBlockMinimumSize = Size(280, 240);
 
-  final Size size;
+class CodeBlockModel extends ChangeNotifier {
+  CodeBlockModel(Size size) : _size = _clampSize(size);
+
+  Size _size;
   final controller = CodeLineEditingController(
     options: const CodeLineOptions(indentSize: 2),
   );
   final focusNode = FocusNode();
   CodeLanguage _language = CodeLanguage.dart;
+
+  Size get size => _size;
+
+  set size(Size value) {
+    final nextSize = _clampSize(value);
+    if (_size == nextSize) return;
+    _size = nextSize;
+    notifyListeners();
+  }
 
   CodeLanguage get language => _language;
 
@@ -29,6 +42,13 @@ class CodeBlockModel extends ChangeNotifier {
   }
 }
 
+Size _clampSize(Size size) {
+  return Size(
+    math.max(codeBlockMinimumSize.width, size.width),
+    math.max(codeBlockMinimumSize.height, size.height),
+  );
+}
+
 class CodeBlock extends StatelessWidget {
   const CodeBlock({required this.model, super.key});
 
@@ -36,52 +56,104 @@ class CodeBlock extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox.fromSize(
-      size: model.size,
-      child: Material(
-        color: const Color(0xff282c34),
-        elevation: 8,
-        clipBehavior: Clip.antiAlias,
-        borderRadius: BorderRadius.circular(10),
-        child: ListenableBuilder(
-          listenable: model,
-          builder: (context, _) => Column(
+    return ListenableBuilder(
+      listenable: model,
+      builder: (context, _) => SizedBox.fromSize(
+        size: model.size,
+        child: Material(
+          color: const Color(0xff282c34),
+          elevation: 8,
+          clipBehavior: Clip.antiAlias,
+          borderRadius: BorderRadius.circular(10),
+          child: Stack(
             children: [
-              _CodeBlockHeader(model: model),
-              const Divider(height: 1, color: Colors.white12),
-              Expanded(
-                child: CodeEditor(
-                  controller: model.controller,
-                  focusNode: model.focusNode,
-                  wordWrap: false,
-                  autocompleteSymbols: true,
-                  padding: const EdgeInsets.all(8),
-                  style: CodeEditorStyle(
-                    fontFamily: 'monospace',
-                    fontSize: 14,
-                    fontHeight: 1.4,
-                    textColor: const Color(0xffabb2bf),
-                    backgroundColor: const Color(0xff282c34),
-                    cursorLineColor: Colors.white.withValues(alpha: 0.04),
-                    codeTheme: model.language.theme,
-                  ),
-                  indicatorBuilder:
-                      (context, controller, chunkController, notifier) => Row(
-                        children: [
-                          DefaultCodeLineNumber(
-                            controller: controller,
-                            notifier: notifier,
-                          ),
-                          DefaultCodeChunkIndicator(
-                            width: 16,
-                            controller: chunkController,
-                            notifier: notifier,
-                          ),
-                        ],
+              Column(
+                children: [
+                  _CodeBlockHeader(model: model),
+                  const Divider(height: 1, color: Colors.white12),
+                  Expanded(
+                    child: CodeEditor(
+                      controller: model.controller,
+                      focusNode: model.focusNode,
+                      wordWrap: false,
+                      autocompleteSymbols: true,
+                      padding: const EdgeInsets.all(8),
+                      style: CodeEditorStyle(
+                        fontFamily: 'monospace',
+                        fontSize: 14,
+                        fontHeight: 1.4,
+                        textColor: const Color(0xffabb2bf),
+                        backgroundColor: const Color(0xff282c34),
+                        cursorLineColor: Colors.white.withValues(alpha: 0.04),
+                        codeTheme: model.language.theme,
                       ),
-                ),
+                      indicatorBuilder:
+                          (context, controller, chunkController, notifier) =>
+                              Row(
+                                children: [
+                                  DefaultCodeLineNumber(
+                                    controller: controller,
+                                    notifier: notifier,
+                                  ),
+                                  DefaultCodeChunkIndicator(
+                                    width: 16,
+                                    controller: chunkController,
+                                    notifier: notifier,
+                                  ),
+                                ],
+                              ),
+                    ),
+                  ),
+                ],
+              ),
+              Positioned(
+                right: 0,
+                bottom: 0,
+                child: _CodeBlockResizeHandle(model: model),
               ),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _CodeBlockResizeHandle extends StatelessWidget {
+  const _CodeBlockResizeHandle({required this.model});
+
+  final CodeBlockModel model;
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      cursor: SystemMouseCursors.resizeDownRight,
+      child: Semantics(
+        button: true,
+        label: 'Resize code block',
+        child: GestureDetector(
+          key: const ValueKey('code-block-resize-handle'),
+          behavior: HitTestBehavior.opaque,
+          onScaleUpdate: (details) {
+            model.size = Size(
+              model.size.width + details.focalPointDelta.dx,
+              model.size.height + details.focalPointDelta.dy,
+            );
+          },
+          child: const SizedBox(
+            width: 28,
+            height: 28,
+            child: Align(
+              alignment: Alignment.bottomRight,
+              child: Padding(
+                padding: EdgeInsets.all(4),
+                child: Icon(
+                  Icons.open_in_full,
+                  size: 16,
+                  color: Colors.white54,
+                ),
+              ),
+            ),
           ),
         ),
       ),

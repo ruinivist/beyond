@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:plane/canvas_page.dart';
+import 'package:plane/tools/code_block/code_block.dart';
 import 'package:plane/tools/pen/pen_tool.dart';
 import 'package:scribble/scribble.dart';
 
@@ -78,6 +79,37 @@ void main() {
 
     expect(find.byType(TextField), findsNWidgets(2));
     expect(tester.getTopLeft(find.byType(TextField).at(1)), secondPosition);
+  });
+
+  testWidgets('code blocks resize from the bottom-right handle', (
+    tester,
+  ) async {
+    await tester.pumpWidget(const MaterialApp(home: CanvasPage()));
+    await tester.pump();
+
+    await tester.tap(find.text('Code'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+
+    final block = find.byType(CodeBlock);
+    final handle = find.byKey(const ValueKey('code-block-resize-handle'));
+    final originalSize = tester.getSize(block);
+
+    expect(handle, findsOneWidget);
+    await tester.drag(handle, const Offset(80, 60));
+    await tester.pump();
+
+    final enlargedSize = tester.getSize(block);
+    expect(enlargedSize.width, greaterThan(originalSize.width));
+    expect(enlargedSize.height, greaterThan(originalSize.height));
+
+    await tester.drag(handle, const Offset(-1000, -1000));
+    await tester.pump();
+
+    expect(tester.getSize(block), codeBlockMinimumSize);
+
+    FocusManager.instance.primaryFocus?.unfocus();
+    await tester.pump();
   });
 
   testWidgets('space temporarily hands dragging back to the canvas', (

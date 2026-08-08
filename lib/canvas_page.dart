@@ -78,8 +78,14 @@ class _CanvasPageState extends State<CanvasPage> {
     final scale = _canvasController.scale;
     final viewport = _canvasController.canvasSize;
     final size = Size(
-      math.max(280, math.min(600, (viewport.width - 32) / scale)),
-      math.max(240, math.min(400, (viewport.height - 32) / scale)),
+      math.max(
+        codeBlockMinimumSize.width,
+        math.min(600, (viewport.width - 32) / scale),
+      ),
+      math.max(
+        codeBlockMinimumSize.height,
+        math.min(400, (viewport.height - 32) / scale),
+      ),
     );
     final model = CodeBlockModel(size);
 
