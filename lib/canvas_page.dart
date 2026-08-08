@@ -21,7 +21,7 @@ class _CanvasPageState extends State<CanvasPage> {
     buildCacheExtent: const Offset(600, 400),
   );
   final _codeBlocks = <CodeBlockModel, ({String id, Offset position})>{};
-  final _textBlocks = <TextBlockModel>[];
+  final _textBlocks = <TextBlockModel, ({String id, Offset position})>{};
   final _codeBlockPointerIds = <int>{};
   late final PenTool _penTool;
   var _penEnabled = false;
@@ -97,16 +97,26 @@ class _CanvasPageState extends State<CanvasPage> {
     _canvasController.updatePosition(entry.id, position);
   }
 
+  void _moveTextBlock(TextBlockModel model, Offset screenDelta) {
+    if (_textPlacementEnabled || _penEnabled) return;
+    final entry = _textBlocks[model];
+    if (entry == null) return;
+
+    final position = entry.position + screenDelta / _canvasController.scale;
+    _textBlocks[model] = (id: entry.id, position: position);
+    _canvasController.updatePosition(entry.id, position);
+  }
+
   void _addTextBlock(Offset position) {
     const size = Size(280, 52);
     final model = TextBlockModel();
 
-    _textBlocks.add(model);
-    _canvasController.addChild(
+    final id = _canvasController.addChild(
       position,
-      TextBlock(model: model),
+      TextBlock(model: model, onMove: (delta) => _moveTextBlock(model, delta)),
       childSize: size,
     );
+    _textBlocks[model] = (id: id, position: position);
     WidgetsBinding.instance.addPostFrameCallback(
       (_) => model.focusNode.requestFocus(),
     );
@@ -191,7 +201,7 @@ class _CanvasPageState extends State<CanvasPage> {
     for (final block in _codeBlocks.keys) {
       block.dispose();
     }
-    for (final block in _textBlocks) {
+    for (final block in _textBlocks.keys) {
       block.dispose();
     }
     HardwareKeyboard.instance.removeHandler(_handleKeyEvent);

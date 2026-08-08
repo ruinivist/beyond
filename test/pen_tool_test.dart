@@ -1,3 +1,4 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -5,6 +6,7 @@ import 'package:infinite_lazy_grid/infinite_lazy_grid.dart';
 import 'package:plane/canvas_page.dart';
 import 'package:plane/tools/code_block/code_block.dart';
 import 'package:plane/tools/pen/pen_tool.dart';
+import 'package:plane/tools/text/text_block.dart';
 import 'package:scribble/scribble.dart';
 
 void main() {
@@ -58,19 +60,23 @@ void main() {
     await tester.pump();
 
     expect(find.byType(TextField), findsNothing);
+    expect(find.byKey(const ValueKey('text-block-handle')), findsNothing);
     await tester.tap(find.text('Text'));
     await tester.pump();
 
     const firstPosition = Offset(120, 200);
     await tester.tapAt(firstPosition);
     await tester.pump();
+    await tester.pump();
 
     expect(find.byType(TextField), findsOneWidget);
     expect(tester.getTopLeft(find.byType(TextField)), firstPosition);
+    expect(find.byKey(const ValueKey('text-block-handle')), findsOneWidget);
 
     await tester.tapAt(const Offset(400, 300));
     await tester.pump();
     expect(find.byType(TextField), findsOneWidget);
+    expect(find.byKey(const ValueKey('text-block-handle')), findsOneWidget);
 
     await tester.tap(find.text('Text'));
     await tester.pump();
@@ -80,6 +86,39 @@ void main() {
 
     expect(find.byType(TextField), findsNWidgets(2));
     expect(tester.getTopLeft(find.byType(TextField).at(1)), secondPosition);
+  });
+
+  testWidgets('text blocks move from their handle', (tester) async {
+    await tester.pumpWidget(const MaterialApp(home: CanvasPage()));
+    await tester.pump();
+
+    await tester.tap(find.text('Text'));
+    await tester.pump();
+    await tester.tapAt(const Offset(120, 200));
+    await tester.pump();
+    await tester.pump();
+
+    final textBlock = find.byType(TextBlock);
+    final handle = find.byKey(const ValueKey('text-block-handle'));
+    final model = tester.widget<TextBlock>(textBlock).model;
+    final canvas = tester.widget<LazyCanvas>(find.byType(LazyCanvas));
+    final originalTopLeft = tester.getTopLeft(textBlock);
+    final originalCanvasOffset = canvas.controller.offset;
+    const delta = Offset(80, 60);
+
+    await tester.drag(handle, delta, kind: PointerDeviceKind.mouse);
+    await tester.pump();
+
+    expect(tester.getTopLeft(textBlock), originalTopLeft + delta);
+    expect(canvas.controller.offset, originalCanvasOffset);
+    expect(model.focusNode.hasFocus, isTrue);
+    expect(handle, findsOneWidget);
+    final focusedHintPosition = tester.getTopLeft(find.text('Type something'));
+
+    FocusManager.instance.primaryFocus?.unfocus();
+    await tester.pump();
+    expect(find.byKey(const ValueKey('text-block-handle')), findsNothing);
+    expect(tester.getTopLeft(find.text('Type something')), focusedHintPosition);
   });
 
   testWidgets('code blocks resize from the bottom-right handle', (
