@@ -77,6 +77,9 @@ class _CanvasPageState extends State<CanvasPage> {
   ) {
     _interactiveBlockPointerIds.add(event.pointer);
     if (_textPlacementEnabled || _penEnabled) return;
+    final entry = _codeBlocks[model];
+    if (entry == null) return;
+    _canvasController.bringToFront(entry.id);
     _selectCodeBlock(model);
   }
 
@@ -86,7 +89,17 @@ class _CanvasPageState extends State<CanvasPage> {
   ) {
     _interactiveBlockPointerIds.add(event.pointer);
     if (_textPlacementEnabled || _penEnabled) return;
+    final entry = _markdownBlocks[model];
+    if (entry == null) return;
+    _canvasController.bringToFront(entry.id);
     _selectMarkdownBlock(model);
+  }
+
+  void _handleTextBlockPointerDown(TextBlockModel model) {
+    if (_textPlacementEnabled || _penEnabled) return;
+    final entry = _textBlocks[model];
+    if (entry == null) return;
+    _canvasController.bringToFront(entry.id);
   }
 
   void _selectCodeBlock(CodeBlockModel selected) {
@@ -152,7 +165,11 @@ class _CanvasPageState extends State<CanvasPage> {
 
     final id = _canvasController.addChild(
       position,
-      TextBlock(model: model, onMove: (delta) => _moveTextBlock(model, delta)),
+      TextBlock(
+        model: model,
+        onSelect: (_) => _handleTextBlockPointerDown(model),
+        onMove: (delta) => _moveTextBlock(model, delta),
+      ),
       childSize: size,
     );
     _textBlocks[model] = (id: id, position: position);
