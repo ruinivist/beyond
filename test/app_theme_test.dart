@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:infinite_lazy_grid/infinite_lazy_grid.dart';
 import 'package:plane/main.dart';
+import 'package:plane/canvas/tools/code_block/code_language.dart';
 import 'package:plane/theme/app_theme.dart';
 import 'package:re_editor/re_editor.dart';
 import 'package:scribble/scribble.dart';
@@ -50,7 +51,26 @@ void main() {
     expect(codeSurface.color, components.codeEditor.background);
     expect(editor.style!.cursorColor, components.codeEditor.cursor);
     expect(editor.style!.selectionColor, components.codeEditor.selection);
-    expect(editor.style!.codeTheme!.theme, components.codeEditor.syntaxTheme);
+    expect(editor.style!.fontFamily, starlessLight.typography.mono.fontFamily);
+    expect(
+      editor.style!.fontFamilyFallback,
+      starlessLight.typography.mono.fontFamilyFallback,
+    );
+    final lineNumbers = tester.widget<DefaultCodeLineNumber>(
+      find.byType(DefaultCodeLineNumber),
+    );
+    expect(
+      lineNumbers.textStyle!.fontFamily,
+      starlessLight.typography.mono.fontFamily,
+    );
+    expect(
+      lineNumbers.focusedTextStyle!.fontFamily,
+      starlessLight.typography.mono.fontFamily,
+    );
+    expect(
+      editor.style!.codeTheme!.theme,
+      CodeLanguage.dart.theme(components.codeEditor.syntaxTheme)!.theme,
+    );
 
     await tester.tap(find.text('Markdown'));
     await tester.pump();
@@ -70,5 +90,18 @@ void main() {
     expect(dialog.shadowColor, components.settings.shadow);
     expect(about.selectedTileColor, components.settings.selectedBackground);
     expect(about.selectedColor, components.settings.selectedForeground);
+  });
+
+  test('syntax token styles inherit the editor font', () {
+    final code = starlessLight.components.codeEditor;
+
+    for (final language in CodeLanguage.values) {
+      final theme = language.theme(code.syntaxTheme);
+      if (theme == null) continue;
+
+      for (final style in theme.theme.values) {
+        expect(style.fontFamily, isNull);
+      }
+    }
   });
 }

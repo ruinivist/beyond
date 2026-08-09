@@ -83,9 +83,11 @@ class CodeBlock extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = context.appTheme.components;
+    final appTheme = context.appTheme;
+    final theme = appTheme.components;
     final block = theme.block;
     final code = theme.codeEditor;
+    final codeStyle = appTheme.typography.mono.copyWith(color: code.foreground);
     return Listener(
       onPointerDown: onSelect,
       child: ListenableBuilder(
@@ -121,9 +123,10 @@ class CodeBlock extends StatelessWidget {
                         autocompleteSymbols: true,
                         padding: const EdgeInsets.all(8),
                         style: CodeEditorStyle(
-                          fontFamily: 'monospace',
-                          fontSize: 14,
-                          fontHeight: 1.4,
+                          fontFamily: codeStyle.fontFamily,
+                          fontFamilyFallback: codeStyle.fontFamilyFallback,
+                          fontSize: codeStyle.fontSize,
+                          fontHeight: codeStyle.height,
                           textColor: code.foreground,
                           backgroundColor: code.background,
                           cursorColor: code.cursor,
@@ -140,10 +143,10 @@ class CodeBlock extends StatelessWidget {
                                       DefaultCodeLineNumber(
                                         controller: controller,
                                         notifier: notifier,
-                                        textStyle: TextStyle(
+                                        textStyle: codeStyle.copyWith(
                                           color: code.mutedForeground,
                                         ),
-                                        focusedTextStyle: TextStyle(
+                                        focusedTextStyle: codeStyle.copyWith(
                                           color: code.cursor,
                                         ),
                                       ),
@@ -220,7 +223,9 @@ class _CodeBlockHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final code = context.appTheme.components.codeEditor;
+    final appTheme = context.appTheme;
+    final code = appTheme.components.codeEditor;
+    final ui = appTheme.typography.ui;
     return SizedBox(
       height: 40,
       child: MouseRegion(
@@ -246,7 +251,7 @@ class _CodeBlockHeader extends StatelessWidget {
                   child: DropdownButton<CodeLanguage>(
                     value: model.language,
                     dropdownColor: code.dropdownBackground,
-                    style: TextStyle(color: code.foreground, fontSize: 13),
+                    style: ui.labelLarge!.copyWith(color: code.foreground),
                     iconEnabledColor: code.mutedForeground,
                     items: [
                       for (final language in CodeLanguage.values)

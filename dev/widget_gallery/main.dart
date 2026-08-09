@@ -7,7 +7,11 @@ import 'package:plane/theme/app_theme.dart';
 import 'package:plane/widgets/settings_dialog.dart';
 import 'package:re_editor/re_editor.dart';
 
-void main() => runApp(const WidgetGalleryApp());
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await loadCodeFont();
+  runApp(const WidgetGalleryApp());
+}
 
 final _galleryTheme = starlessLightThemeData.copyWith(
   colorScheme: ColorScheme.light(
@@ -109,7 +113,6 @@ class _WidgetGalleryPageState extends State<WidgetGalleryPage> {
                   'Starless Light',
                   style: Theme.of(context).textTheme.displaySmall?.copyWith(
                     color: theme.colors.textPrimary,
-                    fontWeight: FontWeight.w700,
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -133,7 +136,8 @@ class _WidgetGalleryPageState extends State<WidgetGalleryPage> {
                     _GalleryCard(
                       title: 'Typography',
                       existing: true,
-                      note: 'Current Material type scale with Starless colors.',
+                      note:
+                          'Three semantic families for UI, editorial, and code.',
                       child: _typography(context),
                     ),
                     _GalleryCard(
@@ -515,9 +519,10 @@ class _WidgetGalleryPageState extends State<WidgetGalleryPage> {
                               color: theme.colors.textMuted,
                             ),
                             const SizedBox(height: 12),
-                            const Text(
+                            Text(
                               'Nothing here yet',
-                              style: TextStyle(fontWeight: FontWeight.w600),
+                              style: theme.typography.editorial.titleLarge!
+                                  .copyWith(fontWeight: FontWeight.w600),
                             ),
                             const SizedBox(height: 4),
                             Text(
@@ -569,10 +574,9 @@ class _WidgetGalleryPageState extends State<WidgetGalleryPage> {
         children: [
           Text(
             title,
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-              color: colors.textPrimary,
-              fontWeight: FontWeight.w700,
-            ),
+            style: Theme.of(
+              context,
+            ).textTheme.headlineSmall?.copyWith(color: colors.textPrimary),
           ),
           const SizedBox(height: 4),
           Text(description, style: TextStyle(color: colors.textSecondary)),
@@ -649,15 +653,59 @@ class _WidgetGalleryPageState extends State<WidgetGalleryPage> {
   }
 
   Widget _typography(BuildContext context) {
-    final text = Theme.of(context).textTheme;
+    final typography = context.appTheme.typography;
+    final colors = context.appTheme.colors;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Display', style: text.displaySmall),
-        Text('Headline', style: text.headlineMedium),
-        Text('Title', style: text.titleLarge),
-        Text('Body text for everyday content.', style: text.bodyLarge),
-        Text('Supporting label', style: text.labelMedium),
+        Text(
+          'Inter · UI and chrome',
+          style: typography.ui.titleMedium!.copyWith(color: colors.textPrimary),
+        ),
+        Text(
+          'Controls, navigation, labels · 11–14 px · 400–600',
+          style: typography.ui.bodyMedium!.copyWith(
+            color: colors.textSecondary,
+          ),
+        ),
+        const SizedBox(height: 12),
+        Text(
+          'Source Serif 4 · editorial and document',
+          style: typography.editorial.titleMedium!.copyWith(
+            color: colors.textPrimary,
+          ),
+        ),
+        Text(
+          'A heading for a note or rendered Markdown.',
+          style: typography.editorial.headlineSmall!.copyWith(
+            color: colors.textPrimary,
+          ),
+        ),
+        Text(
+          'Long-form prose and large canvas text use this warmer reading face.',
+          style: typography.editorial.bodyMedium!.copyWith(
+            color: colors.textSecondary,
+          ),
+        ),
+        const SizedBox(height: 12),
+        Text(
+          'IBM Plex Mono · code and technical metadata',
+          style: typography.mono.copyWith(
+            color: colors.textPrimary,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        Text(
+          'const line = 42;',
+          style: typography.mono.copyWith(color: colors.textPrimary),
+        ),
+        Text(
+          'MARKDOWN · 0.1.0',
+          style: typography.mono.copyWith(
+            color: colors.textMuted,
+            fontSize: 11,
+          ),
+        ),
       ],
     );
   }
@@ -810,9 +858,7 @@ class _GalleryCard extends StatelessWidget {
                 Expanded(
                   child: Text(
                     title,
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
+                    style: Theme.of(context).textTheme.titleMedium,
                   ),
                 ),
                 _StatusBadge(existing: existing),

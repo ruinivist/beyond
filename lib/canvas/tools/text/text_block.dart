@@ -27,7 +27,9 @@ class TextBlock extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final block = context.appTheme.components.block;
+    final appTheme = context.appTheme;
+    final block = appTheme.components.block;
+    final editorial = appTheme.typography.editorial;
     return Listener(
       onPointerDown: onSelect,
       child: SizedBox(
@@ -49,9 +51,11 @@ class TextBlock extends StatelessWidget {
                       border: InputBorder.none,
                       contentPadding: const EdgeInsets.fromLTRB(12, 12, 28, 12),
                       hintText: 'Type something',
-                      hintStyle: TextStyle(color: block.mutedForeground),
+                      hintStyle: editorial.bodyLarge!.copyWith(
+                        color: block.mutedForeground,
+                      ),
                     ),
-                    style: TextStyle(
+                    style: editorial.bodyLarge!.copyWith(
                       color: block.foreground,
                       fontSize: 20,
                       height: 1.3,

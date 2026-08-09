@@ -10,7 +10,9 @@ class SettingsDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final viewport = MediaQuery.sizeOf(context);
-    final settings = context.appTheme.components.settings;
+    final appTheme = context.appTheme;
+    final settings = appTheme.components.settings;
+    final ui = appTheme.typography.ui;
     return Dialog(
       backgroundColor: settings.background,
       surfaceTintColor: Colors.transparent,
@@ -37,9 +39,8 @@ class SettingsDialog extends StatelessWidget {
                       padding: const EdgeInsets.fromLTRB(16, 20, 16, 12),
                       child: Text(
                         'Settings',
-                        style: TextStyle(
+                        style: ui.titleMedium!.copyWith(
                           color: settings.foreground,
-                          fontWeight: FontWeight.w600,
                         ),
                       ),
                     ),
@@ -69,10 +70,8 @@ class SettingsDialog extends StatelessWidget {
                       children: [
                         Text(
                           'About',
-                          style: TextStyle(
+                          style: ui.titleLarge!.copyWith(
                             color: settings.foreground,
-                            fontSize: 18,
-                            fontWeight: FontWeight.w600,
                           ),
                         ),
                         const Spacer(),
@@ -107,7 +106,9 @@ class SettingsDialog extends StatelessWidget {
                     const SizedBox(height: 20),
                     Text(
                       'plane - dev build',
-                      style: TextStyle(color: settings.secondaryForeground),
+                      style: ui.bodyMedium!.copyWith(
+                        color: settings.secondaryForeground,
+                      ),
                     ),
                   ],
                 ),

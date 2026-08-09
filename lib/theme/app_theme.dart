@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:re_highlight/styles/atom-one-light.dart';
 
 abstract final class _Palette {
@@ -67,6 +68,87 @@ class AppSemanticColors {
   final Color shadow;
   final Color scrim;
 }
+
+@immutable
+class AppTypography {
+  const AppTypography({
+    required this.ui,
+    required this.editorial,
+    required this.mono,
+  });
+
+  final TextTheme ui;
+  final TextTheme editorial;
+  final TextStyle mono;
+}
+
+const _compactUiTextTheme = TextTheme(
+  displayLarge: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+  displayMedium: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+  displaySmall: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+  headlineLarge: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+  headlineMedium: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+  headlineSmall: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+  titleLarge: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+  titleMedium: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+  titleSmall: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+  bodyLarge: TextStyle(fontSize: 14),
+  bodyMedium: TextStyle(fontSize: 13),
+  bodySmall: TextStyle(fontSize: 12),
+  labelLarge: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+  labelMedium: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+  labelSmall: TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
+);
+
+const _editorialTextTheme = TextTheme(
+  displayLarge: TextStyle(
+    fontSize: 40,
+    fontWeight: FontWeight.w600,
+    height: 1.1,
+  ),
+  displayMedium: TextStyle(
+    fontSize: 32,
+    fontWeight: FontWeight.w600,
+    height: 1.15,
+  ),
+  displaySmall: TextStyle(
+    fontSize: 28,
+    fontWeight: FontWeight.w600,
+    height: 1.2,
+  ),
+  headlineLarge: TextStyle(
+    fontSize: 24,
+    fontWeight: FontWeight.w600,
+    height: 1.2,
+  ),
+  headlineMedium: TextStyle(
+    fontSize: 22,
+    fontWeight: FontWeight.w600,
+    height: 1.25,
+  ),
+  headlineSmall: TextStyle(
+    fontSize: 20,
+    fontWeight: FontWeight.w600,
+    height: 1.3,
+  ),
+  titleLarge: TextStyle(
+    fontSize: 18,
+    fontWeight: FontWeight.w600,
+    height: 1.35,
+  ),
+  titleMedium: TextStyle(
+    fontSize: 17,
+    fontWeight: FontWeight.w600,
+    height: 1.35,
+  ),
+  titleSmall: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, height: 1.4),
+  bodyLarge: TextStyle(fontSize: 18, height: 1.5),
+  bodyMedium: TextStyle(fontSize: 16, height: 1.5),
+  bodySmall: TextStyle(fontSize: 14, height: 1.45),
+  labelLarge: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+  labelMedium: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+  labelSmall: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+);
 
 typedef CanvasTokens = ({
   Color background,
@@ -229,19 +311,26 @@ class AppComponentTokens {
 
 @immutable
 class AppTheme extends ThemeExtension<AppTheme> {
-  const AppTheme({required this.colors, required this.components});
+  const AppTheme({
+    required this.colors,
+    required this.components,
+    required this.typography,
+  });
 
   final AppSemanticColors colors;
   final AppComponentTokens components;
+  final AppTypography typography;
 
   @override
   AppTheme copyWith({
     AppSemanticColors? colors,
     AppComponentTokens? components,
+    AppTypography? typography,
   }) {
     return AppTheme(
       colors: colors ?? this.colors,
       components: components ?? this.components,
+      typography: typography ?? this.typography,
     );
   }
 
@@ -278,19 +367,49 @@ const _starlessLightColors = AppSemanticColors(
   scrim: _Palette.scrim,
 );
 
+var _useMonoFallback = false;
+
+TextStyle _ibmPlexMono() => GoogleFonts.ibmPlexMono(
+  color: _starlessLightColors.textPrimary,
+  fontSize: 14,
+  height: 1.4,
+);
+
+final _starlessLightTypography = AppTypography(
+  ui: GoogleFonts.interTextTheme(_compactUiTextTheme).apply(
+    bodyColor: _starlessLightColors.textPrimary,
+    displayColor: _starlessLightColors.textPrimary,
+  ),
+  editorial: GoogleFonts.sourceSerif4TextTheme(_editorialTextTheme).apply(
+    bodyColor: _starlessLightColors.textPrimary,
+    displayColor: _starlessLightColors.textPrimary,
+  ),
+  mono: _useMonoFallback
+      ? const TextStyle(fontFamily: 'monospace', fontSize: 14, height: 1.4)
+      : _ibmPlexMono(),
+);
+
 final starlessLight = AppTheme(
   colors: _starlessLightColors,
   components: AppComponentTokens.from(_starlessLightColors),
+  typography: _starlessLightTypography,
 );
+
+Future<void> loadCodeFont() async {
+  try {
+    await GoogleFonts.pendingFonts([
+      _ibmPlexMono(),
+    ]).timeout(const Duration(seconds: 3));
+  } on Exception {
+    _useMonoFallback = true;
+  }
+}
 
 final starlessLightThemeData = ThemeData(
   brightness: Brightness.light,
   scaffoldBackgroundColor: _starlessLightColors.canvasBackground,
   extensions: [starlessLight],
-  textTheme: ThemeData.light().textTheme.apply(
-    bodyColor: _starlessLightColors.textPrimary,
-    displayColor: _starlessLightColors.textPrimary,
-  ),
+  textTheme: starlessLight.typography.ui,
   iconTheme: const IconThemeData(color: _Palette.secondaryText),
   dividerTheme: const DividerThemeData(color: _Palette.border, thickness: 1),
   textSelectionTheme: const TextSelectionThemeData(
@@ -304,15 +423,19 @@ final starlessLightThemeData = ThemeData(
   focusColor: _Palette.rose300,
   hoverColor: _Palette.hover,
   splashColor: _Palette.pressed,
-  snackBarTheme: const SnackBarThemeData(
+  snackBarTheme: SnackBarThemeData(
     backgroundColor: _Palette.text,
-    contentTextStyle: TextStyle(color: _Palette.white),
+    contentTextStyle: starlessLight.typography.ui.bodyMedium!.copyWith(
+      color: _Palette.white,
+    ),
   ),
   tooltipTheme: TooltipThemeData(
     decoration: BoxDecoration(
       color: _Palette.text,
       borderRadius: BorderRadius.circular(4),
     ),
-    textStyle: const TextStyle(color: _Palette.white),
+    textStyle: starlessLight.typography.ui.bodySmall!.copyWith(
+      color: _Palette.white,
+    ),
   ),
 );

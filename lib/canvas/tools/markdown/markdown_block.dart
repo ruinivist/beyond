@@ -74,7 +74,9 @@ class MarkdownBlock extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final block = context.appTheme.components.block;
+    final appTheme = context.appTheme;
+    final block = appTheme.components.block;
+    final mono = appTheme.typography.mono;
     return Listener(
       onPointerDown: onSelect,
       child: ListenableBuilder(
@@ -120,16 +122,11 @@ class MarkdownBlock extends StatelessWidget {
                                 border: InputBorder.none,
                                 contentPadding: const EdgeInsets.all(16),
                                 hintText: 'Write Markdown…',
-                                hintStyle: TextStyle(
+                                hintStyle: mono.copyWith(
                                   color: block.mutedForeground,
                                 ),
                               ),
-                              style: TextStyle(
-                                fontFamily: 'monospace',
-                                fontSize: 14,
-                                height: 1.4,
-                                color: block.foreground,
-                              ),
+                              style: mono.copyWith(color: block.foreground),
                             ),
                     ),
                   ],
@@ -156,7 +153,11 @@ class _MarkdownPreview extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final block = context.appTheme.components.block;
+    final appTheme = context.appTheme;
+    final block = appTheme.components.block;
+    final editorial = appTheme.typography.editorial;
+    final mono = appTheme.typography.mono;
+    final prose = editorial.bodyMedium!.copyWith(color: block.foreground);
     return Markdown(
       key: const ValueKey('markdown-preview'),
       controller: controller,
@@ -166,8 +167,31 @@ class _MarkdownPreview extends StatelessWidget {
       inlineSyntaxes: [LatexInlineSyntax()],
       builders: {'latex': LatexElementBuilder()},
       styleSheet: MarkdownStyleSheet.fromTheme(Theme.of(context)).copyWith(
-        a: TextStyle(color: block.selectedBorder),
-        p: TextStyle(color: block.foreground),
+        a: prose.copyWith(color: block.selectedBorder),
+        p: prose,
+        code: mono.copyWith(
+          color: block.foreground,
+          fontSize: 13,
+          backgroundColor: appTheme.colors.surfaceSubtle,
+        ),
+        h1: editorial.headlineLarge!.copyWith(color: block.foreground),
+        h2: editorial.headlineMedium!.copyWith(color: block.foreground),
+        h3: editorial.headlineSmall!.copyWith(color: block.foreground),
+        h4: editorial.titleLarge!.copyWith(color: block.foreground),
+        h5: editorial.titleMedium!.copyWith(color: block.foreground),
+        h6: editorial.titleSmall!.copyWith(color: block.foreground),
+        em: prose.copyWith(fontStyle: FontStyle.italic),
+        strong: prose.copyWith(fontWeight: FontWeight.w600),
+        del: prose.copyWith(decoration: TextDecoration.lineThrough),
+        blockquote: prose,
+        img: prose,
+        checkbox: prose.copyWith(color: block.selectedBorder),
+        listBullet: prose,
+        tableHead: editorial.bodySmall!.copyWith(
+          color: block.foreground,
+          fontWeight: FontWeight.w600,
+        ),
+        tableBody: editorial.bodySmall!.copyWith(color: block.foreground),
       ),
       imageBuilder: (uri, title, alt) {
         if (uri.scheme != 'https' || uri.host.isEmpty) {
