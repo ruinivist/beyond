@@ -3,9 +3,9 @@ import 'dart:math' as math;
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:re_editor/re_editor.dart';
+import 'package:scroll_animator/scroll_animator.dart';
 
 import '../../../theme/app_theme.dart';
-import '../../smooth_scroll_controller.dart';
 import 'code_language.dart';
 
 const codeBlockMinimumSize = Size(280, 240);
@@ -20,8 +20,12 @@ class CodeBlockModel extends ChangeNotifier {
   );
   final focusNode = FocusNode();
   final scrollController = CodeScrollController(
-    verticalScroller: SmoothScrollController(),
-    horizontalScroller: SmoothScrollController(),
+    verticalScroller: AnimatedScrollController(
+      animationFactory: const ChromiumEaseInOut(),
+    ),
+    horizontalScroller: AnimatedScrollController(
+      animationFactory: const ChromiumEaseInOut(),
+    ),
   );
   CodeLanguage _language = CodeLanguage.dart;
 

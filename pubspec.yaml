@@ -17,6 +17,7 @@ dependencies:
     git: https://github.com/ruinivist/infinite_lazy_grid.git
   re_editor: ^0.10.0
   re_highlight: ^0.0.3
+  scroll_animator: 0.3.0
   scribble: ^0.10.0+1
   url_launcher: ^6.3.2
 

@@ -4,10 +4,10 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:flutter_markdown_plus_latex/flutter_markdown_plus_latex.dart';
+import 'package:scroll_animator/scroll_animator.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../theme/app_theme.dart';
-import '../../smooth_scroll_controller.dart';
 
 const markdownBlockMinimumSize = Size(320, 240);
 
@@ -16,7 +16,9 @@ class MarkdownBlockModel extends ChangeNotifier {
 
   final controller = TextEditingController();
   final focusNode = FocusNode();
-  final scrollController = SmoothScrollController();
+  final scrollController = AnimatedScrollController(
+    animationFactory: const ChromiumEaseInOut(),
+  );
   Size _size;
   bool _selected = false;
   bool _previewing = false;

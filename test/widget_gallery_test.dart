@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:scroll_animator/scroll_animator.dart';
 
 import '../dev/widget_gallery/main.dart';
 
@@ -19,10 +20,20 @@ void main() {
     expect(find.text('Proposed'), findsWidgets);
     expect(find.text('A real editable text block'), findsOneWidget);
 
-    final scrollable = find.descendant(
-      of: find.byKey(const ValueKey('gallery-scroll')),
-      matching: find.byType(Scrollable),
-    ).first;
+    final scrollable = find
+        .descendant(
+          of: find.byKey(const ValueKey('gallery-scroll')),
+          matching: find.byType(Scrollable),
+        )
+        .first;
+    expect(
+      tester
+          .widget<SingleChildScrollView>(
+            find.byKey(const ValueKey('gallery-scroll')),
+          )
+          .controller,
+      isA<AnimatedScrollController>(),
+    );
     final switchFinder = find.byType(SwitchListTile).first;
     await tester.scrollUntilVisible(switchFinder, 300, scrollable: scrollable);
     await tester.tap(switchFinder);

@@ -6,6 +6,7 @@ import 'package:plane/canvas/tools/text/text_block.dart';
 import 'package:plane/theme/app_theme.dart';
 import 'package:plane/widgets/settings_dialog.dart';
 import 'package:re_editor/re_editor.dart';
+import 'package:scroll_animator/scroll_animator.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -52,6 +53,9 @@ class WidgetGalleryPage extends StatefulWidget {
 }
 
 class _WidgetGalleryPageState extends State<WidgetGalleryPage> {
+  final _scrollController = AnimatedScrollController(
+    animationFactory: const ChromiumEaseInOut(),
+  );
   final _textModel = TextBlockModel();
   final _codeModel = CodeBlockModel(const Size(520, 320));
   final _markdownModel = MarkdownBlockModel(const Size(500, 320));
@@ -80,6 +84,7 @@ class _WidgetGalleryPageState extends State<WidgetGalleryPage> {
 
   @override
   void dispose() {
+    _scrollController.dispose();
     _textModel.dispose();
     _codeModel.dispose();
     _markdownModel.dispose();
@@ -102,6 +107,7 @@ class _WidgetGalleryPageState extends State<WidgetGalleryPage> {
       ),
       body: SingleChildScrollView(
         key: const ValueKey('gallery-scroll'),
+        controller: _scrollController,
         padding: const EdgeInsets.all(24),
         child: Center(
           child: ConstrainedBox(
