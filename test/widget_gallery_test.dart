@@ -40,6 +40,27 @@ void main() {
     await tester.pump();
     expect(tester.widget<SwitchListTile>(switchFinder).value, isTrue);
 
+    final dropdownFinder = find.byKey(const ValueKey('gallery-dropdown'));
+    await tester.scrollUntilVisible(
+      dropdownFinder,
+      300,
+      scrollable: scrollable,
+    );
+    final dropdownTriggerFinder = find.descendant(
+      of: dropdownFinder,
+      matching: find.byKey(const ValueKey('select-trigger')),
+    );
+    await tester.tap(dropdownTriggerFinder);
+    await tester.pump();
+    await tester.tap(
+      find.descendant(
+        of: dropdownFinder,
+        matching: find.byKey(const ValueKey('select-option-1')),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Code'), findsOneWidget);
+
     final settingsFinder = find.byKey(const ValueKey('open-settings'));
     await tester.scrollUntilVisible(
       settingsFinder,

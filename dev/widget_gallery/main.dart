@@ -3,6 +3,7 @@ import 'package:plane/canvas/canvas_page.dart';
 import 'package:plane/canvas/tools/code_block/code_block.dart';
 import 'package:plane/canvas/tools/markdown/markdown_block.dart';
 import 'package:plane/canvas/tools/text/text_block.dart';
+import 'package:plane/foundation/select.dart';
 import 'package:plane/theme/app_theme.dart';
 import 'package:plane/widgets/settings_dialog.dart';
 import 'package:re_editor/re_editor.dart';
@@ -305,31 +306,31 @@ class _WidgetGalleryPageState extends State<WidgetGalleryPage> {
                       title: 'Dropdown',
                       existing: false,
                       note: 'Choose one value from a short list.',
-                      child: DropdownButtonFormField<String>(
+                      child: Select<String>(
                         key: const ValueKey('gallery-dropdown'),
-                        initialValue: _dropdownValue,
-                        decoration: _inputDecoration(
-                          theme,
-                          label: 'Block type',
-                        ),
-                        dropdownColor:
-                            theme.components.codeEditor.dropdownBackground,
-                        items: const [
-                          DropdownMenuItem(
-                            value: 'Canvas',
-                            child: Text('Canvas'),
-                          ),
-                          DropdownMenuItem(value: 'Code', child: Text('Code')),
-                          DropdownMenuItem(
-                            value: 'Markdown',
-                            child: Text('Markdown'),
-                          ),
+                        value: _dropdownValue,
+                        options: const [
+                          SelectOption(value: 'Canvas', label: 'Canvas'),
+                          SelectOption(value: 'Code', label: 'Code'),
+                          SelectOption(value: 'Markdown', label: 'Markdown'),
                         ],
-                        onChanged: (value) {
-                          if (value != null) {
-                            setState(() => _dropdownValue = value);
-                          }
-                        },
+                        onChanged: (value) =>
+                            setState(() => _dropdownValue = value),
+                        textStyle: theme.typography.ui.bodyMedium!.copyWith(
+                          fontSize: 16,
+                        ),
+                        foregroundColor: theme.colors.textPrimary,
+                        backgroundColor: theme.colors.surface,
+                        popupColor:
+                            theme.components.codeEditor.dropdownBackground,
+                        borderColor: theme.colors.borderSubtle,
+                        hoverColor: theme.colors.surfaceHover,
+                        pressedColor: theme.colors.surfacePressed,
+                        iconColor: theme.colors.textSecondary,
+                        shadowColor: theme.colors.shadow,
+                        borderRadius: BorderRadius.circular(
+                          theme.components.toolbar.radius,
+                        ),
                       ),
                     ),
                   ],

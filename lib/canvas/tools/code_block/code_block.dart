@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:re_editor/re_editor.dart';
 import 'package:scroll_animator/scroll_animator.dart';
 
+import '../../../foundation/select.dart';
 import '../../../theme/app_theme.dart';
 import 'code_language.dart';
 
@@ -229,6 +230,7 @@ class _CodeBlockHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final appTheme = context.appTheme;
     final code = appTheme.components.codeEditor;
+    final block = appTheme.components.block;
     final ui = appTheme.typography.ui;
     return SizedBox(
       height: 40,
@@ -251,23 +253,27 @@ class _CodeBlockHeader extends StatelessWidget {
               children: [
                 Icon(Icons.code, size: 18, color: code.mutedForeground),
                 const SizedBox(width: 8),
-                DropdownButtonHideUnderline(
-                  child: DropdownButton<CodeLanguage>(
-                    value: model.language,
-                    dropdownColor: code.dropdownBackground,
-                    style: ui.labelLarge!.copyWith(color: code.foreground),
-                    iconEnabledColor: code.mutedForeground,
-                    items: [
-                      for (final language in CodeLanguage.values)
-                        DropdownMenuItem(
-                          value: language,
-                          child: Text(language.label),
-                        ),
-                    ],
-                    onChanged: (language) {
-                      if (language != null) model.language = language;
-                    },
+                Select<CodeLanguage>(
+                  value: model.language,
+                  options: [
+                    for (final language in CodeLanguage.values)
+                      SelectOption(value: language, label: language.label),
+                  ],
+                  onChanged: (language) => model.language = language,
+                  textStyle: ui.labelLarge!.copyWith(
+                    color: code.foreground,
+                    fontSize: 16,
                   ),
+                  foregroundColor: code.foreground,
+                  backgroundColor: Colors.transparent,
+                  popupColor: code.dropdownBackground,
+                  borderColor: code.divider,
+                  hoverColor: block.hoverBackground,
+                  pressedColor: block.pressedBackground,
+                  iconColor: code.mutedForeground,
+                  shadowColor: block.shadow,
+                  popupElevation: block.elevation,
+                  borderRadius: BorderRadius.circular(block.radius),
                 ),
               ],
             ),

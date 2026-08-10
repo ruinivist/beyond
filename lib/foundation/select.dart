@@ -1,0 +1,289 @@
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+
+@immutable
+class SelectOption<T> {
+  const SelectOption({
+    required this.value,
+    required this.label,
+    this.enabled = true,
+  });
+
+  final T value;
+  final String label;
+  final bool enabled;
+}
+
+class Select<T> extends StatefulWidget {
+  const Select({
+    required this.value,
+    required this.options,
+    required this.onChanged,
+    required this.textStyle,
+    required this.foregroundColor,
+    required this.backgroundColor,
+    required this.popupColor,
+    required this.borderColor,
+    required this.hoverColor,
+    required this.pressedColor,
+    this.iconColor,
+    this.shadowColor,
+    this.popupElevation = 8,
+    this.borderRadius = const BorderRadius.all(Radius.circular(8)),
+    super.key,
+  });
+
+  final T value;
+  final List<SelectOption<T>> options;
+  final ValueChanged<T>? onChanged;
+  final TextStyle textStyle;
+  final Color foregroundColor;
+  final Color backgroundColor;
+  final Color popupColor;
+  final Color borderColor;
+  final Color hoverColor;
+  final Color pressedColor;
+  final Color? iconColor;
+  final Color? shadowColor;
+  final double popupElevation;
+  final BorderRadius borderRadius;
+
+  @override
+  State<Select<T>> createState() => _SelectState<T>();
+}
+
+class _SelectState<T> extends State<Select<T>> {
+  final _menuController = MenuController();
+  final _triggerFocusNode = FocusNode();
+  late List<FocusNode> _optionFocusNodes;
+
+  bool get _enabled => widget.onChanged != null;
+  TextStyle get _textStyle => widget.textStyle.copyWith(fontSize: 14);
+  WidgetStateProperty<Color?> get _foregroundColor =>
+      WidgetStateProperty.resolveWith((states) {
+        return states.contains(WidgetState.disabled)
+            ? widget.foregroundColor.withValues(alpha: 0.38)
+            : widget.foregroundColor;
+      });
+
+  @override
+  void initState() {
+    super.initState();
+    _optionFocusNodes = _newOptionFocusNodes(widget.options.length);
+  }
+
+  @override
+  void didUpdateWidget(covariant Select<T> oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.options.length != widget.options.length) {
+      for (final node in _optionFocusNodes) {
+        node.dispose();
+      }
+      _optionFocusNodes = _newOptionFocusNodes(widget.options.length);
+    }
+    if (_enabled == false && oldWidget.onChanged != null) {
+      _menuController.close();
+    }
+  }
+
+  List<FocusNode> _newOptionFocusNodes(int count) {
+    return List.generate(
+      count,
+      (i) => FocusNode(debugLabel: 'Select option $i'),
+    );
+  }
+
+  @override
+  void dispose() {
+    for (final node in _optionFocusNodes) {
+      node.dispose();
+    }
+    _triggerFocusNode.dispose();
+    super.dispose();
+  }
+
+  SelectOption<T>? get _selectedOption {
+    for (final option in widget.options) {
+      if (option.value == widget.value) return option;
+    }
+    return null;
+  }
+
+  void _focusSelectedOption() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !_menuController.isOpen) return;
+      var index = widget.options.indexWhere(
+        (option) => option.value == widget.value && option.enabled,
+      );
+      if (index < 0) {
+        index = widget.options.indexWhere((option) => option.enabled);
+      }
+      if (index >= 0) _optionFocusNodes[index].requestFocus();
+    });
+  }
+
+  void _restoreTriggerFocus() {
+    if (mounted && _enabled) _triggerFocusNode.requestFocus();
+  }
+
+  ButtonStyle _triggerStyle() {
+    return ButtonStyle(
+      foregroundColor: _foregroundColor,
+      backgroundColor: WidgetStateProperty.resolveWith((states) {
+        if (states.contains(WidgetState.disabled)) {
+          return widget.backgroundColor;
+        }
+        if (states.contains(WidgetState.pressed)) return widget.pressedColor;
+        return widget.hoverColor;
+      }),
+      side: WidgetStateProperty.resolveWith((states) {
+        if (states.contains(WidgetState.disabled)) {
+          return BorderSide(color: widget.borderColor.withValues(alpha: 0.38));
+        }
+        return BorderSide(color: widget.borderColor);
+      }),
+      shape: WidgetStatePropertyAll(
+        RoundedRectangleBorder(borderRadius: widget.borderRadius),
+      ),
+      textStyle: WidgetStatePropertyAll(_textStyle),
+      padding: const WidgetStatePropertyAll(
+        EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      ),
+      fixedSize: const WidgetStatePropertyAll(Size(160, 36)),
+      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      alignment: Alignment.centerLeft,
+      overlayColor: const WidgetStatePropertyAll(Colors.transparent),
+    );
+  }
+
+  ButtonStyle _optionStyle(bool isSelected) {
+    return ButtonStyle(
+      foregroundColor: _foregroundColor,
+      backgroundColor: WidgetStateProperty.resolveWith((states) {
+        if (states.contains(WidgetState.disabled)) return Colors.transparent;
+        if (isSelected) return Colors.transparent;
+        if (states.contains(WidgetState.pressed)) return widget.pressedColor;
+        if (states.contains(WidgetState.hovered) ||
+            states.contains(WidgetState.focused)) {
+          return widget.hoverColor;
+        }
+        return Colors.transparent;
+      }),
+      backgroundBuilder: isSelected
+          ? (context, states, child) => Stack(
+              children: [
+                if (!states.contains(WidgetState.disabled))
+                  Positioned.fill(
+                    child: Padding(
+                      padding: const EdgeInsets.all(2),
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          color: widget.pressedColor,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                      ),
+                    ),
+                  ),
+                child ?? const SizedBox.shrink(),
+              ],
+            )
+          : null,
+      textStyle: WidgetStatePropertyAll(_textStyle),
+      padding: const WidgetStatePropertyAll(
+        EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      ),
+      minimumSize: const WidgetStatePropertyAll(Size(0, 32)),
+      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      alignment: Alignment.centerLeft,
+      shape: WidgetStatePropertyAll(
+        RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+      ),
+      overlayColor: const WidgetStatePropertyAll(Colors.transparent),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final selected = _selectedOption;
+    final iconColor = widget.iconColor ?? widget.foregroundColor;
+    return MenuAnchor(
+      key: const ValueKey('select-menu'),
+      controller: _menuController,
+      childFocusNode: _triggerFocusNode,
+      onOpen: _focusSelectedOption,
+      onClose: _restoreTriggerFocus,
+      alignmentOffset: const Offset(0, 4),
+      crossAxisUnconstrained: false,
+      style: MenuStyle(
+        backgroundColor: WidgetStatePropertyAll(widget.popupColor),
+        shadowColor: WidgetStatePropertyAll(widget.shadowColor),
+        elevation: WidgetStatePropertyAll(widget.popupElevation),
+        padding: const WidgetStatePropertyAll(EdgeInsets.all(4)),
+        minimumSize: const WidgetStatePropertyAll(Size(160, 0)),
+        maximumSize: const WidgetStatePropertyAll(Size(160, double.infinity)),
+        visualDensity: VisualDensity.standard,
+        side: WidgetStatePropertyAll(BorderSide(color: widget.borderColor)),
+        shape: WidgetStatePropertyAll(
+          RoundedRectangleBorder(borderRadius: widget.borderRadius),
+        ),
+        alignment: AlignmentDirectional.bottomStart,
+      ),
+      menuChildren: [
+        for (var i = 0; i < widget.options.length; i++)
+          _buildOption(widget.options[i], i),
+      ],
+      builder: (context, controller, child) => Semantics(
+        container: true,
+        button: true,
+        enabled: _enabled,
+        expanded: controller.isOpen,
+        child: CallbackShortcuts(
+          bindings: <ShortcutActivator, VoidCallback>{
+            const SingleActivator(LogicalKeyboardKey.arrowDown): () {
+              if (_enabled && !controller.isOpen) controller.open();
+            },
+            const SingleActivator(LogicalKeyboardKey.arrowUp): () {
+              if (_enabled && !controller.isOpen) controller.open();
+            },
+          },
+          child: TextButton(
+            key: const ValueKey('select-trigger'),
+            onPressed: _enabled
+                ? () =>
+                      controller.isOpen ? controller.close() : controller.open()
+                : null,
+            focusNode: _triggerFocusNode,
+            style: _triggerStyle(),
+            child: Row(
+              mainAxisSize: MainAxisSize.max,
+              children: [
+                Text(selected?.label ?? ''),
+                const Spacer(),
+                Icon(Icons.keyboard_arrow_down, size: 16, color: iconColor),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildOption(SelectOption<T> option, int index) {
+    final isSelected = option.value == widget.value;
+    return Semantics(
+      container: true,
+      selected: isSelected,
+      inMutuallyExclusiveGroup: true,
+      child: MenuItemButton(
+        key: ValueKey('select-option-$index'),
+        focusNode: _optionFocusNodes[index],
+        onPressed: option.enabled
+            ? () => widget.onChanged?.call(option.value)
+            : null,
+        semanticsLabel: option.label,
+        style: _optionStyle(isSelected),
+        child: Text(option.label),
+      ),
+    );
+  }
+}
