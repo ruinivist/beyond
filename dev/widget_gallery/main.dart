@@ -3,6 +3,7 @@ import 'package:plane/canvas/canvas_page.dart';
 import 'package:plane/canvas/tools/code_block/code_block.dart';
 import 'package:plane/canvas/tools/markdown/markdown_block.dart';
 import 'package:plane/canvas/tools/text/text_block.dart';
+import 'package:plane/foundation/button.dart';
 import 'package:plane/foundation/select.dart';
 import 'package:plane/theme/app_theme.dart';
 import 'package:plane/widgets/settings_dialog.dart';
@@ -95,6 +96,11 @@ class _WidgetGalleryPageState extends State<WidgetGalleryPage> {
   @override
   Widget build(BuildContext context) {
     final theme = context.appTheme;
+    final buttonColors = _buttonColors(theme.colors);
+    final buttonTextStyle = theme.typography.ui.bodyMedium!.copyWith(
+      fontSize: 14,
+      fontWeight: FontWeight.w400,
+    );
     return Scaffold(
       appBar: AppBar(
         backgroundColor: theme.colors.surfaceRaised,
@@ -205,21 +211,27 @@ class _WidgetGalleryPageState extends State<WidgetGalleryPage> {
                         spacing: 12,
                         runSpacing: 12,
                         children: [
-                          OutlinedButton.icon(
+                          Button(
                             key: const ValueKey('open-settings'),
+                            colors: buttonColors,
+                            textStyle: buttonTextStyle,
+                            variant: ButtonVariant.outline,
                             onPressed: _openSettings,
-                            icon: const Icon(Icons.settings_outlined),
-                            label: const Text('Open settings'),
+                            leadingIcon: const Icon(Icons.settings_outlined),
+                            child: const Text('Open settings'),
                           ),
-                          OutlinedButton.icon(
+                          Button(
                             key: const ValueKey('open-canvas'),
+                            colors: buttonColors,
+                            textStyle: buttonTextStyle,
+                            variant: ButtonVariant.outline,
                             onPressed: () => Navigator.of(context).push(
                               MaterialPageRoute<void>(
                                 builder: (_) => const CanvasPage(),
                               ),
                             ),
-                            icon: const Icon(Icons.open_in_full),
-                            label: const Text('Open canvas'),
+                            leadingIcon: const Icon(Icons.open_in_full),
+                            child: const Text('Open canvas'),
                           ),
                         ],
                       ),
@@ -235,33 +247,70 @@ class _WidgetGalleryPageState extends State<WidgetGalleryPage> {
                       title: 'Buttons',
                       existing: false,
                       note:
-                          'Primary, secondary, quiet, icon, and disabled actions.',
+                          'Primary, outline, secondary, quiet, destructive, '
+                          'link, icon, and disabled actions.',
                       child: Wrap(
                         spacing: 12,
                         runSpacing: 12,
                         crossAxisAlignment: WrapCrossAlignment.center,
                         children: [
-                          FilledButton(
-                            style: _primaryButtonStyle(theme.colors),
+                          Button(
+                            colors: buttonColors,
+                            textStyle: buttonTextStyle,
                             onPressed: () {},
                             child: const Text('Primary'),
                           ),
-                          OutlinedButton(
+                          Button(
+                            colors: buttonColors,
+                            textStyle: buttonTextStyle,
+                            variant: ButtonVariant.outline,
                             onPressed: () {},
                             child: const Text('Secondary'),
                           ),
-                          TextButton(
+                          Button(
+                            colors: buttonColors,
+                            textStyle: buttonTextStyle,
+                            variant: ButtonVariant.secondary,
+                            onPressed: () {},
+                            child: const Text('Secondary fill'),
+                          ),
+                          Tooltip(
+                            message: 'Favorite',
+                            child: Button(
+                              colors: buttonColors,
+                              textStyle: buttonTextStyle,
+                              variant: ButtonVariant.ghost,
+                              size: ButtonSize.icon,
+                              onPressed: () {},
+                              leadingIcon: const Icon(Icons.favorite_outline),
+                            ),
+                          ),
+                          Button(
+                            colors: buttonColors,
+                            textStyle: buttonTextStyle,
+                            variant: ButtonVariant.ghost,
                             onPressed: () {},
                             child: const Text('Quiet'),
                           ),
-                          IconButton(
-                            tooltip: 'Favorite',
+                          Button(
+                            colors: buttonColors,
+                            textStyle: buttonTextStyle,
+                            variant: ButtonVariant.destructive,
                             onPressed: () {},
-                            icon: const Icon(Icons.favorite_outline),
+                            child: const Text('Destructive'),
                           ),
-                          const FilledButton(
+                          Button(
+                            colors: buttonColors,
+                            textStyle: buttonTextStyle,
+                            variant: ButtonVariant.link,
+                            onPressed: () {},
+                            child: const Text('Link'),
+                          ),
+                          Button(
+                            colors: buttonColors,
+                            textStyle: buttonTextStyle,
                             onPressed: null,
-                            child: Text('Disabled'),
+                            child: const Text('Disabled'),
                           ),
                         ],
                       ),
@@ -483,12 +532,18 @@ class _WidgetGalleryPageState extends State<WidgetGalleryPage> {
                             children: [
                               Tooltip(
                                 message: 'Helpful context',
-                                child: OutlinedButton(
+                                child: Button(
+                                  colors: buttonColors,
+                                  textStyle: buttonTextStyle,
+                                  variant: ButtonVariant.outline,
                                   onPressed: () {},
                                   child: const Text('Hover for tooltip'),
                                 ),
                               ),
-                              OutlinedButton(
+                              Button(
+                                colors: buttonColors,
+                                textStyle: buttonTextStyle,
+                                variant: ButtonVariant.outline,
                                 onPressed: () =>
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       const SnackBar(
@@ -539,8 +594,9 @@ class _WidgetGalleryPageState extends State<WidgetGalleryPage> {
                               ),
                             ),
                             const SizedBox(height: 16),
-                            FilledButton(
-                              style: _primaryButtonStyle(theme.colors),
+                            Button(
+                              colors: buttonColors,
+                              textStyle: buttonTextStyle,
                               onPressed: () {},
                               child: const Text('Add block'),
                             ),
@@ -552,7 +608,10 @@ class _WidgetGalleryPageState extends State<WidgetGalleryPage> {
                       title: 'Confirmation dialog',
                       existing: false,
                       note: 'Confirm an important reversible action.',
-                      child: OutlinedButton(
+                      child: Button(
+                        colors: buttonColors,
+                        textStyle: buttonTextStyle,
+                        variant: ButtonVariant.outline,
                         onPressed: _openConfirmation,
                         child: const Text('Open confirmation'),
                       ),
@@ -666,7 +725,7 @@ class _WidgetGalleryPageState extends State<WidgetGalleryPage> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Inter · UI and chrome',
+          'Roboto Mono · UI and chrome',
           style: typography.ui.titleMedium!.copyWith(color: colors.textPrimary),
         ),
         Text(
@@ -791,12 +850,26 @@ class _WidgetGalleryPageState extends State<WidgetGalleryPage> {
     );
   }
 
-  ButtonStyle _primaryButtonStyle(AppSemanticColors colors) {
-    return FilledButton.styleFrom(
-      backgroundColor: colors.accent,
-      foregroundColor: colors.surface,
-      disabledBackgroundColor: colors.surfacePressed,
-      disabledForegroundColor: colors.textMuted,
+  ButtonColors _buttonColors(AppSemanticColors colors) {
+    return ButtonColors(
+      primary: colors.accent,
+      onPrimary: colors.surface,
+      primaryHover: colors.accentHover,
+      primaryPressed: colors.accentPressed,
+      secondary: colors.surfaceSubtle,
+      onSecondary: colors.textPrimary,
+      surface: colors.surface,
+      foreground: colors.textPrimary,
+      border: colors.borderSubtle,
+      hover: colors.surfaceHover,
+      pressed: colors.surfacePressed,
+      focus: colors.focusRing,
+      destructive: colors.accentSoft,
+      onDestructive: colors.accentPressed,
+      destructiveHover: colors.accentSubtle,
+      destructivePressed: colors.accentSubtle,
+      disabled: colors.surfacePressed,
+      disabledForeground: colors.textMuted,
     );
   }
 
@@ -809,18 +882,29 @@ class _WidgetGalleryPageState extends State<WidgetGalleryPage> {
   }
 
   void _openConfirmation() {
+    final theme = context.appTheme;
+    final buttonColors = _buttonColors(theme.colors);
+    final buttonTextStyle = theme.typography.ui.bodyMedium!.copyWith(
+      fontSize: 14,
+      fontWeight: FontWeight.w400,
+    );
     showDialog<void>(
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: const Text('Clear the canvas?'),
         content: const Text('This removes every block from the current view.'),
         actions: [
-          TextButton(
+          Button(
+            colors: buttonColors,
+            textStyle: buttonTextStyle,
+            variant: ButtonVariant.link,
             onPressed: () => Navigator.pop(dialogContext),
             child: const Text('Cancel'),
           ),
-          FilledButton(
-            style: _primaryButtonStyle(context.appTheme.colors),
+          Button(
+            colors: buttonColors,
+            textStyle: buttonTextStyle,
+            variant: ButtonVariant.destructive,
             onPressed: () => Navigator.pop(dialogContext),
             child: const Text('Clear'),
           ),

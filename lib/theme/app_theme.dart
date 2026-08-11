@@ -376,7 +376,7 @@ TextStyle _ibmPlexMono() => GoogleFonts.ibmPlexMono(
 );
 
 final _starlessLightTypography = AppTypography(
-  ui: GoogleFonts.interTextTheme(_compactUiTextTheme).apply(
+  ui: GoogleFonts.robotoMonoTextTheme(_compactUiTextTheme).apply(
     bodyColor: _starlessLightColors.textPrimary,
     displayColor: _starlessLightColors.textPrimary,
   ),
