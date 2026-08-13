@@ -6,11 +6,11 @@ import 'theme/app_theme.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await loadCodeFont();
-  runApp(const PlaneApp());
+  runApp(const BeyondApp());
 }
 
-class PlaneApp extends StatelessWidget {
-  const PlaneApp({super.key});
+class BeyondApp extends StatelessWidget {
+  const BeyondApp({super.key});
 
   @override
   Widget build(BuildContext context) {

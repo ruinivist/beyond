@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:plane/foundation/button.dart';
+import 'package:beyond/foundation/button.dart';
 
 const _colors = ButtonColors(
   primary: Colors.blue,

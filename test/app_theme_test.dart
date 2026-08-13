@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:infinite_lazy_grid/infinite_lazy_grid.dart';
-import 'package:plane/main.dart';
-import 'package:plane/canvas/tools/code_block/code_language.dart';
-import 'package:plane/theme/app_theme.dart';
+import 'package:beyond/main.dart';
+import 'package:beyond/canvas/tools/code_block/code_language.dart';
+import 'package:beyond/theme/app_theme.dart';
 import 'package:re_editor/re_editor.dart';
 import 'package:scribble/scribble.dart';
 
 void main() {
   testWidgets('Starless Light maps onto the current UI', (tester) async {
     final components = starlessLight.components;
-    await tester.pumpWidget(const PlaneApp());
+    await tester.pumpWidget(const BeyondApp());
     await tester.pump();
 
     final canvas = tester.widget<LazyCanvas>(find.byType(LazyCanvas));

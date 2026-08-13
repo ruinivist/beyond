@@ -105,7 +105,7 @@ class SettingsDialog extends StatelessWidget {
                     ),
                     const SizedBox(height: 20),
                     Text(
-                      'plane - dev build',
+                      'beyond - dev build',
                       style: ui.bodyMedium!.copyWith(
                         color: settings.secondaryForeground,
                       ),

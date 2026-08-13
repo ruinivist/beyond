@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:plane/canvas/canvas_page.dart';
-import 'package:plane/canvas/tools/code_block/code_block.dart';
-import 'package:plane/canvas/tools/markdown/markdown_block.dart';
-import 'package:plane/canvas/tools/text/text_block.dart';
-import 'package:plane/foundation/button.dart';
-import 'package:plane/foundation/select.dart';
-import 'package:plane/theme/app_theme.dart';
-import 'package:plane/widgets/settings_dialog.dart';
+import 'package:beyond/canvas/canvas_page.dart';
+import 'package:beyond/canvas/tools/code_block/code_block.dart';
+import 'package:beyond/canvas/tools/markdown/markdown_block.dart';
+import 'package:beyond/canvas/tools/text/text_block.dart';
+import 'package:beyond/foundation/button.dart';
+import 'package:beyond/foundation/select.dart';
+import 'package:beyond/theme/app_theme.dart';
+import 'package:beyond/widgets/settings_dialog.dart';
 import 'package:re_editor/re_editor.dart';
 import 'package:scroll_animator/scroll_animator.dart';
 
@@ -40,7 +40,7 @@ class WidgetGalleryApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Plane widget gallery',
+      title: 'Beyond widget gallery',
       theme: _galleryTheme,
       home: const WidgetGalleryPage(),
     );
@@ -106,7 +106,7 @@ class _WidgetGalleryPageState extends State<WidgetGalleryPage> {
         backgroundColor: theme.colors.surfaceRaised,
         foregroundColor: theme.colors.textPrimary,
         surfaceTintColor: Colors.transparent,
-        title: const Text('Plane widget gallery'),
+        title: const Text('Beyond widget gallery'),
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(1),
           child: Divider(height: 1, color: theme.colors.borderSubtle),

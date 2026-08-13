@@ -15,7 +15,7 @@ void main() {
     await tester.pumpWidget(const WidgetGalleryApp());
     await tester.pump();
 
-    expect(find.text('Plane widget gallery'), findsOneWidget);
+    expect(find.text('Beyond widget gallery'), findsOneWidget);
     expect(find.text('Existing'), findsWidgets);
     expect(find.text('Proposed'), findsWidgets);
     expect(find.text('A real editable text block'), findsOneWidget);
@@ -69,10 +69,10 @@ void main() {
     );
     await tester.tap(settingsFinder);
     await tester.pumpAndSettle();
-    expect(find.text('plane - dev build'), findsOneWidget);
+    expect(find.text('beyond - dev build'), findsOneWidget);
 
     await tester.tap(find.byTooltip('Close'));
     await tester.pumpAndSettle();
-    expect(find.text('plane - dev build'), findsNothing);
+    expect(find.text('beyond - dev build'), findsNothing);
   });
 }

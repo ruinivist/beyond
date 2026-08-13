@@ -3,11 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:infinite_lazy_grid/infinite_lazy_grid.dart';
-import 'package:plane/canvas/tools/code_block/code_block.dart';
-import 'package:plane/canvas/tools/markdown/markdown_block.dart';
-import 'package:plane/canvas/tools/pen/pen_tool.dart';
-import 'package:plane/canvas/tools/text/text_block.dart';
-import 'package:plane/main.dart';
+import 'package:beyond/canvas/tools/code_block/code_block.dart';
+import 'package:beyond/canvas/tools/markdown/markdown_block.dart';
+import 'package:beyond/canvas/tools/pen/pen_tool.dart';
+import 'package:beyond/canvas/tools/text/text_block.dart';
+import 'package:beyond/main.dart';
 import 'package:scribble/scribble.dart';
 
 void main() {
@@ -34,7 +34,7 @@ void main() {
   });
 
   testWidgets('pen commits strokes and stays active', (tester) async {
-    await tester.pumpWidget(const PlaneApp());
+    await tester.pumpWidget(const BeyondApp());
     await tester.pump();
 
     await tester.tap(find.text('Pen'));
@@ -47,7 +47,7 @@ void main() {
   });
 
   testWidgets('inactive pen does not draw', (tester) async {
-    await tester.pumpWidget(const PlaneApp());
+    await tester.pumpWidget(const BeyondApp());
     await tester.pump();
 
     await tester.dragFrom(const Offset(100, 200), const Offset(80, 40));
@@ -57,7 +57,7 @@ void main() {
   });
 
   testWidgets('blocks added after strokes stay below them', (tester) async {
-    await tester.pumpWidget(const PlaneApp());
+    await tester.pumpWidget(const BeyondApp());
     await tester.pump();
 
     await tester.tap(find.text('Pen'));
@@ -74,7 +74,7 @@ void main() {
   });
 
   testWidgets('raised blocks stay below strokes', (tester) async {
-    await tester.pumpWidget(const PlaneApp());
+    await tester.pumpWidget(const BeyondApp());
     await tester.pump();
 
     await tester.tap(find.text('Code'));
@@ -95,7 +95,7 @@ void main() {
   });
 
   testWidgets('text places one block at the clicked position', (tester) async {
-    await tester.pumpWidget(const PlaneApp());
+    await tester.pumpWidget(const BeyondApp());
     await tester.pump();
 
     expect(find.byType(TextField), findsNothing);
@@ -128,7 +128,7 @@ void main() {
   });
 
   testWidgets('text blocks move from their handle', (tester) async {
-    await tester.pumpWidget(const PlaneApp());
+    await tester.pumpWidget(const BeyondApp());
     await tester.pump();
 
     await tester.tap(find.text('Text'));
@@ -163,7 +163,7 @@ void main() {
   testWidgets('code blocks resize from the bottom-right handle', (
     tester,
   ) async {
-    await tester.pumpWidget(const PlaneApp());
+    await tester.pumpWidget(const BeyondApp());
     await tester.pump();
 
     await tester.tap(find.text('Code'));
@@ -192,7 +192,7 @@ void main() {
   });
 
   testWidgets('code blocks select and move from the header', (tester) async {
-    await tester.pumpWidget(const PlaneApp());
+    await tester.pumpWidget(const BeyondApp());
     await tester.pump();
 
     await tester.tap(find.text('Code'));
@@ -227,7 +227,7 @@ void main() {
   });
 
   testWidgets('last interacted block moves to front', (tester) async {
-    await tester.pumpWidget(const PlaneApp());
+    await tester.pumpWidget(const BeyondApp());
     await tester.pump();
 
     await tester.tap(find.text('Code'));
@@ -265,7 +265,7 @@ void main() {
   testWidgets('space temporarily hands dragging back to the canvas', (
     tester,
   ) async {
-    await tester.pumpWidget(const PlaneApp());
+    await tester.pumpWidget(const BeyondApp());
     await tester.pump();
     await tester.tap(find.text('Pen'));
     await tester.pump();

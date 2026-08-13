@@ -1,11 +1,11 @@
 {
-    "name": "plane",
-    "short_name": "plane",
+    "name": "beyond",
+    "short_name": "beyond",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
     "theme_color": "#0175C2",
-    "description": "plane",
+    "description": "beyond",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [
