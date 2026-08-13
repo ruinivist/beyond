@@ -52,6 +52,15 @@ void main() {
     );
     await tester.tap(dropdownTriggerFinder);
     await tester.pump();
+    final dropdownTrigger = tester.widget<TextButton>(dropdownTriggerFinder);
+    expect(dropdownTrigger.style!.textStyle!.resolve({})!.fontSize, 14);
+    final dropdownOption = tester.widget<MenuItemButton>(
+      find.descendant(
+        of: dropdownFinder,
+        matching: find.byKey(const ValueKey('select-option-1')),
+      ),
+    );
+    expect(dropdownOption.style!.textStyle!.resolve({})!.fontSize, 14);
     await tester.tap(
       find.descendant(
         of: dropdownFinder,

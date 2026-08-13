@@ -5,7 +5,8 @@ import 'package:flutter/services.dart';
 import 'package:infinite_lazy_grid/infinite_lazy_grid.dart';
 import 'package:scribble/scribble.dart';
 
-import '../theme/app_theme.dart';
+import '../foundation/theme.dart';
+import '../theme/starless_light.dart';
 import '../widgets/settings_dialog.dart';
 import 'tools/code_block/code_block.dart';
 import 'tools/markdown/markdown_block.dart';
@@ -30,7 +31,6 @@ class _CanvasPageState extends State<CanvasPage> {
   final _strokeIds = <String>[];
   final _interactiveBlockPointerIds = <int>{};
   late final PenTool _penTool;
-  CanvasTokens? _canvasTokens;
   var _penEnabled = false;
   var _textPlacementEnabled = false;
   var _spaceHeld = false;
@@ -45,16 +45,14 @@ class _CanvasPageState extends State<CanvasPage> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final tokens = context.appTheme.components.canvas;
-    if (_canvasTokens == tokens) return;
-    _canvasTokens = tokens;
+    final colors = BTheme.of(context).colors;
     _canvasController.background = DotGridBackground(
-      size: tokens.dotRadius,
-      spacing: tokens.gridSpacing,
-      dotColor: tokens.grid,
-      backgroundColor: tokens.background,
+      size: 2,
+      spacing: 50,
+      dotColor: starlessCanvasGrid,
+      backgroundColor: starlessCanvasBackground,
     );
-    _penTool.setColor(tokens.penStroke);
+    _penTool.setColor(colors.accent);
   }
 
   Offset _viewportCenter() {
@@ -315,7 +313,7 @@ class _CanvasPageState extends State<CanvasPage> {
   void _showSettingsDialog() {
     showDialog<void>(
       context: context,
-      barrierColor: context.appTheme.components.settings.scrim,
+      barrierColor: BTheme.of(context).colors.scrim,
       builder: (_) => const SettingsDialog(),
     );
   }
@@ -354,7 +352,7 @@ class _CanvasPageState extends State<CanvasPage> {
 
   @override
   Widget build(BuildContext context) {
-    final toolbar = context.appTheme.components.toolbar;
+    final colors = BTheme.of(context).colors;
     return Scaffold(
       body: Stack(
         children: [
@@ -377,12 +375,12 @@ class _CanvasPageState extends State<CanvasPage> {
                 padding: const EdgeInsets.only(top: 12),
                 child: Material(
                   key: const ValueKey('toolbar-surface'),
-                  color: toolbar.background,
-                  elevation: toolbar.elevation,
-                  shadowColor: toolbar.shadow,
+                  color: colors.surfaceRaised,
+                  elevation: 4,
+                  shadowColor: colors.shadow,
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(toolbar.radius),
-                    side: BorderSide(color: toolbar.border),
+                    borderRadius: BorderRadius.circular(8),
+                    side: BorderSide(color: colors.borderSubtle),
                   ),
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 4),
@@ -396,7 +394,7 @@ class _CanvasPageState extends State<CanvasPage> {
                             child: TextButton.icon(
                               onPressed: _toggleTextPlacement,
                               style: _toolbarButtonStyle(
-                                toolbar,
+                                colors,
                                 selected: _textPlacementEnabled,
                               ),
                               icon: const Icon(Icons.title),
@@ -408,7 +406,7 @@ class _CanvasPageState extends State<CanvasPage> {
                           message: 'Add code block',
                           child: TextButton.icon(
                             onPressed: _addCodeBlock,
-                            style: _toolbarButtonStyle(toolbar),
+                            style: _toolbarButtonStyle(colors),
                             icon: const Icon(Icons.code),
                             label: const Text('Code'),
                           ),
@@ -417,7 +415,7 @@ class _CanvasPageState extends State<CanvasPage> {
                           message: 'Add markdown block',
                           child: TextButton.icon(
                             onPressed: _addMarkdownBlock,
-                            style: _toolbarButtonStyle(toolbar),
+                            style: _toolbarButtonStyle(colors),
                             icon: const Icon(Icons.description_outlined),
                             label: const Text('Markdown'),
                           ),
@@ -429,7 +427,7 @@ class _CanvasPageState extends State<CanvasPage> {
                             child: TextButton.icon(
                               onPressed: _togglePen,
                               style: _toolbarButtonStyle(
-                                toolbar,
+                                colors,
                                 selected: _penEnabled,
                               ),
                               icon: const Icon(Icons.draw),
@@ -451,18 +449,18 @@ class _CanvasPageState extends State<CanvasPage> {
                 padding: const EdgeInsets.all(12),
                 child: Material(
                   key: const ValueKey('settings-button-surface'),
-                  color: toolbar.background,
-                  elevation: toolbar.elevation,
-                  shadowColor: toolbar.shadow,
+                  color: colors.surfaceRaised,
+                  elevation: 4,
+                  shadowColor: colors.shadow,
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(toolbar.radius),
-                    side: BorderSide(color: toolbar.border),
+                    borderRadius: BorderRadius.circular(8),
+                    side: BorderSide(color: colors.borderSubtle),
                   ),
                   child: IconButton(
                     key: const ValueKey('settings-button'),
                     tooltip: 'Settings',
                     onPressed: _showSettingsDialog,
-                    style: _toolbarIconButtonStyle(toolbar),
+                    style: _toolbarIconButtonStyle(colors),
                     icon: const Icon(Icons.settings_outlined),
                   ),
                 ),
@@ -475,40 +473,38 @@ class _CanvasPageState extends State<CanvasPage> {
   }
 }
 
-ButtonStyle _toolbarButtonStyle(ToolbarTokens tokens, {bool selected = false}) {
+ButtonStyle _toolbarButtonStyle(BColors colors, {bool selected = false}) {
   return ButtonStyle(
     foregroundColor: WidgetStateProperty.resolveWith((states) {
-      if (!selected) return tokens.foreground;
+      if (!selected) return colors.textSecondary;
       if (states.contains(WidgetState.pressed)) {
-        return tokens.selectedPressedForeground;
+        return colors.accentPressed;
       }
       if (states.contains(WidgetState.hovered)) {
-        return tokens.selectedHoverForeground;
+        return colors.accentHover;
       }
-      return tokens.selectedForeground;
+      return colors.accent;
     }),
     backgroundColor: WidgetStateProperty.resolveWith((states) {
       if (states.contains(WidgetState.pressed)) {
-        return tokens.pressedBackground;
+        return colors.surfacePressed;
       }
-      if (states.contains(WidgetState.hovered)) return tokens.hoverBackground;
-      return selected ? tokens.selectedBackground : Colors.transparent;
+      if (states.contains(WidgetState.hovered)) return colors.surfaceHover;
+      return selected ? colors.accentSoft : Colors.transparent;
     }),
     side: WidgetStateProperty.resolveWith(
       (states) => states.contains(WidgetState.focused)
-          ? BorderSide(color: tokens.focus)
+          ? BorderSide(color: colors.focusRing)
           : BorderSide.none,
     ),
     shape: WidgetStatePropertyAll(
-      RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(tokens.radius - 2),
-      ),
+      RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
     ),
   );
 }
 
-ButtonStyle _toolbarIconButtonStyle(ToolbarTokens tokens) {
+ButtonStyle _toolbarIconButtonStyle(BColors colors) {
   return _toolbarButtonStyle(
-    tokens,
+    colors,
   ).copyWith(padding: const WidgetStatePropertyAll(EdgeInsets.all(8)));
 }

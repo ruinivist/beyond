@@ -6,7 +6,8 @@ import 'package:re_editor/re_editor.dart';
 import 'package:scroll_animator/scroll_animator.dart';
 
 import '../../../foundation/select.dart';
-import '../../../theme/app_theme.dart';
+import '../../../foundation/theme.dart';
+import '../../../theme/starless_light.dart';
 import 'code_language.dart';
 
 const codeBlockMinimumSize = Size(280, 240);
@@ -88,11 +89,10 @@ class CodeBlock extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final appTheme = context.appTheme;
-    final theme = appTheme.components;
-    final block = theme.block;
-    final code = theme.codeEditor;
-    final codeStyle = appTheme.typography.mono.copyWith(color: code.foreground);
+    final colors = BTheme.of(context).colors;
+    final codeStyle = BTheme.of(
+      context,
+    ).typo.code.copyWith(color: colors.textPrimary);
     return Listener(
       onPointerDown: onSelect,
       child: ListenableBuilder(
@@ -101,16 +101,14 @@ class CodeBlock extends StatelessWidget {
           size: model.size,
           child: Material(
             key: const ValueKey('code-block-surface'),
-            color: code.background,
-            elevation: model.selected
-                ? block.selectedElevation
-                : block.elevation,
-            shadowColor: block.shadow,
+            color: colors.surface,
+            elevation: model.selected ? 12 : 8,
+            shadowColor: colors.shadow,
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(block.radius),
+              borderRadius: BorderRadius.circular(10),
               side: model.selected
-                  ? BorderSide(color: block.selectedBorder, width: 2)
-                  : BorderSide(color: block.border),
+                  ? BorderSide(color: colors.accent, width: 2)
+                  : BorderSide(color: colors.borderSubtle),
             ),
             clipBehavior: Clip.antiAlias,
             child: Stack(
@@ -118,7 +116,7 @@ class CodeBlock extends StatelessWidget {
                 Column(
                   children: [
                     _CodeBlockHeader(model: model, onMove: onMove),
-                    Divider(height: 1, color: code.divider),
+                    Divider(height: 1, color: colors.borderSubtle),
                     Expanded(
                       child: CodeEditor(
                         controller: model.controller,
@@ -132,27 +130,27 @@ class CodeBlock extends StatelessWidget {
                           fontFamilyFallback: codeStyle.fontFamilyFallback,
                           fontSize: codeStyle.fontSize,
                           fontHeight: codeStyle.height,
-                          textColor: code.foreground,
-                          backgroundColor: code.background,
-                          cursorColor: code.cursor,
-                          cursorLineColor: code.cursorLine,
-                          selectionColor: code.selection,
-                          codeTheme: model.language.theme(code.syntaxTheme),
+                          textColor: colors.textPrimary,
+                          backgroundColor: colors.surface,
+                          cursorColor: colors.accent,
+                          cursorLineColor: colors.accentSoft,
+                          selectionColor: colors.accentSubtle,
+                          codeTheme: model.language.theme(starlessSyntaxTheme),
                         ),
                         indicatorBuilder:
                             (context, controller, chunkController, notifier) =>
                                 ColoredBox(
-                                  color: code.gutterBackground,
+                                  color: colors.surfaceSubtle,
                                   child: Row(
                                     children: [
                                       DefaultCodeLineNumber(
                                         controller: controller,
                                         notifier: notifier,
                                         textStyle: codeStyle.copyWith(
-                                          color: code.mutedForeground,
+                                          color: colors.textMuted,
                                         ),
                                         focusedTextStyle: codeStyle.copyWith(
-                                          color: code.cursor,
+                                          color: colors.accent,
                                         ),
                                       ),
                                       DefaultCodeChunkIndicator(
@@ -188,7 +186,7 @@ class _CodeBlockResizeHandle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = context.appTheme.components.codeEditor.mutedForeground;
+    final color = BTheme.of(context).colors.textMuted;
     return MouseRegion(
       cursor: SystemMouseCursors.resizeDownRight,
       child: Semantics(
@@ -228,10 +226,8 @@ class _CodeBlockHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final appTheme = context.appTheme;
-    final code = appTheme.components.codeEditor;
-    final block = appTheme.components.block;
-    final ui = appTheme.typography.ui;
+    final colors = BTheme.of(context).colors;
+    final label = BTheme.of(context).typo.label;
     return SizedBox(
       height: 40,
       child: MouseRegion(
@@ -251,7 +247,7 @@ class _CodeBlockHeader extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 12),
             child: Row(
               children: [
-                Icon(Icons.code, size: 18, color: code.mutedForeground),
+                Icon(Icons.code, size: 18, color: colors.textMuted),
                 const SizedBox(width: 8),
                 Select<CodeLanguage>(
                   value: model.language,
@@ -260,20 +256,14 @@ class _CodeBlockHeader extends StatelessWidget {
                       SelectOption(value: language, label: language.label),
                   ],
                   onChanged: (language) => model.language = language,
-                  textStyle: ui.labelLarge!.copyWith(
-                    color: code.foreground,
-                    fontSize: 16,
+                  textStyle: label.copyWith(
+                    color: colors.textPrimary,
+                    fontSize: 14,
                   ),
-                  foregroundColor: code.foreground,
+                  foregroundColor: colors.textPrimary,
                   backgroundColor: Colors.transparent,
-                  popupColor: code.dropdownBackground,
-                  borderColor: code.divider,
-                  hoverColor: block.hoverBackground,
-                  pressedColor: block.pressedBackground,
-                  iconColor: code.mutedForeground,
-                  shadowColor: block.shadow,
-                  popupElevation: block.elevation,
-                  borderRadius: BorderRadius.circular(block.radius),
+                  iconColor: colors.textMuted,
+                  borderRadius: BorderRadius.circular(10),
                 ),
               ],
             ),

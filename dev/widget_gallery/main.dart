@@ -5,7 +5,8 @@ import 'package:beyond/canvas/tools/markdown/markdown_block.dart';
 import 'package:beyond/canvas/tools/text/text_block.dart';
 import 'package:beyond/foundation/button.dart';
 import 'package:beyond/foundation/select.dart';
-import 'package:beyond/theme/app_theme.dart';
+import 'package:beyond/foundation/theme.dart';
+import 'package:beyond/theme/starless_light.dart';
 import 'package:beyond/widgets/settings_dialog.dart';
 import 'package:re_editor/re_editor.dart';
 import 'package:scroll_animator/scroll_animator.dart';
@@ -16,23 +17,6 @@ Future<void> main() async {
   runApp(const WidgetGalleryApp());
 }
 
-final _galleryTheme = starlessLightThemeData.copyWith(
-  colorScheme: ColorScheme.light(
-    primary: starlessLight.colors.accent,
-    onPrimary: starlessLight.colors.surface,
-    primaryContainer: starlessLight.colors.accentSoft,
-    onPrimaryContainer: starlessLight.colors.accentPressed,
-    secondary: starlessLight.colors.textSecondary,
-    onSecondary: starlessLight.colors.surface,
-    secondaryContainer: starlessLight.colors.surfaceSubtle,
-    onSecondaryContainer: starlessLight.colors.textPrimary,
-    surface: starlessLight.colors.surface,
-    onSurface: starlessLight.colors.textPrimary,
-    outline: starlessLight.colors.borderSubtle,
-    outlineVariant: starlessLight.colors.borderSubtle,
-  ),
-);
-
 class WidgetGalleryApp extends StatelessWidget {
   const WidgetGalleryApp({super.key});
 
@@ -41,7 +25,7 @@ class WidgetGalleryApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Beyond widget gallery',
-      theme: _galleryTheme,
+      theme: starlessLightThemeData,
       home: const WidgetGalleryPage(),
     );
   }
@@ -95,11 +79,17 @@ class _WidgetGalleryPageState extends State<WidgetGalleryPage> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = context.appTheme;
-    final buttonColors = _buttonColors(theme.colors);
-    final buttonTextStyle = theme.typography.ui.bodyMedium!.copyWith(
+    final theme = BTheme.of(context);
+    final buttonTextStyle = theme.typo.body.copyWith(
       fontSize: 14,
       fontWeight: FontWeight.w400,
+    );
+    final sourceSerif = theme.typo.heading;
+    final editorialBody = TextStyle(
+      fontFamily: sourceSerif.fontFamily,
+      fontFamilyFallback: sourceSerif.fontFamilyFallback,
+      fontSize: 16,
+      height: 1.5,
     );
     return Scaffold(
       appBar: AppBar(
@@ -124,7 +114,8 @@ class _WidgetGalleryPageState extends State<WidgetGalleryPage> {
               children: [
                 Text(
                   'Starless Light',
-                  style: Theme.of(context).textTheme.displaySmall?.copyWith(
+                  style: theme.typo.display.copyWith(
+                    fontSize: 28,
                     color: theme.colors.textPrimary,
                   ),
                 ),
@@ -132,7 +123,9 @@ class _WidgetGalleryPageState extends State<WidgetGalleryPage> {
                 Text(
                   'Existing app widgets and proposed core controls, rendered '
                   'against the current theme.',
-                  style: TextStyle(color: theme.colors.textSecondary),
+                  style: theme.typo.body.copyWith(
+                    color: theme.colors.textSecondary,
+                  ),
                 ),
                 const SizedBox(height: 40),
                 _section(
@@ -213,7 +206,6 @@ class _WidgetGalleryPageState extends State<WidgetGalleryPage> {
                         children: [
                           Button(
                             key: const ValueKey('open-settings'),
-                            colors: buttonColors,
                             textStyle: buttonTextStyle,
                             variant: ButtonVariant.outline,
                             onPressed: _openSettings,
@@ -222,7 +214,6 @@ class _WidgetGalleryPageState extends State<WidgetGalleryPage> {
                           ),
                           Button(
                             key: const ValueKey('open-canvas'),
-                            colors: buttonColors,
                             textStyle: buttonTextStyle,
                             variant: ButtonVariant.outline,
                             onPressed: () => Navigator.of(context).push(
@@ -255,20 +246,17 @@ class _WidgetGalleryPageState extends State<WidgetGalleryPage> {
                         crossAxisAlignment: WrapCrossAlignment.center,
                         children: [
                           Button(
-                            colors: buttonColors,
                             textStyle: buttonTextStyle,
                             onPressed: () {},
                             child: const Text('Primary'),
                           ),
                           Button(
-                            colors: buttonColors,
                             textStyle: buttonTextStyle,
                             variant: ButtonVariant.outline,
                             onPressed: () {},
                             child: const Text('Secondary'),
                           ),
                           Button(
-                            colors: buttonColors,
                             textStyle: buttonTextStyle,
                             variant: ButtonVariant.secondary,
                             onPressed: () {},
@@ -277,7 +265,6 @@ class _WidgetGalleryPageState extends State<WidgetGalleryPage> {
                           Tooltip(
                             message: 'Favorite',
                             child: Button(
-                              colors: buttonColors,
                               textStyle: buttonTextStyle,
                               variant: ButtonVariant.ghost,
                               size: ButtonSize.icon,
@@ -286,28 +273,24 @@ class _WidgetGalleryPageState extends State<WidgetGalleryPage> {
                             ),
                           ),
                           Button(
-                            colors: buttonColors,
                             textStyle: buttonTextStyle,
                             variant: ButtonVariant.ghost,
                             onPressed: () {},
                             child: const Text('Quiet'),
                           ),
                           Button(
-                            colors: buttonColors,
                             textStyle: buttonTextStyle,
                             variant: ButtonVariant.destructive,
                             onPressed: () {},
                             child: const Text('Destructive'),
                           ),
                           Button(
-                            colors: buttonColors,
                             textStyle: buttonTextStyle,
                             variant: ButtonVariant.link,
                             onPressed: () {},
                             child: const Text('Link'),
                           ),
                           Button(
-                            colors: buttonColors,
                             textStyle: buttonTextStyle,
                             onPressed: null,
                             child: const Text('Disabled'),
@@ -365,21 +348,9 @@ class _WidgetGalleryPageState extends State<WidgetGalleryPage> {
                         ],
                         onChanged: (value) =>
                             setState(() => _dropdownValue = value),
-                        textStyle: theme.typography.ui.bodyMedium!.copyWith(
-                          fontSize: 16,
-                        ),
-                        foregroundColor: theme.colors.textPrimary,
-                        backgroundColor: theme.colors.surface,
-                        popupColor:
-                            theme.components.codeEditor.dropdownBackground,
-                        borderColor: theme.colors.borderSubtle,
-                        hoverColor: theme.colors.surfaceHover,
-                        pressedColor: theme.colors.surfacePressed,
+                        textStyle: theme.typo.body.copyWith(fontSize: 14),
                         iconColor: theme.colors.textSecondary,
-                        shadowColor: theme.colors.shadow,
-                        borderRadius: BorderRadius.circular(
-                          theme.components.toolbar.radius,
-                        ),
+                        borderRadius: BorderRadius.circular(8),
                       ),
                     ),
                   ],
@@ -487,10 +458,8 @@ class _WidgetGalleryPageState extends State<WidgetGalleryPage> {
                       existing: false,
                       note: 'Settings-style destinations and selected state.',
                       child: Material(
-                        color: theme.components.settings.navigationBackground,
-                        borderRadius: BorderRadius.circular(
-                          theme.components.settings.radius,
-                        ),
+                        color: theme.colors.surface,
+                        borderRadius: BorderRadius.circular(10),
                         child: Column(
                           children: [
                             ListTile(
@@ -533,7 +502,6 @@ class _WidgetGalleryPageState extends State<WidgetGalleryPage> {
                               Tooltip(
                                 message: 'Helpful context',
                                 child: Button(
-                                  colors: buttonColors,
                                   textStyle: buttonTextStyle,
                                   variant: ButtonVariant.outline,
                                   onPressed: () {},
@@ -541,7 +509,6 @@ class _WidgetGalleryPageState extends State<WidgetGalleryPage> {
                                 ),
                               ),
                               Button(
-                                colors: buttonColors,
                                 textStyle: buttonTextStyle,
                                 variant: ButtonVariant.outline,
                                 onPressed: () =>
@@ -583,19 +550,21 @@ class _WidgetGalleryPageState extends State<WidgetGalleryPage> {
                             const SizedBox(height: 12),
                             Text(
                               'Nothing here yet',
-                              style: theme.typography.editorial.titleLarge!
-                                  .copyWith(fontWeight: FontWeight.w600),
+                              style: editorialBody.copyWith(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w600,
+                                height: 1.35,
+                              ),
                             ),
                             const SizedBox(height: 4),
                             Text(
                               'Add a block to start this canvas.',
-                              style: TextStyle(
+                              style: editorialBody.copyWith(
                                 color: theme.colors.textSecondary,
                               ),
                             ),
                             const SizedBox(height: 16),
                             Button(
-                              colors: buttonColors,
                               textStyle: buttonTextStyle,
                               onPressed: () {},
                               child: const Text('Add block'),
@@ -609,7 +578,6 @@ class _WidgetGalleryPageState extends State<WidgetGalleryPage> {
                       existing: false,
                       note: 'Confirm an important reversible action.',
                       child: Button(
-                        colors: buttonColors,
                         textStyle: buttonTextStyle,
                         variant: ButtonVariant.outline,
                         onPressed: _openConfirmation,
@@ -632,7 +600,7 @@ class _WidgetGalleryPageState extends State<WidgetGalleryPage> {
     required String description,
     required List<Widget> cards,
   }) {
-    final colors = context.appTheme.colors;
+    final colors = BTheme.of(context).colors;
     return Padding(
       padding: const EdgeInsets.only(bottom: 48),
       child: Column(
@@ -640,12 +608,17 @@ class _WidgetGalleryPageState extends State<WidgetGalleryPage> {
         children: [
           Text(
             title,
-            style: Theme.of(
+            style: BTheme.of(
               context,
-            ).textTheme.headlineSmall?.copyWith(color: colors.textPrimary),
+            ).typo.heading.copyWith(fontSize: 20, color: colors.textPrimary),
           ),
           const SizedBox(height: 4),
-          Text(description, style: TextStyle(color: colors.textSecondary)),
+          Text(
+            description,
+            style: BTheme.of(
+              context,
+            ).typo.body.copyWith(color: colors.textSecondary),
+          ),
           const SizedBox(height: 16),
           LayoutBuilder(
             builder: (context, constraints) {
@@ -666,10 +639,10 @@ class _WidgetGalleryPageState extends State<WidgetGalleryPage> {
     );
   }
 
-  Widget _colorSwatches(AppSemanticColors colors) {
+  Widget _colorSwatches(BColors colors) {
     final swatches = [
-      ('Canvas', colors.canvasBackground),
-      ('Grid', colors.canvasGrid),
+      ('Canvas', starlessCanvasBackground),
+      ('Grid', starlessCanvasGrid),
       ('Surface', colors.surface),
       ('Raised', colors.surfaceRaised),
       ('Subtle', colors.surfaceSubtle),
@@ -706,10 +679,15 @@ class _WidgetGalleryPageState extends State<WidgetGalleryPage> {
                   ),
                 ),
                 const SizedBox(height: 4),
-                Text(label, style: const TextStyle(fontSize: 12)),
+                Text(
+                  label,
+                  style: BTheme.of(context).typo.body.copyWith(fontSize: 12),
+                ),
                 Text(
                   '#${color.toARGB32().toRadixString(16).substring(2).toUpperCase()}',
-                  style: TextStyle(fontSize: 10, color: colors.textMuted),
+                  style: BTheme.of(
+                    context,
+                  ).typo.body.copyWith(color: colors.textMuted, fontSize: 10),
                 ),
               ],
             ),
@@ -719,55 +697,62 @@ class _WidgetGalleryPageState extends State<WidgetGalleryPage> {
   }
 
   Widget _typography(BuildContext context) {
-    final typography = context.appTheme.typography;
-    final colors = context.appTheme.colors;
+    final typography = BTheme.of(context).typo;
+    final colors = BTheme.of(context).colors;
+    final sourceSerif = typography.heading;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           'Roboto Mono · UI and chrome',
-          style: typography.ui.titleMedium!.copyWith(color: colors.textPrimary),
+          style: typography.title.copyWith(color: colors.textPrimary),
         ),
         Text(
           'Controls, navigation, labels · 11–14 px · 400–600',
-          style: typography.ui.bodyMedium!.copyWith(
-            color: colors.textSecondary,
-          ),
+          style: typography.body.copyWith(color: colors.textSecondary),
         ),
         const SizedBox(height: 12),
         Text(
           'Source Serif 4 · editorial and document',
-          style: typography.editorial.titleMedium!.copyWith(
+          style: sourceSerif.copyWith(
+            fontSize: 17,
+            fontWeight: FontWeight.w600,
+            height: 1.35,
             color: colors.textPrimary,
           ),
         ),
         Text(
           'A heading for a note or rendered Markdown.',
-          style: typography.editorial.headlineSmall!.copyWith(
+          style: sourceSerif.copyWith(
+            fontSize: 20,
+            fontWeight: FontWeight.w600,
+            height: 1.3,
             color: colors.textPrimary,
           ),
         ),
         Text(
           'Long-form prose and large canvas text use this warmer reading face.',
-          style: typography.editorial.bodyMedium!.copyWith(
+          style: sourceSerif.copyWith(
+            fontSize: 16,
+            height: 1.5,
             color: colors.textSecondary,
           ),
         ),
         const SizedBox(height: 12),
         Text(
           'IBM Plex Mono · code and technical metadata',
-          style: typography.mono.copyWith(
+          style: typography.code.copyWith(
             color: colors.textPrimary,
             fontWeight: FontWeight.w600,
           ),
         ),
         Text(
           'const line = 42;',
-          style: typography.mono.copyWith(color: colors.textPrimary),
+          style: typography.code.copyWith(color: colors.textPrimary),
         ),
         Text(
           'MARKDOWN · 0.1.0',
-          style: typography.mono.copyWith(
+          style: typography.code.copyWith(
             color: colors.textMuted,
             fontSize: 11,
           ),
@@ -776,7 +761,7 @@ class _WidgetGalleryPageState extends State<WidgetGalleryPage> {
     );
   }
 
-  Widget _surfaceStates(AppTheme theme) {
+  Widget _surfaceStates(BTheme theme) {
     final colors = theme.colors;
     final states = [
       ('Surface', colors.surface),
@@ -809,11 +794,11 @@ class _WidgetGalleryPageState extends State<WidgetGalleryPage> {
             ),
             child: Text(
               label,
-              style: TextStyle(
+              style: theme.typo.body.copyWith(
+                fontSize: 12,
                 color: label == 'Disabled'
                     ? colors.textMuted
                     : colors.textPrimary,
-                fontSize: 12,
               ),
             ),
           ),
@@ -829,12 +814,12 @@ class _WidgetGalleryPageState extends State<WidgetGalleryPage> {
   }
 
   InputDecoration _inputDecoration(
-    AppTheme theme, {
+    BTheme theme, {
     required String label,
     String? hint,
   }) {
     final border = OutlineInputBorder(
-      borderRadius: BorderRadius.circular(theme.components.toolbar.radius),
+      borderRadius: BorderRadius.circular(8),
       borderSide: BorderSide(color: theme.colors.borderSubtle),
     );
     return InputDecoration(
@@ -850,41 +835,17 @@ class _WidgetGalleryPageState extends State<WidgetGalleryPage> {
     );
   }
 
-  ButtonColors _buttonColors(AppSemanticColors colors) {
-    return ButtonColors(
-      primary: colors.accent,
-      onPrimary: colors.surface,
-      primaryHover: colors.accentHover,
-      primaryPressed: colors.accentPressed,
-      secondary: colors.surfaceSubtle,
-      onSecondary: colors.textPrimary,
-      surface: colors.surface,
-      foreground: colors.textPrimary,
-      border: colors.borderSubtle,
-      hover: colors.surfaceHover,
-      pressed: colors.surfacePressed,
-      focus: colors.focusRing,
-      destructive: colors.accentSoft,
-      onDestructive: colors.accentPressed,
-      destructiveHover: colors.accentSubtle,
-      destructivePressed: colors.accentSubtle,
-      disabled: colors.surfacePressed,
-      disabledForeground: colors.textMuted,
-    );
-  }
-
   void _openSettings() {
     showDialog<void>(
       context: context,
-      barrierColor: context.appTheme.components.settings.scrim,
+      barrierColor: BTheme.of(context).colors.scrim,
       builder: (_) => const SettingsDialog(),
     );
   }
 
   void _openConfirmation() {
-    final theme = context.appTheme;
-    final buttonColors = _buttonColors(theme.colors);
-    final buttonTextStyle = theme.typography.ui.bodyMedium!.copyWith(
+    final theme = BTheme.of(context);
+    final buttonTextStyle = theme.typo.body.copyWith(
       fontSize: 14,
       fontWeight: FontWeight.w400,
     );
@@ -895,14 +856,12 @@ class _WidgetGalleryPageState extends State<WidgetGalleryPage> {
         content: const Text('This removes every block from the current view.'),
         actions: [
           Button(
-            colors: buttonColors,
             textStyle: buttonTextStyle,
             variant: ButtonVariant.link,
             onPressed: () => Navigator.pop(dialogContext),
             child: const Text('Cancel'),
           ),
           Button(
-            colors: buttonColors,
             textStyle: buttonTextStyle,
             variant: ButtonVariant.destructive,
             onPressed: () => Navigator.pop(dialogContext),
@@ -929,13 +888,13 @@ class _GalleryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = context.appTheme;
+    final theme = BTheme.of(context);
     return Material(
       color: theme.colors.surfaceRaised,
-      elevation: theme.components.block.elevation,
+      elevation: 8,
       shadowColor: theme.colors.shadow,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(theme.components.block.radius),
+        borderRadius: BorderRadius.circular(10),
         side: BorderSide(color: theme.colors.borderSubtle),
       ),
       clipBehavior: Clip.antiAlias,
@@ -947,16 +906,18 @@ class _GalleryCard extends StatelessWidget {
             Row(
               children: [
                 Expanded(
-                  child: Text(
-                    title,
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
+                  child: Text(title, style: BTheme.of(context).typo.title),
                 ),
                 _StatusBadge(existing: existing),
               ],
             ),
             const SizedBox(height: 4),
-            Text(note, style: TextStyle(color: theme.colors.textSecondary)),
+            Text(
+              note,
+              style: theme.typo.body.copyWith(
+                color: theme.colors.textSecondary,
+              ),
+            ),
             const SizedBox(height: 20),
             child,
           ],
@@ -973,7 +934,7 @@ class _StatusBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = context.appTheme.colors;
+    final colors = BTheme.of(context).colors;
     return Semantics(
       label: existing ? 'Existing component' : 'Proposed component',
       child: Container(
@@ -987,7 +948,7 @@ class _StatusBadge extends StatelessWidget {
         ),
         child: Text(
           existing ? 'Existing' : 'Proposed',
-          style: TextStyle(
+          style: BTheme.of(context).typo.label.copyWith(
             color: existing ? colors.accentPressed : colors.textSecondary,
             fontSize: 11,
             fontWeight: FontWeight.w600,

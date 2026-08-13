@@ -3,12 +3,20 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:beyond/foundation/select.dart';
+import 'package:beyond/theme/starless_light.dart';
 
 void main() {
   testWidgets('select opens, navigates, selects, and dismisses', (
     tester,
   ) async {
     var value = 'dart';
+    const callerStyle = TextStyle(
+      fontFamily: 'CallerFont',
+      fontFamilyFallback: ['CallerFallback'],
+      fontSize: 16,
+      fontWeight: FontWeight.w600,
+      height: 1.25,
+    );
     final options = [
       const SelectOption(value: 'dart', label: 'Dart'),
       const SelectOption(value: 'python', label: 'Python'),
@@ -16,19 +24,14 @@ void main() {
 
     await tester.pumpWidget(
       MaterialApp(
+        theme: ThemeData(extensions: [starlessLight]),
         home: StatefulBuilder(
           builder: (context, setState) => Center(
             child: Select<String>(
               value: value,
               options: options,
               onChanged: (next) => setState(() => value = next),
-              textStyle: const TextStyle(fontSize: 14),
-              foregroundColor: Colors.black,
-              backgroundColor: Colors.transparent,
-              popupColor: Colors.white,
-              borderColor: Colors.black,
-              hoverColor: Colors.grey,
-              pressedColor: Colors.grey,
+              textStyle: callerStyle,
             ),
           ),
         ),
@@ -39,17 +42,34 @@ void main() {
       find.byKey(const ValueKey('select-trigger')),
     );
     expect(
+      trigger.style!.backgroundColor!.resolve({}),
+      starlessLight.colors.surface,
+    );
+    expect(
+      trigger.style!.backgroundColor!.resolve({WidgetState.hovered}),
+      starlessLight.colors.surfaceHover,
+    );
+    expect(
       trigger.style!.backgroundColor!.resolve({WidgetState.focused}),
-      Colors.grey,
+      starlessLight.colors.surfaceHover,
+    );
+    expect(
+      trigger.style!.backgroundColor!.resolve({WidgetState.pressed}),
+      starlessLight.colors.surfacePressed,
     );
     expect(
       trigger.style!.side!.resolve({WidgetState.focused}),
-      const BorderSide(color: Colors.black),
+      BorderSide(color: starlessLight.colors.borderSubtle),
     );
+    _expectTypography(trigger.style!.textStyle!.resolve({})!, callerStyle);
 
     await tester.tap(find.byKey(const ValueKey('select-trigger')));
     await tester.pump();
     expect(find.byKey(const ValueKey('select-option-1')), findsOneWidget);
+    final option = tester.widget<MenuItemButton>(
+      find.byKey(const ValueKey('select-option-0')),
+    );
+    _expectTypography(option.style!.textStyle!.resolve({})!, callerStyle);
     final triggerRect = tester.getRect(
       find.byKey(const ValueKey('select-trigger')),
     );
@@ -78,4 +98,12 @@ void main() {
     await tester.pump();
     expect(find.byKey(const ValueKey('select-option-0')), findsNothing);
   });
+}
+
+void _expectTypography(TextStyle actual, TextStyle expected) {
+  expect(actual.fontFamily, expected.fontFamily);
+  expect(actual.fontFamilyFallback, expected.fontFamilyFallback);
+  expect(actual.fontSize, expected.fontSize);
+  expect(actual.fontWeight, expected.fontWeight);
+  expect(actual.height, expected.height);
 }

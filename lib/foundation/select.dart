@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import 'theme.dart';
+
 @immutable
 class SelectOption<T> {
   const SelectOption({
@@ -19,13 +21,13 @@ class Select<T> extends StatefulWidget {
     required this.value,
     required this.options,
     required this.onChanged,
-    required this.textStyle,
-    required this.foregroundColor,
-    required this.backgroundColor,
-    required this.popupColor,
-    required this.borderColor,
-    required this.hoverColor,
-    required this.pressedColor,
+    this.textStyle,
+    this.foregroundColor,
+    this.backgroundColor,
+    this.popupColor,
+    this.borderColor,
+    this.hoverColor,
+    this.pressedColor,
     this.iconColor,
     this.shadowColor,
     this.popupElevation = 8,
@@ -36,13 +38,13 @@ class Select<T> extends StatefulWidget {
   final T value;
   final List<SelectOption<T>> options;
   final ValueChanged<T>? onChanged;
-  final TextStyle textStyle;
-  final Color foregroundColor;
-  final Color backgroundColor;
-  final Color popupColor;
-  final Color borderColor;
-  final Color hoverColor;
-  final Color pressedColor;
+  final TextStyle? textStyle;
+  final Color? foregroundColor;
+  final Color? backgroundColor;
+  final Color? popupColor;
+  final Color? borderColor;
+  final Color? hoverColor;
+  final Color? pressedColor;
   final Color? iconColor;
   final Color? shadowColor;
   final double popupElevation;
@@ -58,12 +60,20 @@ class _SelectState<T> extends State<Select<T>> {
   late List<FocusNode> _optionFocusNodes;
 
   bool get _enabled => widget.onChanged != null;
-  TextStyle get _textStyle => widget.textStyle.copyWith(fontSize: 14);
+  BColors get _colors => BTheme.of(context).colors;
+  TextStyle get _textStyle => widget.textStyle ?? BTheme.of(context).typo.body;
+  Color get _foreground => widget.foregroundColor ?? _colors.textPrimary;
+  Color get _background => widget.backgroundColor ?? _colors.surface;
+  Color get _popup => widget.popupColor ?? _colors.surfaceRaised;
+  Color get _border => widget.borderColor ?? _colors.borderSubtle;
+  Color get _hover => widget.hoverColor ?? _colors.surfaceHover;
+  Color get _pressed => widget.pressedColor ?? _colors.surfacePressed;
+  Color get _shadow => widget.shadowColor ?? _colors.shadow;
   WidgetStateProperty<Color?> get _foregroundColor =>
       WidgetStateProperty.resolveWith((states) {
         return states.contains(WidgetState.disabled)
-            ? widget.foregroundColor.withValues(alpha: 0.38)
-            : widget.foregroundColor;
+            ? _foreground.withValues(alpha: 0.38)
+            : _foreground;
       });
 
   @override
@@ -131,16 +141,20 @@ class _SelectState<T> extends State<Select<T>> {
       foregroundColor: _foregroundColor,
       backgroundColor: WidgetStateProperty.resolveWith((states) {
         if (states.contains(WidgetState.disabled)) {
-          return widget.backgroundColor;
+          return _background;
         }
-        if (states.contains(WidgetState.pressed)) return widget.pressedColor;
-        return widget.hoverColor;
+        if (states.contains(WidgetState.pressed)) return _pressed;
+        if (states.contains(WidgetState.hovered) ||
+            states.contains(WidgetState.focused)) {
+          return _hover;
+        }
+        return _background;
       }),
       side: WidgetStateProperty.resolveWith((states) {
         if (states.contains(WidgetState.disabled)) {
-          return BorderSide(color: widget.borderColor.withValues(alpha: 0.38));
+          return BorderSide(color: _border.withValues(alpha: 0.38));
         }
-        return BorderSide(color: widget.borderColor);
+        return BorderSide(color: _border);
       }),
       shape: WidgetStatePropertyAll(
         RoundedRectangleBorder(borderRadius: widget.borderRadius),
@@ -162,10 +176,10 @@ class _SelectState<T> extends State<Select<T>> {
       backgroundColor: WidgetStateProperty.resolveWith((states) {
         if (states.contains(WidgetState.disabled)) return Colors.transparent;
         if (isSelected) return Colors.transparent;
-        if (states.contains(WidgetState.pressed)) return widget.pressedColor;
+        if (states.contains(WidgetState.pressed)) return _pressed;
         if (states.contains(WidgetState.hovered) ||
             states.contains(WidgetState.focused)) {
-          return widget.hoverColor;
+          return _hover;
         }
         return Colors.transparent;
       }),
@@ -178,7 +192,7 @@ class _SelectState<T> extends State<Select<T>> {
                       padding: const EdgeInsets.all(2),
                       child: DecoratedBox(
                         decoration: BoxDecoration(
-                          color: widget.pressedColor,
+                          color: _pressed,
                           borderRadius: BorderRadius.circular(4),
                         ),
                       ),
@@ -205,7 +219,7 @@ class _SelectState<T> extends State<Select<T>> {
   @override
   Widget build(BuildContext context) {
     final selected = _selectedOption;
-    final iconColor = widget.iconColor ?? widget.foregroundColor;
+    final iconColor = widget.iconColor ?? _foreground;
     return MenuAnchor(
       key: const ValueKey('select-menu'),
       controller: _menuController,
@@ -215,14 +229,14 @@ class _SelectState<T> extends State<Select<T>> {
       alignmentOffset: const Offset(0, 4),
       crossAxisUnconstrained: false,
       style: MenuStyle(
-        backgroundColor: WidgetStatePropertyAll(widget.popupColor),
-        shadowColor: WidgetStatePropertyAll(widget.shadowColor),
+        backgroundColor: WidgetStatePropertyAll(_popup),
+        shadowColor: WidgetStatePropertyAll(_shadow),
         elevation: WidgetStatePropertyAll(widget.popupElevation),
         padding: const WidgetStatePropertyAll(EdgeInsets.all(4)),
         minimumSize: const WidgetStatePropertyAll(Size(160, 0)),
         maximumSize: const WidgetStatePropertyAll(Size(160, double.infinity)),
         visualDensity: VisualDensity.standard,
-        side: WidgetStatePropertyAll(BorderSide(color: widget.borderColor)),
+        side: WidgetStatePropertyAll(BorderSide(color: _border)),
         shape: WidgetStatePropertyAll(
           RoundedRectangleBorder(borderRadius: widget.borderRadius),
         ),

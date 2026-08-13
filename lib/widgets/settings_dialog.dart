@@ -2,7 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
-import '../theme/app_theme.dart';
+import '../foundation/theme.dart';
 
 class SettingsDialog extends StatelessWidget {
   const SettingsDialog({super.key});
@@ -10,17 +10,16 @@ class SettingsDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final viewport = MediaQuery.sizeOf(context);
-    final appTheme = context.appTheme;
-    final settings = appTheme.components.settings;
-    final ui = appTheme.typography.ui;
+    final colors = BTheme.of(context).colors;
+    final typo = BTheme.of(context).typo;
     return Dialog(
-      backgroundColor: settings.background,
+      backgroundColor: colors.surfaceRaised,
       surfaceTintColor: Colors.transparent,
-      elevation: settings.elevation,
-      shadowColor: settings.shadow,
+      elevation: 8,
+      shadowColor: colors.shadow,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(settings.radius),
-        side: BorderSide(color: settings.divider),
+        borderRadius: BorderRadius.circular(10),
+        side: BorderSide(color: colors.borderSubtle),
       ),
       insetPadding: const EdgeInsets.all(16),
       child: SizedBox(
@@ -31,7 +30,7 @@ class SettingsDialog extends StatelessWidget {
             SizedBox(
               width: 152,
               child: Material(
-                color: settings.navigationBackground,
+                color: colors.surface,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
@@ -39,18 +38,16 @@ class SettingsDialog extends StatelessWidget {
                       padding: const EdgeInsets.fromLTRB(16, 20, 16, 12),
                       child: Text(
                         'Settings',
-                        style: ui.titleMedium!.copyWith(
-                          color: settings.foreground,
-                        ),
+                        style: typo.title.copyWith(color: colors.textPrimary),
                       ),
                     ),
-                    Divider(height: 1, color: settings.divider),
+                    Divider(height: 1, color: colors.borderSubtle),
                     ListTile(
                       selected: true,
-                      selectedColor: settings.selectedForeground,
-                      selectedTileColor: settings.selectedBackground,
-                      hoverColor: settings.hoverBackground,
-                      focusColor: settings.focus,
+                      selectedColor: colors.accent,
+                      selectedTileColor: colors.accentSoft,
+                      hoverColor: colors.surfaceHover,
+                      focusColor: colors.focusRing,
                       leading: const Icon(Icons.info_outline, size: 20),
                       title: const Text('About'),
                       onTap: () {},
@@ -59,7 +56,7 @@ class SettingsDialog extends StatelessWidget {
                 ),
               ),
             ),
-            VerticalDivider(width: 1, color: settings.divider),
+            VerticalDivider(width: 1, color: colors.borderSubtle),
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(24, 12, 12, 24),
@@ -70,8 +67,9 @@ class SettingsDialog extends StatelessWidget {
                       children: [
                         Text(
                           'About',
-                          style: ui.titleLarge!.copyWith(
-                            color: settings.foreground,
+                          style: typo.title.copyWith(
+                            color: colors.textPrimary,
+                            fontSize: 14,
                           ),
                         ),
                         const Spacer(),
@@ -80,22 +78,22 @@ class SettingsDialog extends StatelessWidget {
                           onPressed: () => Navigator.of(context).pop(),
                           style: ButtonStyle(
                             foregroundColor: WidgetStatePropertyAll(
-                              settings.secondaryForeground,
+                              colors.textSecondary,
                             ),
                             backgroundColor: WidgetStateProperty.resolveWith((
                               states,
                             ) {
                               if (states.contains(WidgetState.pressed)) {
-                                return settings.pressedBackground;
+                                return colors.surfacePressed;
                               }
                               if (states.contains(WidgetState.hovered)) {
-                                return settings.hoverBackground;
+                                return colors.surfaceHover;
                               }
                               return Colors.transparent;
                             }),
                             side: WidgetStateProperty.resolveWith(
                               (states) => states.contains(WidgetState.focused)
-                                  ? BorderSide(color: settings.focus)
+                                  ? BorderSide(color: colors.focusRing)
                                   : BorderSide.none,
                             ),
                           ),
@@ -106,9 +104,7 @@ class SettingsDialog extends StatelessWidget {
                     const SizedBox(height: 20),
                     Text(
                       'beyond - dev build',
-                      style: ui.bodyMedium!.copyWith(
-                        color: settings.secondaryForeground,
-                      ),
+                      style: typo.body.copyWith(color: colors.textSecondary),
                     ),
                   ],
                 ),

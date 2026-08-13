@@ -1,62 +1,28 @@
 import 'package:flutter/material.dart';
 
+import 'theme.dart';
+
 enum ButtonVariant { primary, outline, secondary, ghost, destructive, link }
 
 enum ButtonSize { small, medium, large, icon }
 
-@immutable
-class ButtonColors {
-  const ButtonColors({
-    required this.primary,
-    required this.onPrimary,
-    required this.primaryHover,
-    required this.primaryPressed,
-    required this.secondary,
-    required this.onSecondary,
-    required this.surface,
-    required this.foreground,
-    required this.border,
-    required this.hover,
-    required this.pressed,
-    required this.focus,
-    required this.destructive,
-    required this.onDestructive,
-    required this.destructiveHover,
-    required this.destructivePressed,
-    required this.disabled,
-    required this.disabledForeground,
-  });
-
-  final Color primary;
-  final Color onPrimary;
-  final Color primaryHover;
-  final Color primaryPressed;
-  final Color secondary;
-  final Color onSecondary;
-  final Color surface;
-  final Color foreground;
-  final Color border;
-  final Color hover;
-  final Color pressed;
-  final Color focus;
-  final Color destructive;
-  final Color onDestructive;
-  final Color destructiveHover;
-  final Color destructivePressed;
-  final Color disabled;
-  final Color disabledForeground;
-}
-
 class Button extends StatelessWidget {
   const Button({
-    required this.colors,
     required this.onPressed,
     this.child,
     this.leadingIcon,
     this.trailingIcon,
     this.variant = ButtonVariant.primary,
     this.size = ButtonSize.medium,
-    required this.textStyle,
+    this.textStyle,
+    this.backgroundColor,
+    this.foregroundColor,
+    this.hoverColor,
+    this.pressedColor,
+    this.borderColor,
+    this.focusColor,
+    this.disabledColor,
+    this.disabledForegroundColor,
     this.borderRadius = const BorderRadius.all(Radius.circular(8)),
     this.focusNode,
     this.autofocus = false,
@@ -67,7 +33,6 @@ class Button extends StatelessWidget {
          'A button needs a child or an icon.',
        );
 
-  final ButtonColors colors;
   final VoidCallback? onPressed;
   final VoidCallback? onLongPress;
   final Widget? child;
@@ -75,7 +40,15 @@ class Button extends StatelessWidget {
   final Widget? trailingIcon;
   final ButtonVariant variant;
   final ButtonSize size;
-  final TextStyle textStyle;
+  final TextStyle? textStyle;
+  final Color? backgroundColor;
+  final Color? foregroundColor;
+  final Color? hoverColor;
+  final Color? pressedColor;
+  final Color? borderColor;
+  final Color? focusColor;
+  final Color? disabledColor;
+  final Color? disabledForegroundColor;
   final BorderRadius borderRadius;
   final FocusNode? focusNode;
   final bool autofocus;
@@ -115,47 +88,48 @@ class Button extends StatelessWidget {
     ButtonSize.icon => 0,
   };
 
-  Color get _foreground => switch (variant) {
-    ButtonVariant.primary => colors.onPrimary,
-    ButtonVariant.outline => colors.foreground,
-    ButtonVariant.secondary => colors.onSecondary,
-    ButtonVariant.ghost => colors.foreground,
-    ButtonVariant.destructive => colors.onDestructive,
-    ButtonVariant.link => colors.primary,
+  Color _foreground(BColors colors) => switch (variant) {
+    ButtonVariant.primary => foregroundColor ?? colors.surface,
+    ButtonVariant.outline => foregroundColor ?? colors.textPrimary,
+    ButtonVariant.secondary => foregroundColor ?? colors.textPrimary,
+    ButtonVariant.ghost => foregroundColor ?? colors.textPrimary,
+    ButtonVariant.destructive => foregroundColor ?? colors.accentPressed,
+    ButtonVariant.link => foregroundColor ?? colors.accent,
   };
 
-  Color get _background => switch (variant) {
-    ButtonVariant.primary => colors.primary,
-    ButtonVariant.outline => colors.surface,
-    ButtonVariant.secondary => colors.secondary,
-    ButtonVariant.ghost || ButtonVariant.link => Colors.transparent,
-    ButtonVariant.destructive => colors.destructive,
+  Color _background(BColors colors) => switch (variant) {
+    ButtonVariant.primary => backgroundColor ?? colors.accent,
+    ButtonVariant.outline => backgroundColor ?? colors.surface,
+    ButtonVariant.secondary => backgroundColor ?? colors.surfaceSubtle,
+    ButtonVariant.ghost ||
+    ButtonVariant.link => backgroundColor ?? Colors.transparent,
+    ButtonVariant.destructive => backgroundColor ?? colors.accentSoft,
   };
 
-  Color get _hoverBackground => switch (variant) {
-    ButtonVariant.primary => colors.primaryHover,
+  Color _hoverBackground(BColors colors) => switch (variant) {
+    ButtonVariant.primary => hoverColor ?? colors.accentHover,
     ButtonVariant.outline ||
     ButtonVariant.secondary ||
-    ButtonVariant.ghost => colors.hover,
-    ButtonVariant.destructive => colors.destructiveHover,
-    ButtonVariant.link => Colors.transparent,
+    ButtonVariant.ghost => hoverColor ?? colors.surfaceHover,
+    ButtonVariant.destructive => hoverColor ?? colors.accentSubtle,
+    ButtonVariant.link => hoverColor ?? Colors.transparent,
   };
 
-  Color get _pressedBackground => switch (variant) {
-    ButtonVariant.primary => colors.primaryPressed,
+  Color _pressedBackground(BColors colors) => switch (variant) {
+    ButtonVariant.primary => pressedColor ?? colors.accentPressed,
     ButtonVariant.outline ||
     ButtonVariant.secondary ||
-    ButtonVariant.ghost => colors.pressed,
-    ButtonVariant.destructive => colors.destructivePressed,
-    ButtonVariant.link => Colors.transparent,
+    ButtonVariant.ghost => pressedColor ?? colors.surfacePressed,
+    ButtonVariant.destructive => pressedColor ?? colors.accentSubtle,
+    ButtonVariant.link => pressedColor ?? Colors.transparent,
   };
 
-  ButtonStyle _style() {
+  ButtonStyle _style(BColors colors, TextStyle textStyle) {
     return ButtonStyle(
       foregroundColor: WidgetStateProperty.resolveWith((states) {
         return states.contains(WidgetState.disabled)
-            ? colors.disabledForeground
-            : _foreground;
+            ? disabledForegroundColor ?? colors.textMuted
+            : _foreground(colors);
       }),
       backgroundColor: WidgetStateProperty.resolveWith((states) {
         if (states.contains(WidgetState.disabled)) {
@@ -163,26 +137,32 @@ class Button extends StatelessWidget {
                   variant == ButtonVariant.ghost ||
                   variant == ButtonVariant.link
               ? Colors.transparent
-              : colors.disabled;
+              : disabledColor ?? colors.surfacePressed;
         }
-        if (states.contains(WidgetState.pressed)) return _pressedBackground;
+        if (states.contains(WidgetState.pressed)) {
+          return _pressedBackground(colors);
+        }
         if (states.contains(WidgetState.hovered) ||
             states.contains(WidgetState.focused)) {
-          return _hoverBackground;
+          return _hoverBackground(colors);
         }
-        return _background;
+        return _background(colors);
       }),
       side: WidgetStateProperty.resolveWith((states) {
         if (states.contains(WidgetState.disabled)) {
           return variant == ButtonVariant.outline
-              ? BorderSide(color: colors.border.withValues(alpha: 0.38))
+              ? BorderSide(
+                  color: (borderColor ?? colors.borderSubtle).withValues(
+                    alpha: 0.38,
+                  ),
+                )
               : BorderSide.none;
         }
         if (states.contains(WidgetState.focused)) {
-          return BorderSide(color: colors.focus, width: 2);
+          return BorderSide(color: focusColor ?? colors.focusRing, width: 2);
         }
         return variant == ButtonVariant.outline
-            ? BorderSide(color: colors.border)
+            ? BorderSide(color: borderColor ?? colors.borderSubtle)
             : BorderSide.none;
       }),
       shape: WidgetStatePropertyAll(
@@ -231,12 +211,13 @@ class Button extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = BTheme.of(context);
     return TextButton(
       onPressed: onPressed,
       onLongPress: onLongPress,
       focusNode: focusNode,
       autofocus: autofocus,
-      style: _style(),
+      style: _style(theme.colors, textStyle ?? theme.typo.body),
       child: IconTheme.merge(
         data: IconThemeData(size: _iconSize),
         child: _content(),

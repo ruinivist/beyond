@@ -2,37 +2,42 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:beyond/foundation/button.dart';
-
-const _colors = ButtonColors(
-  primary: Colors.blue,
-  onPrimary: Colors.white,
-  primaryHover: Colors.lightBlue,
-  primaryPressed: Colors.indigo,
-  secondary: Colors.grey,
-  onSecondary: Colors.black,
-  surface: Colors.white,
-  foreground: Colors.black,
-  border: Colors.black,
-  hover: Colors.white70,
-  pressed: Colors.grey,
-  focus: Colors.orange,
-  destructive: Colors.red,
-  onDestructive: Colors.white,
-  destructiveHover: Colors.redAccent,
-  destructivePressed: Colors.red,
-  disabled: Colors.grey,
-  disabledForeground: Colors.black38,
-);
+import 'package:beyond/theme/starless_light.dart';
 
 void main() {
+  testWidgets('button uses BTheme defaults', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: ThemeData(extensions: [starlessLight]),
+        home: const Button(onPressed: _noop, child: Text('Primary')),
+      ),
+    );
+
+    final textButton = tester.widget<TextButton>(find.byType(TextButton));
+    expect(
+      textButton.style!.backgroundColor!.resolve({}),
+      starlessLight.colors.accent,
+    );
+    expect(
+      textButton.style!.foregroundColor!.resolve({}),
+      starlessLight.colors.surface,
+    );
+    expect(
+      textButton.style!.textStyle!.resolve({})!.fontSize,
+      starlessLight.typo.body.fontSize,
+    );
+  });
+
   testWidgets('button variants use expanded default spacing', (tester) async {
     await tester.pumpWidget(
-      const MaterialApp(
-        home: Button(
-          colors: _colors,
+      MaterialApp(
+        theme: ThemeData(extensions: [starlessLight]),
+        home: const Button(
           variant: ButtonVariant.outline,
           onPressed: _noop,
           textStyle: TextStyle(fontSize: 14, fontWeight: FontWeight.w400),
+          backgroundColor: Colors.white,
+          borderColor: Colors.black,
           child: Text('Outline'),
         ),
       ),
@@ -53,6 +58,35 @@ void main() {
       textButton.style!.side!.resolve({}),
       const BorderSide(color: Colors.black),
     );
+  });
+
+  testWidgets('ghost and link buttons honor background state overrides', (
+    tester,
+  ) async {
+    const background = Colors.blue;
+    const hover = Colors.lightBlue;
+    const pressed = Colors.indigo;
+
+    for (final variant in [ButtonVariant.ghost, ButtonVariant.link]) {
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: ThemeData(extensions: [starlessLight]),
+          home: Button(
+            variant: variant,
+            onPressed: _noop,
+            backgroundColor: background,
+            hoverColor: hover,
+            pressedColor: pressed,
+            child: const Text('Button'),
+          ),
+        ),
+      );
+
+      final style = tester.widget<TextButton>(find.byType(TextButton)).style!;
+      expect(style.backgroundColor!.resolve({}), background);
+      expect(style.backgroundColor!.resolve({WidgetState.hovered}), hover);
+      expect(style.backgroundColor!.resolve({WidgetState.pressed}), pressed);
+    }
   });
 }
 

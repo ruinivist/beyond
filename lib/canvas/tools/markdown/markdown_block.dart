@@ -7,7 +7,7 @@ import 'package:flutter_markdown_plus_latex/flutter_markdown_plus_latex.dart';
 import 'package:scroll_animator/scroll_animator.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-import '../../../theme/app_theme.dart';
+import '../../../foundation/theme.dart';
 
 const markdownBlockMinimumSize = Size(320, 240);
 
@@ -76,9 +76,8 @@ class MarkdownBlock extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final appTheme = context.appTheme;
-    final block = appTheme.components.block;
-    final mono = appTheme.typography.mono;
+    final colors = BTheme.of(context).colors;
+    final code = BTheme.of(context).typo.code;
     return Listener(
       onPointerDown: onSelect,
       child: ListenableBuilder(
@@ -87,16 +86,14 @@ class MarkdownBlock extends StatelessWidget {
           size: model.size,
           child: Material(
             key: const ValueKey('markdown-block-surface'),
-            color: block.background,
-            elevation: model.selected
-                ? block.selectedElevation
-                : block.elevation,
-            shadowColor: block.shadow,
+            color: colors.surface,
+            elevation: model.selected ? 12 : 8,
+            shadowColor: colors.shadow,
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(block.radius),
+              borderRadius: BorderRadius.circular(10),
               side: model.selected
-                  ? BorderSide(color: block.selectedBorder, width: 2)
-                  : BorderSide(color: block.border),
+                  ? BorderSide(color: colors.accent, width: 2)
+                  : BorderSide(color: colors.borderSubtle),
             ),
             clipBehavior: Clip.antiAlias,
             child: Stack(
@@ -104,7 +101,7 @@ class MarkdownBlock extends StatelessWidget {
                 Column(
                   children: [
                     _MarkdownBlockHeader(model: model, onMove: onMove),
-                    Divider(height: 1, color: block.divider),
+                    Divider(height: 1, color: colors.borderSubtle),
                     Expanded(
                       child: model.previewing
                           ? _MarkdownPreview(
@@ -119,16 +116,16 @@ class MarkdownBlock extends StatelessWidget {
                               minLines: null,
                               maxLines: null,
                               textAlignVertical: TextAlignVertical.top,
-                              cursorColor: block.selectedBorder,
+                              cursorColor: colors.accent,
                               decoration: InputDecoration(
                                 border: InputBorder.none,
                                 contentPadding: const EdgeInsets.all(16),
                                 hintText: 'Write Markdown…',
-                                hintStyle: mono.copyWith(
-                                  color: block.mutedForeground,
+                                hintStyle: code.copyWith(
+                                  color: colors.textMuted,
                                 ),
                               ),
-                              style: mono.copyWith(color: block.foreground),
+                              style: code.copyWith(color: colors.textPrimary),
                             ),
                     ),
                   ],
@@ -155,11 +152,17 @@ class _MarkdownPreview extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final appTheme = context.appTheme;
-    final block = appTheme.components.block;
-    final editorial = appTheme.typography.editorial;
-    final mono = appTheme.typography.mono;
-    final prose = editorial.bodyMedium!.copyWith(color: block.foreground);
+    final colors = BTheme.of(context).colors;
+    final typo = BTheme.of(context).typo;
+    final sourceSerif = TextStyle(
+      fontFamily: typo.heading.fontFamily,
+      fontFamilyFallback: typo.heading.fontFamilyFallback,
+    );
+    final prose = sourceSerif.copyWith(
+      color: colors.textPrimary,
+      fontSize: 16,
+      height: 1.5,
+    );
     return Markdown(
       key: const ValueKey('markdown-preview'),
       controller: controller,
@@ -169,31 +172,67 @@ class _MarkdownPreview extends StatelessWidget {
       inlineSyntaxes: [LatexInlineSyntax()],
       builders: {'latex': LatexElementBuilder()},
       styleSheet: MarkdownStyleSheet.fromTheme(Theme.of(context)).copyWith(
-        a: prose.copyWith(color: block.selectedBorder),
+        a: prose.copyWith(color: colors.accent),
         p: prose,
-        code: mono.copyWith(
-          color: block.foreground,
+        code: typo.code.copyWith(
+          color: colors.textPrimary,
           fontSize: 13,
-          backgroundColor: appTheme.colors.surfaceSubtle,
+          backgroundColor: colors.surfaceSubtle,
         ),
-        h1: editorial.headlineLarge!.copyWith(color: block.foreground),
-        h2: editorial.headlineMedium!.copyWith(color: block.foreground),
-        h3: editorial.headlineSmall!.copyWith(color: block.foreground),
-        h4: editorial.titleLarge!.copyWith(color: block.foreground),
-        h5: editorial.titleMedium!.copyWith(color: block.foreground),
-        h6: editorial.titleSmall!.copyWith(color: block.foreground),
+        h1: sourceSerif.copyWith(
+          fontSize: 24,
+          fontWeight: FontWeight.w600,
+          height: 1.2,
+          color: colors.textPrimary,
+        ),
+        h2: sourceSerif.copyWith(
+          fontSize: 22,
+          fontWeight: FontWeight.w600,
+          height: 1.25,
+          color: colors.textPrimary,
+        ),
+        h3: sourceSerif.copyWith(
+          fontSize: 20,
+          fontWeight: FontWeight.w600,
+          height: 1.3,
+          color: colors.textPrimary,
+        ),
+        h4: sourceSerif.copyWith(
+          fontSize: 18,
+          fontWeight: FontWeight.w600,
+          height: 1.35,
+          color: colors.textPrimary,
+        ),
+        h5: sourceSerif.copyWith(
+          fontSize: 17,
+          fontWeight: FontWeight.w600,
+          height: 1.35,
+          color: colors.textPrimary,
+        ),
+        h6: sourceSerif.copyWith(
+          fontSize: 16,
+          fontWeight: FontWeight.w600,
+          height: 1.4,
+          color: colors.textPrimary,
+        ),
         em: prose.copyWith(fontStyle: FontStyle.italic),
         strong: prose.copyWith(fontWeight: FontWeight.w600),
         del: prose.copyWith(decoration: TextDecoration.lineThrough),
         blockquote: prose,
         img: prose,
-        checkbox: prose.copyWith(color: block.selectedBorder),
+        checkbox: prose.copyWith(color: colors.accent),
         listBullet: prose,
-        tableHead: editorial.bodySmall!.copyWith(
-          color: block.foreground,
+        tableHead: sourceSerif.copyWith(
+          fontSize: 14,
+          height: 1.45,
+          color: colors.textPrimary,
           fontWeight: FontWeight.w600,
         ),
-        tableBody: editorial.bodySmall!.copyWith(color: block.foreground),
+        tableBody: sourceSerif.copyWith(
+          fontSize: 14,
+          height: 1.45,
+          color: colors.textPrimary,
+        ),
       ),
       imageBuilder: (uri, title, alt) {
         if (uri.scheme != 'https' || uri.host.isEmpty) {
@@ -250,7 +289,7 @@ class _MarkdownBlockHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final block = context.appTheme.components.block;
+    final colors = BTheme.of(context).colors;
     return SizedBox(
       height: 48,
       child: Row(
@@ -276,7 +315,7 @@ class _MarkdownBlockHeader extends StatelessWidget {
                     child: Icon(
                       Icons.description_outlined,
                       size: 18,
-                      color: block.secondaryForeground,
+                      color: colors.textSecondary,
                     ),
                   ),
                 ),
@@ -330,7 +369,7 @@ class _MarkdownModeTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final block = context.appTheme.components.block;
+    final colors = BTheme.of(context).colors;
     return Semantics(
       selected: selected,
       child: Column(
@@ -340,20 +379,20 @@ class _MarkdownModeTab extends StatelessWidget {
             onPressed: onPressed,
             style: ButtonStyle(
               foregroundColor: WidgetStatePropertyAll(
-                selected ? block.selectedBorder : block.secondaryForeground,
+                selected ? colors.accent : colors.textSecondary,
               ),
               backgroundColor: WidgetStateProperty.resolveWith((states) {
                 if (states.contains(WidgetState.pressed)) {
-                  return block.pressedBackground;
+                  return colors.surfacePressed;
                 }
                 if (states.contains(WidgetState.hovered)) {
-                  return block.hoverBackground;
+                  return colors.surfaceHover;
                 }
                 return Colors.transparent;
               }),
               side: WidgetStateProperty.resolveWith(
                 (states) => states.contains(WidgetState.focused)
-                    ? BorderSide(color: block.focus)
+                    ? BorderSide(color: colors.focusRing)
                     : BorderSide.none,
               ),
               visualDensity: VisualDensity.compact,
@@ -366,7 +405,7 @@ class _MarkdownModeTab extends StatelessWidget {
             height: 2,
             width: 56,
             child: ColoredBox(
-              color: selected ? block.selectedBorder : Colors.transparent,
+              color: selected ? colors.accent : Colors.transparent,
             ),
           ),
         ],
@@ -382,7 +421,7 @@ class _MarkdownBlockResizeHandle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = context.appTheme.components.block.mutedForeground;
+    final color = BTheme.of(context).colors.textMuted;
     return MouseRegion(
       cursor: SystemMouseCursors.resizeDownRight,
       child: Semantics(
