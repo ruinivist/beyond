@@ -3,12 +3,14 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:beyond/foundation/select.dart';
+import 'package:beyond/foundation/theme.dart';
 import 'package:beyond/theme/starless_light.dart';
 
 void main() {
   testWidgets('select opens, navigates, selects, and dismisses', (
     tester,
   ) async {
+    final theme = starlessLightThemeData.extension<BTheme>()!;
     var value = 'dart';
     const callerStyle = TextStyle(
       fontFamily: 'CallerFont',
@@ -24,7 +26,7 @@ void main() {
 
     await tester.pumpWidget(
       MaterialApp(
-        theme: ThemeData(extensions: [starlessLight]),
+        theme: starlessLightThemeData,
         home: StatefulBuilder(
           builder: (context, setState) => Center(
             child: Select<String>(
@@ -41,30 +43,27 @@ void main() {
     final trigger = tester.widget<TextButton>(
       find.byKey(const ValueKey('select-trigger')),
     );
-    expect(
-      trigger.style!.backgroundColor!.resolve({}),
-      starlessLight.colors.surface,
-    );
+    expect(trigger.style!.backgroundColor!.resolve({}), theme.colors.surface);
     expect(
       trigger.style!.backgroundColor!.resolve({WidgetState.hovered}),
-      starlessLight.colors.surfaceHover,
+      theme.colors.surfaceHover,
     );
     expect(
       trigger.style!.backgroundColor!.resolve({WidgetState.focused}),
-      starlessLight.colors.surfaceHover,
+      theme.colors.surfaceHover,
     );
     expect(
       trigger.style!.backgroundColor!.resolve({WidgetState.pressed}),
-      starlessLight.colors.surfacePressed,
+      theme.colors.surfacePressed,
     );
     expect(
       trigger.style!.side!.resolve({WidgetState.focused}),
-      BorderSide(color: starlessLight.colors.borderSubtle),
+      BorderSide(color: theme.colors.borderSubtle),
     );
     expect(
       (trigger.style!.shape!.resolve({}) as RoundedRectangleBorder)
           .borderRadius,
-      starlessLight.geo.radiusMedium,
+      theme.geo.radiusMedium,
     );
     _expectTypography(trigger.style!.textStyle!.resolve({})!, callerStyle);
 
@@ -74,10 +73,7 @@ void main() {
     final menu = tester.widget<MenuAnchor>(
       find.byKey(const ValueKey('select-menu')),
     );
-    expect(
-      menu.style!.elevation!.resolve({}),
-      starlessLight.geo.elevationMedium,
-    );
+    expect(menu.style!.elevation!.resolve({}), theme.geo.elevationMedium);
     final option = tester.widget<MenuItemButton>(
       find.byKey(const ValueKey('select-option-0')),
     );
@@ -115,7 +111,7 @@ void main() {
     final radius = BorderRadius.circular(20);
     await tester.pumpWidget(
       MaterialApp(
-        theme: ThemeData(extensions: [starlessLight]),
+        theme: starlessLightThemeData,
         home: Select<String>(
           value: 'dart',
           options: const [SelectOption(value: 'dart', label: 'Dart')],

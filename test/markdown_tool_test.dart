@@ -5,8 +5,8 @@ import 'package:flutter_math_fork/flutter_math.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:infinite_lazy_grid/infinite_lazy_grid.dart';
 import 'package:beyond/canvas/tools/markdown/markdown_block.dart';
+import 'package:beyond/foundation/theme.dart';
 import 'package:beyond/main.dart';
-import 'package:beyond/theme/starless_light.dart';
 import 'package:url_launcher_platform_interface/link.dart';
 import 'package:url_launcher_platform_interface/url_launcher_platform_interface.dart';
 
@@ -96,7 +96,9 @@ $$''';
       find.byKey(const ValueKey('markdown-preview')),
     );
     final styleSheet = markdown.styleSheet!;
-    final sourceSerif = starlessLight.typo.heading;
+    final sourceSerif = BTheme.of(
+      tester.element(find.byKey(const ValueKey('markdown-preview'))),
+    ).typo.heading;
     expect(styleSheet.p!.fontFamily, sourceSerif.fontFamily);
     expect(styleSheet.p!.fontFamilyFallback, sourceSerif.fontFamilyFallback);
     expect(styleSheet.p!.fontSize, 16);

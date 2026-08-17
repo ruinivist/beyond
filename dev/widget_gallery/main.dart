@@ -641,8 +641,8 @@ class _WidgetGalleryPageState extends State<WidgetGalleryPage> {
 
   Widget _colorSwatches(BColors colors) {
     final swatches = [
-      ('Canvas', starlessCanvasBackground),
-      ('Grid', starlessCanvasGrid),
+      ('Canvas', colors.canvasBackground),
+      ('Grid', colors.canvasGrid),
       ('Surface', colors.surface),
       ('Raised', colors.surfaceRaised),
       ('Subtle', colors.surfaceSubtle),

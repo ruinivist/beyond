@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 @immutable
 class BColors {
   const BColors({
+    required this.canvasBackground,
+    required this.canvasGrid,
     required this.surface,
     required this.surfaceRaised,
     required this.surfaceSubtle,
@@ -22,6 +24,8 @@ class BColors {
     required this.scrim,
   });
 
+  final Color canvasBackground;
+  final Color canvasGrid;
   final Color surface;
   final Color surfaceRaised;
   final Color surfaceSubtle;
@@ -43,6 +47,12 @@ class BColors {
   BColors lerp(BColors? other, double t) {
     if (other == null) return this;
     return BColors(
+      canvasBackground: Color.lerp(
+        canvasBackground,
+        other.canvasBackground,
+        t,
+      )!,
+      canvasGrid: Color.lerp(canvasGrid, other.canvasGrid, t)!,
       surface: Color.lerp(surface, other.surface, t)!,
       surfaceRaised: Color.lerp(surfaceRaised, other.surfaceRaised, t)!,
       surfaceSubtle: Color.lerp(surfaceSubtle, other.surfaceSubtle, t)!,
@@ -129,11 +139,17 @@ class BGeo {
 
 @immutable
 class BTheme extends ThemeExtension<BTheme> {
-  const BTheme({required this.colors, required this.typo, required this.geo});
+  const BTheme({
+    required this.colors,
+    required this.typo,
+    required this.geo,
+    required this.syntaxTheme,
+  });
 
   final BColors colors;
   final BTypo typo;
   final BGeo geo;
+  final Map<String, TextStyle> syntaxTheme;
 
   static BTheme of(BuildContext context) {
     final theme = Theme.of(context).extension<BTheme>();
@@ -146,11 +162,17 @@ class BTheme extends ThemeExtension<BTheme> {
   }
 
   @override
-  BTheme copyWith({BColors? colors, BTypo? typo, BGeo? geo}) {
+  BTheme copyWith({
+    BColors? colors,
+    BTypo? typo,
+    BGeo? geo,
+    Map<String, TextStyle>? syntaxTheme,
+  }) {
     return BTheme(
       colors: colors ?? this.colors,
       typo: typo ?? this.typo,
       geo: geo ?? this.geo,
+      syntaxTheme: syntaxTheme ?? this.syntaxTheme,
     );
   }
 
@@ -161,6 +183,7 @@ class BTheme extends ThemeExtension<BTheme> {
       colors: colors.lerp(other.colors, t),
       typo: typo.lerp(other.typo, t),
       geo: geo.lerp(other.geo, t),
+      syntaxTheme: t < 0.5 ? syntaxTheme : other.syntaxTheme,
     );
   }
 }

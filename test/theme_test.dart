@@ -14,8 +14,9 @@ void main() {
   });
 
   test('syntax token styles inherit the editor font', () {
+    final syntaxTheme = starlessLightThemeData.extension<BTheme>()!.syntaxTheme;
     for (final language in CodeLanguage.values) {
-      final theme = language.theme(starlessSyntaxTheme);
+      final theme = language.theme(syntaxTheme);
       if (theme == null) continue;
 
       for (final style in theme.theme.values) {

@@ -7,7 +7,6 @@ import 'package:scroll_animator/scroll_animator.dart';
 
 import '../../../foundation/select.dart';
 import '../../../foundation/theme.dart';
-import '../../../theme/starless_light.dart';
 import 'code_language.dart';
 
 const codeBlockMinimumSize = Size(280, 240);
@@ -135,7 +134,7 @@ class CodeBlock extends StatelessWidget {
                           cursorColor: colors.accent,
                           cursorLineColor: colors.accentSoft,
                           selectionColor: colors.accentSubtle,
-                          codeTheme: model.language.theme(starlessSyntaxTheme),
+                          codeTheme: model.language.theme(theme.syntaxTheme),
                         ),
                         indicatorBuilder:
                             (context, controller, chunkController, notifier) =>

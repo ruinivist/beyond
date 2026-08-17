@@ -26,10 +26,9 @@ abstract final class _Palette {
   static const scrim = Color(0x52201c1a);
 }
 
-const starlessCanvasBackground = _Palette.canvas;
-const starlessCanvasGrid = _Palette.grid;
-
-const starlessLightColors = BColors(
+const _starlessLightColors = BColors(
+  canvasBackground: _Palette.canvas,
+  canvasGrid: _Palette.grid,
   surface: _Palette.white,
   surfaceRaised: _Palette.raised,
   surfaceSubtle: _Palette.subtle,
@@ -52,7 +51,7 @@ const starlessLightColors = BColors(
 var _useMonoFallback = false;
 
 TextStyle _ibmPlexMono() => GoogleFonts.ibmPlexMono(
-  color: starlessLightColors.textPrimary,
+  color: _starlessLightColors.textPrimary,
   fontSize: 14,
   height: 1.4,
 );
@@ -64,7 +63,7 @@ final _starlessLightTypo = BTypo(
       fontWeight: FontWeight.w600,
       height: 1.1,
     ),
-    color: starlessLightColors.textPrimary,
+    color: _starlessLightColors.textPrimary,
   ),
   heading: GoogleFonts.sourceSerif4(
     textStyle: const TextStyle(
@@ -72,26 +71,26 @@ final _starlessLightTypo = BTypo(
       fontWeight: FontWeight.w600,
       height: 1.3,
     ),
-    color: starlessLightColors.textPrimary,
+    color: _starlessLightColors.textPrimary,
   ),
   title: GoogleFonts.robotoMono(
     textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
-    color: starlessLightColors.textPrimary,
+    color: _starlessLightColors.textPrimary,
   ),
   body: GoogleFonts.robotoMono(
     textStyle: const TextStyle(fontSize: 13),
-    color: starlessLightColors.textPrimary,
+    color: _starlessLightColors.textPrimary,
   ),
   label: GoogleFonts.robotoMono(
     textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
-    color: starlessLightColors.textPrimary,
+    color: _starlessLightColors.textPrimary,
   ),
   code: _useMonoFallback
       ? const TextStyle(fontFamily: 'monospace', fontSize: 14, height: 1.4)
       : _ibmPlexMono(),
 );
 
-const starlessLightGeo = BGeo(
+const _starlessLightGeo = BGeo(
   radiusSmall: BorderRadius.all(Radius.circular(4)),
   radiusMedium: BorderRadius.all(Radius.circular(8)),
   radiusLarge: BorderRadius.all(Radius.circular(10)),
@@ -100,13 +99,12 @@ const starlessLightGeo = BGeo(
   elevationHigh: 12,
 );
 
-final starlessLight = BTheme(
-  colors: starlessLightColors,
+final _starlessLight = BTheme(
+  colors: _starlessLightColors,
   typo: _starlessLightTypo,
-  geo: starlessLightGeo,
+  geo: _starlessLightGeo,
+  syntaxTheme: atomOneLightTheme,
 );
-
-final starlessSyntaxTheme = atomOneLightTheme;
 
 const _starlessLightColorScheme = ColorScheme(
   brightness: Brightness.light,
@@ -171,24 +169,24 @@ Future<void> loadCodeFont() async {
 final starlessLightThemeData = ThemeData(
   brightness: Brightness.light,
   colorScheme: _starlessLightColorScheme,
-  scaffoldBackgroundColor: starlessCanvasBackground,
-  extensions: [starlessLight],
+  scaffoldBackgroundColor: _starlessLight.colors.canvasBackground,
+  extensions: [_starlessLight],
   textTheme: TextTheme(
-    displayLarge: starlessLight.typo.display,
-    displayMedium: starlessLight.typo.display,
-    displaySmall: starlessLight.typo.display.copyWith(fontSize: 28),
-    headlineLarge: starlessLight.typo.heading,
-    headlineMedium: starlessLight.typo.heading,
-    headlineSmall: starlessLight.typo.heading,
-    titleLarge: starlessLight.typo.title.copyWith(fontSize: 14),
-    titleMedium: starlessLight.typo.title,
-    titleSmall: starlessLight.typo.title,
-    bodyLarge: starlessLight.typo.body.copyWith(fontSize: 14),
-    bodyMedium: starlessLight.typo.body,
-    bodySmall: starlessLight.typo.body.copyWith(fontSize: 12),
-    labelLarge: starlessLight.typo.label,
-    labelMedium: starlessLight.typo.label,
-    labelSmall: starlessLight.typo.label,
+    displayLarge: _starlessLight.typo.display,
+    displayMedium: _starlessLight.typo.display,
+    displaySmall: _starlessLight.typo.display.copyWith(fontSize: 28),
+    headlineLarge: _starlessLight.typo.heading,
+    headlineMedium: _starlessLight.typo.heading,
+    headlineSmall: _starlessLight.typo.heading,
+    titleLarge: _starlessLight.typo.title.copyWith(fontSize: 14),
+    titleMedium: _starlessLight.typo.title,
+    titleSmall: _starlessLight.typo.title,
+    bodyLarge: _starlessLight.typo.body.copyWith(fontSize: 14),
+    bodyMedium: _starlessLight.typo.body,
+    bodySmall: _starlessLight.typo.body.copyWith(fontSize: 12),
+    labelLarge: _starlessLight.typo.label,
+    labelMedium: _starlessLight.typo.label,
+    labelSmall: _starlessLight.typo.label,
   ),
   iconTheme: const IconThemeData(color: _Palette.secondaryText),
   dividerTheme: const DividerThemeData(color: _Palette.border, thickness: 1),
@@ -205,14 +203,14 @@ final starlessLightThemeData = ThemeData(
   splashColor: _Palette.pressed,
   snackBarTheme: SnackBarThemeData(
     backgroundColor: _Palette.text,
-    contentTextStyle: starlessLight.typo.body.copyWith(color: _Palette.white),
+    contentTextStyle: _starlessLight.typo.body.copyWith(color: _Palette.white),
   ),
   tooltipTheme: TooltipThemeData(
     decoration: BoxDecoration(
       color: _Palette.text,
-      borderRadius: starlessLight.geo.radiusSmall,
+      borderRadius: _starlessLight.geo.radiusSmall,
     ),
-    textStyle: starlessLight.typo.body.copyWith(
+    textStyle: _starlessLight.typo.body.copyWith(
       color: _Palette.white,
       fontSize: 12,
     ),

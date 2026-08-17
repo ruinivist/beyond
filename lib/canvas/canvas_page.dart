@@ -6,7 +6,6 @@ import 'package:infinite_lazy_grid/infinite_lazy_grid.dart';
 import 'package:scribble/scribble.dart';
 
 import '../foundation/theme.dart';
-import '../theme/starless_light.dart';
 import '../widgets/settings_dialog.dart';
 import 'tools/code_block/code_block.dart';
 import 'tools/markdown/markdown_block.dart';
@@ -49,8 +48,8 @@ class _CanvasPageState extends State<CanvasPage> {
     _canvasController.background = DotGridBackground(
       size: 2,
       spacing: 50,
-      dotColor: starlessCanvasGrid,
-      backgroundColor: starlessCanvasBackground,
+      dotColor: colors.canvasGrid,
+      backgroundColor: colors.canvasBackground,
     );
     _penTool.setColor(colors.accent);
   }
