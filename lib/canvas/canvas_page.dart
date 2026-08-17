@@ -352,7 +352,9 @@ class _CanvasPageState extends State<CanvasPage> {
 
   @override
   Widget build(BuildContext context) {
-    final colors = BTheme.of(context).colors;
+    final theme = BTheme.of(context);
+    final colors = theme.colors;
+    final geo = theme.geo;
     return Scaffold(
       body: Stack(
         children: [
@@ -376,10 +378,10 @@ class _CanvasPageState extends State<CanvasPage> {
                 child: Material(
                   key: const ValueKey('toolbar-surface'),
                   color: colors.surfaceRaised,
-                  elevation: 4,
+                  elevation: geo.elevationLow,
                   shadowColor: colors.shadow,
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: geo.radiusMedium,
                     side: BorderSide(color: colors.borderSubtle),
                   ),
                   child: Padding(
@@ -395,6 +397,7 @@ class _CanvasPageState extends State<CanvasPage> {
                               onPressed: _toggleTextPlacement,
                               style: _toolbarButtonStyle(
                                 colors,
+                                geo,
                                 selected: _textPlacementEnabled,
                               ),
                               icon: const Icon(Icons.title),
@@ -406,7 +409,7 @@ class _CanvasPageState extends State<CanvasPage> {
                           message: 'Add code block',
                           child: TextButton.icon(
                             onPressed: _addCodeBlock,
-                            style: _toolbarButtonStyle(colors),
+                            style: _toolbarButtonStyle(colors, geo),
                             icon: const Icon(Icons.code),
                             label: const Text('Code'),
                           ),
@@ -415,7 +418,7 @@ class _CanvasPageState extends State<CanvasPage> {
                           message: 'Add markdown block',
                           child: TextButton.icon(
                             onPressed: _addMarkdownBlock,
-                            style: _toolbarButtonStyle(colors),
+                            style: _toolbarButtonStyle(colors, geo),
                             icon: const Icon(Icons.description_outlined),
                             label: const Text('Markdown'),
                           ),
@@ -428,6 +431,7 @@ class _CanvasPageState extends State<CanvasPage> {
                               onPressed: _togglePen,
                               style: _toolbarButtonStyle(
                                 colors,
+                                geo,
                                 selected: _penEnabled,
                               ),
                               icon: const Icon(Icons.draw),
@@ -450,17 +454,17 @@ class _CanvasPageState extends State<CanvasPage> {
                 child: Material(
                   key: const ValueKey('settings-button-surface'),
                   color: colors.surfaceRaised,
-                  elevation: 4,
+                  elevation: geo.elevationLow,
                   shadowColor: colors.shadow,
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: geo.radiusMedium,
                     side: BorderSide(color: colors.borderSubtle),
                   ),
                   child: IconButton(
                     key: const ValueKey('settings-button'),
                     tooltip: 'Settings',
                     onPressed: _showSettingsDialog,
-                    style: _toolbarIconButtonStyle(colors),
+                    style: _toolbarIconButtonStyle(colors, geo),
                     icon: const Icon(Icons.settings_outlined),
                   ),
                 ),
@@ -473,7 +477,11 @@ class _CanvasPageState extends State<CanvasPage> {
   }
 }
 
-ButtonStyle _toolbarButtonStyle(BColors colors, {bool selected = false}) {
+ButtonStyle _toolbarButtonStyle(
+  BColors colors,
+  BGeo geo, {
+  bool selected = false,
+}) {
   return ButtonStyle(
     foregroundColor: WidgetStateProperty.resolveWith((states) {
       if (!selected) return colors.textSecondary;
@@ -498,13 +506,14 @@ ButtonStyle _toolbarButtonStyle(BColors colors, {bool selected = false}) {
           : BorderSide.none,
     ),
     shape: WidgetStatePropertyAll(
-      RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+      RoundedRectangleBorder(borderRadius: geo.radiusSmall),
     ),
   );
 }
 
-ButtonStyle _toolbarIconButtonStyle(BColors colors) {
+ButtonStyle _toolbarIconButtonStyle(BColors colors, BGeo geo) {
   return _toolbarButtonStyle(
     colors,
+    geo,
   ).copyWith(padding: const WidgetStatePropertyAll(EdgeInsets.all(8)));
 }

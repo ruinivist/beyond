@@ -350,7 +350,7 @@ class _WidgetGalleryPageState extends State<WidgetGalleryPage> {
                             setState(() => _dropdownValue = value),
                         textStyle: theme.typo.body.copyWith(fontSize: 14),
                         iconColor: theme.colors.textSecondary,
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: theme.geo.radiusMedium,
                       ),
                     ),
                   ],
@@ -459,7 +459,7 @@ class _WidgetGalleryPageState extends State<WidgetGalleryPage> {
                       note: 'Settings-style destinations and selected state.',
                       child: Material(
                         color: theme.colors.surface,
-                        borderRadius: BorderRadius.circular(10),
+                        borderRadius: theme.geo.radiusLarge,
                         child: Column(
                           children: [
                             ListTile(
@@ -674,7 +674,7 @@ class _WidgetGalleryPageState extends State<WidgetGalleryPage> {
                   height: 48,
                   decoration: BoxDecoration(
                     color: color,
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BTheme.of(context).geo.radiusMedium,
                     border: Border.all(color: colors.borderSubtle),
                   ),
                 ),
@@ -782,7 +782,7 @@ class _WidgetGalleryPageState extends State<WidgetGalleryPage> {
             alignment: Alignment.center,
             decoration: BoxDecoration(
               color: color,
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: theme.geo.radiusMedium,
               border: Border.all(
                 color: label == 'Selected'
                     ? colors.accent
@@ -819,7 +819,7 @@ class _WidgetGalleryPageState extends State<WidgetGalleryPage> {
     String? hint,
   }) {
     final border = OutlineInputBorder(
-      borderRadius: BorderRadius.circular(8),
+      borderRadius: theme.geo.radiusMedium,
       borderSide: BorderSide(color: theme.colors.borderSubtle),
     );
     return InputDecoration(
@@ -891,10 +891,10 @@ class _GalleryCard extends StatelessWidget {
     final theme = BTheme.of(context);
     return Material(
       color: theme.colors.surfaceRaised,
-      elevation: 8,
+      elevation: theme.geo.elevationMedium,
       shadowColor: theme.colors.shadow,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: theme.geo.radiusLarge,
         side: BorderSide(color: theme.colors.borderSubtle),
       ),
       clipBehavior: Clip.antiAlias,

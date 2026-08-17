@@ -91,9 +91,19 @@ final _starlessLightTypo = BTypo(
       : _ibmPlexMono(),
 );
 
+const starlessLightGeo = BGeo(
+  radiusSmall: BorderRadius.all(Radius.circular(4)),
+  radiusMedium: BorderRadius.all(Radius.circular(8)),
+  radiusLarge: BorderRadius.all(Radius.circular(10)),
+  elevationLow: 4,
+  elevationMedium: 8,
+  elevationHigh: 12,
+);
+
 final starlessLight = BTheme(
   colors: starlessLightColors,
   typo: _starlessLightTypo,
+  geo: starlessLightGeo,
 );
 
 final starlessSyntaxTheme = atomOneLightTheme;
@@ -142,7 +152,7 @@ final starlessLightThemeData = ThemeData(
   tooltipTheme: TooltipThemeData(
     decoration: BoxDecoration(
       color: _Palette.text,
-      borderRadius: BorderRadius.circular(4),
+      borderRadius: starlessLight.geo.radiusSmall,
     ),
     textStyle: starlessLight.typo.body.copyWith(
       color: _Palette.white,

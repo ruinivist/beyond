@@ -76,8 +76,10 @@ class MarkdownBlock extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = BTheme.of(context).colors;
-    final code = BTheme.of(context).typo.code;
+    final theme = BTheme.of(context);
+    final colors = theme.colors;
+    final code = theme.typo.code;
+    final geo = theme.geo;
     return Listener(
       onPointerDown: onSelect,
       child: ListenableBuilder(
@@ -87,10 +89,10 @@ class MarkdownBlock extends StatelessWidget {
           child: Material(
             key: const ValueKey('markdown-block-surface'),
             color: colors.surface,
-            elevation: model.selected ? 12 : 8,
+            elevation: model.selected ? geo.elevationHigh : geo.elevationMedium,
             shadowColor: colors.shadow,
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: geo.radiusLarge,
               side: model.selected
                   ? BorderSide(color: colors.accent, width: 2)
                   : BorderSide(color: colors.borderSubtle),

@@ -27,6 +27,14 @@ const _testColors = BColors(
   shadow: Colors.black,
   scrim: Colors.black,
 );
+const _testGeo = BGeo(
+  radiusSmall: BorderRadius.all(Radius.circular(4)),
+  radiusMedium: BorderRadius.all(Radius.circular(8)),
+  radiusLarge: BorderRadius.all(Radius.circular(10)),
+  elevationLow: 4,
+  elevationMedium: 8,
+  elevationHigh: 12,
+);
 const _testTheme = BTheme(
   colors: _testColors,
   typo: BTypo(
@@ -37,6 +45,7 @@ const _testTheme = BTheme(
     label: TextStyle(),
     code: TextStyle(),
   ),
+  geo: _testGeo,
 );
 
 void main() {
@@ -49,9 +58,22 @@ void main() {
   });
 
   test('BTheme supports copyWith and interpolation', () {
-    final copy = _testTheme.copyWith(typo: _testTheme.typo);
+    final copy = _testTheme.copyWith(typo: _testTheme.typo, geo: _testGeo);
     expect(copy.colors, same(_testTheme.colors));
+    expect(copy.geo, same(_testGeo));
     expect(_testTheme.lerp(_testTheme, 0.5), isA<BTheme>());
+
+    const other = BGeo(
+      radiusSmall: BorderRadius.all(Radius.circular(8)),
+      radiusMedium: BorderRadius.all(Radius.circular(12)),
+      radiusLarge: BorderRadius.all(Radius.circular(14)),
+      elevationLow: 8,
+      elevationMedium: 12,
+      elevationHigh: 16,
+    );
+    final midpoint = _testGeo.lerp(other, 0.5);
+    expect(midpoint.radiusSmall.topLeft.x, 6);
+    expect(midpoint.elevationMedium, 10);
   });
 
   testWidgets('Starless Light maps onto the current UI', (tester) async {
@@ -71,6 +93,11 @@ void main() {
     );
     expect(toolbar.color, colors.surfaceRaised);
     expect(toolbar.shadowColor, colors.shadow);
+    expect(toolbar.elevation, starlessLight.geo.elevationLow);
+    expect(
+      (toolbar.shape as RoundedRectangleBorder).borderRadius,
+      starlessLight.geo.radiusMedium,
+    );
 
     await tester.tap(find.text('Text'));
     await tester.tapAt(const Offset(400, 300));
@@ -149,6 +176,11 @@ void main() {
     );
     expect(dialog.backgroundColor, colors.surfaceRaised);
     expect(dialog.shadowColor, colors.shadow);
+    expect(dialog.elevation, starlessLight.geo.elevationMedium);
+    expect(
+      (dialog.shape as RoundedRectangleBorder).borderRadius,
+      starlessLight.geo.radiusLarge,
+    );
     expect(about.selectedTileColor, colors.accentSoft);
     expect(about.selectedColor, colors.accent);
     expect(

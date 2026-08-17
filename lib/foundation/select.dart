@@ -30,8 +30,8 @@ class Select<T> extends StatefulWidget {
     this.pressedColor,
     this.iconColor,
     this.shadowColor,
-    this.popupElevation = 8,
-    this.borderRadius = const BorderRadius.all(Radius.circular(8)),
+    this.popupElevation,
+    this.borderRadius,
     super.key,
   });
 
@@ -47,8 +47,8 @@ class Select<T> extends StatefulWidget {
   final Color? pressedColor;
   final Color? iconColor;
   final Color? shadowColor;
-  final double popupElevation;
-  final BorderRadius borderRadius;
+  final double? popupElevation;
+  final BorderRadius? borderRadius;
 
   @override
   State<Select<T>> createState() => _SelectState<T>();
@@ -60,8 +60,10 @@ class _SelectState<T> extends State<Select<T>> {
   late List<FocusNode> _optionFocusNodes;
 
   bool get _enabled => widget.onChanged != null;
-  BColors get _colors => BTheme.of(context).colors;
-  TextStyle get _textStyle => widget.textStyle ?? BTheme.of(context).typo.body;
+  BTheme get _theme => BTheme.of(context);
+  BColors get _colors => _theme.colors;
+  BGeo get _geo => _theme.geo;
+  TextStyle get _textStyle => widget.textStyle ?? _theme.typo.body;
   Color get _foreground => widget.foregroundColor ?? _colors.textPrimary;
   Color get _background => widget.backgroundColor ?? _colors.surface;
   Color get _popup => widget.popupColor ?? _colors.surfaceRaised;
@@ -69,6 +71,8 @@ class _SelectState<T> extends State<Select<T>> {
   Color get _hover => widget.hoverColor ?? _colors.surfaceHover;
   Color get _pressed => widget.pressedColor ?? _colors.surfacePressed;
   Color get _shadow => widget.shadowColor ?? _colors.shadow;
+  BorderRadius get _borderRadius => widget.borderRadius ?? _geo.radiusMedium;
+  double get _popupElevation => widget.popupElevation ?? _geo.elevationMedium;
   WidgetStateProperty<Color?> get _foregroundColor =>
       WidgetStateProperty.resolveWith((states) {
         return states.contains(WidgetState.disabled)
@@ -157,7 +161,7 @@ class _SelectState<T> extends State<Select<T>> {
         return BorderSide(color: _border);
       }),
       shape: WidgetStatePropertyAll(
-        RoundedRectangleBorder(borderRadius: widget.borderRadius),
+        RoundedRectangleBorder(borderRadius: _borderRadius),
       ),
       textStyle: WidgetStatePropertyAll(_textStyle),
       padding: const WidgetStatePropertyAll(
@@ -193,7 +197,7 @@ class _SelectState<T> extends State<Select<T>> {
                       child: DecoratedBox(
                         decoration: BoxDecoration(
                           color: _pressed,
-                          borderRadius: BorderRadius.circular(4),
+                          borderRadius: _geo.radiusSmall,
                         ),
                       ),
                     ),
@@ -210,7 +214,7 @@ class _SelectState<T> extends State<Select<T>> {
       tapTargetSize: MaterialTapTargetSize.shrinkWrap,
       alignment: Alignment.centerLeft,
       shape: WidgetStatePropertyAll(
-        RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+        RoundedRectangleBorder(borderRadius: _geo.radiusSmall),
       ),
       overlayColor: const WidgetStatePropertyAll(Colors.transparent),
     );
@@ -231,14 +235,14 @@ class _SelectState<T> extends State<Select<T>> {
       style: MenuStyle(
         backgroundColor: WidgetStatePropertyAll(_popup),
         shadowColor: WidgetStatePropertyAll(_shadow),
-        elevation: WidgetStatePropertyAll(widget.popupElevation),
+        elevation: WidgetStatePropertyAll(_popupElevation),
         padding: const WidgetStatePropertyAll(EdgeInsets.all(4)),
         minimumSize: const WidgetStatePropertyAll(Size(160, 0)),
         maximumSize: const WidgetStatePropertyAll(Size(160, double.infinity)),
         visualDensity: VisualDensity.standard,
         side: WidgetStatePropertyAll(BorderSide(color: _border)),
         shape: WidgetStatePropertyAll(
-          RoundedRectangleBorder(borderRadius: widget.borderRadius),
+          RoundedRectangleBorder(borderRadius: _borderRadius),
         ),
         alignment: AlignmentDirectional.bottomStart,
       ),

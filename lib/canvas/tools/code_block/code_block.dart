@@ -89,10 +89,10 @@ class CodeBlock extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = BTheme.of(context).colors;
-    final codeStyle = BTheme.of(
-      context,
-    ).typo.code.copyWith(color: colors.textPrimary);
+    final theme = BTheme.of(context);
+    final colors = theme.colors;
+    final geo = theme.geo;
+    final codeStyle = theme.typo.code.copyWith(color: colors.textPrimary);
     return Listener(
       onPointerDown: onSelect,
       child: ListenableBuilder(
@@ -102,10 +102,10 @@ class CodeBlock extends StatelessWidget {
           child: Material(
             key: const ValueKey('code-block-surface'),
             color: colors.surface,
-            elevation: model.selected ? 12 : 8,
+            elevation: model.selected ? geo.elevationHigh : geo.elevationMedium,
             shadowColor: colors.shadow,
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: geo.radiusLarge,
               side: model.selected
                   ? BorderSide(color: colors.accent, width: 2)
                   : BorderSide(color: colors.borderSubtle),
@@ -226,8 +226,9 @@ class _CodeBlockHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = BTheme.of(context).colors;
-    final label = BTheme.of(context).typo.label;
+    final theme = BTheme.of(context);
+    final colors = theme.colors;
+    final label = theme.typo.label;
     return SizedBox(
       height: 40,
       child: MouseRegion(
@@ -263,7 +264,7 @@ class _CodeBlockHeader extends StatelessWidget {
                   foregroundColor: colors.textPrimary,
                   backgroundColor: Colors.transparent,
                   iconColor: colors.textMuted,
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: theme.geo.radiusLarge,
                 ),
               ],
             ),

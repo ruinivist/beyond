@@ -10,15 +10,16 @@ class SettingsDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final viewport = MediaQuery.sizeOf(context);
-    final colors = BTheme.of(context).colors;
-    final typo = BTheme.of(context).typo;
+    final theme = BTheme.of(context);
+    final colors = theme.colors;
+    final typo = theme.typo;
     return Dialog(
       backgroundColor: colors.surfaceRaised,
       surfaceTintColor: Colors.transparent,
-      elevation: 8,
+      elevation: theme.geo.elevationMedium,
       shadowColor: colors.shadow,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: theme.geo.radiusLarge,
         side: BorderSide(color: colors.borderSubtle),
       ),
       insetPadding: const EdgeInsets.all(16),

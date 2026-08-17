@@ -61,11 +61,23 @@ void main() {
       trigger.style!.side!.resolve({WidgetState.focused}),
       BorderSide(color: starlessLight.colors.borderSubtle),
     );
+    expect(
+      (trigger.style!.shape!.resolve({}) as RoundedRectangleBorder)
+          .borderRadius,
+      starlessLight.geo.radiusMedium,
+    );
     _expectTypography(trigger.style!.textStyle!.resolve({})!, callerStyle);
 
     await tester.tap(find.byKey(const ValueKey('select-trigger')));
     await tester.pump();
     expect(find.byKey(const ValueKey('select-option-1')), findsOneWidget);
+    final menu = tester.widget<MenuAnchor>(
+      find.byKey(const ValueKey('select-menu')),
+    );
+    expect(
+      menu.style!.elevation!.resolve({}),
+      starlessLight.geo.elevationMedium,
+    );
     final option = tester.widget<MenuItemButton>(
       find.byKey(const ValueKey('select-option-0')),
     );
@@ -97,6 +109,38 @@ void main() {
     await tester.tapAt(const Offset(1, 1));
     await tester.pump();
     expect(find.byKey(const ValueKey('select-option-0')), findsNothing);
+  });
+
+  testWidgets('select honors geometry overrides', (tester) async {
+    final radius = BorderRadius.circular(20);
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: ThemeData(extensions: [starlessLight]),
+        home: Select<String>(
+          value: 'dart',
+          options: const [SelectOption(value: 'dart', label: 'Dart')],
+          onChanged: (_) {},
+          borderRadius: radius,
+          popupElevation: 3,
+        ),
+      ),
+    );
+
+    final trigger = tester.widget<TextButton>(
+      find.byKey(const ValueKey('select-trigger')),
+    );
+    expect(
+      (trigger.style!.shape!.resolve({}) as RoundedRectangleBorder)
+          .borderRadius,
+      radius,
+    );
+
+    await tester.tap(find.byKey(const ValueKey('select-trigger')));
+    await tester.pump();
+    final menu = tester.widget<MenuAnchor>(
+      find.byKey(const ValueKey('select-menu')),
+    );
+    expect(menu.style!.elevation!.resolve({}), 3);
   });
 }
 

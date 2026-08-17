@@ -23,7 +23,7 @@ class Button extends StatelessWidget {
     this.focusColor,
     this.disabledColor,
     this.disabledForegroundColor,
-    this.borderRadius = const BorderRadius.all(Radius.circular(8)),
+    this.borderRadius,
     this.focusNode,
     this.autofocus = false,
     this.onLongPress,
@@ -49,7 +49,7 @@ class Button extends StatelessWidget {
   final Color? focusColor;
   final Color? disabledColor;
   final Color? disabledForegroundColor;
-  final BorderRadius borderRadius;
+  final BorderRadius? borderRadius;
   final FocusNode? focusNode;
   final bool autofocus;
 
@@ -124,7 +124,11 @@ class Button extends StatelessWidget {
     ButtonVariant.link => pressedColor ?? Colors.transparent,
   };
 
-  ButtonStyle _style(BColors colors, TextStyle textStyle) {
+  ButtonStyle _style(
+    BColors colors,
+    TextStyle textStyle,
+    BorderRadius borderRadius,
+  ) {
     return ButtonStyle(
       foregroundColor: WidgetStateProperty.resolveWith((states) {
         return states.contains(WidgetState.disabled)
@@ -217,7 +221,11 @@ class Button extends StatelessWidget {
       onLongPress: onLongPress,
       focusNode: focusNode,
       autofocus: autofocus,
-      style: _style(theme.colors, textStyle ?? theme.typo.body),
+      style: _style(
+        theme.colors,
+        textStyle ?? theme.typo.body,
+        borderRadius ?? theme.geo.radiusMedium,
+      ),
       child: IconTheme.merge(
         data: IconThemeData(size: _iconSize),
         child: _content(),

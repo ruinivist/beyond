@@ -26,6 +26,11 @@ void main() {
       textButton.style!.textStyle!.resolve({})!.fontSize,
       starlessLight.typo.body.fontSize,
     );
+    expect(
+      (textButton.style!.shape!.resolve({}) as RoundedRectangleBorder)
+          .borderRadius,
+      starlessLight.geo.radiusMedium,
+    );
   });
 
   testWidgets('button variants use expanded default spacing', (tester) async {
@@ -38,6 +43,7 @@ void main() {
           textStyle: TextStyle(fontSize: 14, fontWeight: FontWeight.w400),
           backgroundColor: Colors.white,
           borderColor: Colors.black,
+          borderRadius: BorderRadius.all(Radius.circular(20)),
           child: Text('Outline'),
         ),
       ),
@@ -57,6 +63,11 @@ void main() {
     expect(
       textButton.style!.side!.resolve({}),
       const BorderSide(color: Colors.black),
+    );
+    expect(
+      (textButton.style!.shape!.resolve({}) as RoundedRectangleBorder)
+          .borderRadius,
+      BorderRadius.circular(20),
     );
   });
 

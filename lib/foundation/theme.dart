@@ -96,11 +96,44 @@ class BTypo {
 }
 
 @immutable
+class BGeo {
+  const BGeo({
+    required this.radiusSmall,
+    required this.radiusMedium,
+    required this.radiusLarge,
+    required this.elevationLow,
+    required this.elevationMedium,
+    required this.elevationHigh,
+  });
+
+  final BorderRadius radiusSmall;
+  final BorderRadius radiusMedium;
+  final BorderRadius radiusLarge;
+  final double elevationLow;
+  final double elevationMedium;
+  final double elevationHigh;
+
+  BGeo lerp(BGeo? other, double t) {
+    if (other == null) return this;
+    return BGeo(
+      radiusSmall: BorderRadius.lerp(radiusSmall, other.radiusSmall, t)!,
+      radiusMedium: BorderRadius.lerp(radiusMedium, other.radiusMedium, t)!,
+      radiusLarge: BorderRadius.lerp(radiusLarge, other.radiusLarge, t)!,
+      elevationLow: elevationLow + (other.elevationLow - elevationLow) * t,
+      elevationMedium:
+          elevationMedium + (other.elevationMedium - elevationMedium) * t,
+      elevationHigh: elevationHigh + (other.elevationHigh - elevationHigh) * t,
+    );
+  }
+}
+
+@immutable
 class BTheme extends ThemeExtension<BTheme> {
-  const BTheme({required this.colors, required this.typo});
+  const BTheme({required this.colors, required this.typo, required this.geo});
 
   final BColors colors;
   final BTypo typo;
+  final BGeo geo;
 
   static BTheme of(BuildContext context) {
     final theme = Theme.of(context).extension<BTheme>();
@@ -113,8 +146,12 @@ class BTheme extends ThemeExtension<BTheme> {
   }
 
   @override
-  BTheme copyWith({BColors? colors, BTypo? typo}) {
-    return BTheme(colors: colors ?? this.colors, typo: typo ?? this.typo);
+  BTheme copyWith({BColors? colors, BTypo? typo, BGeo? geo}) {
+    return BTheme(
+      colors: colors ?? this.colors,
+      typo: typo ?? this.typo,
+      geo: geo ?? this.geo,
+    );
   }
 
   @override
@@ -123,6 +160,7 @@ class BTheme extends ThemeExtension<BTheme> {
     return BTheme(
       colors: colors.lerp(other.colors, t),
       typo: typo.lerp(other.typo, t),
+      geo: geo.lerp(other.geo, t),
     );
   }
 }
