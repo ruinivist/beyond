@@ -10,3 +10,8 @@
 - Use `scroll_animator` `0.3.0` with `ChromiumEaseInOut` for smooth pointer scrolling
 - Put generic custom widgets in `lib/foundation/`, with semantic `BTheme` values read internally and nullable individual styling parameters overriding them like Flutter widgets.
 - Keep concrete Starless Light palette, typography, syntax theme, and reusable geometry in the app theme; keep component-specific geometry local to each component.
+
+# Testing guidance
+
+- Only test for "behavior" and not UI token values as such token values can change anytime; behavior like so and so tokens should exist is correct but matchin them against a constant is wrong.
+- Keep testing lighter, we'll add tests once we have something concrete but NOT at this stage.
