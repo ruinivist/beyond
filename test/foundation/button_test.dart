@@ -39,10 +39,6 @@ void main() {
         home: const Button(
           variant: ButtonVariant.outline,
           onPressed: _noop,
-          textStyle: TextStyle(fontSize: 14, fontWeight: FontWeight.w400),
-          backgroundColor: Colors.white,
-          borderColor: Colors.black,
-          borderRadius: BorderRadius.all(Radius.circular(20)),
           child: Text('Outline'),
         ),
       ),
@@ -54,28 +50,12 @@ void main() {
       textButton.style!.padding!.resolve({}),
       const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
     );
-    expect(
-      textButton.style!.textStyle!.resolve({})!.fontWeight,
-      FontWeight.w400,
-    );
-    expect(textButton.style!.backgroundColor!.resolve({}), Colors.white);
-    expect(
-      textButton.style!.side!.resolve({}),
-      const BorderSide(color: Colors.black),
-    );
-    expect(
-      (textButton.style!.shape!.resolve({}) as RoundedRectangleBorder)
-          .borderRadius,
-      BorderRadius.circular(20),
-    );
   });
 
-  testWidgets('ghost and link buttons honor background state overrides', (
+  testWidgets('ghost and link buttons keep their background state behavior', (
     tester,
   ) async {
-    const background = Colors.blue;
-    const hover = Colors.lightBlue;
-    const pressed = Colors.indigo;
+    final theme = starlessLightThemeData.extension<BTheme>()!;
 
     for (final variant in [ButtonVariant.ghost, ButtonVariant.link]) {
       await tester.pumpWidget(
@@ -84,18 +64,25 @@ void main() {
           home: Button(
             variant: variant,
             onPressed: _noop,
-            backgroundColor: background,
-            hoverColor: hover,
-            pressedColor: pressed,
             child: const Text('Button'),
           ),
         ),
       );
 
       final style = tester.widget<TextButton>(find.byType(TextButton)).style!;
-      expect(style.backgroundColor!.resolve({}), background);
-      expect(style.backgroundColor!.resolve({WidgetState.hovered}), hover);
-      expect(style.backgroundColor!.resolve({WidgetState.pressed}), pressed);
+      expect(style.backgroundColor!.resolve({}), Colors.transparent);
+      expect(
+        style.backgroundColor!.resolve({WidgetState.hovered}),
+        variant == ButtonVariant.ghost
+            ? theme.colors.surfaceHover
+            : Colors.transparent,
+      );
+      expect(
+        style.backgroundColor!.resolve({WidgetState.pressed}),
+        variant == ButtonVariant.ghost
+            ? theme.colors.surfacePressed
+            : Colors.transparent,
+      );
     }
   });
 }

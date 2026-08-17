@@ -227,7 +227,6 @@ class _CodeBlockHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = BTheme.of(context);
     final colors = theme.colors;
-    final label = theme.typo.label;
     return SizedBox(
       height: 40,
       child: MouseRegion(
@@ -256,14 +255,6 @@ class _CodeBlockHeader extends StatelessWidget {
                       SelectOption(value: language, label: language.label),
                   ],
                   onChanged: (language) => model.language = language,
-                  textStyle: label.copyWith(
-                    color: colors.textPrimary,
-                    fontSize: 14,
-                  ),
-                  foregroundColor: colors.textPrimary,
-                  backgroundColor: Colors.transparent,
-                  iconColor: colors.textMuted,
-                  borderRadius: theme.geo.radiusLarge,
                 ),
               ],
             ),

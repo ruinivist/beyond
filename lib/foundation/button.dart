@@ -14,16 +14,6 @@ class Button extends StatelessWidget {
     this.trailingIcon,
     this.variant = ButtonVariant.primary,
     this.size = ButtonSize.medium,
-    this.textStyle,
-    this.backgroundColor,
-    this.foregroundColor,
-    this.hoverColor,
-    this.pressedColor,
-    this.borderColor,
-    this.focusColor,
-    this.disabledColor,
-    this.disabledForegroundColor,
-    this.borderRadius,
     this.focusNode,
     this.autofocus = false,
     this.onLongPress,
@@ -40,16 +30,6 @@ class Button extends StatelessWidget {
   final Widget? trailingIcon;
   final ButtonVariant variant;
   final ButtonSize size;
-  final TextStyle? textStyle;
-  final Color? backgroundColor;
-  final Color? foregroundColor;
-  final Color? hoverColor;
-  final Color? pressedColor;
-  final Color? borderColor;
-  final Color? focusColor;
-  final Color? disabledColor;
-  final Color? disabledForegroundColor;
-  final BorderRadius? borderRadius;
   final FocusNode? focusNode;
   final bool autofocus;
 
@@ -89,39 +69,38 @@ class Button extends StatelessWidget {
   };
 
   Color _foreground(BColors colors) => switch (variant) {
-    ButtonVariant.primary => foregroundColor ?? colors.surface,
-    ButtonVariant.outline => foregroundColor ?? colors.textPrimary,
-    ButtonVariant.secondary => foregroundColor ?? colors.textPrimary,
-    ButtonVariant.ghost => foregroundColor ?? colors.textPrimary,
-    ButtonVariant.destructive => foregroundColor ?? colors.accentPressed,
-    ButtonVariant.link => foregroundColor ?? colors.accent,
+    ButtonVariant.primary => colors.surface,
+    ButtonVariant.outline ||
+    ButtonVariant.secondary ||
+    ButtonVariant.ghost => colors.textPrimary,
+    ButtonVariant.destructive => colors.accentPressed,
+    ButtonVariant.link => colors.accent,
   };
 
   Color _background(BColors colors) => switch (variant) {
-    ButtonVariant.primary => backgroundColor ?? colors.accent,
-    ButtonVariant.outline => backgroundColor ?? colors.surface,
-    ButtonVariant.secondary => backgroundColor ?? colors.surfaceSubtle,
-    ButtonVariant.ghost ||
-    ButtonVariant.link => backgroundColor ?? Colors.transparent,
-    ButtonVariant.destructive => backgroundColor ?? colors.accentSoft,
+    ButtonVariant.primary => colors.accent,
+    ButtonVariant.outline => colors.surface,
+    ButtonVariant.secondary => colors.surfaceSubtle,
+    ButtonVariant.ghost || ButtonVariant.link => Colors.transparent,
+    ButtonVariant.destructive => colors.accentSoft,
   };
 
   Color _hoverBackground(BColors colors) => switch (variant) {
-    ButtonVariant.primary => hoverColor ?? colors.accentHover,
+    ButtonVariant.primary => colors.accentHover,
     ButtonVariant.outline ||
     ButtonVariant.secondary ||
-    ButtonVariant.ghost => hoverColor ?? colors.surfaceHover,
-    ButtonVariant.destructive => hoverColor ?? colors.accentSubtle,
-    ButtonVariant.link => hoverColor ?? Colors.transparent,
+    ButtonVariant.ghost => colors.surfaceHover,
+    ButtonVariant.destructive => colors.accentSubtle,
+    ButtonVariant.link => Colors.transparent,
   };
 
   Color _pressedBackground(BColors colors) => switch (variant) {
-    ButtonVariant.primary => pressedColor ?? colors.accentPressed,
+    ButtonVariant.primary => colors.accentPressed,
     ButtonVariant.outline ||
     ButtonVariant.secondary ||
-    ButtonVariant.ghost => pressedColor ?? colors.surfacePressed,
-    ButtonVariant.destructive => pressedColor ?? colors.accentSubtle,
-    ButtonVariant.link => pressedColor ?? Colors.transparent,
+    ButtonVariant.ghost => colors.surfacePressed,
+    ButtonVariant.destructive => colors.accentSubtle,
+    ButtonVariant.link => Colors.transparent,
   };
 
   ButtonStyle _style(
@@ -132,7 +111,7 @@ class Button extends StatelessWidget {
     return ButtonStyle(
       foregroundColor: WidgetStateProperty.resolveWith((states) {
         return states.contains(WidgetState.disabled)
-            ? disabledForegroundColor ?? colors.textMuted
+            ? colors.textMuted
             : _foreground(colors);
       }),
       backgroundColor: WidgetStateProperty.resolveWith((states) {
@@ -141,7 +120,7 @@ class Button extends StatelessWidget {
                   variant == ButtonVariant.ghost ||
                   variant == ButtonVariant.link
               ? Colors.transparent
-              : disabledColor ?? colors.surfacePressed;
+              : colors.surfacePressed;
         }
         if (states.contains(WidgetState.pressed)) {
           return _pressedBackground(colors);
@@ -155,18 +134,14 @@ class Button extends StatelessWidget {
       side: WidgetStateProperty.resolveWith((states) {
         if (states.contains(WidgetState.disabled)) {
           return variant == ButtonVariant.outline
-              ? BorderSide(
-                  color: (borderColor ?? colors.borderSubtle).withValues(
-                    alpha: 0.38,
-                  ),
-                )
+              ? BorderSide(color: colors.borderSubtle.withValues(alpha: 0.38))
               : BorderSide.none;
         }
         if (states.contains(WidgetState.focused)) {
-          return BorderSide(color: focusColor ?? colors.focusRing, width: 2);
+          return BorderSide(color: colors.focusRing, width: 2);
         }
         return variant == ButtonVariant.outline
-            ? BorderSide(color: borderColor ?? colors.borderSubtle)
+            ? BorderSide(color: colors.borderSubtle)
             : BorderSide.none;
       }),
       shape: WidgetStatePropertyAll(
@@ -221,11 +196,7 @@ class Button extends StatelessWidget {
       onLongPress: onLongPress,
       focusNode: focusNode,
       autofocus: autofocus,
-      style: _style(
-        theme.colors,
-        textStyle ?? theme.typo.body,
-        borderRadius ?? theme.geo.radiusMedium,
-      ),
+      style: _style(theme.colors, theme.typo.body, theme.geo.radiusMedium),
       child: IconTheme.merge(
         data: IconThemeData(size: _iconSize),
         child: _content(),

@@ -80,10 +80,6 @@ class _WidgetGalleryPageState extends State<WidgetGalleryPage> {
   @override
   Widget build(BuildContext context) {
     final theme = BTheme.of(context);
-    final buttonTextStyle = theme.typo.body.copyWith(
-      fontSize: 14,
-      fontWeight: FontWeight.w400,
-    );
     final sourceSerif = theme.typo.heading;
     final editorialBody = TextStyle(
       fontFamily: sourceSerif.fontFamily,
@@ -206,7 +202,6 @@ class _WidgetGalleryPageState extends State<WidgetGalleryPage> {
                         children: [
                           Button(
                             key: const ValueKey('open-settings'),
-                            textStyle: buttonTextStyle,
                             variant: ButtonVariant.outline,
                             onPressed: _openSettings,
                             leadingIcon: const Icon(Icons.settings_outlined),
@@ -214,7 +209,6 @@ class _WidgetGalleryPageState extends State<WidgetGalleryPage> {
                           ),
                           Button(
                             key: const ValueKey('open-canvas'),
-                            textStyle: buttonTextStyle,
                             variant: ButtonVariant.outline,
                             onPressed: () => Navigator.of(context).push(
                               MaterialPageRoute<void>(
@@ -246,18 +240,15 @@ class _WidgetGalleryPageState extends State<WidgetGalleryPage> {
                         crossAxisAlignment: WrapCrossAlignment.center,
                         children: [
                           Button(
-                            textStyle: buttonTextStyle,
                             onPressed: () {},
                             child: const Text('Primary'),
                           ),
                           Button(
-                            textStyle: buttonTextStyle,
                             variant: ButtonVariant.outline,
                             onPressed: () {},
                             child: const Text('Secondary'),
                           ),
                           Button(
-                            textStyle: buttonTextStyle,
                             variant: ButtonVariant.secondary,
                             onPressed: () {},
                             child: const Text('Secondary fill'),
@@ -265,7 +256,6 @@ class _WidgetGalleryPageState extends State<WidgetGalleryPage> {
                           Tooltip(
                             message: 'Favorite',
                             child: Button(
-                              textStyle: buttonTextStyle,
                               variant: ButtonVariant.ghost,
                               size: ButtonSize.icon,
                               onPressed: () {},
@@ -273,25 +263,21 @@ class _WidgetGalleryPageState extends State<WidgetGalleryPage> {
                             ),
                           ),
                           Button(
-                            textStyle: buttonTextStyle,
                             variant: ButtonVariant.ghost,
                             onPressed: () {},
                             child: const Text('Quiet'),
                           ),
                           Button(
-                            textStyle: buttonTextStyle,
                             variant: ButtonVariant.destructive,
                             onPressed: () {},
                             child: const Text('Destructive'),
                           ),
                           Button(
-                            textStyle: buttonTextStyle,
                             variant: ButtonVariant.link,
                             onPressed: () {},
                             child: const Text('Link'),
                           ),
                           Button(
-                            textStyle: buttonTextStyle,
                             onPressed: null,
                             child: const Text('Disabled'),
                           ),
@@ -348,9 +334,6 @@ class _WidgetGalleryPageState extends State<WidgetGalleryPage> {
                         ],
                         onChanged: (value) =>
                             setState(() => _dropdownValue = value),
-                        textStyle: theme.typo.body.copyWith(fontSize: 14),
-                        iconColor: theme.colors.textSecondary,
-                        borderRadius: theme.geo.radiusMedium,
                       ),
                     ),
                   ],
@@ -502,14 +485,12 @@ class _WidgetGalleryPageState extends State<WidgetGalleryPage> {
                               Tooltip(
                                 message: 'Helpful context',
                                 child: Button(
-                                  textStyle: buttonTextStyle,
                                   variant: ButtonVariant.outline,
                                   onPressed: () {},
                                   child: const Text('Hover for tooltip'),
                                 ),
                               ),
                               Button(
-                                textStyle: buttonTextStyle,
                                 variant: ButtonVariant.outline,
                                 onPressed: () =>
                                     ScaffoldMessenger.of(context).showSnackBar(
@@ -565,7 +546,6 @@ class _WidgetGalleryPageState extends State<WidgetGalleryPage> {
                             ),
                             const SizedBox(height: 16),
                             Button(
-                              textStyle: buttonTextStyle,
                               onPressed: () {},
                               child: const Text('Add block'),
                             ),
@@ -578,7 +558,6 @@ class _WidgetGalleryPageState extends State<WidgetGalleryPage> {
                       existing: false,
                       note: 'Confirm an important reversible action.',
                       child: Button(
-                        textStyle: buttonTextStyle,
                         variant: ButtonVariant.outline,
                         onPressed: _openConfirmation,
                         child: const Text('Open confirmation'),
@@ -844,11 +823,6 @@ class _WidgetGalleryPageState extends State<WidgetGalleryPage> {
   }
 
   void _openConfirmation() {
-    final theme = BTheme.of(context);
-    final buttonTextStyle = theme.typo.body.copyWith(
-      fontSize: 14,
-      fontWeight: FontWeight.w400,
-    );
     showDialog<void>(
       context: context,
       builder: (dialogContext) => AlertDialog(
@@ -856,13 +830,11 @@ class _WidgetGalleryPageState extends State<WidgetGalleryPage> {
         content: const Text('This removes every block from the current view.'),
         actions: [
           Button(
-            textStyle: buttonTextStyle,
             variant: ButtonVariant.link,
             onPressed: () => Navigator.pop(dialogContext),
             child: const Text('Cancel'),
           ),
           Button(
-            textStyle: buttonTextStyle,
             variant: ButtonVariant.destructive,
             onPressed: () => Navigator.pop(dialogContext),
             child: const Text('Clear'),

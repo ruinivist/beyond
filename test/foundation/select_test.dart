@@ -12,13 +12,6 @@ void main() {
   ) async {
     final theme = starlessLightThemeData.extension<BTheme>()!;
     var value = 'dart';
-    const callerStyle = TextStyle(
-      fontFamily: 'CallerFont',
-      fontFamilyFallback: ['CallerFallback'],
-      fontSize: 16,
-      fontWeight: FontWeight.w600,
-      height: 1.25,
-    );
     final options = [
       const SelectOption(value: 'dart', label: 'Dart'),
       const SelectOption(value: 'python', label: 'Python'),
@@ -33,7 +26,6 @@ void main() {
               value: value,
               options: options,
               onChanged: (next) => setState(() => value = next),
-              textStyle: callerStyle,
             ),
           ),
         ),
@@ -65,8 +57,6 @@ void main() {
           .borderRadius,
       theme.geo.radiusMedium,
     );
-    _expectTypography(trigger.style!.textStyle!.resolve({})!, callerStyle);
-
     await tester.tap(find.byKey(const ValueKey('select-trigger')));
     await tester.pump();
     expect(find.byKey(const ValueKey('select-option-1')), findsOneWidget);
@@ -77,7 +67,7 @@ void main() {
     final option = tester.widget<MenuItemButton>(
       find.byKey(const ValueKey('select-option-0')),
     );
-    _expectTypography(option.style!.textStyle!.resolve({})!, callerStyle);
+    expect(option.style!.textStyle!.resolve({}), theme.typo.body);
     final triggerRect = tester.getRect(
       find.byKey(const ValueKey('select-trigger')),
     );
@@ -88,6 +78,12 @@ void main() {
 
     await tester.sendKeyEvent(LogicalKeyboardKey.escape);
     await tester.pump();
+    expect(
+      Focus.of(
+        tester.element(find.byKey(const ValueKey('select-trigger'))),
+      ).hasFocus,
+      isTrue,
+    );
     await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
     await tester.pump();
     expect(find.byKey(const ValueKey('select-option-0')), findsOneWidget);
@@ -107,43 +103,29 @@ void main() {
     expect(find.byKey(const ValueKey('select-option-0')), findsNothing);
   });
 
-  testWidgets('select honors geometry overrides', (tester) async {
-    final radius = BorderRadius.circular(20);
+  testWidgets('select ignores disabled options', (tester) async {
+    var value = 'dart';
     await tester.pumpWidget(
       MaterialApp(
         theme: starlessLightThemeData,
-        home: Select<String>(
-          value: 'dart',
-          options: const [SelectOption(value: 'dart', label: 'Dart')],
-          onChanged: (_) {},
-          borderRadius: radius,
-          popupElevation: 3,
+        home: StatefulBuilder(
+          builder: (context, setState) => Select<String>(
+            value: value,
+            options: const [
+              SelectOption(value: 'dart', label: 'Dart'),
+              SelectOption(value: 'python', label: 'Python', enabled: false),
+            ],
+            onChanged: (next) => setState(() => value = next),
+          ),
         ),
       ),
     );
 
-    final trigger = tester.widget<TextButton>(
-      find.byKey(const ValueKey('select-trigger')),
-    );
-    expect(
-      (trigger.style!.shape!.resolve({}) as RoundedRectangleBorder)
-          .borderRadius,
-      radius,
-    );
-
     await tester.tap(find.byKey(const ValueKey('select-trigger')));
     await tester.pump();
-    final menu = tester.widget<MenuAnchor>(
-      find.byKey(const ValueKey('select-menu')),
-    );
-    expect(menu.style!.elevation!.resolve({}), 3);
-  });
-}
+    await tester.tap(find.byKey(const ValueKey('select-option-1')));
+    await tester.pump();
 
-void _expectTypography(TextStyle actual, TextStyle expected) {
-  expect(actual.fontFamily, expected.fontFamily);
-  expect(actual.fontFamilyFallback, expected.fontFamilyFallback);
-  expect(actual.fontSize, expected.fontSize);
-  expect(actual.fontWeight, expected.fontWeight);
-  expect(actual.height, expected.height);
+    expect(value, 'dart');
+  });
 }

@@ -21,34 +21,12 @@ class Select<T> extends StatefulWidget {
     required this.value,
     required this.options,
     required this.onChanged,
-    this.textStyle,
-    this.foregroundColor,
-    this.backgroundColor,
-    this.popupColor,
-    this.borderColor,
-    this.hoverColor,
-    this.pressedColor,
-    this.iconColor,
-    this.shadowColor,
-    this.popupElevation,
-    this.borderRadius,
     super.key,
   });
 
   final T value;
   final List<SelectOption<T>> options;
   final ValueChanged<T>? onChanged;
-  final TextStyle? textStyle;
-  final Color? foregroundColor;
-  final Color? backgroundColor;
-  final Color? popupColor;
-  final Color? borderColor;
-  final Color? hoverColor;
-  final Color? pressedColor;
-  final Color? iconColor;
-  final Color? shadowColor;
-  final double? popupElevation;
-  final BorderRadius? borderRadius;
 
   @override
   State<Select<T>> createState() => _SelectState<T>();
@@ -63,16 +41,14 @@ class _SelectState<T> extends State<Select<T>> {
   BTheme get _theme => BTheme.of(context);
   BColors get _colors => _theme.colors;
   BGeo get _geo => _theme.geo;
-  TextStyle get _textStyle => widget.textStyle ?? _theme.typo.body;
-  Color get _foreground => widget.foregroundColor ?? _colors.textPrimary;
-  Color get _background => widget.backgroundColor ?? _colors.surface;
-  Color get _popup => widget.popupColor ?? _colors.surfaceRaised;
-  Color get _border => widget.borderColor ?? _colors.borderSubtle;
-  Color get _hover => widget.hoverColor ?? _colors.surfaceHover;
-  Color get _pressed => widget.pressedColor ?? _colors.surfacePressed;
-  Color get _shadow => widget.shadowColor ?? _colors.shadow;
-  BorderRadius get _borderRadius => widget.borderRadius ?? _geo.radiusMedium;
-  double get _popupElevation => widget.popupElevation ?? _geo.elevationMedium;
+  TextStyle get _textStyle => _theme.typo.body;
+  Color get _foreground => _colors.textPrimary;
+  Color get _background => _colors.surface;
+  Color get _popup => _colors.surfaceRaised;
+  Color get _border => _colors.borderSubtle;
+  Color get _hover => _colors.surfaceHover;
+  Color get _pressed => _colors.surfacePressed;
+  Color get _shadow => _colors.shadow;
   WidgetStateProperty<Color?> get _foregroundColor =>
       WidgetStateProperty.resolveWith((states) {
         return states.contains(WidgetState.disabled)
@@ -161,7 +137,7 @@ class _SelectState<T> extends State<Select<T>> {
         return BorderSide(color: _border);
       }),
       shape: WidgetStatePropertyAll(
-        RoundedRectangleBorder(borderRadius: _borderRadius),
+        RoundedRectangleBorder(borderRadius: _geo.radiusMedium),
       ),
       textStyle: WidgetStatePropertyAll(_textStyle),
       padding: const WidgetStatePropertyAll(
@@ -223,7 +199,6 @@ class _SelectState<T> extends State<Select<T>> {
   @override
   Widget build(BuildContext context) {
     final selected = _selectedOption;
-    final iconColor = widget.iconColor ?? _foreground;
     return MenuAnchor(
       key: const ValueKey('select-menu'),
       controller: _menuController,
@@ -235,14 +210,14 @@ class _SelectState<T> extends State<Select<T>> {
       style: MenuStyle(
         backgroundColor: WidgetStatePropertyAll(_popup),
         shadowColor: WidgetStatePropertyAll(_shadow),
-        elevation: WidgetStatePropertyAll(_popupElevation),
+        elevation: WidgetStatePropertyAll(_geo.elevationMedium),
         padding: const WidgetStatePropertyAll(EdgeInsets.all(4)),
         minimumSize: const WidgetStatePropertyAll(Size(160, 0)),
         maximumSize: const WidgetStatePropertyAll(Size(160, double.infinity)),
         visualDensity: VisualDensity.standard,
         side: WidgetStatePropertyAll(BorderSide(color: _border)),
         shape: WidgetStatePropertyAll(
-          RoundedRectangleBorder(borderRadius: _borderRadius),
+          RoundedRectangleBorder(borderRadius: _geo.radiusMedium),
         ),
         alignment: AlignmentDirectional.bottomStart,
       ),
@@ -277,7 +252,7 @@ class _SelectState<T> extends State<Select<T>> {
               children: [
                 Text(selected?.label ?? ''),
                 const Spacer(),
-                Icon(Icons.keyboard_arrow_down, size: 16, color: iconColor),
+                Icon(Icons.keyboard_arrow_down, size: 16, color: _foreground),
               ],
             ),
           ),
