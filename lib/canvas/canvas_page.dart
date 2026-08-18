@@ -83,6 +83,7 @@ class _CanvasPageState extends State<CanvasPage> {
       return;
     }
     if (onInteractiveBlock) return;
+    FocusManager.instance.primaryFocus?.unfocus();
     _clearBlockSelection();
   }
 
@@ -110,7 +111,11 @@ class _CanvasPageState extends State<CanvasPage> {
     _selectMarkdownBlock(model);
   }
 
-  void _handleTextBlockPointerDown(TextBlockModel model) {
+  void _handleTextBlockPointerDown(
+    TextBlockModel model,
+    PointerDownEvent event,
+  ) {
+    _interactiveBlockPointerIds.add(event.pointer);
     if (_textPlacementEnabled || _penEnabled) return;
     final canvasId = _textBlocks.remove(model);
     if (canvasId == null) return;
@@ -203,7 +208,7 @@ class _CanvasPageState extends State<CanvasPage> {
       node.position,
       TextBlock(
         model: model,
-        onSelect: (_) => _handleTextBlockPointerDown(model),
+        onSelect: (event) => _handleTextBlockPointerDown(model, event),
         onMove: (delta) => _moveTextBlock(model, delta),
       ),
       childSize: Size(node.width, 52),
