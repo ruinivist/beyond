@@ -1,7 +1,6 @@
+import 'package:beyond/canvas/canvas_page.dart';
+import 'package:beyond/theme/starless_light.dart';
 import 'package:flutter/material.dart';
-
-import 'canvas/canvas_page.dart';
-import 'theme/starless_light.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();

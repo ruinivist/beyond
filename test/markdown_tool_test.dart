@@ -1,12 +1,12 @@
+import 'package:beyond/canvas/tools/markdown/markdown_block.dart';
+import 'package:beyond/foundation/theme.dart';
+import 'package:beyond/main.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:flutter_math_fork/flutter_math.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:infinite_lazy_grid/infinite_lazy_grid.dart';
-import 'package:beyond/canvas/tools/markdown/markdown_block.dart';
-import 'package:beyond/foundation/theme.dart';
-import 'package:beyond/main.dart';
 import 'package:url_launcher_platform_interface/link.dart';
 import 'package:url_launcher_platform_interface/url_launcher_platform_interface.dart';
 
@@ -66,7 +66,8 @@ void main() {
     tester,
   ) async {
     await _addMarkdownBlock(tester);
-    const source = r'''# Heading
+    const source = r'''
+# Heading
 
 **bold** and inline $x^2$.
 
@@ -147,7 +148,8 @@ $$''';
 
   testWidgets('preview restricts images and external links', (tester) async {
     await _addMarkdownBlock(tester);
-    const source = '''![secure](https://example.com/image.png)
+    const source = '''
+![secure](https://example.com/image.png)
 
 ![unsafe](http://example.com/image.png)
 

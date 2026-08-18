@@ -1,16 +1,16 @@
+import 'dart:async';
 import 'dart:math' as math;
 
+import 'package:beyond/canvas/tools/code_block/code_block.dart';
+import 'package:beyond/canvas/tools/markdown/markdown_block.dart';
+import 'package:beyond/canvas/tools/pen/pen_tool.dart';
+import 'package:beyond/canvas/tools/text/text_block.dart';
+import 'package:beyond/foundation/theme.dart';
+import 'package:beyond/widgets/settings_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:infinite_lazy_grid/infinite_lazy_grid.dart';
 import 'package:scribble/scribble.dart';
-
-import '../foundation/theme.dart';
-import '../widgets/settings_dialog.dart';
-import 'tools/code_block/code_block.dart';
-import 'tools/markdown/markdown_block.dart';
-import 'tools/pen/pen_tool.dart';
-import 'tools/text/text_block.dart';
 
 class CanvasPage extends StatefulWidget {
   const CanvasPage({super.key});
@@ -46,8 +46,6 @@ class _CanvasPageState extends State<CanvasPage> {
     super.didChangeDependencies();
     final colors = BTheme.of(context).colors;
     _canvasController.background = DotGridBackground(
-      size: 2,
-      spacing: 50,
       dotColor: colors.canvasGrid,
       backgroundColor: colors.canvasBackground,
     );
@@ -124,10 +122,9 @@ class _CanvasPageState extends State<CanvasPage> {
   }
 
   void _bringStrokesToFront() {
-    // ponytail: linear in stroke count; add canvas layers if profiling demands it.
-    for (final id in _strokeIds) {
-      _canvasController.bringToFront(id);
-    }
+    // ponytail: linear in stroke count; add canvas layers if profiling
+    // demands it.
+    _strokeIds.forEach(_canvasController.bringToFront);
   }
 
   void _selectCodeBlock(CodeBlockModel selected) {
@@ -310,10 +307,12 @@ class _CanvasPageState extends State<CanvasPage> {
   }
 
   void _showSettingsDialog() {
-    showDialog<void>(
-      context: context,
-      barrierColor: BTheme.of(context).colors.scrim,
-      builder: (_) => const SettingsDialog(),
+    unawaited(
+      showDialog<void>(
+        context: context,
+        barrierColor: BTheme.of(context).colors.scrim,
+        builder: (_) => const SettingsDialog(),
+      ),
     );
   }
 

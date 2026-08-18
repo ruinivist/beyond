@@ -1,8 +1,8 @@
-import 'package:flutter/material.dart';
-import 'package:flutter_test/flutter_test.dart';
 import 'package:beyond/canvas/tools/code_block/code_language.dart';
 import 'package:beyond/foundation/theme.dart';
 import 'package:beyond/theme/starless_light.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   testWidgets('BTheme.of fails without a registered extension', (tester) async {

@@ -1,13 +1,12 @@
 import 'dart:math' as math;
 
+import 'package:beyond/foundation/theme.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:flutter_markdown_plus_latex/flutter_markdown_plus_latex.dart';
 import 'package:scroll_animator/scroll_animator.dart';
 import 'package:url_launcher/url_launcher.dart';
-
-import '../../../foundation/theme.dart';
 
 const markdownBlockMinimumSize = Size(320, 240);
 
@@ -115,7 +114,6 @@ class MarkdownBlock extends StatelessWidget {
                               controller: model.controller,
                               focusNode: model.focusNode,
                               expands: true,
-                              minLines: null,
                               maxLines: null,
                               textAlignVertical: TextAlignVertical.top,
                               cursorColor: colors.accent,

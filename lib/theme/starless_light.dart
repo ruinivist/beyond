@@ -1,8 +1,7 @@
+import 'package:beyond/foundation/theme.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:re_highlight/styles/atom-one-light.dart';
-
-import '../foundation/theme.dart';
 
 abstract final class _Palette {
   static const canvas = Color(0xfffbf9f7);

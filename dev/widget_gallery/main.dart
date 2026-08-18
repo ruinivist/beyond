@@ -1,4 +1,5 @@
-import 'package:flutter/material.dart';
+import 'dart:async';
+
 import 'package:beyond/canvas/canvas_page.dart';
 import 'package:beyond/canvas/tools/code_block/code_block.dart';
 import 'package:beyond/canvas/tools/markdown/markdown_block.dart';
@@ -8,6 +9,7 @@ import 'package:beyond/foundation/select.dart';
 import 'package:beyond/foundation/theme.dart';
 import 'package:beyond/theme/starless_light.dart';
 import 'package:beyond/widgets/settings_dialog.dart';
+import 'package:flutter/material.dart';
 import 'package:re_editor/re_editor.dart';
 import 'package:scroll_animator/scroll_animator.dart';
 
@@ -138,8 +140,7 @@ class _WidgetGalleryPageState extends State<WidgetGalleryPage> {
                     _GalleryCard(
                       title: 'Typography',
                       existing: true,
-                      note:
-                          'Three semantic families for UI, editorial, and code.',
+                      note: 'Semantic UI, editorial, and code typography.',
                       child: _typography(context),
                     ),
                     _GalleryCard(
@@ -277,9 +278,9 @@ class _WidgetGalleryPageState extends State<WidgetGalleryPage> {
                             onPressed: () {},
                             child: const Text('Link'),
                           ),
-                          Button(
+                          const Button(
                             onPressed: null,
-                            child: const Text('Disabled'),
+                            child: Text('Disabled'),
                           ),
                         ],
                       ),
@@ -663,7 +664,7 @@ class _WidgetGalleryPageState extends State<WidgetGalleryPage> {
                   style: BTheme.of(context).typo.body.copyWith(fontSize: 12),
                 ),
                 Text(
-                  '#${color.toARGB32().toRadixString(16).substring(2).toUpperCase()}',
+                  '#${_colorHex(color)}',
                   style: BTheme.of(
                     context,
                   ).typo.body.copyWith(color: colors.textMuted, fontSize: 10),
@@ -674,6 +675,9 @@ class _WidgetGalleryPageState extends State<WidgetGalleryPage> {
       ],
     );
   }
+
+  String _colorHex(Color color) =>
+      color.toARGB32().toRadixString(16).substring(2).toUpperCase();
 
   Widget _typography(BuildContext context) {
     final typography = BTheme.of(context).typo;
@@ -815,31 +819,37 @@ class _WidgetGalleryPageState extends State<WidgetGalleryPage> {
   }
 
   void _openSettings() {
-    showDialog<void>(
-      context: context,
-      barrierColor: BTheme.of(context).colors.scrim,
-      builder: (_) => const SettingsDialog(),
+    unawaited(
+      showDialog<void>(
+        context: context,
+        barrierColor: BTheme.of(context).colors.scrim,
+        builder: (_) => const SettingsDialog(),
+      ),
     );
   }
 
   void _openConfirmation() {
-    showDialog<void>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Clear the canvas?'),
-        content: const Text('This removes every block from the current view.'),
-        actions: [
-          Button(
-            variant: ButtonVariant.link,
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Cancel'),
+    unawaited(
+      showDialog<void>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: const Text('Clear the canvas?'),
+          content: const Text(
+            'This removes every block from the current view.',
           ),
-          Button(
-            variant: ButtonVariant.destructive,
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Clear'),
-          ),
-        ],
+          actions: [
+            Button(
+              variant: ButtonVariant.link,
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('Cancel'),
+            ),
+            Button(
+              variant: ButtonVariant.destructive,
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('Clear'),
+            ),
+          ],
+        ),
       ),
     );
   }

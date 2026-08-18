@@ -1,13 +1,12 @@
 import 'dart:math' as math;
 
+import 'package:beyond/canvas/tools/code_block/code_language.dart';
+import 'package:beyond/foundation/select.dart';
+import 'package:beyond/foundation/theme.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:re_editor/re_editor.dart';
 import 'package:scroll_animator/scroll_animator.dart';
-
-import '../../../foundation/select.dart';
-import '../../../foundation/theme.dart';
-import 'code_language.dart';
 
 const codeBlockMinimumSize = Size(280, 240);
 
@@ -16,9 +15,7 @@ class CodeBlockModel extends ChangeNotifier {
 
   Size _size;
   bool _selected = false;
-  final controller = CodeLineEditingController(
-    options: const CodeLineOptions(indentSize: 2),
-  );
+  final controller = CodeLineEditingController();
   final focusNode = FocusNode();
   final scrollController = CodeScrollController(
     verticalScroller: AnimatedScrollController(
@@ -121,8 +118,6 @@ class CodeBlock extends StatelessWidget {
                         controller: model.controller,
                         scrollController: model.scrollController,
                         focusNode: model.focusNode,
-                        wordWrap: false,
-                        autocompleteSymbols: true,
                         padding: const EdgeInsets.all(8),
                         style: CodeEditorStyle(
                           fontFamily: codeStyle.fontFamily,

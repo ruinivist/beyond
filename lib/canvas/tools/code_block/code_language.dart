@@ -1,3 +1,4 @@
+import 'package:flutter/painting.dart';
 import 'package:re_editor/re_editor.dart';
 import 'package:re_highlight/languages/dart.dart';
 import 'package:re_highlight/languages/go.dart';
@@ -6,7 +7,6 @@ import 'package:re_highlight/languages/python.dart';
 import 'package:re_highlight/languages/rust.dart';
 import 'package:re_highlight/languages/typescript.dart';
 import 'package:re_highlight/re_highlight.dart';
-import 'package:flutter/painting.dart';
 
 enum CodeLanguage {
   dart('Dart'),

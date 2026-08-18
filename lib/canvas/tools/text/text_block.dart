@@ -1,7 +1,6 @@
+import 'package:beyond/foundation/theme.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-
-import '../../../foundation/theme.dart';
 
 class TextBlockModel {
   final controller = TextEditingController();

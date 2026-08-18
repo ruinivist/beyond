@@ -1,6 +1,5 @@
+import 'package:beyond/foundation/theme.dart';
 import 'package:flutter/material.dart';
-
-import 'theme.dart';
 
 enum ButtonVariant { primary, outline, secondary, ghost, destructive, link }
 

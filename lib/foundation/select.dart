@@ -1,7 +1,6 @@
+import 'package:beyond/foundation/theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-
-import 'theme.dart';
 
 @immutable
 class SelectOption<T> {
@@ -71,7 +70,7 @@ class _SelectState<T> extends State<Select<T>> {
       }
       _optionFocusNodes = _newOptionFocusNodes(widget.options.length);
     }
-    if (_enabled == false && oldWidget.onChanged != null) {
+    if (!_enabled && oldWidget.onChanged != null) {
       _menuController.close();
     }
   }
@@ -248,7 +247,6 @@ class _SelectState<T> extends State<Select<T>> {
             focusNode: _triggerFocusNode,
             style: _triggerStyle(),
             child: Row(
-              mainAxisSize: MainAxisSize.max,
               children: [
                 Text(selected?.label ?? ''),
                 const Spacer(),

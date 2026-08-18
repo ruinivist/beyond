@@ -1,9 +1,8 @@
-import 'package:flutter/material.dart';
-import 'package:flutter_test/flutter_test.dart';
-
 import 'package:beyond/foundation/button.dart';
 import 'package:beyond/foundation/theme.dart';
 import 'package:beyond/theme/starless_light.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   testWidgets('button uses BTheme defaults', (tester) async {
@@ -26,7 +25,7 @@ void main() {
       theme.typo.body.fontSize,
     );
     expect(
-      (textButton.style!.shape!.resolve({}) as RoundedRectangleBorder)
+      (textButton.style!.shape!.resolve({})! as RoundedRectangleBorder)
           .borderRadius,
       theme.geo.radiusMedium,
     );

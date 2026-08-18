@@ -1,8 +1,7 @@
 import 'dart:math' as math;
 
+import 'package:beyond/foundation/theme.dart';
 import 'package:flutter/material.dart';
-
-import '../foundation/theme.dart';
 
 class SettingsDialog extends StatelessWidget {
   const SettingsDialog({super.key});
@@ -24,8 +23,8 @@ class SettingsDialog extends StatelessWidget {
       ),
       insetPadding: const EdgeInsets.all(16),
       child: SizedBox(
-        width: math.min(560.0, math.max(0.0, viewport.width - 32)),
-        height: math.min(360.0, math.max(0.0, viewport.height - 32)),
+        width: math.min(560, math.max(0, viewport.width - 32)),
+        height: math.min(360, math.max(0, viewport.height - 32)),
         child: Row(
           children: [
             SizedBox(

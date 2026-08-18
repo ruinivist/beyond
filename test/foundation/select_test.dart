@@ -1,10 +1,9 @@
-import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:flutter_test/flutter_test.dart';
-
 import 'package:beyond/foundation/select.dart';
 import 'package:beyond/foundation/theme.dart';
 import 'package:beyond/theme/starless_light.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   testWidgets('select opens, navigates, selects, and dismisses', (
@@ -53,7 +52,7 @@ void main() {
       BorderSide(color: theme.colors.borderSubtle),
     );
     expect(
-      (trigger.style!.shape!.resolve({}) as RoundedRectangleBorder)
+      (trigger.style!.shape!.resolve({})! as RoundedRectangleBorder)
           .borderRadius,
       theme.geo.radiusMedium,
     );
