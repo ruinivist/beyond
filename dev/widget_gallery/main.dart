@@ -4,6 +4,7 @@ import 'package:beyond/canvas/canvas_page.dart';
 import 'package:beyond/canvas/tools/code_block/code_block.dart';
 import 'package:beyond/canvas/tools/markdown/markdown_block.dart';
 import 'package:beyond/canvas/tools/text/text_block.dart';
+import 'package:beyond/canvas/tools/text/text_node.dart';
 import 'package:beyond/foundation/button.dart';
 import 'package:beyond/foundation/select.dart';
 import 'package:beyond/foundation/theme.dart';
@@ -44,7 +45,19 @@ class _WidgetGalleryPageState extends State<WidgetGalleryPage> {
   final _scrollController = AnimatedScrollController(
     animationFactory: const ChromiumEaseInOut(),
   );
-  final _textModel = TextBlockModel();
+  final _textModel = TextBlockModel(
+    TextNodeData(
+      id: 'gallery-text',
+      position: Offset.zero,
+      width: textNodeDefaultWidth,
+      markdown: '',
+      style: const TextNodeStyle(
+        fontFamily: 'Source Serif 4',
+        fontSize: textNodeDefaultFontSize,
+        color: '#201C1A',
+      ),
+    ),
+  );
   final _codeModel = CodeBlockModel(const Size(520, 320));
   final _markdownModel = MarkdownBlockModel(const Size(500, 320));
   var _dropdownValue = 'Canvas';

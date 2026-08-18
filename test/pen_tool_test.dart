@@ -143,6 +143,7 @@ void main() {
     final canvas = tester.widget<LazyCanvas>(find.byType(LazyCanvas));
     final originalTopLeft = tester.getTopLeft(textBlock);
     final originalCanvasOffset = canvas.controller.offset;
+    expect(model.node.position, const Offset(120, 200));
     const delta = Offset(80, 60);
 
     await tester.drag(handle, delta, kind: PointerDeviceKind.mouse);
@@ -150,6 +151,7 @@ void main() {
 
     expect(tester.getTopLeft(textBlock), originalTopLeft + delta);
     expect(canvas.controller.offset, originalCanvasOffset);
+    expect(model.node.position, const Offset(200, 260));
     expect(model.focusNode.hasFocus, isTrue);
     expect(handle, findsOneWidget);
     final focusedHintPosition = tester.getTopLeft(find.text('Type something'));

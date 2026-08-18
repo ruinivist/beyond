@@ -5,6 +5,7 @@ import 'package:beyond/canvas/tools/code_block/code_block.dart';
 import 'package:beyond/canvas/tools/markdown/markdown_block.dart';
 import 'package:beyond/canvas/tools/pen/pen_tool.dart';
 import 'package:beyond/canvas/tools/text/text_block.dart';
+import 'package:beyond/canvas/tools/text/text_node.dart';
 import 'package:beyond/foundation/theme.dart';
 import 'package:beyond/widgets/settings_dialog.dart';
 import 'package:flutter/material.dart';
@@ -26,7 +27,7 @@ class _CanvasPageState extends State<CanvasPage> {
   final _codeBlocks = <CodeBlockModel, ({String id, Offset position})>{};
   final _markdownBlocks =
       <MarkdownBlockModel, ({String id, Offset position})>{};
-  final _textBlocks = <TextBlockModel, ({String id, Offset position})>{};
+  final _textBlocks = <TextBlockModel, String>{};
   final _strokeIds = <String>[];
   final _interactiveBlockPointerIds = <int>{};
   late final PenTool _penTool;
@@ -111,9 +112,10 @@ class _CanvasPageState extends State<CanvasPage> {
 
   void _handleTextBlockPointerDown(TextBlockModel model) {
     if (_textPlacementEnabled || _penEnabled) return;
-    final entry = _textBlocks[model];
-    if (entry == null) return;
-    _bringBlockToFront(entry.id);
+    final canvasId = _textBlocks.remove(model);
+    if (canvasId == null) return;
+    _textBlocks[model] = canvasId;
+    _bringBlockToFront(canvasId);
   }
 
   void _bringBlockToFront(String id) {
@@ -166,12 +168,11 @@ class _CanvasPageState extends State<CanvasPage> {
 
   void _moveTextBlock(TextBlockModel model, Offset screenDelta) {
     if (_textPlacementEnabled || _penEnabled) return;
-    final entry = _textBlocks[model];
-    if (entry == null) return;
+    final canvasId = _textBlocks[model];
+    if (canvasId == null) return;
 
-    final position = entry.position + screenDelta / _canvasController.scale;
-    _textBlocks[model] = (id: entry.id, position: position);
-    _canvasController.updatePosition(entry.id, position);
+    model.node.position += screenDelta / _canvasController.scale;
+    _canvasController.updatePosition(canvasId, model.node.position);
   }
 
   void _moveMarkdownBlock(MarkdownBlockModel model, Offset screenDelta) {
@@ -185,24 +186,38 @@ class _CanvasPageState extends State<CanvasPage> {
   }
 
   void _addTextBlock(Offset position) {
-    const size = Size(280, 52);
-    final model = TextBlockModel();
+    final node = TextNodeData(
+      id: _newTextNodeId(),
+      position: position,
+      width: textNodeDefaultWidth,
+      markdown: '',
+      style: const TextNodeStyle(
+        fontFamily: 'Source Serif 4',
+        fontSize: textNodeDefaultFontSize,
+        color: '#201C1A',
+      ),
+    );
+    final model = TextBlockModel(node);
 
     final id = _canvasController.addChild(
-      position,
+      node.position,
       TextBlock(
         model: model,
         onSelect: (_) => _handleTextBlockPointerDown(model),
         onMove: (delta) => _moveTextBlock(model, delta),
       ),
-      childSize: size,
+      childSize: Size(node.width, 52),
     );
-    _textBlocks[model] = (id: id, position: position);
+    _textBlocks[model] = id;
     _bringStrokesToFront();
     WidgetsBinding.instance.addPostFrameCallback(
       (_) => model.focusNode.requestFocus(),
     );
   }
+
+  // ponytail: local timestamp IDs; use UUIDs when documents can merge.
+  String _newTextNodeId() =>
+      'text-${DateTime.now().microsecondsSinceEpoch.toRadixString(36)}';
 
   void _addCodeBlock() {
     _prepareInteractiveBlock();

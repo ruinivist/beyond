@@ -1,14 +1,32 @@
+import 'package:beyond/canvas/tools/text/text_node.dart';
 import 'package:beyond/foundation/theme.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
-class TextBlockModel {
-  final controller = TextEditingController();
-  final focusNode = FocusNode();
+class TextBlockModel extends ChangeNotifier {
+  TextBlockModel(this.node)
+    : controller = TextEditingController(text: node.markdown) {
+    controller.addListener(_syncMarkdown);
+    focusNode.addListener(notifyListeners);
+  }
 
+  final TextNodeData node;
+  final TextEditingController controller;
+  final FocusNode focusNode = FocusNode();
+
+  void _syncMarkdown() {
+    if (node.markdown == controller.text) return;
+    node.markdown = controller.text;
+    notifyListeners();
+  }
+
+  @override
   void dispose() {
+    controller.removeListener(_syncMarkdown);
+    focusNode.removeListener(notifyListeners);
     controller.dispose();
     focusNode.dispose();
+    super.dispose();
   }
 }
 
@@ -37,7 +55,7 @@ class TextBlock extends StatelessWidget {
     return Listener(
       onPointerDown: onSelect,
       child: SizedBox(
-        width: 280,
+        width: model.node.width,
         child: Material(
           type: MaterialType.transparency,
           child: ListenableBuilder(
