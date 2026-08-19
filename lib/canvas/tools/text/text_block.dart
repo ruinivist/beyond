@@ -106,13 +106,11 @@ class TextBlock extends StatelessWidget {
                   constraints: const BoxConstraints(minHeight: 52),
                   child: Stack(
                     children: [
-                      if (focused)
-                        _TextMarkdownEditor(model: model)
-                      else
-                        Focus(
-                          focusNode: model.focusNode,
-                          child: _TextMarkdownPreview(model: model),
-                        ),
+                      Offstage(
+                        offstage: !focused,
+                        child: _TextMarkdownEditor(model: model),
+                      ),
+                      if (!focused) _TextMarkdownPreview(model: model),
                       if (model.selected)
                         Positioned(
                           right: 0,
@@ -236,7 +234,6 @@ class _TextMarkdownEditor extends StatelessWidget {
       key: const ValueKey('text-markdown-editor'),
       controller: model.controller,
       focusNode: model.focusNode,
-      autofocus: true,
       maxLines: null,
       cursorColor: colors.accent,
       decoration: InputDecoration(
