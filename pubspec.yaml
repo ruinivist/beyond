@@ -27,6 +27,8 @@ dev_dependencies:
   flutter_math_fork: ^0.7.4
   flutter_test:
     sdk: flutter
+  # Used by web tests to register the browser storage implementation.
+  shared_preferences_web: ^2.4.3
   url_launcher_platform_interface: ^2.3.2
   very_good_analysis: ^10.3.0
 
