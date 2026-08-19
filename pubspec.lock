@@ -197,7 +197,7 @@ packages:
     description:
       path: "."
       ref: HEAD
-      resolved-ref: "3d8ed13cc7a3c557215a98952e8e420fcd6fbfc4"
+      resolved-ref: a524df0800eb72fdea33252b78ab8eadbb3e8721
       url: "https://github.com/ruinivist/infinite_lazy_grid.git"
     source: git
     version: "1.0.5"

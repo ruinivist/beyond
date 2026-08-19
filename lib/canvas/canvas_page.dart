@@ -9,6 +9,7 @@ import 'package:beyond/canvas/tools/text/text_block.dart';
 import 'package:beyond/canvas/tools/text/text_node.dart';
 import 'package:beyond/foundation/theme.dart';
 import 'package:beyond/widgets/settings_dialog.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:infinite_lazy_grid/infinite_lazy_grid.dart';
@@ -82,7 +83,7 @@ class _CanvasPageState extends State<CanvasPage> {
   }
 
   void _handleCanvasPointerDown(PointerDownEvent event) {
-    if (!_documentLoaded) return;
+    if (!_documentLoaded || event.buttons != kPrimaryButton) return;
     final onInteractiveBlock = _interactiveBlockPointerIds.remove(
       event.pointer,
     );
@@ -103,6 +104,7 @@ class _CanvasPageState extends State<CanvasPage> {
     CodeBlockModel model,
     PointerDownEvent event,
   ) {
+    if (event.buttons != kPrimaryButton) return;
     _interactiveBlockPointerIds.add(event.pointer);
     if (!_documentLoaded || _textPlacementEnabled || _penEnabled) return;
     final entry = _codeBlocks[model];
@@ -115,6 +117,7 @@ class _CanvasPageState extends State<CanvasPage> {
     MarkdownBlockModel model,
     PointerDownEvent event,
   ) {
+    if (event.buttons != kPrimaryButton) return;
     _interactiveBlockPointerIds.add(event.pointer);
     if (!_documentLoaded || _textPlacementEnabled || _penEnabled) return;
     final entry = _markdownBlocks[model];
@@ -127,6 +130,7 @@ class _CanvasPageState extends State<CanvasPage> {
     TextBlockModel model,
     PointerDownEvent event,
   ) {
+    if (event.buttons != kPrimaryButton) return;
     _interactiveBlockPointerIds.add(event.pointer);
     if (_textPlacementEnabled || _penEnabled) return;
     final canvasId = _textBlocks.remove(model);
@@ -528,7 +532,10 @@ class _CanvasPageState extends State<CanvasPage> {
             child: Listener(
               behavior: HitTestBehavior.opaque,
               onPointerDown: _handleCanvasPointerDown,
-              child: LazyCanvas(controller: _canvasController),
+              child: LazyCanvas(
+                controller: _canvasController,
+                mousePanButtons: kSecondaryMouseButton | kMiddleMouseButton,
+              ),
             ),
           ),
           if (_penEnabled)

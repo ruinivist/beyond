@@ -427,14 +427,25 @@ class _MarkdownBlockResizeHandle extends StatelessWidget {
       child: Semantics(
         button: true,
         label: 'Resize markdown block',
-        child: GestureDetector(
+        child: RawGestureDetector(
           key: const ValueKey('markdown-block-resize-handle'),
           behavior: HitTestBehavior.opaque,
-          onScaleUpdate: (details) {
-            model.size = Size(
-              model.size.width + details.focalPointDelta.dx,
-              model.size.height + details.focalPointDelta.dy,
-            );
+          gestures: {
+            ScaleGestureRecognizer:
+                GestureRecognizerFactoryWithHandlers<ScaleGestureRecognizer>(
+                  () => ScaleGestureRecognizer(
+                    allowedButtonsFilter: (buttons) =>
+                        buttons == kPrimaryButton,
+                  ),
+                  (recognizer) {
+                    recognizer.onUpdate = (details) {
+                      model.size = Size(
+                        model.size.width + details.focalPointDelta.dx,
+                        model.size.height + details.focalPointDelta.dy,
+                      );
+                    };
+                  },
+                ),
           },
           child: SizedBox(
             width: 28,

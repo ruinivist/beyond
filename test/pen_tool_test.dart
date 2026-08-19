@@ -4,6 +4,7 @@ import 'package:beyond/canvas/tools/markdown/markdown_block.dart';
 import 'package:beyond/canvas/tools/pen/pen_tool.dart';
 import 'package:beyond/canvas/tools/text/text_block.dart';
 import 'package:beyond/main.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -185,6 +186,63 @@ void main() {
 
     FocusManager.instance.primaryFocus?.unfocus();
     await tester.pump();
+  });
+
+  testWidgets('right and middle drag pan over block controls', (tester) async {
+    await tester.pumpWidget(const BeyondApp());
+    await tester.pump();
+    await tester.tap(find.text('Code'));
+    await tester.pump();
+
+    final block = find.byType(CodeBlock);
+    final model = tester.widget<CodeBlock>(block).model;
+    final canvas = tester.widget<LazyCanvas>(find.byType(LazyCanvas));
+    final originalGridPosition = canvas.controller
+        .widgetsWithScreenPositions()
+        .singleWhere(
+          (child) => (child.child as Container).child is CodeBlock,
+        )
+        .gsPosition;
+
+    final rightDrag = await tester.startGesture(
+      tester.getCenter(find.byKey(const ValueKey('code-block-header'))),
+      kind: PointerDeviceKind.mouse,
+      buttons: kSecondaryMouseButton,
+    );
+    await rightDrag.moveBy(const Offset(80, 60));
+    await rightDrag.up();
+    await tester.pump();
+
+    expect(canvas.controller.offset, isNot(Offset.zero));
+    expect(model.selected, isFalse);
+    expect(
+      canvas.controller
+          .widgetsWithScreenPositions()
+          .singleWhere(
+            (child) => (child.child as Container).child is CodeBlock,
+          )
+          .gsPosition,
+      originalGridPosition,
+    );
+
+    final offsetAfterRightDrag = canvas.controller.offset;
+    final originalSize = model.size;
+    final middleDrag = await tester.startGesture(
+      tester.getCenter(
+        find.byKey(const ValueKey('code-block-resize-handle')),
+      ),
+      kind: PointerDeviceKind.mouse,
+      buttons: kMiddleMouseButton,
+    );
+    await middleDrag.moveBy(const Offset(40, 30));
+    await middleDrag.up();
+    await tester.pump();
+
+    expect(canvas.controller.offset, isNot(offsetAfterRightDrag));
+    expect(model.size, originalSize);
+
+    FocusManager.instance.primaryFocus?.unfocus();
+    await tester.pump(const Duration(milliseconds: 100));
   });
 
   testWidgets('last interacted block moves to front', (tester) async {
