@@ -23,7 +23,6 @@ class TextBlockModel extends ChangeNotifier {
   TextBlockModel(this.node)
     : controller = TextEditingController(text: node.markdown) {
     controller.addListener(_syncMarkdown);
-    focusNode.addListener(notifyListeners);
   }
 
   final TextNodeData node;
@@ -65,9 +64,9 @@ class TextBlockModel extends ChangeNotifier {
 
   @override
   void dispose() {
-    controller.removeListener(_syncMarkdown);
-    focusNode.removeListener(notifyListeners);
-    controller.dispose();
+    controller
+      ..removeListener(_syncMarkdown)
+      ..dispose();
     focusNode.dispose();
     super.dispose();
   }
@@ -76,14 +75,16 @@ class TextBlockModel extends ChangeNotifier {
 class TextBlock extends StatelessWidget {
   const TextBlock({
     required this.model,
-    required this.onSelect,
+    required this.onPointerDown,
+    required this.onEdit,
     required this.onMove,
     required this.onResize,
     super.key,
   });
 
   final TextBlockModel model;
-  final ValueChanged<PointerDownEvent> onSelect;
+  final ValueChanged<PointerDownEvent> onPointerDown;
+  final VoidCallback onEdit;
   final ValueChanged<Offset> onMove;
   final ValueChanged<double> onResize;
 
@@ -91,13 +92,12 @@ class TextBlock extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = BTheme.of(context).colors;
     return Listener(
-      onPointerDown: onSelect,
+      onPointerDown: onPointerDown,
       child: Material(
         type: MaterialType.transparency,
         child: ListenableBuilder(
           listenable: model,
           builder: (context, _) {
-            final focused = model.focusNode.hasFocus;
             return CompositedTransformTarget(
               link: model.layerLink,
               child: SizedBox(
@@ -106,11 +106,15 @@ class TextBlock extends StatelessWidget {
                   constraints: const BoxConstraints(minHeight: 52),
                   child: Stack(
                     children: [
-                      Offstage(
-                        offstage: !focused,
-                        child: _TextMarkdownEditor(model: model),
-                      ),
-                      if (!focused) _TextMarkdownPreview(model: model),
+                      if (model.selected)
+                        _TextMarkdownEditor(model: model)
+                      else
+                        _TextMarkdownPreview(
+                          source: model.node.markdown,
+                          style: model.style,
+                          onEdit: onEdit,
+                          onMove: onMove,
+                        ),
                       if (model.selected)
                         Positioned(
                           right: 0,
@@ -248,23 +252,32 @@ class _TextMarkdownEditor extends StatelessWidget {
 }
 
 class _TextMarkdownPreview extends StatelessWidget {
-  const _TextMarkdownPreview({required this.model});
+  const _TextMarkdownPreview({
+    required this.source,
+    required this.style,
+    required this.onEdit,
+    required this.onMove,
+  });
 
-  final TextBlockModel model;
+  final String source;
+  final TextNodeStyle style;
+  final VoidCallback onEdit;
+  final ValueChanged<Offset> onMove;
 
   @override
   Widget build(BuildContext context) {
-    final source = model.node.markdown;
     return GestureDetector(
       key: const ValueKey('text-markdown-preview-surface'),
       behavior: HitTestBehavior.opaque,
-      onTap: model.focusNode.requestFocus,
+      dragStartBehavior: DragStartBehavior.down,
+      onTap: onEdit,
+      onPanUpdate: (details) => onMove(details.delta),
       child: Padding(
         padding: const EdgeInsets.only(right: 28),
         child: source.isEmpty
             ? _EmptyTextMarkdownPreview(
                 key: const ValueKey('text-markdown-preview'),
-                model: model,
+                style: style,
               )
             : MarkdownBody(
                 key: const ValueKey('text-markdown-preview'),
@@ -276,10 +289,10 @@ class _TextMarkdownPreview extends StatelessWidget {
                 ],
                 builders: {
                   'latex': LatexElementBuilder(
-                    textStyle: _fontStyle(model.style),
+                    textStyle: _fontStyle(style),
                   ),
                 },
-                styleSheet: _styleSheet(context, model.style),
+                styleSheet: _styleSheet(context, style),
                 imageBuilder: (uri, title, alt) => _buildImage(uri, alt),
                 onTapLink: (_, href, _) => _openLink(context, href),
               ),
@@ -289,9 +302,9 @@ class _TextMarkdownPreview extends StatelessWidget {
 }
 
 class _EmptyTextMarkdownPreview extends StatelessWidget {
-  const _EmptyTextMarkdownPreview({required this.model, super.key});
+  const _EmptyTextMarkdownPreview({required this.style, super.key});
 
-  final TextBlockModel model;
+  final TextNodeStyle style;
 
   @override
   Widget build(BuildContext context) {
@@ -305,7 +318,7 @@ class _EmptyTextMarkdownPreview extends StatelessWidget {
           child: Text(
             'Click to edit',
             style: _fontStyle(
-              model.style,
+              style,
             ).copyWith(color: theme.colors.textMuted),
           ),
         ),

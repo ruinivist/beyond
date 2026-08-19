@@ -135,10 +135,24 @@ class _CanvasPageState extends State<CanvasPage> {
     if (_textPlacementEnabled || _penEnabled) return;
     final canvasId = _textBlocks.remove(model);
     if (canvasId == null) return;
+    if (!model.selected) {
+      FocusManager.instance.primaryFocus?.unfocus();
+      _clearBlockSelection();
+    }
     _textBlocks[model] = canvasId;
     _bringBlockToFront(canvasId);
-    _selectTextBlock(model);
     _scheduleDocumentSave();
+  }
+
+  void _editTextBlock(TextBlockModel model) {
+    if (!_documentLoaded ||
+        _textPlacementEnabled ||
+        _penEnabled ||
+        !_textBlocks.containsKey(model)) {
+      return;
+    }
+    _selectTextBlock(model);
+    model.focusNode.requestFocus();
   }
 
   void _bringBlockToFront(String id) {
@@ -282,7 +296,8 @@ class _CanvasPageState extends State<CanvasPage> {
       node.position,
       TextBlock(
         model: model,
-        onSelect: (event) => _handleTextBlockPointerDown(model, event),
+        onPointerDown: (event) => _handleTextBlockPointerDown(model, event),
+        onEdit: () => _editTextBlock(model),
         onMove: (delta) => _moveTextBlock(model, delta),
         onResize: (delta) => _resizeTextBlock(model, delta),
       ),

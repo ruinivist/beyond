@@ -176,7 +176,11 @@ class _WidgetGalleryPageState extends State<WidgetGalleryPage> {
                       child: _horizontalPreview(
                         TextBlock(
                           model: _textModel,
-                          onSelect: (_) {},
+                          onPointerDown: (_) {},
+                          onEdit: () {
+                            setState(() => _textModel.selected = true);
+                            _textModel.focusNode.requestFocus();
+                          },
                           onMove: (_) {},
                           onResize: (_) {},
                         ),

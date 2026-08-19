@@ -92,7 +92,46 @@ void main() {
       find.byKey(const ValueKey('text-block-resize-handle')),
       findsOneWidget,
     );
+    expect(find.byKey(const ValueKey('text-markdown-editor')), findsOneWidget);
+    expect(find.byKey(const ValueKey('text-markdown-preview')), findsNothing);
+  });
+
+  testWidgets('text blocks move from their unfocused preview', (tester) async {
+    await _addTextBlock(tester, const Offset(120, 200));
+    await tester.tapAt(const Offset(400, 300));
+    await tester.pump();
+
+    final block = find.byType(TextBlock);
+    final model = tester.widget<TextBlock>(block).model;
+    final originalPosition = model.node.position;
+    const delta = Offset(80, 60);
+
+    final gesture = await tester.startGesture(
+      tester.getCenter(
+        find.byKey(const ValueKey('text-markdown-preview-surface')),
+      ),
+      kind: PointerDeviceKind.mouse,
+    );
+    await gesture.moveBy(delta);
+    await tester.pump();
+
+    expect(model.node.position, originalPosition + delta);
+    expect(model.selected, isFalse);
+    expect(model.focusNode.hasFocus, isFalse);
     expect(find.byKey(const ValueKey('text-markdown-preview')), findsOneWidget);
+    expect(find.byKey(const ValueKey('text-block-handle')), findsNothing);
+    expect(
+      find.byKey(const ValueKey('text-block-resize-handle')),
+      findsNothing,
+    );
+    expect(find.byKey(const ValueKey('text-style-popover')), findsNothing);
+
+    await gesture.up();
+    await tester.pump();
+
+    expect(model.selected, isFalse);
+    expect(find.byKey(const ValueKey('text-markdown-preview')), findsOneWidget);
+    expect(find.byKey(const ValueKey('text-style-popover')), findsNothing);
   });
 
   testWidgets(
@@ -199,6 +238,10 @@ void main() {
     );
     await tester.pump();
     expect(model.focusNode.hasFocus, isTrue);
+    expect(model.selected, isTrue);
+    expect(find.byKey(const ValueKey('text-markdown-editor')), findsOneWidget);
+    expect(find.byKey(const ValueKey('text-block-handle')), findsOneWidget);
+    expect(find.byKey(const ValueKey('text-style-popover')), findsOneWidget);
     expect(model.controller.text, source);
     expect(model.node.markdown, source);
 
@@ -457,10 +500,13 @@ Inline $x^2$''';
       expect(model.node.markdown, source);
       expect(model.selected, isTrue);
       expect(model.focusNode.hasFocus, isFalse);
-      expect(find.byKey(const ValueKey('text-markdown-editor')), findsNothing);
+      expect(
+        find.byKey(const ValueKey('text-markdown-editor')),
+        findsOneWidget,
+      );
       expect(
         find.byKey(const ValueKey('text-markdown-preview')),
-        findsOneWidget,
+        findsNothing,
       );
       expect(find.byKey(const ValueKey('text-style-popover')), findsOneWidget);
 
