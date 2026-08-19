@@ -184,7 +184,6 @@ class _SelectState<T> extends State<Select<T>> {
       ),
       tapTargetSize: MaterialTapTargetSize.shrinkWrap,
       alignment: Alignment.centerLeft,
-      overlayColor: const WidgetStatePropertyAll(Colors.transparent),
     );
   }
 
@@ -230,7 +229,6 @@ class _SelectState<T> extends State<Select<T>> {
       shape: WidgetStatePropertyAll(
         RoundedRectangleBorder(borderRadius: _geo.radiusSmall),
       ),
-      overlayColor: const WidgetStatePropertyAll(Colors.transparent),
     );
   }
 

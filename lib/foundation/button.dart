@@ -165,7 +165,6 @@ class Button extends StatelessWidget {
           ? WidgetStatePropertyAll(Size.square(_height))
           : null,
       tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-      overlayColor: const WidgetStatePropertyAll(Colors.transparent),
     );
   }
 

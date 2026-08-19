@@ -200,6 +200,7 @@ final starlessLightThemeData = ThemeData(
   focusColor: _Palette.rose300,
   hoverColor: _Palette.hover,
   splashColor: _Palette.pressed,
+  splashFactory: NoSplash.splashFactory,
   snackBarTheme: SnackBarThemeData(
     backgroundColor: _Palette.text,
     contentTextStyle: _starlessLight.typo.body.copyWith(color: _Palette.white),
