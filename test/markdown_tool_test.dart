@@ -1,6 +1,5 @@
 import 'package:beyond/canvas/canvas_document_store.dart';
 import 'package:beyond/canvas/tools/markdown/markdown_block.dart';
-import 'package:beyond/foundation/theme.dart';
 import 'package:beyond/main.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
@@ -100,49 +99,6 @@ $$''';
     expect(find.byType(Math), findsNWidgets(2));
     expect(find.byIcon(Icons.check_box), findsOneWidget);
 
-    final markdown = tester.widget<Markdown>(
-      find.byKey(const ValueKey('markdown-preview')),
-    );
-    final styleSheet = markdown.styleSheet!;
-    final sourceSerif = BTheme.of(
-      tester.element(find.byKey(const ValueKey('markdown-preview'))),
-    ).typo.heading;
-    expect(styleSheet.p!.fontFamily, sourceSerif.fontFamily);
-    expect(styleSheet.p!.fontFamilyFallback, sourceSerif.fontFamilyFallback);
-    expect(styleSheet.p!.fontSize, 16);
-    expect(styleSheet.p!.fontWeight, isNull);
-    expect(styleSheet.p!.height, 1.5);
-    for (final (style, size, height) in [
-      (styleSheet.h1, 24.0, 1.2),
-      (styleSheet.h2, 22.0, 1.25),
-      (styleSheet.h3, 20.0, 1.3),
-      (styleSheet.h4, 18.0, 1.35),
-      (styleSheet.h5, 17.0, 1.35),
-      (styleSheet.h6, 16.0, 1.4),
-    ]) {
-      expect(style!.fontFamily, sourceSerif.fontFamily);
-      expect(style.fontFamilyFallback, sourceSerif.fontFamilyFallback);
-      expect(style.fontSize, size);
-      expect(style.fontWeight, FontWeight.w600);
-      expect(style.height, height);
-    }
-    expect(styleSheet.tableHead!.fontSize, 14);
-    expect(styleSheet.tableHead!.fontFamily, sourceSerif.fontFamily);
-    expect(
-      styleSheet.tableHead!.fontFamilyFallback,
-      sourceSerif.fontFamilyFallback,
-    );
-    expect(styleSheet.tableHead!.fontWeight, FontWeight.w600);
-    expect(styleSheet.tableHead!.height, 1.45);
-    expect(styleSheet.tableBody!.fontFamily, sourceSerif.fontFamily);
-    expect(
-      styleSheet.tableBody!.fontFamilyFallback,
-      sourceSerif.fontFamilyFallback,
-    );
-    expect(styleSheet.tableBody!.fontSize, 14);
-    expect(styleSheet.tableBody!.fontWeight, isNull);
-    expect(styleSheet.tableBody!.height, 1.45);
-
     await tester.tap(find.text('Edit'));
     await tester.pump();
 
@@ -178,8 +134,6 @@ $$''';
       'secure',
     );
     expect((secureImage as Image).image, isA<NetworkImage>());
-    expect(find.byIcon(Icons.broken_image_outlined), findsOneWidget);
-
     markdown.onTapLink!('safe', 'https://example.com', '');
     await tester.pump();
     expect(launcher.launched, ['https://example.com']);

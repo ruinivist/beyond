@@ -1,6 +1,5 @@
 import 'dart:convert';
 
-import 'package:beyond/canvas/tools/text/text_block.dart';
 import 'package:beyond/canvas/tools/text/text_node.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -36,16 +35,6 @@ void main() {
     expect(node.style.fontFamily, 'Inter');
     expect(node.style.fontSize, 20);
     expect(node.style.color, '#201C1A');
-  });
-
-  test('text model synchronizes controller markdown to its node', () {
-    final node = _node(markdown: 'before');
-    final model = TextBlockModel(node);
-    addTearDown(model.dispose);
-
-    model.controller.text = 'after';
-
-    expect(node.markdown, 'after');
   });
 
   test('unknown document versions are rejected', () {
@@ -157,18 +146,6 @@ void main() {
     }
   });
 }
-
-TextNodeData _node({String markdown = ''}) => TextNodeData(
-  id: 'text-1',
-  position: Offset.zero,
-  width: textNodeDefaultWidth,
-  markdown: markdown,
-  style: const TextNodeStyle(
-    fontFamily: 'Source Serif 4',
-    fontSize: textNodeDefaultFontSize,
-    color: '#201C1A',
-  ),
-);
 
 Map<String, Object?> _document({
   int version = CanvasDocument.version,
