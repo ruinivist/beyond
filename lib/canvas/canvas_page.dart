@@ -13,6 +13,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:infinite_lazy_grid/infinite_lazy_grid.dart';
 import 'package:scribble/scribble.dart';
+import 'package:uuid/uuid.dart';
 
 class CanvasPage extends StatefulWidget {
   const CanvasPage({super.key});
@@ -251,7 +252,7 @@ class _CanvasPageState extends State<CanvasPage> {
   void _addTextBlock(Offset position) {
     if (!_documentLoaded) return;
     final node = TextNodeData(
-      id: _newTextNodeId(),
+      id: const Uuid().v4(),
       position: position,
       width: textNodeDefaultWidth,
       markdown: '',
@@ -291,10 +292,6 @@ class _CanvasPageState extends State<CanvasPage> {
       );
     }
   }
-
-  // ponytail: local timestamp IDs; use UUIDs when documents can merge.
-  String _newTextNodeId() =>
-      'text-${DateTime.now().microsecondsSinceEpoch.toRadixString(36)}';
 
   void _addCodeBlock() {
     if (!_documentLoaded) return;
