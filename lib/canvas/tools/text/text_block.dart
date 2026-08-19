@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:beyond/canvas/tools/text/text_node.dart';
 import 'package:beyond/foundation/select.dart';
 import 'package:beyond/foundation/theme.dart';
@@ -46,6 +48,15 @@ class TextBlockModel extends ChangeNotifier {
     notifyListeners();
   }
 
+  double get width => node.width;
+
+  set width(double value) {
+    final next = math.max(textNodeMinimumWidth, value);
+    if (node.width == next) return;
+    node.width = next;
+    notifyListeners();
+  }
+
   void _syncMarkdown() {
     if (node.markdown == controller.text) return;
     node.markdown = controller.text;
@@ -67,12 +78,14 @@ class TextBlock extends StatelessWidget {
     required this.model,
     required this.onSelect,
     required this.onMove,
+    required this.onResize,
     super.key,
   });
 
   final TextBlockModel model;
   final ValueChanged<PointerDownEvent> onSelect;
   final ValueChanged<Offset> onMove;
+  final ValueChanged<double> onResize;
 
   @override
   Widget build(BuildContext context) {
@@ -142,6 +155,61 @@ class TextBlock extends StatelessWidget {
                             ),
                           ),
                         ),
+                      if (model.selected)
+                        Positioned(
+                          right: 0,
+                          bottom: 0,
+                          width: 28,
+                          height: 24,
+                          child: MouseRegion(
+                            cursor: SystemMouseCursors.resizeLeftRight,
+                            child: TextFieldTapRegion(
+                              child: Semantics(
+                                button: true,
+                                label: 'Resize text width',
+                                child: RawGestureDetector(
+                                  key: const ValueKey(
+                                    'text-block-resize-handle',
+                                  ),
+                                  behavior: HitTestBehavior.opaque,
+                                  gestures: {
+                                    ImmediateMultiDragGestureRecognizer:
+                                        GestureRecognizerFactoryWithHandlers<
+                                          ImmediateMultiDragGestureRecognizer
+                                        >(
+                                          ImmediateMultiDragGestureRecognizer
+                                              .new,
+                                          (recognizer) {
+                                            recognizer.onStart = (_) =>
+                                                _TextBlockResizeDrag(onResize);
+                                          },
+                                        ),
+                                  },
+                                  child: DecoratedBox(
+                                    decoration: BoxDecoration(
+                                      color: colors.surfaceRaised,
+                                      border: Border(
+                                        top: BorderSide(
+                                          color: colors.borderSubtle,
+                                        ),
+                                        left: BorderSide(
+                                          color: colors.borderSubtle,
+                                        ),
+                                      ),
+                                    ),
+                                    child: Center(
+                                      child: Icon(
+                                        Icons.drag_handle,
+                                        size: 18,
+                                        color: colors.textMuted,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
                     ],
                   ),
                 ),
@@ -194,28 +262,31 @@ class _TextMarkdownPreview extends StatelessWidget {
       key: const ValueKey('text-markdown-preview-surface'),
       behavior: HitTestBehavior.opaque,
       onTap: model.focusNode.requestFocus,
-      child: source.isEmpty
-          ? _EmptyTextMarkdownPreview(
-              key: const ValueKey('text-markdown-preview'),
-              model: model,
-            )
-          : MarkdownBody(
-              key: const ValueKey('text-markdown-preview'),
-              data: source,
-              blockSyntaxes: [LatexBlockSyntax()],
-              inlineSyntaxes: [
-                _TextImageSyntax(),
-                LatexInlineSyntax(),
-              ],
-              builders: {
-                'latex': LatexElementBuilder(
-                  textStyle: _fontStyle(model.style),
-                ),
-              },
-              styleSheet: _styleSheet(context, model.style),
-              imageBuilder: (uri, title, alt) => _buildImage(uri, alt),
-              onTapLink: (_, href, _) => _openLink(context, href),
-            ),
+      child: Padding(
+        padding: const EdgeInsets.only(right: 28),
+        child: source.isEmpty
+            ? _EmptyTextMarkdownPreview(
+                key: const ValueKey('text-markdown-preview'),
+                model: model,
+              )
+            : MarkdownBody(
+                key: const ValueKey('text-markdown-preview'),
+                data: source,
+                blockSyntaxes: [LatexBlockSyntax()],
+                inlineSyntaxes: [
+                  _TextImageSyntax(),
+                  LatexInlineSyntax(),
+                ],
+                builders: {
+                  'latex': LatexElementBuilder(
+                    textStyle: _fontStyle(model.style),
+                  ),
+                },
+                styleSheet: _styleSheet(context, model.style),
+                imageBuilder: (uri, title, alt) => _buildImage(uri, alt),
+                onTapLink: (_, href, _) => _openLink(context, href),
+              ),
+      ),
     );
   }
 }
@@ -592,4 +663,13 @@ class _TextBlockDrag extends Drag {
 
   @override
   void update(DragUpdateDetails details) => onMove(details.delta);
+}
+
+class _TextBlockResizeDrag extends Drag {
+  _TextBlockResizeDrag(this.onResize);
+
+  final ValueChanged<double> onResize;
+
+  @override
+  void update(DragUpdateDetails details) => onResize(details.delta.dx);
 }

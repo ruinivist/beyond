@@ -178,6 +178,7 @@ class _WidgetGalleryPageState extends State<WidgetGalleryPage> {
                           model: _textModel,
                           onSelect: (_) {},
                           onMove: (_) {},
+                          onResize: (_) {},
                         ),
                       ),
                     ),

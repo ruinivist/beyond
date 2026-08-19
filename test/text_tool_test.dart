@@ -1,4 +1,5 @@
 import 'package:beyond/canvas/tools/text/text_block.dart';
+import 'package:beyond/canvas/tools/text/text_node.dart';
 import 'package:beyond/foundation/select.dart';
 import 'package:beyond/foundation/theme.dart';
 import 'package:beyond/main.dart';
@@ -10,6 +11,7 @@ import 'package:flutter_markdown_plus_latex/flutter_markdown_plus_latex.dart';
 import 'package:flutter_math_fork/flutter_math.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:infinite_lazy_grid/infinite_lazy_grid.dart';
 import 'package:url_launcher_platform_interface/link.dart';
 import 'package:url_launcher_platform_interface/url_launcher_platform_interface.dart';
 
@@ -44,6 +46,10 @@ void main() {
       const Offset(120, 200),
     );
     expect(find.byKey(const ValueKey('text-block-handle')), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('text-block-resize-handle')),
+      findsOneWidget,
+    );
 
     await tester.tapAt(const Offset(400, 300));
     await tester.pump();
@@ -51,6 +57,10 @@ void main() {
     expect(find.byType(TextField), findsNothing);
     expect(find.byKey(const ValueKey('text-markdown-preview')), findsOneWidget);
     expect(find.byKey(const ValueKey('text-block-handle')), findsNothing);
+    expect(
+      find.byKey(const ValueKey('text-block-resize-handle')),
+      findsNothing,
+    );
     expect(find.byKey(const ValueKey('text-style-popover')), findsNothing);
   });
 
@@ -61,6 +71,7 @@ void main() {
     final handle = find.byKey(const ValueKey('text-block-handle'));
     final model = tester.widget<TextBlock>(textBlock).model;
     final originalTopLeft = tester.getTopLeft(textBlock);
+    final originalWidth = model.node.width;
     const delta = Offset(80, 60);
 
     await tester.drag(handle, delta, kind: PointerDeviceKind.mouse);
@@ -68,12 +79,98 @@ void main() {
 
     expect(tester.getTopLeft(textBlock), originalTopLeft + delta);
     expect(model.node.position, const Offset(200, 260));
+    expect(model.node.width, originalWidth);
     expect(model.focusNode.hasFocus, isTrue);
 
     FocusManager.instance.primaryFocus?.unfocus();
     await tester.pump();
     expect(find.byKey(const ValueKey('text-block-handle')), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('text-block-resize-handle')),
+      findsOneWidget,
+    );
     expect(find.byKey(const ValueKey('text-markdown-preview')), findsOneWidget);
+  });
+
+  testWidgets(
+    'text width resizing is clamped and keeps node data independent',
+    (
+      tester,
+    ) async {
+      await _addTextBlock(tester, const Offset(120, 200));
+      final block = find.byType(TextBlock);
+      final model = tester.widget<TextBlock>(block).model;
+      final position = model.node.position;
+      final style = model.node.style;
+      const source =
+          'word word word word word word word word word word word word word '
+          'word word word word word word word';
+
+      await tester.enterText(
+        find.byKey(const ValueKey('text-markdown-editor')),
+        source,
+      );
+      FocusManager.instance.primaryFocus?.unfocus();
+      await tester.pump();
+
+      final originalHeight = tester.getSize(block).height;
+      final originalWidth = model.node.width;
+      final resizeHandle = find.byKey(
+        const ValueKey('text-block-resize-handle'),
+      );
+
+      await tester.drag(resizeHandle, const Offset(80, 0));
+      await tester.pump();
+
+      expect(model.node.width, originalWidth + 80);
+      expect(tester.getSize(block).width, originalWidth + 80);
+      expect(model.node.position, position);
+      expect(model.node.markdown, source);
+      expect(model.node.style, same(style));
+
+      await tester.drag(resizeHandle, const Offset(-1000, 0));
+      await tester.pump();
+
+      expect(model.node.width, textNodeMinimumWidth);
+      expect(tester.getSize(block).height, greaterThan(originalHeight));
+      expect(model.node.position, position);
+      expect(model.node.markdown, source);
+      expect(model.node.style, same(style));
+    },
+  );
+
+  testWidgets('text width resizing converts screen delta at canvas scale', (
+    tester,
+  ) async {
+    await _addTextBlock(tester, const Offset(120, 200));
+    final model = tester.widget<TextBlock>(find.byType(TextBlock)).model;
+    FocusManager.instance.primaryFocus?.unfocus();
+    await tester.pump();
+
+    final canvas = tester.widget<LazyCanvas>(find.byType(LazyCanvas));
+    canvas.controller.updateScalebyDelta(1);
+    await tester.pump();
+
+    final originalWidth = model.node.width;
+    final child = canvas.controller.widgetsWithScreenPositions().single;
+    final blockSize = tester.getSize(find.byType(TextBlock));
+    final handleSize = tester.getSize(
+      find.byKey(const ValueKey('text-block-resize-handle')),
+    );
+    final handlePosition =
+        child.ssPosition +
+        Offset(
+          (model.node.width - handleSize.width / 2) * canvas.controller.scale,
+          (blockSize.height - handleSize.height / 2) * canvas.controller.scale,
+        );
+    await tester.dragFrom(
+      handlePosition,
+      const Offset(80, 0),
+    );
+    await tester.pump();
+
+    expect(canvas.controller.scale, 2);
+    expect(model.node.width, originalWidth + 40);
   });
 
   testWidgets('text source survives preview edit cycles', (tester) async {

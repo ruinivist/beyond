@@ -220,6 +220,12 @@ class _CanvasPageState extends State<CanvasPage> {
     _canvasController.updatePosition(canvasId, model.node.position);
   }
 
+  void _resizeTextBlock(TextBlockModel model, double screenDelta) {
+    if (_textPlacementEnabled || _penEnabled) return;
+    if (!_textBlocks.containsKey(model)) return;
+    model.width = model.node.width + screenDelta / _canvasController.scale;
+  }
+
   void _moveMarkdownBlock(MarkdownBlockModel model, Offset screenDelta) {
     if (_textPlacementEnabled || _penEnabled) return;
     final entry = _markdownBlocks[model];
@@ -250,6 +256,7 @@ class _CanvasPageState extends State<CanvasPage> {
         model: model,
         onSelect: (event) => _handleTextBlockPointerDown(model, event),
         onMove: (delta) => _moveTextBlock(model, delta),
+        onResize: (delta) => _resizeTextBlock(model, delta),
       ),
       childSize: Size(node.width, 52),
     );
