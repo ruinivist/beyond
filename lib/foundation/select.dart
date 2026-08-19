@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:beyond/foundation/theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -32,7 +34,13 @@ class Select<T> extends StatefulWidget {
 }
 
 class _SelectState<T> extends State<Select<T>> {
+  static const double _minimumWidth = 160;
+  static const double _triggerHeight = 36;
+  static const double _triggerHorizontalPadding = 16;
+  static const double _triggerIconSize = 16;
+
   final _menuController = MenuController();
+  final GlobalKey _triggerKey = GlobalKey();
   final _triggerFocusNode = FocusNode();
   late List<FocusNode> _optionFocusNodes;
 
@@ -48,6 +56,32 @@ class _SelectState<T> extends State<Select<T>> {
   Color get _hover => _colors.surfaceHover;
   Color get _pressed => _colors.surfacePressed;
   Color get _shadow => _colors.shadow;
+  double get _preferredWidth {
+    var widestLabel = 0.0;
+    for (final option in widget.options) {
+      widestLabel = math.max(
+        widestLabel,
+        TextPainter.computeWidth(
+          text: TextSpan(text: option.label, style: _textStyle),
+          textDirection: Directionality.of(context),
+          textScaler: MediaQuery.textScalerOf(context),
+          locale: Localizations.maybeLocaleOf(context),
+        ),
+      );
+    }
+    return math.max(
+      _minimumWidth,
+      widestLabel + _triggerHorizontalPadding * 2 + _triggerIconSize,
+    );
+  }
+
+  double get _triggerWidth {
+    final renderBox = _triggerKey.currentContext?.findRenderObject();
+    return renderBox is RenderBox && renderBox.hasSize
+        ? renderBox.size.width
+        : _preferredWidth;
+  }
+
   WidgetStateProperty<Color?> get _foregroundColor =>
       WidgetStateProperty.resolveWith((states) {
         return states.contains(WidgetState.disabled)
@@ -140,9 +174,14 @@ class _SelectState<T> extends State<Select<T>> {
       ),
       textStyle: WidgetStatePropertyAll(_textStyle),
       padding: const WidgetStatePropertyAll(
-        EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+        EdgeInsets.symmetric(
+          horizontal: _triggerHorizontalPadding,
+          vertical: 6,
+        ),
       ),
-      fixedSize: const WidgetStatePropertyAll(Size(160, 36)),
+      fixedSize: WidgetStatePropertyAll(
+        Size(_preferredWidth, _triggerHeight),
+      ),
       tapTargetSize: MaterialTapTargetSize.shrinkWrap,
       alignment: Alignment.centerLeft,
       overlayColor: const WidgetStatePropertyAll(Colors.transparent),
@@ -211,8 +250,11 @@ class _SelectState<T> extends State<Select<T>> {
         shadowColor: WidgetStatePropertyAll(_shadow),
         elevation: WidgetStatePropertyAll(_geo.elevationMedium),
         padding: const WidgetStatePropertyAll(EdgeInsets.all(4)),
-        minimumSize: const WidgetStatePropertyAll(Size(160, 0)),
-        maximumSize: const WidgetStatePropertyAll(Size(160, double.infinity)),
+        minimumSize: const WidgetStatePropertyAll(Size.zero),
+        fixedSize: WidgetStateProperty.resolveWith(
+          (_) => Size.fromWidth(_triggerWidth),
+        ),
+        maximumSize: const WidgetStatePropertyAll(Size.infinite),
         visualDensity: VisualDensity.standard,
         side: WidgetStatePropertyAll(BorderSide(color: _border)),
         shape: WidgetStatePropertyAll(
@@ -225,6 +267,7 @@ class _SelectState<T> extends State<Select<T>> {
           _buildOption(widget.options[i], i),
       ],
       builder: (context, controller, child) => Semantics(
+        key: _triggerKey,
         container: true,
         button: true,
         enabled: _enabled,
@@ -250,7 +293,11 @@ class _SelectState<T> extends State<Select<T>> {
               children: [
                 Text(selected?.label ?? ''),
                 const Spacer(),
-                Icon(Icons.keyboard_arrow_down, size: 16, color: _foreground),
+                Icon(
+                  Icons.keyboard_arrow_down,
+                  size: _triggerIconSize,
+                  color: _foreground,
+                ),
               ],
             ),
           ),

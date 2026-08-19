@@ -127,4 +127,46 @@ void main() {
 
     expect(value, 'dart');
   });
+
+  testWidgets('select and menu match the widest option', (tester) async {
+    Widget buildSelect(List<SelectOption<String>> options) {
+      return MaterialApp(
+        theme: starlessLightThemeData,
+        home: Center(
+          child: Select<String>(
+            value: 'short',
+            options: options,
+            onChanged: (_) {},
+          ),
+        ),
+      );
+    }
+
+    const shortOptions = [SelectOption(value: 'short', label: 'Short')];
+    const wideOptions = [
+      ...shortOptions,
+      SelectOption(
+        value: 'wide',
+        label: 'A deliberately much wider option label',
+      ),
+    ];
+    final trigger = find.byKey(const ValueKey('select-trigger'));
+
+    await tester.pumpWidget(buildSelect(shortOptions));
+    final shortWidth = tester.getSize(trigger).width;
+
+    await tester.pumpWidget(buildSelect(wideOptions));
+    final wideWidth = tester.getSize(trigger).width;
+    expect(wideWidth, greaterThan(shortWidth));
+
+    await tester.tap(trigger);
+    await tester.pump();
+
+    final menuMaterial = find.ancestor(
+      of: find.byKey(const ValueKey('select-option-0')),
+      matching: find.byType(Material),
+    );
+    expect(menuMaterial, findsOneWidget);
+    expect(tester.getSize(menuMaterial).width, wideWidth);
+  });
 }
