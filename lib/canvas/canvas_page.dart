@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math' as math;
 
+import 'package:beyond/canvas/canvas_document_store.dart';
 import 'package:beyond/canvas/tools/code_block/code_block.dart';
 import 'package:beyond/canvas/tools/markdown/markdown_block.dart';
 import 'package:beyond/canvas/tools/pen/pen_tool.dart';
@@ -24,6 +25,7 @@ class _CanvasPageState extends State<CanvasPage> {
   final _canvasController = LazyCanvasController(
     buildCacheExtent: const Offset(600, 400),
   );
+  final CanvasDocumentStore _documentStore = CanvasDocumentStore();
   final _codeBlocks = <CodeBlockModel, ({String id, Offset position})>{};
   final _markdownBlocks =
       <MarkdownBlockModel, ({String id, Offset position})>{};
@@ -31,6 +33,10 @@ class _CanvasPageState extends State<CanvasPage> {
   TextBlockModel? _selectedTextBlock;
   final _strokeIds = <String>[];
   final _interactiveBlockPointerIds = <int>{};
+  Timer? _saveTimer;
+  Future<void> _saveQueue = Future<void>.value();
+  bool _documentDirty = false;
+  bool _documentLoaded = false;
   late final PenTool _penTool;
   var _penEnabled = false;
   var _textPlacementEnabled = false;
@@ -41,6 +47,7 @@ class _CanvasPageState extends State<CanvasPage> {
     super.initState();
     _penTool = PenTool(onStroke: _addStroke);
     HardwareKeyboard.instance.addHandler(_handleKeyEvent);
+    unawaited(_restoreDocument());
   }
 
   @override
@@ -61,6 +68,7 @@ class _CanvasPageState extends State<CanvasPage> {
   }
 
   void _toggleTextPlacement() {
+    if (!_documentLoaded) return;
     if (!_textPlacementEnabled) _clearBlockSelection();
     setState(() {
       _textPlacementEnabled = !_textPlacementEnabled;
@@ -73,6 +81,7 @@ class _CanvasPageState extends State<CanvasPage> {
   }
 
   void _handleCanvasPointerDown(PointerDownEvent event) {
+    if (!_documentLoaded) return;
     final onInteractiveBlock = _interactiveBlockPointerIds.remove(
       event.pointer,
     );
@@ -94,7 +103,7 @@ class _CanvasPageState extends State<CanvasPage> {
     PointerDownEvent event,
   ) {
     _interactiveBlockPointerIds.add(event.pointer);
-    if (_textPlacementEnabled || _penEnabled) return;
+    if (!_documentLoaded || _textPlacementEnabled || _penEnabled) return;
     final entry = _codeBlocks[model];
     if (entry == null) return;
     _bringBlockToFront(entry.id);
@@ -106,7 +115,7 @@ class _CanvasPageState extends State<CanvasPage> {
     PointerDownEvent event,
   ) {
     _interactiveBlockPointerIds.add(event.pointer);
-    if (_textPlacementEnabled || _penEnabled) return;
+    if (!_documentLoaded || _textPlacementEnabled || _penEnabled) return;
     final entry = _markdownBlocks[model];
     if (entry == null) return;
     _bringBlockToFront(entry.id);
@@ -124,6 +133,7 @@ class _CanvasPageState extends State<CanvasPage> {
     _textBlocks[model] = canvasId;
     _bringBlockToFront(canvasId);
     _selectTextBlock(model);
+    _scheduleDocumentSave();
   }
 
   void _bringBlockToFront(String id) {
@@ -198,6 +208,7 @@ class _CanvasPageState extends State<CanvasPage> {
   }
 
   void _changeTextStyle(TextBlockModel model, TextNodeStyle style) {
+    if (!_documentLoaded) return;
     model.style = style;
   }
 
@@ -212,16 +223,17 @@ class _CanvasPageState extends State<CanvasPage> {
   }
 
   void _moveTextBlock(TextBlockModel model, Offset screenDelta) {
-    if (_textPlacementEnabled || _penEnabled) return;
+    if (!_documentLoaded || _textPlacementEnabled || _penEnabled) return;
     final canvasId = _textBlocks[model];
     if (canvasId == null) return;
 
     model.node.position += screenDelta / _canvasController.scale;
     _canvasController.updatePosition(canvasId, model.node.position);
+    _scheduleDocumentSave();
   }
 
   void _resizeTextBlock(TextBlockModel model, double screenDelta) {
-    if (_textPlacementEnabled || _penEnabled) return;
+    if (!_documentLoaded || _textPlacementEnabled || _penEnabled) return;
     if (!_textBlocks.containsKey(model)) return;
     model.width = model.node.width + screenDelta / _canvasController.scale;
   }
@@ -237,6 +249,7 @@ class _CanvasPageState extends State<CanvasPage> {
   }
 
   void _addTextBlock(Offset position) {
+    if (!_documentLoaded) return;
     final node = TextNodeData(
       id: _newTextNodeId(),
       position: position,
@@ -250,7 +263,17 @@ class _CanvasPageState extends State<CanvasPage> {
     );
     final model = TextBlockModel(node);
 
-    final id = _canvasController.addChild(
+    _mountTextBlock(model, requestFocus: true);
+    _selectTextBlock(model);
+    _bringStrokesToFront();
+  }
+
+  void _mountTextBlock(
+    TextBlockModel model, {
+    required bool requestFocus,
+  }) {
+    final node = model.node;
+    final canvasId = _canvasController.addChild(
       node.position,
       TextBlock(
         model: model,
@@ -260,12 +283,13 @@ class _CanvasPageState extends State<CanvasPage> {
       ),
       childSize: Size(node.width, 52),
     );
-    _textBlocks[model] = id;
-    _selectTextBlock(model);
-    _bringStrokesToFront();
-    WidgetsBinding.instance.addPostFrameCallback(
-      (_) => model.focusNode.requestFocus(),
-    );
+    _textBlocks[model] = canvasId;
+    model.addListener(_scheduleDocumentSave);
+    if (requestFocus) {
+      WidgetsBinding.instance.addPostFrameCallback(
+        (_) => model.focusNode.requestFocus(),
+      );
+    }
   }
 
   // ponytail: local timestamp IDs; use UUIDs when documents can merge.
@@ -273,6 +297,7 @@ class _CanvasPageState extends State<CanvasPage> {
       'text-${DateTime.now().microsecondsSinceEpoch.toRadixString(36)}';
 
   void _addCodeBlock() {
+    if (!_documentLoaded) return;
     _prepareInteractiveBlock();
     final size = _fittedBlockSize(const Size(600, 400), codeBlockMinimumSize);
     final model = CodeBlockModel(size);
@@ -296,6 +321,7 @@ class _CanvasPageState extends State<CanvasPage> {
   }
 
   void _addMarkdownBlock() {
+    if (!_documentLoaded) return;
     _prepareInteractiveBlock();
     final size = _fittedBlockSize(
       const Size(560, 420),
@@ -365,6 +391,7 @@ class _CanvasPageState extends State<CanvasPage> {
   }
 
   void _togglePen() {
+    if (!_documentLoaded) return;
     if (!_penEnabled) _clearBlockSelection();
     setState(() {
       _penEnabled = !_penEnabled;
@@ -401,8 +428,79 @@ class _CanvasPageState extends State<CanvasPage> {
     return true;
   }
 
+  Future<void> _restoreDocument() async {
+    try {
+      final document = await _documentStore.load();
+      if (!mounted) return;
+      if (document != null) {
+        for (final node in document.nodes) {
+          _mountTextBlock(
+            TextBlockModel(node),
+            requestFocus: false,
+          );
+        }
+        _bringStrokesToFront();
+      }
+      _documentLoaded = true;
+      if (mounted) setState(() {});
+    } on Object {
+      _documentLoaded = true;
+      if (!mounted) return;
+      setState(() {});
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not load saved canvas')),
+        );
+      });
+    }
+  }
+
+  CanvasDocument _currentDocument() {
+    return CanvasDocument(
+      nodes: _textBlocks.keys.map((model) => model.node).toList(),
+    );
+  }
+
+  void _scheduleDocumentSave() {
+    if (!_documentLoaded) return;
+    _documentDirty = true;
+    _saveTimer?.cancel();
+    _saveTimer = Timer(
+      const Duration(milliseconds: 300),
+      _enqueueDocumentSave,
+    );
+  }
+
+  void _enqueueDocumentSave() {
+    _saveTimer = null;
+    if (!_documentLoaded || !_documentDirty) return;
+    _documentDirty = false;
+    final snapshot = _currentDocument().copy();
+    _saveQueue = _saveQueue.then((_) => _saveDocument(snapshot));
+  }
+
+  Future<void> _saveDocument(CanvasDocument document) async {
+    try {
+      await _documentStore.save(document);
+    } on Object {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not save canvas')),
+      );
+    }
+  }
+
   @override
   void dispose() {
+    _saveTimer?.cancel();
+    _saveTimer = null;
+    if (_documentLoaded && _documentDirty) {
+      _documentDirty = false;
+      final snapshot = _currentDocument().copy();
+      _saveQueue = _saveQueue.then((_) => _saveDocument(snapshot));
+    }
+    unawaited(_saveQueue);
     for (final block in _codeBlocks.keys) {
       block.dispose();
     }
@@ -410,7 +508,9 @@ class _CanvasPageState extends State<CanvasPage> {
       block.dispose();
     }
     for (final block in _textBlocks.keys) {
-      block.dispose();
+      block
+        ..removeListener(_scheduleDocumentSave)
+        ..dispose();
     }
     HardwareKeyboard.instance.removeHandler(_handleKeyEvent);
     _penTool.dispose();
@@ -426,10 +526,13 @@ class _CanvasPageState extends State<CanvasPage> {
     return Scaffold(
       body: Stack(
         children: [
-          Listener(
-            behavior: HitTestBehavior.opaque,
-            onPointerDown: _handleCanvasPointerDown,
-            child: LazyCanvas(controller: _canvasController),
+          IgnorePointer(
+            ignoring: !_documentLoaded,
+            child: Listener(
+              behavior: HitTestBehavior.opaque,
+              onPointerDown: _handleCanvasPointerDown,
+              child: LazyCanvas(controller: _canvasController),
+            ),
           ),
           if (_penEnabled)
             Positioned.fill(
@@ -445,9 +548,13 @@ class _CanvasPageState extends State<CanvasPage> {
               targetAnchor: Alignment.topCenter,
               followerAnchor: Alignment.bottomCenter,
               offset: const Offset(0, -8),
-              child: TextStylePopover(
-                model: selected,
-                onStyleChanged: (style) => _changeTextStyle(selected, style),
+              child: Overlay.wrap(
+                clipBehavior: Clip.none,
+                alwaysSizeToContent: true,
+                child: TextStylePopover(
+                  model: selected,
+                  onStyleChanged: (style) => _changeTextStyle(selected, style),
+                ),
               ),
             ),
           SafeArea(

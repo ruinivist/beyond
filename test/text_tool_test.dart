@@ -1,3 +1,8 @@
+import 'dart:convert';
+
+import 'package:beyond/canvas/canvas_document_store.dart';
+import 'package:beyond/canvas/tools/code_block/code_block.dart';
+import 'package:beyond/canvas/tools/markdown/markdown_block.dart';
 import 'package:beyond/canvas/tools/text/text_block.dart';
 import 'package:beyond/canvas/tools/text/text_node.dart';
 import 'package:beyond/foundation/select.dart';
@@ -12,6 +17,11 @@ import 'package:flutter_math_fork/flutter_math.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:infinite_lazy_grid/infinite_lazy_grid.dart';
+import 'package:scribble/scribble.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+// The web-only tests use the real LocalStorage implementation.
+// ignore: depend_on_referenced_packages
+import 'package:shared_preferences_web/shared_preferences_web.dart';
 import 'package:url_launcher_platform_interface/link.dart';
 import 'package:url_launcher_platform_interface/url_launcher_platform_interface.dart';
 
@@ -19,7 +29,9 @@ void main() {
   late UrlLauncherPlatform originalLauncher;
   late _FakeUrlLauncher launcher;
 
-  setUp(() {
+  setUp(() async {
+    SharedPreferencesAsyncWeb.registerWith(null);
+    await SharedPreferencesAsync().remove(CanvasDocumentStore.key);
     originalLauncher = UrlLauncherPlatform.instance;
     launcher = _FakeUrlLauncher();
     UrlLauncherPlatform.instance = launcher;
@@ -484,14 +496,10 @@ Inline $x^2$''';
       final model = tester.widget<TextBlock>(find.byType(TextBlock)).model;
       expect(find.byKey(const ValueKey('text-style-popover')), findsOneWidget);
 
-      tester
-          .widget<Select<String>>(
-            find.byKey(const ValueKey('text-font-select')),
-          )
-          .onChanged!
-          .call('Inter');
-      FocusManager.instance.primaryFocus?.unfocus();
+      await tester.tap(find.byKey(const ValueKey('select-trigger')));
       await tester.pump();
+      await tester.tap(find.text('Inter'));
+      await tester.pumpAndSettle();
 
       expect(model.style.fontFamily, 'Inter');
       expect(model.node.markdown, source);
@@ -615,12 +623,180 @@ Inline $x^2$''';
     expect(first.style.fontFamily, 'Roboto Mono');
     expect(second.style.fontFamily, 'Inter');
   });
+
+  testWidgets('text nodes restore from the saved document', (tester) async {
+    await tester.pumpWidget(const BeyondApp());
+    await tester.pump();
+    await tester.pump();
+
+    final first = await _placeTextBlock(tester, const Offset(120, 200));
+    const firstSource = '# first\n\n**exact**';
+    await tester.enterText(
+      find.byKey(const ValueKey('text-markdown-editor')),
+      firstSource,
+    );
+    await tester.pump();
+
+    final second = await _placeTextBlock(tester, const Offset(400, 360));
+    const secondSource = '- second\n\n\$x^2\$';
+    await tester.enterText(
+      find.byKey(const ValueKey('text-markdown-editor')),
+      secondSource,
+    );
+    await tester.pump();
+
+    await tester.drag(
+      find.byKey(const ValueKey('text-block-handle')),
+      const Offset(60, 40),
+      kind: PointerDeviceKind.mouse,
+    );
+    await tester.pump();
+    await tester.drag(
+      find.byKey(const ValueKey('text-block-resize-handle')),
+      const Offset(40, 0),
+      kind: PointerDeviceKind.mouse,
+    );
+    await tester.pump();
+
+    tester
+        .widget<Select<String>>(find.byKey(const ValueKey('text-font-select')))
+        .onChanged!
+        .call('Inter');
+    await tester.pump();
+    await tester.tap(
+      find.byWidgetPredicate(
+        (widget) =>
+            widget is Semantics &&
+            widget.properties.label == 'Use accent color',
+      ),
+    );
+    await tester.pump();
+
+    await tester.tapAt(const Offset(150, 220));
+    await tester.pump();
+    FocusManager.instance.primaryFocus?.unfocus();
+    await tester.pump();
+    await _pumpPastSave(tester);
+
+    final preferences = SharedPreferencesAsync();
+    final savedSource = await preferences.getString(CanvasDocumentStore.key);
+    final savedDocument = CanvasDocument.fromJson(jsonDecode(savedSource!));
+    expect(savedDocument.nodes, hasLength(2));
+    expect(savedDocument.nodes.first.id, second.node.id);
+    expect(savedDocument.nodes.last.id, first.node.id);
+    expect(savedDocument.nodes.first.markdown, secondSource);
+    expect(savedDocument.nodes.last.markdown, firstSource);
+    expect(savedDocument.nodes.first.position, second.node.position);
+    expect(savedDocument.nodes.first.width, second.node.width);
+    expect(savedDocument.nodes.first.style.fontFamily, 'Inter');
+    expect(
+      savedDocument.nodes.first.style.fontSize,
+      second.node.style.fontSize,
+    );
+    expect(
+      savedDocument.nodes.first.style.color,
+      isNot(savedDocument.nodes.last.style.color),
+    );
+
+    await tester.tap(find.text('Code'));
+    await tester.pump();
+    await tester.tap(find.text('Markdown'));
+    await tester.pump();
+    await tester.tap(find.text('Pen'));
+    await tester.pump();
+    await tester.dragFrom(const Offset(20, 500), const Offset(40, 20));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+
+    await tester.pumpWidget(const SizedBox());
+    await tester.pump();
+    await tester.pumpWidget(const BeyondApp());
+    await tester.pump();
+    await tester.pump();
+
+    final restoredBlocks = tester.widgetList<TextBlock>(
+      find.byType(TextBlock),
+    );
+    final restoredNodes = restoredBlocks.map((block) => block.model.node);
+    expect(restoredNodes.map((node) => node.id).toList(), [
+      second.node.id,
+      first.node.id,
+    ]);
+    expect(restoredNodes.map((node) => node.markdown).toList(), [
+      secondSource,
+      firstSource,
+    ]);
+    expect(restoredNodes.map((node) => node.position).toList(), [
+      second.node.position,
+      first.node.position,
+    ]);
+    expect(restoredNodes.map((node) => node.width).toList(), [
+      second.node.width,
+      first.node.width,
+    ]);
+    expect(restoredNodes.map((node) => node.style.fontFamily).toList(), [
+      second.node.style.fontFamily,
+      first.node.style.fontFamily,
+    ]);
+    expect(restoredNodes.map((node) => node.style.fontSize).toList(), [
+      second.node.style.fontSize,
+      first.node.style.fontSize,
+    ]);
+    expect(restoredNodes.map((node) => node.style.color).toList(), [
+      second.node.style.color,
+      first.node.style.color,
+    ]);
+    for (final block in restoredBlocks) {
+      expect(block.model.selected, isFalse);
+      expect(block.model.focusNode.hasFocus, isFalse);
+    }
+    expect(find.byKey(const ValueKey('text-style-popover')), findsNothing);
+    expect(find.byType(CodeBlock), findsNothing);
+    expect(find.byType(MarkdownBlock), findsNothing);
+    expect(find.byType(Scribble), findsNothing);
+    await tester.pump(const Duration(milliseconds: 100));
+  });
+
+  testWidgets('malformed saved documents are preserved and reported', (
+    tester,
+  ) async {
+    const invalid = '{"version":99,"nodes":[]}';
+    final preferences = SharedPreferencesAsync();
+    await preferences.setString(CanvasDocumentStore.key, invalid);
+
+    await tester.pumpWidget(const BeyondApp());
+    await tester.pump();
+    await tester.pump();
+
+    expect(find.byType(TextBlock), findsNothing);
+    expect(find.text('Could not load saved canvas'), findsOneWidget);
+    expect(await preferences.getString(CanvasDocumentStore.key), invalid);
+
+    await _placeTextBlock(tester, const Offset(120, 200));
+    await tester.enterText(
+      find.byKey(const ValueKey('text-markdown-editor')),
+      'replacement',
+    );
+    await _pumpPastSave(tester);
+
+    final replacement = await preferences.getString(CanvasDocumentStore.key);
+    expect(
+      CanvasDocument.fromJson(jsonDecode(replacement!)).nodes,
+      hasLength(1),
+    );
+  });
 }
 
 Future<void> _addTextBlock(WidgetTester tester, Offset position) async {
   await tester.pumpWidget(const BeyondApp());
   await tester.pump();
+  await tester.pump();
   await _placeTextBlock(tester, position);
+}
+
+Future<void> _pumpPastSave(WidgetTester tester) async {
+  await tester.pump(const Duration(milliseconds: 320));
+  await tester.pump();
 }
 
 Future<TextBlockModel> _placeTextBlock(

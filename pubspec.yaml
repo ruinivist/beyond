@@ -19,6 +19,7 @@ dependencies:
   re_highlight: ^0.0.3
   scribble: ^0.10.0+1
   scroll_animator: 0.3.0
+  shared_preferences: ^2.5.5
   url_launcher: ^6.3.2
 
 dev_dependencies:

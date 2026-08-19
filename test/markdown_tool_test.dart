@@ -1,3 +1,4 @@
+import 'package:beyond/canvas/canvas_document_store.dart';
 import 'package:beyond/canvas/tools/markdown/markdown_block.dart';
 import 'package:beyond/foundation/theme.dart';
 import 'package:beyond/main.dart';
@@ -7,6 +8,10 @@ import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:flutter_math_fork/flutter_math.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:infinite_lazy_grid/infinite_lazy_grid.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+// The web-only tests use the real LocalStorage implementation.
+// ignore: depend_on_referenced_packages
+import 'package:shared_preferences_web/shared_preferences_web.dart';
 import 'package:url_launcher_platform_interface/link.dart';
 import 'package:url_launcher_platform_interface/url_launcher_platform_interface.dart';
 
@@ -14,7 +19,9 @@ void main() {
   late UrlLauncherPlatform originalLauncher;
   late _FakeUrlLauncher launcher;
 
-  setUp(() {
+  setUp(() async {
+    SharedPreferencesAsyncWeb.registerWith(null);
+    await SharedPreferencesAsync().remove(CanvasDocumentStore.key);
     originalLauncher = UrlLauncherPlatform.instance;
     launcher = _FakeUrlLauncher();
     UrlLauncherPlatform.instance = launcher;
