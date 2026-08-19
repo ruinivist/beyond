@@ -1,6 +1,7 @@
 import 'package:beyond/canvas/tools/code_block/code_block.dart';
 import 'package:beyond/canvas/tools/markdown/markdown_block.dart';
 import 'package:beyond/canvas/tools/pen/pen_tool.dart';
+import 'package:beyond/canvas/tools/text/text_block.dart';
 import 'package:beyond/main.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -52,6 +53,26 @@ void main() {
     await tester.pump();
 
     expect(find.byType(ScribbleSketch), findsNothing);
+  });
+
+  testWidgets('enabling pen clears text selection', (tester) async {
+    await tester.pumpWidget(const BeyondApp());
+    await tester.pump();
+    await tester.tap(find.text('Text'));
+    await tester.pump();
+    await tester.tapAt(const Offset(120, 200));
+    await tester.pump();
+    await tester.pump();
+
+    final model = tester.widget<TextBlock>(find.byType(TextBlock)).model;
+    expect(model.selected, isTrue);
+    expect(find.byKey(const ValueKey('text-style-popover')), findsOneWidget);
+
+    await tester.tap(find.text('Pen'));
+    await tester.pump();
+
+    expect(model.selected, isFalse);
+    expect(find.byKey(const ValueKey('text-style-popover')), findsNothing);
   });
 
   testWidgets('blocks added after strokes stay below them', (tester) async {

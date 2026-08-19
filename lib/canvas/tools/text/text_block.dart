@@ -1,13 +1,21 @@
 import 'package:beyond/canvas/tools/text/text_node.dart';
+import 'package:beyond/foundation/select.dart';
 import 'package:beyond/foundation/theme.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:flutter_markdown_plus_latex/flutter_markdown_plus_latex.dart';
+import 'package:google_fonts/google_fonts.dart';
 // The renderer exposes its Markdown AST type through this callback.
 // ignore: depend_on_referenced_packages
 import 'package:markdown/markdown.dart' as md;
 import 'package:url_launcher/url_launcher.dart';
+
+const textFontOptions = <SelectOption<String>>[
+  SelectOption(value: 'Source Serif 4', label: 'Source Serif 4'),
+  SelectOption(value: 'Inter', label: 'Inter'),
+  SelectOption(value: 'Roboto Mono', label: 'Roboto Mono'),
+];
 
 class TextBlockModel extends ChangeNotifier {
   TextBlockModel(this.node)
@@ -19,6 +27,24 @@ class TextBlockModel extends ChangeNotifier {
   final TextNodeData node;
   final TextEditingController controller;
   final FocusNode focusNode = FocusNode();
+  final layerLink = LayerLink();
+  bool _selected = false;
+
+  bool get selected => _selected;
+
+  set selected(bool value) {
+    if (_selected == value) return;
+    _selected = value;
+    notifyListeners();
+  }
+
+  TextNodeStyle get style => node.style;
+
+  set style(TextNodeStyle value) {
+    if (_sameStyle(node.style, value)) return;
+    node.style = value;
+    notifyListeners();
+  }
 
   void _syncMarkdown() {
     if (node.markdown == controller.text) return;
@@ -59,61 +85,65 @@ class TextBlock extends StatelessWidget {
           listenable: model,
           builder: (context, _) {
             final focused = model.focusNode.hasFocus;
-            return SizedBox(
-              width: model.node.width,
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(minHeight: 52),
-                child: Stack(
-                  children: [
-                    if (focused)
-                      _TextMarkdownEditor(model: model)
-                    else
-                      Focus(
-                        focusNode: model.focusNode,
-                        child: _TextMarkdownPreview(model: model),
-                      ),
-                    if (focused)
-                      Positioned(
-                        right: 0,
-                        top: 0,
-                        bottom: 0,
-                        width: 28,
-                        child: MouseRegion(
-                          cursor: SystemMouseCursors.grab,
-                          child: TextFieldTapRegion(
-                            child: Semantics(
-                              button: true,
-                              label: 'Move text block',
-                              child: RawGestureDetector(
-                                key: const ValueKey('text-block-handle'),
-                                behavior: HitTestBehavior.opaque,
-                                gestures: {
-                                  ImmediateMultiDragGestureRecognizer:
-                                      GestureRecognizerFactoryWithHandlers<
-                                        ImmediateMultiDragGestureRecognizer
-                                      >(
-                                        ImmediateMultiDragGestureRecognizer.new,
-                                        (
-                                          recognizer,
-                                        ) {
-                                          recognizer.onStart = (_) =>
-                                              _TextBlockDrag(onMove);
-                                        },
-                                      ),
-                                },
-                                child: Center(
-                                  child: Icon(
-                                    Icons.drag_indicator,
-                                    size: 18,
-                                    color: colors.textMuted,
+            return CompositedTransformTarget(
+              link: model.layerLink,
+              child: SizedBox(
+                width: model.node.width,
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(minHeight: 52),
+                  child: Stack(
+                    children: [
+                      if (focused)
+                        _TextMarkdownEditor(model: model)
+                      else
+                        Focus(
+                          focusNode: model.focusNode,
+                          child: _TextMarkdownPreview(model: model),
+                        ),
+                      if (model.selected)
+                        Positioned(
+                          right: 0,
+                          top: 0,
+                          bottom: 0,
+                          width: 28,
+                          child: MouseRegion(
+                            cursor: SystemMouseCursors.grab,
+                            child: TextFieldTapRegion(
+                              child: Semantics(
+                                button: true,
+                                label: 'Move text block',
+                                child: RawGestureDetector(
+                                  key: const ValueKey('text-block-handle'),
+                                  behavior: HitTestBehavior.opaque,
+                                  gestures: {
+                                    ImmediateMultiDragGestureRecognizer:
+                                        GestureRecognizerFactoryWithHandlers<
+                                          ImmediateMultiDragGestureRecognizer
+                                        >(
+                                          ImmediateMultiDragGestureRecognizer
+                                              .new,
+                                          (
+                                            recognizer,
+                                          ) {
+                                            recognizer.onStart = (_) =>
+                                                _TextBlockDrag(onMove);
+                                          },
+                                        ),
+                                  },
+                                  child: Center(
+                                    child: Icon(
+                                      Icons.drag_indicator,
+                                      size: 18,
+                                      color: colors.textMuted,
+                                    ),
                                   ),
                                 ),
                               ),
                             ),
                           ),
                         ),
-                      ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             );
@@ -179,10 +209,10 @@ class _TextMarkdownPreview extends StatelessWidget {
               ],
               builders: {
                 'latex': LatexElementBuilder(
-                  textStyle: _textStyle(model.node.style),
+                  textStyle: _fontStyle(model.style),
                 ),
               },
-              styleSheet: _styleSheet(context, model.node.style),
+              styleSheet: _styleSheet(context, model.style),
               imageBuilder: (uri, title, alt) => _buildImage(uri, alt),
               onTapLink: (_, href, _) => _openLink(context, href),
             ),
@@ -206,8 +236,8 @@ class _EmptyTextMarkdownPreview extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 12),
           child: Text(
             'Click to edit',
-            style: _textStyle(
-              model.node.style,
+            style: _fontStyle(
+              model.style,
             ).copyWith(color: theme.colors.textMuted),
           ),
         ),
@@ -222,7 +252,7 @@ MarkdownStyleSheet _styleSheet(
 ) {
   final theme = BTheme.of(context);
   final colors = theme.colors;
-  final base = _textStyle(style).copyWith(height: 1.5);
+  final base = _fontStyle(style).copyWith(height: 1.5);
   double scaled(double ratio) => style.fontSize * ratio;
 
   final code = theme.typo.code.copyWith(
@@ -275,15 +305,209 @@ MarkdownStyleSheet _styleSheet(
   );
 }
 
-TextStyle _textStyle(TextNodeStyle style) => TextStyle(
-  color: _colorFromHex(style.color),
-  fontFamily: style.fontFamily,
-  fontSize: style.fontSize,
-);
+TextStyle _fontStyle(TextNodeStyle style) {
+  final base = TextStyle(
+    fontSize: style.fontSize,
+    color: colorFromHex(style.color),
+  );
 
-Color _colorFromHex(String value) => Color(
-  int.parse('ff${value.substring(1)}', radix: 16),
-);
+  return switch (style.fontFamily) {
+    'Source Serif 4' => GoogleFonts.sourceSerif4(textStyle: base),
+    'Inter' => GoogleFonts.inter(textStyle: base),
+    'Roboto Mono' => GoogleFonts.robotoMono(textStyle: base),
+    _ => throw StateError('Validated font family became invalid'),
+  };
+}
+
+String colorToHex(Color color) {
+  final value = color.toARGB32() & 0x00ffffff;
+  return '#${value.toRadixString(16).padLeft(6, '0').toUpperCase()}';
+}
+
+Color colorFromHex(String value) {
+  return Color(int.parse('FF${value.substring(1)}', radix: 16));
+}
+
+class TextStylePopover extends StatefulWidget {
+  const TextStylePopover({
+    required this.model,
+    required this.onStyleChanged,
+    super.key,
+  });
+
+  final TextBlockModel model;
+  final ValueChanged<TextNodeStyle> onStyleChanged;
+
+  @override
+  State<TextStylePopover> createState() => _TextStylePopoverState();
+}
+
+class _TextStylePopoverState extends State<TextStylePopover> {
+  late String _fontFamily;
+  late String _color;
+
+  @override
+  void initState() {
+    super.initState();
+    _fontFamily = widget.model.style.fontFamily;
+    _color = widget.model.style.color;
+  }
+
+  @override
+  void didUpdateWidget(covariant TextStylePopover oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.model != widget.model) {
+      _fontFamily = widget.model.style.fontFamily;
+      _color = widget.model.style.color;
+    }
+  }
+
+  void _changeStyle(TextNodeStyle style) {
+    widget.onStyleChanged(style);
+    setState(() {
+      _fontFamily = style.fontFamily;
+      _color = style.color;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = BTheme.of(context);
+    final colors = theme.colors;
+    final geo = theme.geo;
+    final swatches = [
+      (color: colors.textPrimary, label: 'Use primary text color'),
+      (color: colors.textSecondary, label: 'Use secondary text color'),
+      (color: colors.accent, label: 'Use accent color'),
+    ];
+    return Material(
+      key: const ValueKey('text-style-popover'),
+      color: colors.surfaceRaised,
+      elevation: geo.elevationMedium,
+      shadowColor: colors.shadow,
+      shape: RoundedRectangleBorder(
+        borderRadius: geo.radiusMedium,
+        side: BorderSide(color: colors.borderSubtle),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(8),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(
+              width: 230,
+              child: Select<String>(
+                key: const ValueKey('text-font-select'),
+                value: _fontFamily,
+                options: textFontOptions,
+                onChanged: (fontFamily) => _changeStyle(
+                  widget.model.style.copyWith(
+                    fontFamily: fontFamily,
+                    color: _color,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                for (final swatch in swatches)
+                  _TextColorSwatch(
+                    color: swatch.color,
+                    label: swatch.label,
+                    selected: _color == colorToHex(swatch.color),
+                    onPressed: () => _changeStyle(
+                      widget.model.style.copyWith(
+                        fontFamily: _fontFamily,
+                        color: colorToHex(swatch.color),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _TextColorSwatch extends StatelessWidget {
+  const _TextColorSwatch({
+    required this.color,
+    required this.label,
+    required this.selected,
+    required this.onPressed,
+  });
+
+  final Color color;
+  final String label;
+  final bool selected;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = BTheme.of(context);
+    final colors = theme.colors;
+    return Semantics(
+      button: true,
+      label: label,
+      selected: selected,
+      child: IconButton(
+        key: ValueKey('text-color-swatch-${colorToHex(color)}'),
+        onPressed: onPressed,
+        tooltip: label,
+        style:
+            IconButton.styleFrom(
+              foregroundColor: colors.textPrimary,
+              overlayColor: colors.surfaceHover,
+              shape: const CircleBorder(),
+              padding: const EdgeInsets.all(8),
+              minimumSize: const Size(40, 40),
+            ).copyWith(
+              side: WidgetStateProperty.resolveWith((states) {
+                if (states.contains(WidgetState.focused)) {
+                  return BorderSide(color: colors.focusRing, width: 2);
+                }
+                return BorderSide(
+                  color: selected ? colors.accent : colors.borderSubtle,
+                  width: selected ? 2 : 1,
+                );
+              }),
+            ),
+        icon: DecoratedBox(
+          decoration: BoxDecoration(
+            color: color,
+            shape: BoxShape.circle,
+            border: Border.all(color: colors.borderSubtle),
+          ),
+          child: SizedBox(
+            width: 20,
+            height: 20,
+            child: selected
+                ? Icon(
+                    Icons.check,
+                    size: 14,
+                    color: _checkColor(color, colors),
+                  )
+                : null,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+Color _checkColor(Color color, BColors colors) =>
+    color.computeLuminance() > 0.5 ? colors.textPrimary : colors.surface;
+
+bool _sameStyle(TextNodeStyle first, TextNodeStyle second) {
+  return first.fontFamily == second.fontFamily &&
+      first.fontSize == second.fontSize &&
+      first.color == second.color;
+}
 
 Widget _buildImage(Uri uri, String? alt) {
   if (uri.scheme != 'https' || uri.host.isEmpty || uri.host.contains('%')) {

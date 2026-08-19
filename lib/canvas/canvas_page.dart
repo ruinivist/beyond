@@ -28,6 +28,7 @@ class _CanvasPageState extends State<CanvasPage> {
   final _markdownBlocks =
       <MarkdownBlockModel, ({String id, Offset position})>{};
   final _textBlocks = <TextBlockModel, String>{};
+  TextBlockModel? _selectedTextBlock;
   final _strokeIds = <String>[];
   final _interactiveBlockPointerIds = <int>{};
   late final PenTool _penTool;
@@ -60,6 +61,7 @@ class _CanvasPageState extends State<CanvasPage> {
   }
 
   void _toggleTextPlacement() {
+    if (!_textPlacementEnabled) _clearBlockSelection();
     setState(() {
       _textPlacementEnabled = !_textPlacementEnabled;
       _penEnabled = false;
@@ -121,6 +123,7 @@ class _CanvasPageState extends State<CanvasPage> {
     if (canvasId == null) return;
     _textBlocks[model] = canvasId;
     _bringBlockToFront(canvasId);
+    _selectTextBlock(model);
   }
 
   void _bringBlockToFront(String id) {
@@ -135,30 +138,67 @@ class _CanvasPageState extends State<CanvasPage> {
   }
 
   void _selectCodeBlock(CodeBlockModel selected) {
-    for (final model in _codeBlocks.keys) {
-      model.selected = model == selected;
-    }
-    for (final model in _markdownBlocks.keys) {
-      model.selected = false;
-    }
+    setState(() {
+      _selectedTextBlock = null;
+      for (final model in _textBlocks.keys) {
+        model.selected = false;
+      }
+      for (final model in _codeBlocks.keys) {
+        model.selected = model == selected;
+      }
+      for (final model in _markdownBlocks.keys) {
+        model.selected = false;
+      }
+    });
   }
 
   void _selectMarkdownBlock(MarkdownBlockModel selected) {
-    for (final model in _codeBlocks.keys) {
-      model.selected = false;
-    }
-    for (final model in _markdownBlocks.keys) {
-      model.selected = model == selected;
-    }
+    setState(() {
+      _selectedTextBlock = null;
+      for (final model in _textBlocks.keys) {
+        model.selected = false;
+      }
+      for (final model in _codeBlocks.keys) {
+        model.selected = false;
+      }
+      for (final model in _markdownBlocks.keys) {
+        model.selected = model == selected;
+      }
+    });
+  }
+
+  void _selectTextBlock(TextBlockModel selected) {
+    setState(() {
+      _selectedTextBlock = selected;
+      for (final model in _textBlocks.keys) {
+        model.selected = identical(model, selected);
+      }
+      for (final model in _codeBlocks.keys) {
+        model.selected = false;
+      }
+      for (final model in _markdownBlocks.keys) {
+        model.selected = false;
+      }
+    });
   }
 
   void _clearBlockSelection() {
-    for (final model in _codeBlocks.keys) {
-      model.selected = false;
-    }
-    for (final model in _markdownBlocks.keys) {
-      model.selected = false;
-    }
+    setState(() {
+      _selectedTextBlock = null;
+      for (final model in _textBlocks.keys) {
+        model.selected = false;
+      }
+      for (final model in _codeBlocks.keys) {
+        model.selected = false;
+      }
+      for (final model in _markdownBlocks.keys) {
+        model.selected = false;
+      }
+    });
+  }
+
+  void _changeTextStyle(TextBlockModel model, TextNodeStyle style) {
+    model.style = style;
   }
 
   void _moveCodeBlock(CodeBlockModel model, Offset screenDelta) {
@@ -214,6 +254,7 @@ class _CanvasPageState extends State<CanvasPage> {
       childSize: Size(node.width, 52),
     );
     _textBlocks[model] = id;
+    _selectTextBlock(model);
     _bringStrokesToFront();
     WidgetsBinding.instance.addPostFrameCallback(
       (_) => model.focusNode.requestFocus(),
@@ -289,6 +330,7 @@ class _CanvasPageState extends State<CanvasPage> {
   }
 
   void _prepareInteractiveBlock() {
+    _clearBlockSelection();
     setState(() {
       _penEnabled = false;
       _textPlacementEnabled = false;
@@ -316,6 +358,7 @@ class _CanvasPageState extends State<CanvasPage> {
   }
 
   void _togglePen() {
+    if (!_penEnabled) _clearBlockSelection();
     setState(() {
       _penEnabled = !_penEnabled;
       _textPlacementEnabled = false;
@@ -386,6 +429,18 @@ class _CanvasPageState extends State<CanvasPage> {
               child: IgnorePointer(
                 ignoring: _spaceHeld,
                 child: Scribble(notifier: _penTool),
+              ),
+            ),
+          if (_selectedTextBlock case final selected?)
+            CompositedTransformFollower(
+              link: selected.layerLink,
+              showWhenUnlinked: false,
+              targetAnchor: Alignment.topCenter,
+              followerAnchor: Alignment.bottomCenter,
+              offset: const Offset(0, -8),
+              child: TextStylePopover(
+                model: selected,
+                onStyleChanged: (style) => _changeTextStyle(selected, style),
               ),
             ),
           SafeArea(

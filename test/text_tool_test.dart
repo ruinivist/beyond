@@ -1,4 +1,6 @@
 import 'package:beyond/canvas/tools/text/text_block.dart';
+import 'package:beyond/foundation/select.dart';
+import 'package:beyond/foundation/theme.dart';
 import 'package:beyond/main.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
@@ -7,6 +9,7 @@ import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:flutter_markdown_plus_latex/flutter_markdown_plus_latex.dart';
 import 'package:flutter_math_fork/flutter_math.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:url_launcher_platform_interface/link.dart';
 import 'package:url_launcher_platform_interface/url_launcher_platform_interface.dart';
 
@@ -28,6 +31,8 @@ void main() {
     final editor = find.byKey(const ValueKey('text-markdown-editor'));
 
     expect(find.byType(TextField), findsOneWidget);
+    expect(model.selected, isTrue);
+    expect(find.byKey(const ValueKey('text-style-popover')), findsOneWidget);
     expect(tester.widget<TextField>(editor).focusNode, same(model.focusNode));
     expect(model.focusNode.hasFocus, isTrue);
     expect(FocusManager.instance.primaryFocus, same(model.focusNode));
@@ -46,6 +51,7 @@ void main() {
     expect(find.byType(TextField), findsNothing);
     expect(find.byKey(const ValueKey('text-markdown-preview')), findsOneWidget);
     expect(find.byKey(const ValueKey('text-block-handle')), findsNothing);
+    expect(find.byKey(const ValueKey('text-style-popover')), findsNothing);
   });
 
   testWidgets('text blocks move from their handle', (tester) async {
@@ -66,7 +72,7 @@ void main() {
 
     FocusManager.instance.primaryFocus?.unfocus();
     await tester.pump();
-    expect(find.byKey(const ValueKey('text-block-handle')), findsNothing);
+    expect(find.byKey(const ValueKey('text-block-handle')), findsOneWidget);
     expect(find.byKey(const ValueKey('text-markdown-preview')), findsOneWidget);
   });
 
@@ -167,7 +173,10 @@ Inline $x^2$''';
     final styleSheet = preview.styleSheet!;
     final model = tester.widget<TextBlock>(find.byType(TextBlock)).model;
     expect(styleSheet.p!.fontSize, model.node.style.fontSize);
-    expect(styleSheet.p!.fontFamily, model.node.style.fontFamily);
+    expect(
+      styleSheet.p!.fontFamily,
+      GoogleFonts.sourceSerif4().fontFamily,
+    );
     expect(styleSheet.h1!.fontSize, greaterThan(styleSheet.h2!.fontSize!));
     expect(styleSheet.h2!.fontSize, greaterThan(styleSheet.h3!.fontSize!));
     expect(styleSheet.h3!.fontSize, greaterThan(styleSheet.h4!.fontSize!));
@@ -362,16 +371,171 @@ Inline $x^2$''';
     await tester.pump();
     expect(find.byKey(const ValueKey('text-markdown-editor')), findsOneWidget);
   });
+
+  testWidgets(
+    'text style popover changes model style without changing source',
+    (
+      tester,
+    ) async {
+      await _addTextBlock(tester, const Offset(120, 200));
+      const source = '**styled source**';
+      await tester.enterText(
+        find.byKey(const ValueKey('text-markdown-editor')),
+        source,
+      );
+
+      final model = tester.widget<TextBlock>(find.byType(TextBlock)).model;
+      expect(find.byKey(const ValueKey('text-style-popover')), findsOneWidget);
+
+      tester
+          .widget<Select<String>>(
+            find.byKey(const ValueKey('text-font-select')),
+          )
+          .onChanged!
+          .call('Inter');
+      FocusManager.instance.primaryFocus?.unfocus();
+      await tester.pump();
+
+      expect(model.style.fontFamily, 'Inter');
+      expect(model.node.markdown, source);
+      expect(model.selected, isTrue);
+      expect(model.focusNode.hasFocus, isFalse);
+      expect(find.byKey(const ValueKey('text-markdown-editor')), findsNothing);
+      expect(
+        find.byKey(const ValueKey('text-markdown-preview')),
+        findsOneWidget,
+      );
+      expect(find.byKey(const ValueKey('text-style-popover')), findsOneWidget);
+
+      final accentSwatch = find.byWidgetPredicate(
+        (widget) =>
+            widget is Semantics &&
+            widget.properties.label == 'Use accent color',
+      );
+      await tester.tap(accentSwatch);
+      await tester.pump();
+
+      final colors = BTheme.of(tester.element(find.byType(TextBlock))).colors;
+      expect(model.style.color, colorToHex(colors.accent));
+      expect(model.node.markdown, source);
+      expect(model.selected, isTrue);
+      expect(find.byKey(const ValueKey('text-style-popover')), findsOneWidget);
+
+      final primarySemantics = tester.widget<Semantics>(
+        find.byWidgetPredicate(
+          (widget) =>
+              widget is Semantics &&
+              widget.properties.label == 'Use primary text color',
+        ),
+      );
+      final accentSemantics = tester.widget<Semantics>(accentSwatch);
+      expect(primarySemantics.properties.selected, isFalse);
+      expect(accentSemantics.properties.selected, isTrue);
+      final primaryButton = tester.widget<IconButton>(
+        find.byWidgetPredicate(
+          (widget) =>
+              widget is IconButton &&
+              widget.tooltip == 'Use primary text color',
+        ),
+      );
+      expect(
+        primaryButton.style!.side!.resolve({WidgetState.focused}),
+        BorderSide(color: colors.focusRing, width: 2),
+      );
+
+      final preview = tester.widget<MarkdownBody>(
+        find.byKey(const ValueKey('text-markdown-preview')),
+      );
+      expect(preview.styleSheet!.p!.fontFamily, GoogleFonts.inter().fontFamily);
+      expect(
+        preview.styleSheet!.code!.fontFamily,
+        isNot(preview.styleSheet!.p!.fontFamily),
+      );
+      expect(
+        preview.styleSheet!.h1!.fontSize,
+        greaterThan(preview.styleSheet!.h2!.fontSize!),
+      );
+    },
+  );
+
+  testWidgets('text selection is cleared by other blocks and empty canvas', (
+    tester,
+  ) async {
+    await _addTextBlock(tester, const Offset(120, 200));
+    final model = tester.widget<TextBlock>(find.byType(TextBlock)).model;
+    expect(model.selected, isTrue);
+    expect(find.byKey(const ValueKey('text-style-popover')), findsOneWidget);
+
+    await tester.tap(find.text('Code'));
+    await tester.pump();
+    expect(model.selected, isFalse);
+    expect(find.byKey(const ValueKey('text-style-popover')), findsNothing);
+
+    await tester.tap(find.text('Markdown'));
+    await tester.pump();
+    expect(model.selected, isFalse);
+    expect(find.byKey(const ValueKey('text-style-popover')), findsNothing);
+
+    await tester.tapAt(const Offset(24, 550));
+    await tester.pump();
+    expect(model.selected, isFalse);
+    expect(find.byKey(const ValueKey('text-style-popover')), findsNothing);
+    await tester.pump(const Duration(milliseconds: 100));
+  });
+
+  testWidgets('selecting a second text rebinds the style popover', (
+    tester,
+  ) async {
+    await tester.pumpWidget(const BeyondApp());
+    await tester.pump();
+
+    final first = await _placeTextBlock(tester, const Offset(120, 200));
+    final second = await _placeTextBlock(tester, const Offset(480, 360));
+
+    expect(
+      tester.widget<TextStylePopover>(find.byType(TextStylePopover)).model,
+      same(second),
+    );
+    tester
+        .widget<Select<String>>(find.byKey(const ValueKey('text-font-select')))
+        .onChanged!
+        .call('Inter');
+    await tester.pump();
+    expect(second.style.fontFamily, 'Inter');
+    expect(first.style.fontFamily, 'Source Serif 4');
+
+    await tester.tapAt(const Offset(120, 200));
+    await tester.pump();
+    expect(
+      tester.widget<TextStylePopover>(find.byType(TextStylePopover)).model,
+      same(first),
+    );
+    tester
+        .widget<Select<String>>(find.byKey(const ValueKey('text-font-select')))
+        .onChanged!
+        .call('Roboto Mono');
+    await tester.pump();
+    expect(first.style.fontFamily, 'Roboto Mono');
+    expect(second.style.fontFamily, 'Inter');
+  });
 }
 
 Future<void> _addTextBlock(WidgetTester tester, Offset position) async {
   await tester.pumpWidget(const BeyondApp());
   await tester.pump();
+  await _placeTextBlock(tester, position);
+}
+
+Future<TextBlockModel> _placeTextBlock(
+  WidgetTester tester,
+  Offset position,
+) async {
   await tester.tap(find.text('Text'));
   await tester.pump();
   await tester.tapAt(position);
   await tester.pump();
   await tester.pump();
+  return tester.widget<TextBlock>(find.byType(TextBlock).last).model;
 }
 
 class _FakeUrlLauncher extends UrlLauncherPlatform {
