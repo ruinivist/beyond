@@ -1,6 +1,5 @@
 import 'package:beyond/canvas/canvas_document_store.dart';
 import 'package:beyond/canvas/tools/code_block/code_block.dart';
-import 'package:beyond/canvas/tools/markdown/markdown_block.dart';
 import 'package:beyond/canvas/tools/pen/pen_tool.dart';
 import 'package:beyond/canvas/tools/text/text_block.dart';
 import 'package:beyond/main.dart';
@@ -45,7 +44,7 @@ void main() {
     await tester.pumpWidget(const BeyondApp());
     await tester.pump();
 
-    await tester.tap(find.text('Pen'));
+    await tester.tap(find.text('Draw'));
     await tester.pump();
     await tester.dragFrom(const Offset(100, 200), const Offset(80, 40));
     await tester.pump();
@@ -77,7 +76,7 @@ void main() {
     expect(model.selected, isTrue);
     expect(find.byType(TextBlockControls), findsOneWidget);
 
-    await tester.tap(find.text('Pen'));
+    await tester.tap(find.text('Draw'));
     await tester.pump();
     await tester.pumpAndSettle();
 
@@ -89,7 +88,7 @@ void main() {
     await tester.pumpWidget(const BeyondApp());
     await tester.pump();
 
-    await tester.tap(find.text('Pen'));
+    await tester.tap(find.text('Draw'));
     await tester.pump();
     await tester.dragFrom(const Offset(20, 500), const Offset(40, 20));
     await tester.pump();
@@ -108,11 +107,11 @@ void main() {
 
     await tester.tap(find.text('Code'));
     await tester.pump();
-    await tester.tap(find.text('Pen'));
+    await tester.tap(find.text('Draw'));
     await tester.pump();
     await tester.dragFrom(const Offset(20, 500), const Offset(40, 20));
     await tester.pump();
-    await tester.tap(find.text('Pen'));
+    await tester.tap(find.text('Draw'));
     await tester.pump();
     await tester.tap(find.byKey(const ValueKey('code-block-header')));
     await tester.pump();
@@ -246,48 +245,12 @@ void main() {
     await tester.pump(const Duration(milliseconds: 100));
   });
 
-  testWidgets('last interacted block moves to front', (tester) async {
-    await tester.pumpWidget(const BeyondApp());
-    await tester.pump();
-
-    await tester.tap(find.text('Code'));
-    await tester.pump();
-    await tester.tap(find.text('Markdown'));
-    await tester.pump();
-    await tester.pump();
-
-    final code = tester.widget<CodeBlock>(find.byType(CodeBlock)).model;
-    final markdown = tester
-        .widget<MarkdownBlock>(find.byType(MarkdownBlock))
-        .model;
-
-    await tester.tapAt(const Offset(400, 300));
-    await tester.pump();
-    expect(markdown.selected, isTrue);
-
-    await tester.tapAt(const Offset(110, 300));
-    await tester.pump();
-    expect(code.selected, isTrue);
-
-    await tester.tapAt(const Offset(24, 550));
-    await tester.pump();
-    expect(code.selected, isFalse);
-
-    await tester.tapAt(const Offset(400, 300));
-    await tester.pump();
-    expect(code.selected, isTrue);
-    expect(markdown.selected, isFalse);
-
-    FocusManager.instance.primaryFocus?.unfocus();
-    await tester.pump(const Duration(milliseconds: 100));
-  });
-
   testWidgets('space temporarily hands dragging back to the canvas', (
     tester,
   ) async {
     await tester.pumpWidget(const BeyondApp());
     await tester.pump();
-    await tester.tap(find.text('Pen'));
+    await tester.tap(find.text('Draw'));
     await tester.pump();
 
     await tester.sendKeyDownEvent(LogicalKeyboardKey.space);

@@ -591,12 +591,6 @@ Inline $x^2$''';
     expect(model.selected, isFalse);
     expect(find.byType(TextBlockControls), findsNothing);
 
-    await tester.tap(find.text('Markdown'));
-    await tester.pump();
-    await tester.pumpAndSettle();
-    expect(model.selected, isFalse);
-    expect(find.byType(TextBlockControls), findsNothing);
-
     await tester.tapAt(const Offset(24, 550));
     await tester.pump();
     await tester.pumpAndSettle();

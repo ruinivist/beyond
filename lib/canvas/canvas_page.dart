@@ -4,7 +4,6 @@ import 'dart:math' as math;
 import 'package:beyond/canvas/canvas_background.dart';
 import 'package:beyond/canvas/canvas_document_store.dart';
 import 'package:beyond/canvas/tools/code_block/code_block.dart';
-import 'package:beyond/canvas/tools/markdown/markdown_block.dart';
 import 'package:beyond/canvas/tools/pen/pen_tool.dart';
 import 'package:beyond/canvas/tools/text/text_block.dart';
 import 'package:beyond/canvas/tools/text/text_node.dart';
@@ -32,8 +31,6 @@ class _CanvasPageState extends State<CanvasPage> {
   CanvasBackgroundKind _canvasBackgroundKind = CanvasBackgroundKind.dotGrid;
   final CanvasDocumentStore _documentStore = CanvasDocumentStore();
   final _codeBlocks = <CodeBlockModel, ({String id, Offset position})>{};
-  final _markdownBlocks =
-      <MarkdownBlockModel, ({String id, Offset position})>{};
   final _textBlocks = <TextBlockModel, String>{};
   TextBlockModel? _selectedTextBlock;
   TextBlockModel? _selectionChromeModel;
@@ -114,19 +111,6 @@ class _CanvasPageState extends State<CanvasPage> {
     _selectCodeBlock(model);
   }
 
-  void _handleMarkdownBlockPointerDown(
-    MarkdownBlockModel model,
-    PointerDownEvent event,
-  ) {
-    if (event.buttons != kPrimaryButton) return;
-    _interactiveBlockPointerIds.add(event.pointer);
-    if (!_documentLoaded || _textPlacementEnabled || _penEnabled) return;
-    final entry = _markdownBlocks[model];
-    if (entry == null) return;
-    _bringBlockToFront(entry.id);
-    _selectMarkdownBlock(model);
-  }
-
   void _handleTextBlockPointerDown(
     TextBlockModel model,
     PointerDownEvent event,
@@ -176,24 +160,6 @@ class _CanvasPageState extends State<CanvasPage> {
       for (final model in _codeBlocks.keys) {
         model.selected = model == selected;
       }
-      for (final model in _markdownBlocks.keys) {
-        model.selected = false;
-      }
-    });
-  }
-
-  void _selectMarkdownBlock(MarkdownBlockModel selected) {
-    setState(() {
-      _selectedTextBlock = null;
-      for (final model in _textBlocks.keys) {
-        model.selected = false;
-      }
-      for (final model in _codeBlocks.keys) {
-        model.selected = false;
-      }
-      for (final model in _markdownBlocks.keys) {
-        model.selected = model == selected;
-      }
     });
   }
 
@@ -207,9 +173,6 @@ class _CanvasPageState extends State<CanvasPage> {
       for (final model in _codeBlocks.keys) {
         model.selected = false;
       }
-      for (final model in _markdownBlocks.keys) {
-        model.selected = false;
-      }
     });
   }
 
@@ -220,9 +183,6 @@ class _CanvasPageState extends State<CanvasPage> {
         model.selected = false;
       }
       for (final model in _codeBlocks.keys) {
-        model.selected = false;
-      }
-      for (final model in _markdownBlocks.keys) {
         model.selected = false;
       }
     });
@@ -252,16 +212,6 @@ class _CanvasPageState extends State<CanvasPage> {
     if (!_documentLoaded || _textPlacementEnabled || _penEnabled) return;
     if (!_textBlocks.containsKey(model)) return;
     model.width = model.node.width + screenDelta / _canvasController.scale;
-  }
-
-  void _moveMarkdownBlock(MarkdownBlockModel model, Offset screenDelta) {
-    if (_textPlacementEnabled || _penEnabled) return;
-    final entry = _markdownBlocks[model];
-    if (entry == null) return;
-
-    final position = entry.position + screenDelta / _canvasController.scale;
-    _markdownBlocks[model] = (id: entry.id, position: position);
-    _canvasController.updatePosition(entry.id, position);
   }
 
   void _addTextBlock(Offset position) {
@@ -327,33 +277,6 @@ class _CanvasPageState extends State<CanvasPage> {
       childSize: size,
     );
     _codeBlocks[model] = (id: id, position: position);
-    _bringStrokesToFront();
-    WidgetsBinding.instance.addPostFrameCallback(
-      (_) => model.focusNode.requestFocus(),
-    );
-  }
-
-  void _addMarkdownBlock() {
-    if (!_documentLoaded) return;
-    _prepareInteractiveBlock();
-    final size = _fittedBlockSize(
-      const Size(560, 420),
-      markdownBlockMinimumSize,
-    );
-    final model = MarkdownBlockModel(size);
-    final position =
-        _viewportCenter() - Offset(size.width / 2, size.height / 2);
-
-    final id = _canvasController.addChild(
-      position,
-      MarkdownBlock(
-        model: model,
-        onSelect: (event) => _handleMarkdownBlockPointerDown(model, event),
-        onMove: (delta) => _moveMarkdownBlock(model, delta),
-      ),
-      childSize: size,
-    );
-    _markdownBlocks[model] = (id: id, position: position);
     _bringStrokesToFront();
     WidgetsBinding.instance.addPostFrameCallback(
       (_) => model.focusNode.requestFocus(),
@@ -526,9 +449,6 @@ class _CanvasPageState extends State<CanvasPage> {
     for (final block in _codeBlocks.keys) {
       block.dispose();
     }
-    for (final block in _markdownBlocks.keys) {
-      block.dispose();
-    }
     for (final block in _textBlocks.keys) {
       block
         ..removeListener(_scheduleDocumentSave)
@@ -611,15 +531,8 @@ class _CanvasPageState extends State<CanvasPage> {
               alignment: Alignment.topCenter,
               child: Padding(
                 padding: const EdgeInsets.only(top: 12),
-                child: Material(
+                child: ControlSurface(
                   key: const ValueKey('toolbar-surface'),
-                  color: colors.surfaceRaised,
-                  elevation: geo.elevationLow,
-                  shadowColor: colors.shadow,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: geo.radiusMedium,
-                    side: BorderSide(color: colors.borderSubtle),
-                  ),
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 4),
                     child: Row(
@@ -629,49 +542,46 @@ class _CanvasPageState extends State<CanvasPage> {
                           message: 'Place text',
                           child: Semantics(
                             selected: _textPlacementEnabled,
-                            child: TextButton.icon(
+                            child: TextButton(
                               onPressed: _toggleTextPlacement,
                               style: _toolbarButtonStyle(
                                 colors,
                                 geo,
                                 selected: _textPlacementEnabled,
+                                minimumSize: _toolbarSegmentMinimumSize,
+                                borderRadius: geo.radiusMedium,
                               ),
-                              icon: const Icon(Icons.title),
-                              label: const Text('Text'),
+                              child: const Text('Text'),
                             ),
                           ),
                         ),
                         Tooltip(
                           message: 'Add code block',
-                          child: TextButton.icon(
+                          child: TextButton(
                             onPressed: _addCodeBlock,
-                            style: _toolbarButtonStyle(colors, geo),
-                            icon: const Icon(Icons.code),
-                            label: const Text('Code'),
-                          ),
-                        ),
-                        Tooltip(
-                          message: 'Add markdown block',
-                          child: TextButton.icon(
-                            onPressed: _addMarkdownBlock,
-                            style: _toolbarButtonStyle(colors, geo),
-                            icon: const Icon(Icons.description_outlined),
-                            label: const Text('Markdown'),
+                            style: _toolbarButtonStyle(
+                              colors,
+                              geo,
+                              minimumSize: _toolbarSegmentMinimumSize,
+                              borderRadius: geo.radiusMedium,
+                            ),
+                            child: const Text('Code'),
                           ),
                         ),
                         Tooltip(
                           message: 'Draw with pen',
                           child: Semantics(
                             selected: _penEnabled,
-                            child: TextButton.icon(
+                            child: TextButton(
                               onPressed: _togglePen,
                               style: _toolbarButtonStyle(
                                 colors,
                                 geo,
                                 selected: _penEnabled,
+                                minimumSize: _toolbarSegmentMinimumSize,
+                                borderRadius: geo.radiusMedium,
                               ),
-                              icon: const Icon(Icons.draw),
-                              label: const Text('Pen'),
+                              child: const Text('Draw'),
                             ),
                           ),
                         ),
@@ -720,28 +630,26 @@ Widget _textSelectionChromeTransition(
   );
 }
 
+const _toolbarSegmentMinimumSize = Size(88, 48);
+
 ButtonStyle _toolbarButtonStyle(
   BColors colors,
   BGeo geo, {
   bool selected = false,
+  Size? minimumSize,
+  BorderRadius? borderRadius,
 }) {
   return ButtonStyle(
     foregroundColor: WidgetStateProperty.resolveWith((states) {
       if (!selected) return colors.textSecondary;
-      if (states.contains(WidgetState.pressed)) {
-        return colors.accentPressed;
-      }
-      if (states.contains(WidgetState.hovered)) {
-        return colors.accentHover;
-      }
-      return colors.accent;
+      return colors.textPrimary;
     }),
     backgroundColor: WidgetStateProperty.resolveWith((states) {
       if (states.contains(WidgetState.pressed)) {
         return colors.surfacePressed;
       }
       if (states.contains(WidgetState.hovered)) return colors.surfaceHover;
-      return selected ? colors.accentSoft : Colors.transparent;
+      return selected ? colors.surfaceSubtle : Colors.transparent;
     }),
     side: WidgetStateProperty.resolveWith(
       (states) => states.contains(WidgetState.focused)
@@ -749,8 +657,11 @@ ButtonStyle _toolbarButtonStyle(
           : BorderSide.none,
     ),
     shape: WidgetStatePropertyAll(
-      RoundedRectangleBorder(borderRadius: geo.radiusSmall),
+      RoundedRectangleBorder(borderRadius: borderRadius ?? geo.radiusSmall),
     ),
+    minimumSize: minimumSize == null
+        ? null
+        : WidgetStatePropertyAll(minimumSize),
   );
 }
 
