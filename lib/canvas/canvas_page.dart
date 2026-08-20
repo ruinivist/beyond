@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math' as math;
 
+import 'package:beyond/canvas/canvas_background.dart';
 import 'package:beyond/canvas/canvas_document_store.dart';
 import 'package:beyond/canvas/tools/code_block/code_block.dart';
 import 'package:beyond/canvas/tools/markdown/markdown_block.dart';
@@ -28,6 +29,7 @@ class _CanvasPageState extends State<CanvasPage> {
   final _canvasController = LazyCanvasController(
     buildCacheExtent: const Offset(600, 400),
   );
+  CanvasBackgroundKind _canvasBackgroundKind = CanvasBackgroundKind.dotGrid;
   final CanvasDocumentStore _documentStore = CanvasDocumentStore();
   final _codeBlocks = <CodeBlockModel, ({String id, Offset position})>{};
   final _markdownBlocks =
@@ -57,10 +59,7 @@ class _CanvasPageState extends State<CanvasPage> {
   void didChangeDependencies() {
     super.didChangeDependencies();
     final colors = BTheme.of(context).colors;
-    _canvasController.background = DotGridBackground(
-      dotColor: colors.canvasGrid,
-      backgroundColor: colors.canvasBackground,
-    );
+    _canvasController.background = _canvasBackgroundKind.build(colors);
     _penTool.setColor(colors.accent);
   }
 
@@ -420,9 +419,18 @@ class _CanvasPageState extends State<CanvasPage> {
       showDialog<void>(
         context: context,
         barrierColor: BTheme.of(context).colors.scrim,
-        builder: (_) => const SettingsDialog(),
+        builder: (_) => SettingsDialog(
+          canvasBackgroundKind: _canvasBackgroundKind,
+          onCanvasBackgroundChanged: _setCanvasBackground,
+        ),
       ),
     );
+  }
+
+  void _setCanvasBackground(CanvasBackgroundKind kind) {
+    if (_canvasBackgroundKind == kind) return;
+    _canvasBackgroundKind = kind;
+    _canvasController.background = kind.build(BTheme.of(context).colors);
   }
 
   bool _handleKeyEvent(KeyEvent event) {

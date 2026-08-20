@@ -1,10 +1,29 @@
 import 'dart:math' as math;
 
+import 'package:beyond/canvas/canvas_background.dart';
+import 'package:beyond/foundation/select.dart';
 import 'package:beyond/foundation/theme.dart';
 import 'package:flutter/material.dart';
 
-class SettingsDialog extends StatelessWidget {
-  const SettingsDialog({super.key});
+class SettingsDialog extends StatefulWidget {
+  const SettingsDialog({
+    this.canvasBackgroundKind = CanvasBackgroundKind.dotGrid,
+    this.onCanvasBackgroundChanged,
+    super.key,
+  });
+
+  final CanvasBackgroundKind canvasBackgroundKind;
+  final ValueChanged<CanvasBackgroundKind>? onCanvasBackgroundChanged;
+
+  @override
+  State<SettingsDialog> createState() => _SettingsDialogState();
+}
+
+enum _SettingsSection { about, canvas }
+
+class _SettingsDialogState extends State<SettingsDialog> {
+  late CanvasBackgroundKind _canvasBackgroundKind = widget.canvasBackgroundKind;
+  _SettingsSection _section = _SettingsSection.about;
 
   @override
   Widget build(BuildContext context) {
@@ -44,14 +63,28 @@ class SettingsDialog extends StatelessWidget {
                     ),
                     Divider(height: 1, color: colors.borderSubtle),
                     ListTile(
-                      selected: true,
+                      selected: _section == _SettingsSection.about,
                       selectedColor: colors.accent,
                       selectedTileColor: colors.accentSoft,
                       hoverColor: colors.surfaceHover,
                       focusColor: colors.focusRing,
                       leading: const Icon(Icons.info_outline, size: 20),
                       title: const Text('About'),
-                      onTap: () {},
+                      onTap: () => setState(
+                        () => _section = _SettingsSection.about,
+                      ),
+                    ),
+                    ListTile(
+                      selected: _section == _SettingsSection.canvas,
+                      selectedColor: colors.accent,
+                      selectedTileColor: colors.accentSoft,
+                      hoverColor: colors.surfaceHover,
+                      focusColor: colors.focusRing,
+                      leading: const Icon(Icons.grid_view, size: 20),
+                      title: const Text('Canvas'),
+                      onTap: () => setState(
+                        () => _section = _SettingsSection.canvas,
+                      ),
                     ),
                   ],
                 ),
@@ -67,7 +100,9 @@ class SettingsDialog extends StatelessWidget {
                     Row(
                       children: [
                         Text(
-                          'About',
+                          _section == _SettingsSection.about
+                              ? 'About'
+                              : 'Canvas',
                           style: typo.title.copyWith(
                             color: colors.textPrimary,
                             fontSize: 14,
@@ -103,10 +138,36 @@ class SettingsDialog extends StatelessWidget {
                       ],
                     ),
                     const SizedBox(height: 20),
-                    Text(
-                      'beyond - dev build',
-                      style: typo.body.copyWith(color: colors.textSecondary),
-                    ),
+                    if (_section == _SettingsSection.about)
+                      Text(
+                        'beyond - dev build',
+                        style: typo.body.copyWith(color: colors.textSecondary),
+                      )
+                    else ...[
+                      Text(
+                        'Background',
+                        style: typo.label.copyWith(color: colors.textPrimary),
+                      ),
+                      const SizedBox(height: 8),
+                      Select<CanvasBackgroundKind>(
+                        key: const ValueKey('canvas-background-select'),
+                        value: _canvasBackgroundKind,
+                        options: const [
+                          SelectOption(
+                            value: CanvasBackgroundKind.dotGrid,
+                            label: 'Dot grid',
+                          ),
+                          SelectOption(
+                            value: CanvasBackgroundKind.plain,
+                            label: 'Plain',
+                          ),
+                        ],
+                        onChanged: (kind) {
+                          setState(() => _canvasBackgroundKind = kind);
+                          widget.onCanvasBackgroundChanged?.call(kind);
+                        },
+                      ),
+                    ],
                   ],
                 ),
               ),
