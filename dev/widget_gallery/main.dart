@@ -61,6 +61,7 @@ class _WidgetGalleryPageState extends State<WidgetGalleryPage> {
   final _codeModel = CodeBlockModel(const Size(520, 320));
   final _markdownModel = MarkdownBlockModel(const Size(500, 320));
   var _dropdownValue = 'Canvas';
+  var _searchableLanguage = 'Dart';
   var _checked = true;
   var _choice = 0;
   var _switched = false;
@@ -361,6 +362,45 @@ class _WidgetGalleryPageState extends State<WidgetGalleryPage> {
                         ],
                         onChanged: (value) =>
                             setState(() => _dropdownValue = value),
+                      ),
+                    ),
+                    _GalleryCard(
+                      title: 'Searchable select',
+                      existing: false,
+                      note:
+                          'Search a longer language list with common choices '
+                          'first.',
+                      child: SearchableSelect<String>(
+                        key: const ValueKey('gallery-searchable-select'),
+                        value: _searchableLanguage,
+                        preferredValues: const [
+                          'Python',
+                          'TypeScript',
+                          'Dart',
+                          'JavaScript',
+                          'Go',
+                          'Rust',
+                        ],
+                        searchHint: 'Search languages…',
+                        options: const [
+                          SelectOption(value: 'C', label: 'C'),
+                          SelectOption(value: 'C++', label: 'C++'),
+                          SelectOption(value: 'Dart', label: 'Dart'),
+                          SelectOption(value: 'Go', label: 'Go'),
+                          SelectOption(value: 'Java', label: 'Java'),
+                          SelectOption(
+                            value: 'JavaScript',
+                            label: 'JavaScript',
+                          ),
+                          SelectOption(value: 'Python', label: 'Python'),
+                          SelectOption(value: 'Rust', label: 'Rust'),
+                          SelectOption(
+                            value: 'TypeScript',
+                            label: 'TypeScript',
+                          ),
+                        ],
+                        onChanged: (value) =>
+                            setState(() => _searchableLanguage = value),
                       ),
                     ),
                   ],

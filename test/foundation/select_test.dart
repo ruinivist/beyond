@@ -169,4 +169,129 @@ void main() {
     expect(menuMaterial, findsOneWidget);
     expect(tester.getSize(menuMaterial).width, wideWidth);
   });
+
+  testWidgets(
+    'searchable select orders, filters, selects, and clears its query',
+    (tester) async {
+      var value = 'dart';
+      const options = [
+        SelectOption(value: 'c', label: 'C'),
+        SelectOption(value: 'cpp', label: 'C++'),
+        SelectOption(value: 'dart', label: 'Dart'),
+        SelectOption(value: 'go', label: 'Go'),
+        SelectOption(value: 'java', label: 'Java', enabled: false),
+        SelectOption(value: 'javascript', label: 'JavaScript'),
+        SelectOption(value: 'python', label: 'Python'),
+        SelectOption(value: 'rust', label: 'Rust'),
+        SelectOption(value: 'typescript', label: 'TypeScript'),
+      ];
+
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: starlessLightThemeData,
+          home: StatefulBuilder(
+            builder: (context, setState) => Center(
+              child: SearchableSelect<String>(
+                value: value,
+                options: options,
+                preferredValues: const [
+                  'python',
+                  'typescript',
+                  'dart',
+                  'javascript',
+                  'go',
+                  'rust',
+                  'python',
+                ],
+                searchHint: 'Search languages…',
+                onChanged: (next) => setState(() => value = next),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      Future<void> open() async {
+        await tester.tap(
+          find.byKey(const ValueKey('searchable-select-trigger')),
+        );
+        await tester.pump();
+      }
+
+      void expectOption(int index, String label) {
+        expect(
+          find.descendant(
+            of: find.byKey(ValueKey('searchable-select-option-$index')),
+            matching: find.text(label),
+          ),
+          findsOneWidget,
+        );
+      }
+
+      await open();
+      expect(
+        tester
+            .widget<TextField>(
+              find.byKey(const ValueKey('searchable-select-search')),
+            )
+            .focusNode!
+            .hasFocus,
+        isTrue,
+      );
+      for (final (index, label) in [
+        'Python',
+        'TypeScript',
+        'Dart',
+        'JavaScript',
+        'Go',
+        'Rust',
+        'C',
+        'C++',
+        'Java',
+      ].indexed) {
+        expectOption(index, label);
+      }
+
+      await tester.enterText(
+        find.byKey(const ValueKey('searchable-select-search')),
+        'java',
+      );
+      await tester.pump();
+      expectOption(0, 'Java');
+      expectOption(1, 'JavaScript');
+      expect(
+        find.byKey(const ValueKey('searchable-select-option-2')),
+        findsNothing,
+      );
+
+      await tester.tap(
+        find.byKey(const ValueKey('searchable-select-option-0')),
+      );
+      await tester.pump();
+      expect(value, 'dart');
+
+      await tester.tap(
+        find.byKey(const ValueKey('searchable-select-option-1')),
+      );
+      await tester.pumpAndSettle();
+      expect(value, 'javascript');
+      expect(
+        find.byKey(const ValueKey('searchable-select-search')),
+        findsNothing,
+      );
+
+      await open();
+      expect(
+        tester
+            .widget<TextField>(
+              find.byKey(const ValueKey('searchable-select-search')),
+            )
+            .controller!
+            .text,
+        isEmpty,
+      );
+      expectOption(0, 'Python');
+      expectOption(1, 'TypeScript');
+    },
+  );
 }
