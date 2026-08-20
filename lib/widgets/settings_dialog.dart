@@ -17,6 +17,7 @@ class SettingsDialog extends StatelessWidget {
       surfaceTintColor: Colors.transparent,
       elevation: theme.geo.elevationMedium,
       shadowColor: colors.shadow,
+      clipBehavior: Clip.antiAlias,
       shape: RoundedRectangleBorder(
         borderRadius: theme.geo.radiusLarge,
         side: BorderSide(color: colors.borderSubtle),
