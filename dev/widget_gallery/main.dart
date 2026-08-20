@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:beyond/canvas/canvas_page.dart';
 import 'package:beyond/canvas/tools/code_block/code_block.dart';
-import 'package:beyond/canvas/tools/markdown/markdown_block.dart';
 import 'package:beyond/canvas/tools/text/text_block.dart';
 import 'package:beyond/canvas/tools/text/text_node.dart';
 import 'package:beyond/foundation/button.dart';
@@ -59,7 +58,6 @@ class _WidgetGalleryPageState extends State<WidgetGalleryPage> {
     ),
   );
   final _codeModel = CodeBlockModel(const Size(520, 320));
-  final _markdownModel = MarkdownBlockModel(const Size(500, 320));
   var _dropdownValue = 'Canvas';
   var _searchableLanguage = 'Dart';
   var _checked = true;
@@ -78,10 +76,6 @@ class _WidgetGalleryPageState extends State<WidgetGalleryPage> {
       ..controller.codeLines = CodeLines.fromText(
         "void main() {\n  print('Hello, canvas!');\n}",
       );
-    _markdownModel
-      ..selected = true
-      ..previewing = true
-      ..controller.text = '# Markdown\n\nWrite equations like \$E = mc^2\$.';
   }
 
   @override
@@ -89,7 +83,6 @@ class _WidgetGalleryPageState extends State<WidgetGalleryPage> {
     _scrollController.dispose();
     _textModel.dispose();
     _codeModel.dispose();
-    _markdownModel.dispose();
     super.dispose();
   }
 
@@ -203,18 +196,6 @@ class _WidgetGalleryPageState extends State<WidgetGalleryPage> {
                       child: _horizontalPreview(
                         CodeBlock(
                           model: _codeModel,
-                          onSelect: (_) {},
-                          onMove: (_) {},
-                        ),
-                      ),
-                    ),
-                    _GalleryCard(
-                      title: 'Markdown block',
-                      existing: true,
-                      note: 'Editable Markdown with preview and LaTeX support.',
-                      child: _horizontalPreview(
-                        MarkdownBlock(
-                          model: _markdownModel,
                           onSelect: (_) {},
                           onMove: (_) {},
                         ),
