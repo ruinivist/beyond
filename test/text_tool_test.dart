@@ -6,6 +6,7 @@ import 'package:beyond/canvas/tools/text/text_node.dart';
 import 'package:beyond/foundation/select.dart';
 import 'package:beyond/foundation/theme.dart';
 import 'package:beyond/main.dart';
+import 'package:beyond/utils/preset_colors.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
@@ -39,7 +40,16 @@ void main() {
 
     expect(find.byType(TextField), findsOneWidget);
     expect(model.selected, isTrue);
-    expect(find.byKey(const ValueKey('text-style-popover')), findsOneWidget);
+    expect(find.byType(TextBlockControls), findsOneWidget);
+    expect(find.byKey(const ValueKey('text-settings-button')), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('text-settings-panel')).hitTestable(),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const ValueKey('text-block-rotate-control')),
+      findsOneWidget,
+    );
     expect(model.focusNode.hasFocus, isTrue);
     await tester.enterText(editor, 'focused typing');
     await tester.pump();
@@ -49,6 +59,10 @@ void main() {
       const Offset(120, 200),
     );
     expect(find.byKey(const ValueKey('text-block-handle')), findsOneWidget);
+    expect(
+      tester.getCenter(find.byKey(const ValueKey('text-block-handle'))).dx,
+      lessThan(tester.getTopLeft(editor).dx),
+    );
     expect(
       find.byKey(const ValueKey('text-block-resize-handle')),
       findsOneWidget,
@@ -64,7 +78,7 @@ void main() {
       find.byKey(const ValueKey('text-block-resize-handle')),
       findsNothing,
     );
-    expect(find.byKey(const ValueKey('text-style-popover')), findsNothing);
+    expect(find.byType(TextBlockControls), findsNothing);
   });
 
   testWidgets('text blocks move from their handle', (tester) async {
@@ -124,14 +138,14 @@ void main() {
       find.byKey(const ValueKey('text-block-resize-handle')),
       findsNothing,
     );
-    expect(find.byKey(const ValueKey('text-style-popover')), findsNothing);
+    expect(find.byType(TextBlockControls), findsNothing);
 
     await gesture.up();
     await tester.pump();
 
     expect(model.selected, isFalse);
     expect(find.byKey(const ValueKey('text-markdown-preview')), findsOneWidget);
-    expect(find.byKey(const ValueKey('text-style-popover')), findsNothing);
+    expect(find.byType(TextBlockControls), findsNothing);
   });
 
   testWidgets(
@@ -241,7 +255,7 @@ void main() {
     expect(model.selected, isTrue);
     expect(find.byKey(const ValueKey('text-markdown-editor')), findsOneWidget);
     expect(find.byKey(const ValueKey('text-block-handle')), findsOneWidget);
-    expect(find.byKey(const ValueKey('text-style-popover')), findsOneWidget);
+    expect(find.byType(TextBlockControls), findsOneWidget);
     expect(model.controller.text, source);
     expect(model.node.markdown, source);
 
@@ -477,7 +491,7 @@ Inline $x^2$''';
   });
 
   testWidgets(
-    'text style popover changes model style without changing source',
+    'text settings change model style without changing source',
     (
       tester,
     ) async {
@@ -489,7 +503,18 @@ Inline $x^2$''';
       );
 
       final model = tester.widget<TextBlock>(find.byType(TextBlock)).model;
-      expect(find.byKey(const ValueKey('text-style-popover')), findsOneWidget);
+      expect(find.byType(TextBlockControls), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('text-settings-panel')).hitTestable(),
+        findsNothing,
+      );
+
+      await tester.tap(find.byKey(const ValueKey('text-settings-button')));
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const ValueKey('text-settings-panel')).hitTestable(),
+        findsOneWidget,
+      );
 
       await tester.tap(find.byKey(const ValueKey('select-trigger')));
       await tester.pump();
@@ -508,43 +533,34 @@ Inline $x^2$''';
         find.byKey(const ValueKey('text-markdown-preview')),
         findsNothing,
       );
-      expect(find.byKey(const ValueKey('text-style-popover')), findsOneWidget);
+      expect(find.byType(TextBlockControls), findsOneWidget);
 
-      final accentSwatch = find.byWidgetPredicate(
-        (widget) =>
-            widget is Semantics &&
-            widget.properties.label == 'Use accent color',
-      );
-      await tester.tap(accentSwatch);
-      await tester.pump();
-
-      final colors = BTheme.of(tester.element(find.byType(TextBlock))).colors;
-      expect(model.style.color, colorToHex(colors.accent));
-      expect(model.node.markdown, source);
-      expect(model.selected, isTrue);
-      expect(find.byKey(const ValueKey('text-style-popover')), findsOneWidget);
-
-      final primarySemantics = tester.widget<Semantics>(
-        find.byWidgetPredicate(
-          (widget) =>
-              widget is Semantics &&
-              widget.properties.label == 'Use primary text color',
-        ),
-      );
-      final accentSemantics = tester.widget<Semantics>(accentSwatch);
-      expect(primarySemantics.properties.selected, isFalse);
-      expect(accentSemantics.properties.selected, isTrue);
-      final primaryButton = tester.widget<IconButton>(
-        find.byWidgetPredicate(
-          (widget) =>
-              widget is IconButton &&
-              widget.tooltip == 'Use primary text color',
-        ),
+      await tester.tap(find.byKey(const ValueKey('text-settings-color')));
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const ValueKey('text-color-Black')),
+        findsOneWidget,
       );
       expect(
-        primaryButton.style!.side!.resolve({WidgetState.focused}),
-        BorderSide(color: colors.focusRing, width: 2),
+        find.byKey(const ValueKey('text-color-Pink')),
+        findsOneWidget,
       );
+
+      final orangeSwatch = find.byWidgetPredicate(
+        (widget) =>
+            widget is Semantics && widget.properties.label == 'Use Orange',
+      );
+      await tester.tap(orangeSwatch);
+      await tester.pumpAndSettle();
+
+      final theme = BTheme.of(tester.element(find.byType(TextBlock)));
+      final orange = presetColors.singleWhere(
+        (swatch) => swatch.label == 'Orange',
+      );
+      expect(model.style.color, colorToHex(orange.color));
+      expect(model.node.markdown, source);
+      expect(model.selected, isTrue);
+      expect(find.byType(TextBlockControls), findsOneWidget);
     },
   );
 
@@ -554,26 +570,26 @@ Inline $x^2$''';
     await _addTextBlock(tester, const Offset(120, 200));
     final model = tester.widget<TextBlock>(find.byType(TextBlock)).model;
     expect(model.selected, isTrue);
-    expect(find.byKey(const ValueKey('text-style-popover')), findsOneWidget);
+    expect(find.byType(TextBlockControls), findsOneWidget);
 
     await tester.tap(find.text('Code'));
     await tester.pump();
     expect(model.selected, isFalse);
-    expect(find.byKey(const ValueKey('text-style-popover')), findsNothing);
+    expect(find.byType(TextBlockControls), findsNothing);
 
     await tester.tap(find.text('Markdown'));
     await tester.pump();
     expect(model.selected, isFalse);
-    expect(find.byKey(const ValueKey('text-style-popover')), findsNothing);
+    expect(find.byType(TextBlockControls), findsNothing);
 
     await tester.tapAt(const Offset(24, 550));
     await tester.pump();
     expect(model.selected, isFalse);
-    expect(find.byKey(const ValueKey('text-style-popover')), findsNothing);
+    expect(find.byType(TextBlockControls), findsNothing);
     await tester.pump(const Duration(milliseconds: 100));
   });
 
-  testWidgets('selecting a second text rebinds the style popover', (
+  testWidgets('selecting a second text rebinds closed text settings', (
     tester,
   ) async {
     await tester.pumpWidget(const BeyondApp());
@@ -582,6 +598,8 @@ Inline $x^2$''';
     final first = await _placeTextBlock(tester, const Offset(120, 200));
     final second = await _placeTextBlock(tester, const Offset(480, 360));
 
+    await tester.tap(find.byKey(const ValueKey('text-settings-button')));
+    await tester.pumpAndSettle();
     tester
         .widget<Select<String>>(find.byKey(const ValueKey('text-font-select')))
         .onChanged!
@@ -592,6 +610,12 @@ Inline $x^2$''';
 
     await tester.tapAt(const Offset(120, 200));
     await tester.pump();
+    expect(
+      find.byKey(const ValueKey('text-settings-panel')).hitTestable(),
+      findsNothing,
+    );
+    await tester.tap(find.byKey(const ValueKey('text-settings-button')));
+    await tester.pumpAndSettle();
     tester
         .widget<Select<String>>(find.byKey(const ValueKey('text-font-select')))
         .onChanged!
@@ -635,16 +659,19 @@ Inline $x^2$''';
     );
     await tester.pump();
 
+    await tester.tap(find.byKey(const ValueKey('text-settings-button')));
+    await tester.pumpAndSettle();
     tester
         .widget<Select<String>>(find.byKey(const ValueKey('text-font-select')))
         .onChanged!
         .call('Inter');
     await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('text-settings-color')));
+    await tester.pumpAndSettle();
     await tester.tap(
       find.byWidgetPredicate(
         (widget) =>
-            widget is Semantics &&
-            widget.properties.label == 'Use accent color',
+            widget is Semantics && widget.properties.label == 'Use Orange',
       ),
     );
     await tester.pump();
@@ -717,7 +744,7 @@ Inline $x^2$''';
       expect(block.model.selected, isFalse);
       expect(block.model.focusNode.hasFocus, isFalse);
     }
-    expect(find.byKey(const ValueKey('text-style-popover')), findsNothing);
+    expect(find.byType(TextBlockControls), findsNothing);
     await tester.pump(const Duration(milliseconds: 100));
   });
 

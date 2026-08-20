@@ -75,13 +75,13 @@ void main() {
 
     final model = tester.widget<TextBlock>(find.byType(TextBlock)).model;
     expect(model.selected, isTrue);
-    expect(find.byKey(const ValueKey('text-style-popover')), findsOneWidget);
+    expect(find.byType(TextBlockControls), findsOneWidget);
 
     await tester.tap(find.text('Pen'));
     await tester.pump();
 
     expect(model.selected, isFalse);
-    expect(find.byKey(const ValueKey('text-style-popover')), findsNothing);
+    expect(find.byType(TextBlockControls), findsNothing);
   });
 
   testWidgets('blocks added after strokes stay below them', (tester) async {

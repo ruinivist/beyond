@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:beyond/canvas/tools/text/text_node.dart';
 import 'package:beyond/foundation/select.dart';
 import 'package:beyond/foundation/theme.dart';
+import 'package:beyond/utils/preset_colors.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
@@ -20,8 +21,7 @@ const textFontOptions = <SelectOption<String>>[
 ];
 
 class TextBlockModel extends ChangeNotifier {
-  TextBlockModel(this.node)
-    : controller = TextEditingController(text: node.markdown) {
+  TextBlockModel(this.node) : controller = TextEditingController(text: node.markdown) {
     controller.addListener(_syncMarkdown);
   }
 
@@ -118,48 +118,6 @@ class TextBlock extends StatelessWidget {
                       if (model.selected)
                         Positioned(
                           right: 0,
-                          top: 0,
-                          bottom: 0,
-                          width: 28,
-                          child: MouseRegion(
-                            cursor: SystemMouseCursors.grab,
-                            child: TextFieldTapRegion(
-                              child: Semantics(
-                                button: true,
-                                label: 'Move text block',
-                                child: RawGestureDetector(
-                                  key: const ValueKey('text-block-handle'),
-                                  behavior: HitTestBehavior.opaque,
-                                  gestures: {
-                                    ImmediateMultiDragGestureRecognizer:
-                                        GestureRecognizerFactoryWithHandlers<
-                                          ImmediateMultiDragGestureRecognizer
-                                        >(
-                                          ImmediateMultiDragGestureRecognizer
-                                              .new,
-                                          (
-                                            recognizer,
-                                          ) {
-                                            recognizer.onStart = (_) =>
-                                                _TextBlockDrag(onMove);
-                                          },
-                                        ),
-                                  },
-                                  child: Center(
-                                    child: Icon(
-                                      Icons.drag_indicator,
-                                      size: 18,
-                                      color: colors.textMuted,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      if (model.selected)
-                        Positioned(
-                          right: 0,
                           bottom: 0,
                           width: 28,
                           height: 24,
@@ -176,14 +134,10 @@ class TextBlock extends StatelessWidget {
                                   behavior: HitTestBehavior.opaque,
                                   gestures: {
                                     ImmediateMultiDragGestureRecognizer:
-                                        GestureRecognizerFactoryWithHandlers<
-                                          ImmediateMultiDragGestureRecognizer
-                                        >(
-                                          ImmediateMultiDragGestureRecognizer
-                                              .new,
+                                        GestureRecognizerFactoryWithHandlers<ImmediateMultiDragGestureRecognizer>(
+                                          ImmediateMultiDragGestureRecognizer.new,
                                           (recognizer) {
-                                            recognizer.onStart = (_) =>
-                                                _TextBlockResizeDrag(onResize);
+                                            recognizer.onStart = (_) => _TextBlockResizeDrag(onResize);
                                           },
                                         ),
                                   },
@@ -242,7 +196,7 @@ class _TextMarkdownEditor extends StatelessWidget {
       cursorColor: colors.accent,
       decoration: InputDecoration(
         border: InputBorder.none,
-        contentPadding: const EdgeInsets.fromLTRB(12, 12, 28, 12),
+        contentPadding: const EdgeInsets.all(12),
         hintText: 'Type something',
         hintStyle: code.copyWith(color: colors.textMuted),
       ),
@@ -272,31 +226,28 @@ class _TextMarkdownPreview extends StatelessWidget {
       dragStartBehavior: DragStartBehavior.down,
       onTap: onEdit,
       onPanUpdate: (details) => onMove(details.delta),
-      child: Padding(
-        padding: const EdgeInsets.only(right: 28),
-        child: source.isEmpty
-            ? _EmptyTextMarkdownPreview(
-                key: const ValueKey('text-markdown-preview'),
-                style: style,
-              )
-            : MarkdownBody(
-                key: const ValueKey('text-markdown-preview'),
-                data: source,
-                blockSyntaxes: [LatexBlockSyntax()],
-                inlineSyntaxes: [
-                  _TextImageSyntax(),
-                  LatexInlineSyntax(),
-                ],
-                builders: {
-                  'latex': LatexElementBuilder(
-                    textStyle: _fontStyle(style),
-                  ),
-                },
-                styleSheet: _styleSheet(context, style),
-                imageBuilder: (uri, title, alt) => _buildImage(uri, alt),
-                onTapLink: (_, href, _) => _openLink(context, href),
-              ),
-      ),
+      child: source.isEmpty
+          ? _EmptyTextMarkdownPreview(
+              key: const ValueKey('text-markdown-preview'),
+              style: style,
+            )
+          : MarkdownBody(
+              key: const ValueKey('text-markdown-preview'),
+              data: source,
+              blockSyntaxes: [LatexBlockSyntax()],
+              inlineSyntaxes: [
+                _TextImageSyntax(),
+                LatexInlineSyntax(),
+              ],
+              builders: {
+                'latex': LatexElementBuilder(
+                  textStyle: _fontStyle(style),
+                ),
+              },
+              styleSheet: _styleSheet(context, style),
+              imageBuilder: (uri, title, alt) => _buildImage(uri, alt),
+              onTapLink: (_, href, _) => _openLink(context, href),
+            ),
     );
   }
 }
@@ -409,185 +360,357 @@ Color colorFromHex(String value) {
   return Color(int.parse('FF${value.substring(1)}', radix: 16));
 }
 
-class TextStylePopover extends StatefulWidget {
-  const TextStylePopover({
+class TextBlockControls extends StatelessWidget {
+  const TextBlockControls({
     required this.model,
-    required this.onStyleChanged,
+    required this.onMove,
     super.key,
   });
 
   final TextBlockModel model;
-  final ValueChanged<TextNodeStyle> onStyleChanged;
+  final ValueChanged<Offset> onMove;
 
-  @override
-  State<TextStylePopover> createState() => _TextStylePopoverState();
-}
-
-class _TextStylePopoverState extends State<TextStylePopover> {
-  late String _fontFamily;
-  late String _color;
-
-  @override
-  void initState() {
-    super.initState();
-    _fontFamily = widget.model.style.fontFamily;
-    _color = widget.model.style.color;
-  }
-
-  @override
-  void didUpdateWidget(covariant TextStylePopover oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.model != widget.model) {
-      _fontFamily = widget.model.style.fontFamily;
-      _color = widget.model.style.color;
-    }
-  }
-
-  void _changeStyle(TextNodeStyle style) {
-    widget.onStyleChanged(style);
-    setState(() {
-      _fontFamily = style.fontFamily;
-      _color = style.color;
-    });
-  }
+  static const size = Size(500, 168);
+  static const followerOffset = Offset(-132, 0);
 
   @override
   Widget build(BuildContext context) {
     final theme = BTheme.of(context);
     final colors = theme.colors;
-    final geo = theme.geo;
-    final swatches = [
-      (color: colors.textPrimary, label: 'Use primary text color'),
-      (color: colors.textSecondary, label: 'Use secondary text color'),
-      (color: colors.accent, label: 'Use accent color'),
-    ];
-    return Material(
-      key: const ValueKey('text-style-popover'),
-      color: colors.surfaceRaised,
-      elevation: geo.elevationMedium,
-      shadowColor: colors.shadow,
-      shape: RoundedRectangleBorder(
-        borderRadius: geo.radiusMedium,
-        side: BorderSide(color: colors.borderSubtle),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(8),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SizedBox(
-              width: 230,
-              child: Select<String>(
-                key: const ValueKey('text-font-select'),
-                value: _fontFamily,
-                options: textFontOptions,
-                onChanged: (fontFamily) => _changeStyle(
-                  widget.model.style.copyWith(
-                    fontFamily: fontFamily,
-                    color: _color,
+    return SizedBox(
+      width: size.width,
+      height: size.height,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Positioned(
+            top: 0,
+            left: 30,
+            child: TextSettings(model: model),
+          ),
+          Positioned(
+            top: 60,
+            left: 0,
+            child: MouseRegion(
+              cursor: SystemMouseCursors.grab,
+              child: TextFieldTapRegion(
+                child: Material(
+                  color: colors.surfaceRaised,
+                  elevation: theme.geo.elevationMedium,
+                  shadowColor: colors.shadow,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: theme.geo.radiusLarge,
+                    side: BorderSide(color: colors.borderSubtle),
+                  ),
+                  clipBehavior: Clip.antiAlias,
+                  child: Semantics(
+                    button: true,
+                    label: 'Move text block',
+                    child: RawGestureDetector(
+                      key: const ValueKey('text-block-handle'),
+                      behavior: HitTestBehavior.opaque,
+                      gestures: {
+                        ImmediateMultiDragGestureRecognizer:
+                            GestureRecognizerFactoryWithHandlers<ImmediateMultiDragGestureRecognizer>(
+                              ImmediateMultiDragGestureRecognizer.new,
+                              (recognizer) {
+                                recognizer.onStart = (_) => _TextBlockDrag(onMove);
+                              },
+                            ),
+                      },
+                      child: const SizedBox.square(
+                        dimension: 48,
+                        child: Icon(Icons.drag_indicator, size: 28),
+                      ),
+                    ),
                   ),
                 ),
               ),
             ),
-            const SizedBox(height: 8),
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                for (final swatch in swatches)
-                  _TextColorSwatch(
-                    color: swatch.color,
-                    label: swatch.label,
-                    selected: _color == colorToHex(swatch.color),
-                    onPressed: () => _changeStyle(
-                      widget.model.style.copyWith(
-                        fontFamily: _fontFamily,
-                        color: colorToHex(swatch.color),
+          ),
+          Positioned(
+            top: 130,
+            left: 30,
+            child: Tooltip(
+              message: 'Rotate text (coming soon)',
+              child: Semantics(
+                button: true,
+                enabled: false,
+                label: 'Rotate text (coming soon)',
+                child: ExcludeSemantics(
+                  child: Material(
+                    color: colors.surfaceRaised,
+                    elevation: theme.geo.elevationLow,
+                    shadowColor: colors.shadow,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: theme.geo.radiusLarge,
+                      side: BorderSide(color: colors.borderSubtle),
+                    ),
+                    clipBehavior: Clip.antiAlias,
+                    child: IconButton(
+                      key: const ValueKey('text-block-rotate-control'),
+                      onPressed: null,
+                      style: IconButton.styleFrom(
+                        minimumSize: const Size.square(32),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: theme.geo.radiusLarge,
+                        ),
                       ),
+                      icon: const Icon(Icons.rotate_right, size: 24),
                     ),
                   ),
-              ],
+                ),
+              ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 }
 
-class _TextColorSwatch extends StatelessWidget {
-  const _TextColorSwatch({
-    required this.color,
-    required this.label,
-    required this.selected,
-    required this.onPressed,
-  });
+class TextSettings extends StatefulWidget {
+  const TextSettings({required this.model, super.key});
 
-  final Color color;
-  final String label;
-  final bool selected;
-  final VoidCallback onPressed;
+  final TextBlockModel model;
+
+  @override
+  State<TextSettings> createState() => _TextSettingsState();
+}
+
+class _TextSettingsState extends State<TextSettings> {
+  final _colorMenu = MenuController();
+  var _open = false;
+
+  @override
+  void didUpdateWidget(covariant TextSettings oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.model != widget.model) _open = false;
+  }
 
   @override
   Widget build(BuildContext context) {
     final theme = BTheme.of(context);
     final colors = theme.colors;
-    return Semantics(
-      button: true,
-      label: label,
-      selected: selected,
-      child: IconButton(
-        key: ValueKey('text-color-swatch-${colorToHex(color)}'),
-        onPressed: onPressed,
-        tooltip: label,
-        style:
-            IconButton.styleFrom(
-              foregroundColor: colors.textPrimary,
-              overlayColor: colors.surfaceHover,
-              shape: const CircleBorder(),
-              padding: const EdgeInsets.all(8),
-              minimumSize: const Size(40, 40),
-            ).copyWith(
-              side: WidgetStateProperty.resolveWith((states) {
-                if (states.contains(WidgetState.focused)) {
-                  return BorderSide(color: colors.focusRing, width: 2);
-                }
-                return BorderSide(
-                  color: selected ? colors.accent : colors.borderSubtle,
-                  width: selected ? 2 : 1,
-                );
-              }),
+    return ListenableBuilder(
+      listenable: widget.model,
+      builder: (context, _) {
+        final style = widget.model.style;
+        final selectedColor = colorFromHex(style.color);
+        return Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Tooltip(
+              message: _open ? 'Close text settings' : 'Open text settings',
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 180),
+                decoration: BoxDecoration(
+                  color: _open ? colors.surfacePressed : colors.surfaceRaised,
+                  borderRadius: theme.geo.radiusLarge,
+                  border: Border.all(
+                    color: _open ? colors.borderSubtle : colors.surfaceRaised,
+                  ),
+                  boxShadow: _open
+                      ? const []
+                      : [
+                          BoxShadow(
+                            color: colors.shadow,
+                            blurRadius: 12,
+                            offset: const Offset(0, 5),
+                          ),
+                        ],
+                ),
+                child: IconButton(
+                  key: const ValueKey('text-settings-button'),
+                  onPressed: () => setState(() => _open = !_open),
+                  style: IconButton.styleFrom(
+                    minimumSize: const Size.square(32),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: theme.geo.radiusLarge,
+                    ),
+                  ),
+                  icon: Transform.translate(
+                    offset: _open ? const Offset(0, 1) : Offset.zero,
+                    child: const Icon(Icons.tune, size: 22),
+                  ),
+                ),
+              ),
             ),
-        icon: DecoratedBox(
-          decoration: BoxDecoration(
-            color: color,
-            shape: BoxShape.circle,
-            border: Border.all(color: colors.borderSubtle),
-          ),
-          child: SizedBox(
-            width: 20,
-            height: 20,
-            child: selected
-                ? Icon(
-                    Icons.check,
-                    size: 14,
-                    color: _checkColor(color, colors),
-                  )
-                : null,
-          ),
-        ),
-      ),
+            AnimatedSwitcher(
+              duration: const Duration(milliseconds: 220),
+              switchInCurve: Curves.easeOutCubic,
+              switchOutCurve: Curves.easeOutCubic,
+              transitionBuilder: (child, animation) => FadeTransition(
+                opacity: animation,
+                child: SizeTransition(
+                  axis: Axis.horizontal,
+                  alignment: Alignment.centerLeft,
+                  sizeFactor: animation,
+                  child: child,
+                ),
+              ),
+              child: _open
+                  ? Padding(
+                      key: const ValueKey('text-settings-open'),
+                      padding: const EdgeInsets.only(left: 8),
+                      child: Material(
+                        key: const ValueKey('text-settings-panel'),
+                        color: colors.surfaceRaised,
+                        elevation: theme.geo.elevationLow,
+                        shadowColor: colors.shadow,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: theme.geo.radiusLarge,
+                          side: BorderSide(color: colors.borderSubtle),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.all(8),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              SizedBox(
+                                width: 230,
+                                child: Select<String>(
+                                  key: const ValueKey('text-font-select'),
+                                  value: style.fontFamily,
+                                  options: textFontOptions,
+                                  onChanged: (fontFamily) {
+                                    widget.model.style = style.copyWith(
+                                      fontFamily: fontFamily,
+                                    );
+                                  },
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              MenuAnchor(
+                                controller: _colorMenu,
+                                style: MenuStyle(
+                                  backgroundColor: WidgetStatePropertyAll(
+                                    colors.surfaceRaised,
+                                  ),
+                                  elevation: WidgetStatePropertyAll(
+                                    theme.geo.elevationMedium,
+                                  ),
+                                  padding: const WidgetStatePropertyAll(
+                                    EdgeInsets.all(8),
+                                  ),
+                                  shape: WidgetStatePropertyAll(
+                                    RoundedRectangleBorder(
+                                      borderRadius: theme.geo.radiusLarge,
+                                      side: BorderSide(
+                                        color: colors.borderSubtle,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                menuChildren: [
+                                  SizedBox(
+                                    width: 176,
+                                    child: Wrap(
+                                      spacing: 4,
+                                      runSpacing: 4,
+                                      children: [
+                                        for (final swatch in presetColors)
+                                          Tooltip(
+                                            message: swatch.label,
+                                            child: Semantics(
+                                              button: true,
+                                              selected: selectedColor == swatch.color,
+                                              label: 'Use ${swatch.label}',
+                                              child: IconButton(
+                                                key: ValueKey(
+                                                  'text-color-${swatch.label}',
+                                                ),
+                                                onPressed: () {
+                                                  widget.model.style = style.copyWith(
+                                                    color: colorToHex(
+                                                      swatch.color,
+                                                    ),
+                                                  );
+                                                  _colorMenu.close();
+                                                },
+                                                style: IconButton.styleFrom(
+                                                  minimumSize: const Size.square(40),
+                                                  padding: const EdgeInsets.all(
+                                                    8,
+                                                  ),
+                                                  shape: const CircleBorder(),
+                                                  side: BorderSide(
+                                                    color: selectedColor == swatch.color
+                                                        ? colors.focusRing
+                                                        : Colors.transparent,
+                                                    width: 2,
+                                                  ),
+                                                ),
+                                                icon: DecoratedBox(
+                                                  decoration: BoxDecoration(
+                                                    color: swatch.color,
+                                                    shape: BoxShape.circle,
+                                                    border: Border.all(
+                                                      color: colors.borderSubtle,
+                                                    ),
+                                                  ),
+                                                  child: const SizedBox.square(
+                                                    dimension: 20,
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                                builder: (context, controller, _) => IconButton(
+                                  key: const ValueKey('text-settings-color'),
+                                  tooltip: 'Choose text color',
+                                  onPressed: controller.isOpen ? controller.close : controller.open,
+                                  style:
+                                      IconButton.styleFrom(
+                                        minimumSize: const Size.square(40),
+                                        padding: const EdgeInsets.all(8),
+                                        shape: const CircleBorder(),
+                                      ).copyWith(
+                                        overlayColor: WidgetStateProperty.resolveWith(
+                                          (states) =>
+                                              states.contains(
+                                                WidgetState.focused,
+                                              )
+                                              ? colors.focusRing.withValues(
+                                                  alpha: 0.18,
+                                                )
+                                              : Colors.transparent,
+                                        ),
+                                      ),
+                                  icon: DecoratedBox(
+                                    decoration: BoxDecoration(
+                                      color: selectedColor,
+                                      shape: BoxShape.circle,
+                                      border: Border.all(
+                                        color: colors.borderSubtle,
+                                      ),
+                                    ),
+                                    child: const SizedBox.square(dimension: 24),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    )
+                  : const SizedBox(
+                      key: ValueKey('text-settings-closed'),
+                    ),
+            ),
+          ],
+        );
+      },
     );
   }
 }
 
-Color _checkColor(Color color, BColors colors) =>
-    color.computeLuminance() > 0.5 ? colors.textPrimary : colors.surface;
-
 bool _sameStyle(TextNodeStyle first, TextNodeStyle second) {
-  return first.fontFamily == second.fontFamily &&
-      first.fontSize == second.fontSize &&
-      first.color == second.color;
+  return first.fontFamily == second.fontFamily && first.fontSize == second.fontSize && first.color == second.color;
 }
 
 Widget _buildImage(Uri uri, String? alt) {
@@ -649,10 +772,7 @@ class _TextImageError extends StatelessWidget {
 
 Future<void> _openLink(BuildContext context, String? href) async {
   final uri = href == null ? null : Uri.tryParse(href);
-  final supported =
-      uri != null &&
-      (uri.scheme == 'http' || uri.scheme == 'https') &&
-      uri.host.isNotEmpty;
+  final supported = uri != null && (uri.scheme == 'http' || uri.scheme == 'https') && uri.host.isNotEmpty;
   if (supported) {
     try {
       if (await launchUrl(uri, mode: LaunchMode.externalApplication)) return;

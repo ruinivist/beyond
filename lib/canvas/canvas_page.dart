@@ -226,11 +226,6 @@ class _CanvasPageState extends State<CanvasPage> {
     });
   }
 
-  void _changeTextStyle(TextBlockModel model, TextNodeStyle style) {
-    if (!_documentLoaded) return;
-    model.style = style;
-  }
-
   void _moveCodeBlock(CodeBlockModel model, Offset screenDelta) {
     if (_textPlacementEnabled || _penEnabled) return;
     final entry = _codeBlocks[model];
@@ -564,15 +559,18 @@ class _CanvasPageState extends State<CanvasPage> {
             CompositedTransformFollower(
               link: selected.layerLink,
               showWhenUnlinked: false,
-              targetAnchor: Alignment.topCenter,
-              followerAnchor: Alignment.bottomCenter,
-              offset: const Offset(0, -8),
-              child: Overlay.wrap(
-                clipBehavior: Clip.none,
-                alwaysSizeToContent: true,
-                child: TextStylePopover(
-                  model: selected,
-                  onStyleChanged: (style) => _changeTextStyle(selected, style),
+              targetAnchor: Alignment.centerLeft,
+              followerAnchor: Alignment.centerLeft,
+              offset: TextBlockControls.followerOffset,
+              child: SizedBox.fromSize(
+                size: TextBlockControls.size,
+                child: Overlay.wrap(
+                  clipBehavior: Clip.none,
+                  child: TextBlockControls(
+                    key: ValueKey(selected.node.id),
+                    model: selected,
+                    onMove: (delta) => _moveTextBlock(selected, delta),
+                  ),
                 ),
               ),
             ),
