@@ -190,27 +190,36 @@ Widget _buildSelectTrigger({
           if (enabled && !controller.isOpen) controller.open();
         },
       },
-      child: TextButton(
-        key: ValueKey('$keyPrefix-trigger'),
-        onPressed: enabled
-            ? () => controller.isOpen ? controller.close() : controller.open()
-            : null,
-        focusNode: focusNode,
-        style: _selectTriggerStyle(
-          theme: theme,
-          showBorder: showBorder,
-          width: width,
-        ),
-        child: Row(
-          children: [
-            Text(label),
-            const Spacer(),
-            Icon(
-              Icons.keyboard_arrow_down,
-              size: _selectTriggerIconSize,
-              color: theme.colors.textPrimary,
-            ),
-          ],
+      child: TapRegion(
+        groupId: controller,
+        onTapUpOutside: (_) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            FocusManager.instance.applyFocusChangesIfNeeded();
+            if (focusNode.hasFocus) focusNode.unfocus();
+          });
+        },
+        child: TextButton(
+          key: ValueKey('$keyPrefix-trigger'),
+          onPressed: enabled
+              ? () => controller.isOpen ? controller.close() : controller.open()
+              : null,
+          focusNode: focusNode,
+          style: _selectTriggerStyle(
+            theme: theme,
+            showBorder: showBorder,
+            width: width,
+          ),
+          child: Row(
+            children: [
+              Text(label),
+              const Spacer(),
+              Icon(
+                Icons.keyboard_arrow_down,
+                size: _selectTriggerIconSize,
+                color: theme.colors.textPrimary,
+              ),
+            ],
+          ),
         ),
       ),
     ),

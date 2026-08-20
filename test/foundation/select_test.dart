@@ -100,6 +100,58 @@ void main() {
     await tester.tapAt(const Offset(1, 1));
     await tester.pump();
     expect(find.byKey(const ValueKey('select-option-0')), findsNothing);
+    expect(
+      tester
+          .widget<TextButton>(
+            find.byKey(const ValueKey('select-trigger')),
+          )
+          .focusNode!
+          .hasFocus,
+      isFalse,
+    );
+  });
+
+  testWidgets('select keeps focus on a focusable outside target', (
+    tester,
+  ) async {
+    final outsideFocusNode = FocusNode();
+    addTearDown(outsideFocusNode.dispose);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: starlessLightThemeData,
+        home: Scaffold(
+          body: Center(
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Select<String>(
+                  value: 'dart',
+                  options: const [SelectOption(value: 'dart', label: 'Dart')],
+                  onChanged: (_) {},
+                ),
+                const SizedBox(width: 16),
+                SizedBox(
+                  width: 120,
+                  child: TextField(
+                    key: const ValueKey('outside-focusable'),
+                    focusNode: outsideFocusNode,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+
+    final trigger = find.byKey(const ValueKey('select-trigger'));
+    await tester.tap(trigger);
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('outside-focusable')));
+    await tester.pump();
+
+    expect(outsideFocusNode.hasFocus, isTrue);
   });
 
   testWidgets('select ignores disabled options', (tester) async {
@@ -292,6 +344,15 @@ void main() {
       );
       expectOption(0, 'Python');
       expectOption(1, 'TypeScript');
+
+      final triggerFocusNode = tester
+          .widget<TextButton>(
+            find.byKey(const ValueKey('searchable-select-trigger')),
+          )
+          .focusNode!;
+      await tester.tapAt(const Offset(1, 1));
+      await tester.pump();
+      expect(triggerFocusNode.hasFocus, isFalse);
     },
   );
 }
