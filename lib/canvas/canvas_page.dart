@@ -7,6 +7,7 @@ import 'package:beyond/canvas/tools/markdown/markdown_block.dart';
 import 'package:beyond/canvas/tools/pen/pen_tool.dart';
 import 'package:beyond/canvas/tools/text/text_block.dart';
 import 'package:beyond/canvas/tools/text/text_node.dart';
+import 'package:beyond/foundation/control_surface.dart';
 import 'package:beyond/foundation/theme.dart';
 import 'package:beyond/widgets/settings_dialog.dart';
 import 'package:flutter/gestures.dart';
@@ -655,15 +656,8 @@ class _CanvasPageState extends State<CanvasPage> {
               alignment: Alignment.topRight,
               child: Padding(
                 padding: const EdgeInsets.all(12),
-                child: Material(
+                child: ControlSurface(
                   key: const ValueKey('settings-button-surface'),
-                  color: colors.surfaceRaised,
-                  elevation: geo.elevationLow,
-                  shadowColor: colors.shadow,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: geo.radiusMedium,
-                    side: BorderSide(color: colors.borderSubtle),
-                  ),
                   child: IconButton(
                     key: const ValueKey('settings-button'),
                     tooltip: 'Settings',
