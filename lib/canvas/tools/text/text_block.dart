@@ -120,45 +120,42 @@ class TextBlock extends StatelessWidget {
                         Positioned(
                           right: 0,
                           bottom: 0,
-                          width: 28,
-                          height: 24,
                           child: MouseRegion(
                             cursor: SystemMouseCursors.resizeLeftRight,
                             child: TextFieldTapRegion(
-                              child: Semantics(
-                                button: true,
-                                label: 'Resize text width',
-                                child: RawGestureDetector(
-                                  key: const ValueKey(
-                                    'text-block-resize-handle',
-                                  ),
-                                  behavior: HitTestBehavior.opaque,
-                                  gestures: {
-                                    ImmediateMultiDragGestureRecognizer:
-                                        GestureRecognizerFactoryWithHandlers<ImmediateMultiDragGestureRecognizer>(
-                                          ImmediateMultiDragGestureRecognizer.new,
-                                          (recognizer) {
-                                            recognizer.onStart = (_) => _TextBlockResizeDrag(onResize);
-                                          },
-                                        ),
-                                  },
-                                  child: DecoratedBox(
-                                    decoration: BoxDecoration(
-                                      color: colors.surfaceRaised,
-                                      border: Border(
-                                        top: BorderSide(
-                                          color: colors.borderSubtle,
-                                        ),
-                                        left: BorderSide(
-                                          color: colors.borderSubtle,
-                                        ),
-                                      ),
+                              child: ControlSurface(
+                                child: Semantics(
+                                  button: true,
+                                  label: 'Resize text width',
+                                  child: RawGestureDetector(
+                                    key: const ValueKey(
+                                      'text-block-resize-handle',
                                     ),
-                                    child: Center(
-                                      child: Icon(
-                                        Icons.drag_handle,
-                                        size: 18,
-                                        color: colors.textMuted,
+                                    behavior: HitTestBehavior.opaque,
+                                    gestures: {
+                                      ImmediateMultiDragGestureRecognizer:
+                                          GestureRecognizerFactoryWithHandlers<
+                                            ImmediateMultiDragGestureRecognizer
+                                          >(
+                                            ImmediateMultiDragGestureRecognizer
+                                                .new,
+                                            (recognizer) {
+                                              recognizer.onStart = (_) =>
+                                                  _TextBlockResizeDrag(
+                                                    onResize,
+                                                  );
+                                            },
+                                          ),
+                                    },
+                                    child: SizedBox(
+                                      width: 32,
+                                      height: 20,
+                                      child: Center(
+                                        child: Icon(
+                                          Icons.swap_horiz,
+                                          size: 16,
+                                          color: colors.textMuted,
+                                        ),
                                       ),
                                     ),
                                   ),
