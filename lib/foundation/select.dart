@@ -61,11 +61,11 @@ ButtonStyle _selectTriggerStyle({
   final colors = theme.colors;
   return ButtonStyle(
     foregroundColor: _selectForegroundColor(colors),
+    overlayColor: const WidgetStatePropertyAll(Colors.transparent),
     backgroundColor: WidgetStateProperty.resolveWith((states) {
       if (states.contains(WidgetState.disabled)) return colors.surface;
       if (states.contains(WidgetState.pressed)) return colors.surfacePressed;
-      if (states.contains(WidgetState.hovered) ||
-          states.contains(WidgetState.focused)) {
+      if (states.contains(WidgetState.hovered)) {
         return colors.surfaceHover;
       }
       return colors.surface;
@@ -190,36 +190,27 @@ Widget _buildSelectTrigger({
           if (enabled && !controller.isOpen) controller.open();
         },
       },
-      child: TapRegion(
-        groupId: controller,
-        onTapUpOutside: (_) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            FocusManager.instance.applyFocusChangesIfNeeded();
-            if (focusNode.hasFocus) focusNode.unfocus();
-          });
-        },
-        child: TextButton(
-          key: ValueKey('$keyPrefix-trigger'),
-          onPressed: enabled
-              ? () => controller.isOpen ? controller.close() : controller.open()
-              : null,
-          focusNode: focusNode,
-          style: _selectTriggerStyle(
-            theme: theme,
-            showBorder: showBorder,
-            width: width,
-          ),
-          child: Row(
-            children: [
-              Text(label),
-              const Spacer(),
-              Icon(
-                Icons.keyboard_arrow_down,
-                size: _selectTriggerIconSize,
-                color: theme.colors.textPrimary,
-              ),
-            ],
-          ),
+      child: TextButton(
+        key: ValueKey('$keyPrefix-trigger'),
+        onPressed: enabled
+            ? () => controller.isOpen ? controller.close() : controller.open()
+            : null,
+        focusNode: focusNode,
+        style: _selectTriggerStyle(
+          theme: theme,
+          showBorder: showBorder,
+          width: width,
+        ),
+        child: Row(
+          children: [
+            Text(label),
+            const Spacer(),
+            Icon(
+              Icons.keyboard_arrow_down,
+              size: _selectTriggerIconSize,
+              color: theme.colors.textPrimary,
+            ),
+          ],
         ),
       ),
     ),
@@ -243,13 +234,7 @@ Widget _buildSelectOption<T>({
     child: MenuItemButton(
       key: ValueKey('$keyPrefix-option-$index'),
       focusNode: focusNode,
-      onPressed: option.enabled
-          ? () {
-              // MenuItemButton restores focus before calling onPressed.
-              FocusManager.instance.primaryFocus?.unfocus();
-              onChanged?.call(option.value);
-            }
-          : null,
+      onPressed: option.enabled ? () => onChanged?.call(option.value) : null,
       semanticsLabel: option.label,
       style: _selectOptionStyle(theme: theme, isSelected: isSelected),
       child: Text(option.label),
