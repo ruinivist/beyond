@@ -73,7 +73,15 @@ void main() {
 
     expect(find.byType(TextField), findsNothing);
     expect(find.byKey(const ValueKey('text-markdown-preview')), findsOneWidget);
-    expect(find.byKey(const ValueKey('text-block-handle')), findsNothing);
+    expect(
+      find.byKey(const ValueKey('text-block-handle')).hitTestable(),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const ValueKey('text-block-resize-handle')).hitTestable(),
+      findsNothing,
+    );
+    await tester.pumpAndSettle();
     expect(
       find.byKey(const ValueKey('text-block-resize-handle')),
       findsNothing,
@@ -133,11 +141,15 @@ void main() {
     expect(model.selected, isFalse);
     expect(model.focusNode.hasFocus, isFalse);
     expect(find.byKey(const ValueKey('text-markdown-preview')), findsOneWidget);
-    expect(find.byKey(const ValueKey('text-block-handle')), findsNothing);
     expect(
-      find.byKey(const ValueKey('text-block-resize-handle')),
+      find.byKey(const ValueKey('text-block-handle')).hitTestable(),
       findsNothing,
     );
+    expect(
+      find.byKey(const ValueKey('text-block-resize-handle')).hitTestable(),
+      findsNothing,
+    );
+    await tester.pumpAndSettle();
     expect(find.byType(TextBlockControls), findsNothing);
 
     await gesture.up();
@@ -251,6 +263,7 @@ void main() {
       find.byKey(const ValueKey('text-markdown-preview-surface')),
     );
     await tester.pump();
+    await tester.pumpAndSettle();
     expect(model.focusNode.hasFocus, isTrue);
     expect(model.selected, isTrue);
     expect(find.byKey(const ValueKey('text-markdown-editor')), findsOneWidget);
@@ -574,19 +587,21 @@ Inline $x^2$''';
 
     await tester.tap(find.text('Code'));
     await tester.pump();
+    await tester.pumpAndSettle();
     expect(model.selected, isFalse);
     expect(find.byType(TextBlockControls), findsNothing);
 
     await tester.tap(find.text('Markdown'));
     await tester.pump();
+    await tester.pumpAndSettle();
     expect(model.selected, isFalse);
     expect(find.byType(TextBlockControls), findsNothing);
 
     await tester.tapAt(const Offset(24, 550));
     await tester.pump();
+    await tester.pumpAndSettle();
     expect(model.selected, isFalse);
     expect(find.byType(TextBlockControls), findsNothing);
-    await tester.pump(const Duration(milliseconds: 100));
   });
 
   testWidgets('selecting a second text rebinds closed text settings', (
@@ -598,7 +613,9 @@ Inline $x^2$''';
     final first = await _placeTextBlock(tester, const Offset(120, 200));
     final second = await _placeTextBlock(tester, const Offset(480, 360));
 
-    await tester.tap(find.byKey(const ValueKey('text-settings-button')));
+    await tester.tap(
+      find.byKey(const ValueKey('text-settings-button')).hitTestable(),
+    );
     await tester.pumpAndSettle();
     tester
         .widget<Select<String>>(find.byKey(const ValueKey('text-font-select')))
@@ -614,7 +631,9 @@ Inline $x^2$''';
       find.byKey(const ValueKey('text-settings-panel')).hitTestable(),
       findsNothing,
     );
-    await tester.tap(find.byKey(const ValueKey('text-settings-button')));
+    await tester.tap(
+      find.byKey(const ValueKey('text-settings-button')).hitTestable(),
+    );
     await tester.pumpAndSettle();
     tester
         .widget<Select<String>>(find.byKey(const ValueKey('text-font-select')))
@@ -647,19 +666,21 @@ Inline $x^2$''';
     await tester.pump();
 
     await tester.drag(
-      find.byKey(const ValueKey('text-block-handle')),
+      find.byKey(const ValueKey('text-block-handle')).hitTestable(),
       const Offset(60, 40),
       kind: PointerDeviceKind.mouse,
     );
     await tester.pump();
     await tester.drag(
-      find.byKey(const ValueKey('text-block-resize-handle')),
+      find.byKey(const ValueKey('text-block-resize-handle')).hitTestable(),
       const Offset(40, 0),
       kind: PointerDeviceKind.mouse,
     );
     await tester.pump();
 
-    await tester.tap(find.byKey(const ValueKey('text-settings-button')));
+    await tester.tap(
+      find.byKey(const ValueKey('text-settings-button')).hitTestable(),
+    );
     await tester.pumpAndSettle();
     tester
         .widget<Select<String>>(find.byKey(const ValueKey('text-font-select')))

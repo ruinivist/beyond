@@ -36,6 +36,7 @@ class _CanvasPageState extends State<CanvasPage> {
       <MarkdownBlockModel, ({String id, Offset position})>{};
   final _textBlocks = <TextBlockModel, String>{};
   TextBlockModel? _selectedTextBlock;
+  TextBlockModel? _selectionChromeModel;
   final _strokeIds = <String>[];
   final _interactiveBlockPointerIds = <int>{};
   Timer? _saveTimer;
@@ -199,6 +200,7 @@ class _CanvasPageState extends State<CanvasPage> {
   void _selectTextBlock(TextBlockModel selected) {
     setState(() {
       _selectedTextBlock = selected;
+      _selectionChromeModel = selected;
       for (final model in _textBlocks.keys) {
         model.selected = identical(model, selected);
       }
@@ -543,6 +545,7 @@ class _CanvasPageState extends State<CanvasPage> {
     final theme = BTheme.of(context);
     final colors = theme.colors;
     final geo = theme.geo;
+    final selectionChromeModel = _selectionChromeModel;
     return Scaffold(
       body: Stack(
         children: [
@@ -564,9 +567,9 @@ class _CanvasPageState extends State<CanvasPage> {
                 child: Scribble(notifier: _penTool),
               ),
             ),
-          if (_selectedTextBlock case final selected?)
+          if (selectionChromeModel case final anchor?)
             CompositedTransformFollower(
-              link: selected.layerLink,
+              link: anchor.layerLink,
               showWhenUnlinked: false,
               targetAnchor: Alignment.centerLeft,
               followerAnchor: Alignment.centerLeft,
@@ -575,10 +578,30 @@ class _CanvasPageState extends State<CanvasPage> {
                 size: TextBlockControls.size,
                 child: Overlay.wrap(
                   clipBehavior: Clip.none,
-                  child: TextBlockControls(
-                    key: ValueKey(selected.node.id),
-                    model: selected,
-                    onMove: (delta) => _moveTextBlock(selected, delta),
+                  child: AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 260),
+                    reverseDuration: const Duration(milliseconds: 180),
+                    switchInCurve: Curves.easeOutCubic,
+                    switchOutCurve: Curves.easeOutCubic,
+                    transitionBuilder: _textSelectionChromeTransition,
+                    child: switch (_selectedTextBlock) {
+                      final selected? => ListenableBuilder(
+                        key: ValueKey(selected.node.id),
+                        listenable: selected,
+                        builder: (context, child) => IgnorePointer(
+                          ignoring: !selected.selected,
+                          child: child,
+                        ),
+                        child: TextBlockControls(
+                          key: ValueKey(selected.node.id),
+                          model: selected,
+                          onMove: (delta) => _moveTextBlock(selected, delta),
+                        ),
+                      ),
+                      null => const SizedBox(
+                        key: ValueKey('text-selection-chrome-hidden'),
+                      ),
+                    },
                   ),
                 ),
               ),
@@ -681,6 +704,20 @@ class _CanvasPageState extends State<CanvasPage> {
       ),
     );
   }
+}
+
+Widget _textSelectionChromeTransition(
+  Widget child,
+  Animation<double> animation,
+) {
+  return FadeTransition(
+    opacity: animation,
+    child: ScaleTransition(
+      scale: Tween<double>(begin: 0.94, end: 1).animate(animation),
+      alignment: Alignment.centerLeft,
+      child: child,
+    ),
+  );
 }
 
 ButtonStyle _toolbarButtonStyle(

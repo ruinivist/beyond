@@ -79,6 +79,7 @@ void main() {
 
     await tester.tap(find.text('Pen'));
     await tester.pump();
+    await tester.pumpAndSettle();
 
     expect(model.selected, isFalse);
     expect(find.byType(TextBlockControls), findsNothing);

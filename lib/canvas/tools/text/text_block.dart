@@ -116,54 +116,77 @@ class TextBlock extends StatelessWidget {
                           onEdit: onEdit,
                           onMove: onMove,
                         ),
-                      if (model.selected)
-                        Positioned(
-                          right: 0,
-                          bottom: 0,
-                          child: MouseRegion(
-                            cursor: SystemMouseCursors.resizeLeftRight,
-                            child: TextFieldTapRegion(
-                              child: ControlSurface(
-                                child: Semantics(
-                                  button: true,
-                                  label: 'Resize text width',
-                                  child: RawGestureDetector(
-                                    key: const ValueKey(
-                                      'text-block-resize-handle',
-                                    ),
-                                    behavior: HitTestBehavior.opaque,
-                                    gestures: {
-                                      ImmediateMultiDragGestureRecognizer:
-                                          GestureRecognizerFactoryWithHandlers<
-                                            ImmediateMultiDragGestureRecognizer
-                                          >(
-                                            ImmediateMultiDragGestureRecognizer
-                                                .new,
-                                            (recognizer) {
-                                              recognizer.onStart = (_) =>
-                                                  _TextBlockResizeDrag(
-                                                    onResize,
-                                                  );
-                                            },
+                      Positioned(
+                        right: 0,
+                        bottom: 0,
+                        child: SizedBox(
+                          width: 32,
+                          height: 20,
+                          child: IgnorePointer(
+                            ignoring: !model.selected,
+                            child: AnimatedSwitcher(
+                              duration: const Duration(milliseconds: 260),
+                              reverseDuration: const Duration(
+                                milliseconds: 180,
+                              ),
+                              switchInCurve: Curves.easeOutCubic,
+                              switchOutCurve: Curves.easeOutCubic,
+                              transitionBuilder: _textResizeHandleTransition,
+                              child: model.selected
+                                  ? MouseRegion(
+                                      cursor:
+                                          SystemMouseCursors.resizeLeftRight,
+                                      child: TextFieldTapRegion(
+                                        child: ControlSurface(
+                                          child: Semantics(
+                                            button: true,
+                                            label: 'Resize text width',
+                                            child: RawGestureDetector(
+                                              key: const ValueKey(
+                                                'text-block-resize-handle',
+                                              ),
+                                              behavior: HitTestBehavior.opaque,
+                                              gestures: {
+                                                ImmediateMultiDragGestureRecognizer:
+                                                    GestureRecognizerFactoryWithHandlers<
+                                                      ImmediateMultiDragGestureRecognizer
+                                                    >(
+                                                      ImmediateMultiDragGestureRecognizer
+                                                          .new,
+                                                      (recognizer) {
+                                                        recognizer
+                                                            .onStart = (_) =>
+                                                            _TextBlockResizeDrag(
+                                                              onResize,
+                                                            );
+                                                      },
+                                                    ),
+                                              },
+                                              child: SizedBox(
+                                                width: 32,
+                                                height: 20,
+                                                child: Center(
+                                                  child: Icon(
+                                                    Icons.swap_horiz,
+                                                    size: 16,
+                                                    color: colors.textMuted,
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
                                           ),
-                                    },
-                                    child: SizedBox(
-                                      width: 32,
-                                      height: 20,
-                                      child: Center(
-                                        child: Icon(
-                                          Icons.swap_horiz,
-                                          size: 16,
-                                          color: colors.textMuted,
                                         ),
                                       ),
+                                    )
+                                  : const SizedBox(
+                                      key: ValueKey(
+                                        'text-block-resize-handle-hidden',
+                                      ),
                                     ),
-                                  ),
-                                ),
-                              ),
                             ),
                           ),
                         ),
+                      ),
                     ],
                   ),
                 ),
@@ -174,6 +197,20 @@ class TextBlock extends StatelessWidget {
       ),
     );
   }
+}
+
+Widget _textResizeHandleTransition(
+  Widget child,
+  Animation<double> animation,
+) {
+  return FadeTransition(
+    opacity: animation,
+    child: ScaleTransition(
+      scale: Tween<double>(begin: 0.94, end: 1).animate(animation),
+      alignment: Alignment.bottomRight,
+      child: child,
+    ),
+  );
 }
 
 class _TextMarkdownEditor extends StatelessWidget {
