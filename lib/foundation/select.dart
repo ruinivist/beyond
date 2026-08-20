@@ -22,12 +22,14 @@ class Select<T> extends StatefulWidget {
     required this.value,
     required this.options,
     required this.onChanged,
+    this.showBorder = true,
     super.key,
   });
 
   final T value;
   final List<SelectOption<T>> options;
   final ValueChanged<T>? onChanged;
+  final bool showBorder;
 
   @override
   State<Select<T>> createState() => _SelectState<T>();
@@ -145,10 +147,6 @@ class _SelectState<T> extends State<Select<T>> {
     });
   }
 
-  void _restoreTriggerFocus() {
-    if (mounted && _enabled) _triggerFocusNode.requestFocus();
-  }
-
   ButtonStyle _triggerStyle() {
     return ButtonStyle(
       foregroundColor: _foregroundColor,
@@ -164,6 +162,9 @@ class _SelectState<T> extends State<Select<T>> {
         return _background;
       }),
       side: WidgetStateProperty.resolveWith((states) {
+        if (!widget.showBorder) {
+          return const BorderSide(color: Colors.transparent);
+        }
         if (states.contains(WidgetState.disabled)) {
           return BorderSide(color: _border.withValues(alpha: 0.38));
         }
@@ -240,7 +241,6 @@ class _SelectState<T> extends State<Select<T>> {
       controller: _menuController,
       childFocusNode: _triggerFocusNode,
       onOpen: _focusSelectedOption,
-      onClose: _restoreTriggerFocus,
       alignmentOffset: const Offset(0, 4),
       crossAxisUnconstrained: false,
       style: MenuStyle(
@@ -314,7 +314,11 @@ class _SelectState<T> extends State<Select<T>> {
         key: ValueKey('select-option-$index'),
         focusNode: _optionFocusNodes[index],
         onPressed: option.enabled
-            ? () => widget.onChanged?.call(option.value)
+            ? () {
+                // MenuItemButton restores focus before calling onPressed.
+                FocusManager.instance.primaryFocus?.unfocus();
+                widget.onChanged?.call(option.value);
+              }
             : null,
         semanticsLabel: option.label,
         style: _optionStyle(isSelected),

@@ -260,6 +260,7 @@ class _CodeBlockHeader extends StatelessWidget {
                     for (final language in CodeLanguage.values)
                       SelectOption(value: language, label: language.label),
                   ],
+                  showBorder: false,
                   onChanged: (language) => model.language = language,
                 ),
               ],
