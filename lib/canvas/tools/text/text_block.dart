@@ -388,7 +388,7 @@ class TextBlockControls extends StatelessWidget {
             child: TextSettings(model: model),
           ),
           Positioned(
-            top: 60,
+            top: 63,
             left: 0,
             child: MouseRegion(
               cursor: SystemMouseCursors.grab,
@@ -420,7 +420,7 @@ class TextBlockControls extends StatelessWidget {
             ),
           ),
           Positioned(
-            top: 130,
+            top: 127,
             left: 30,
             child: Tooltip(
               message: 'Rotate text (coming soon)',
@@ -436,7 +436,7 @@ class TextBlockControls extends StatelessWidget {
                       style: IconButton.styleFrom(
                         minimumSize: const Size.square(32),
                         shape: RoundedRectangleBorder(
-                          borderRadius: theme.geo.radiusLarge,
+                          borderRadius: BTheme.of(context).geo.radiusLarge,
                         ),
                       ),
                       icon: const Icon(Icons.rotate_right, size: 24),
