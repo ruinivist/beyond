@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:beyond/canvas/tools/text/text_node.dart';
+import 'package:beyond/foundation/control_surface.dart';
 import 'package:beyond/foundation/select.dart';
 import 'package:beyond/foundation/theme.dart';
 import 'package:beyond/utils/preset_colors.dart';
@@ -375,8 +376,6 @@ class TextBlockControls extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = BTheme.of(context);
-    final colors = theme.colors;
     return SizedBox(
       width: size.width,
       height: size.height,
@@ -394,15 +393,7 @@ class TextBlockControls extends StatelessWidget {
             child: MouseRegion(
               cursor: SystemMouseCursors.grab,
               child: TextFieldTapRegion(
-                child: Material(
-                  color: colors.surfaceRaised,
-                  elevation: theme.geo.elevationMedium,
-                  shadowColor: colors.shadow,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: theme.geo.radiusLarge,
-                    side: BorderSide(color: colors.borderSubtle),
-                  ),
-                  clipBehavior: Clip.antiAlias,
+                child: ControlSurface(
                   child: Semantics(
                     button: true,
                     label: 'Move text block',
@@ -438,15 +429,7 @@ class TextBlockControls extends StatelessWidget {
                 enabled: false,
                 label: 'Rotate text (coming soon)',
                 child: ExcludeSemantics(
-                  child: Material(
-                    color: colors.surfaceRaised,
-                    elevation: theme.geo.elevationLow,
-                    shadowColor: colors.shadow,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: theme.geo.radiusLarge,
-                      side: BorderSide(color: colors.borderSubtle),
-                    ),
-                    clipBehavior: Clip.antiAlias,
+                  child: ControlSurface(
                     child: IconButton(
                       key: const ValueKey('text-block-rotate-control'),
                       onPressed: null,
@@ -505,24 +488,8 @@ class _TextSettingsState extends State<TextSettings> {
             children: [
               Tooltip(
                 message: _open ? 'Close text settings' : 'Open text settings',
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 180),
-                  decoration: BoxDecoration(
-                    color: _open ? colors.surfacePressed : colors.surfaceRaised,
-                    borderRadius: theme.geo.radiusLarge,
-                    border: Border.all(
-                      color: _open ? colors.borderSubtle : colors.surfaceRaised,
-                    ),
-                    boxShadow: _open
-                        ? const []
-                        : [
-                            BoxShadow(
-                              color: colors.shadow,
-                              blurRadius: 12,
-                              offset: const Offset(0, 5),
-                            ),
-                          ],
-                  ),
+                child: ControlSurface(
+                  selected: _open,
                   child: IconButton(
                     key: const ValueKey('text-settings-button'),
                     onPressed: () => setState(() => _open = !_open),
