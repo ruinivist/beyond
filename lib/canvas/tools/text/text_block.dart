@@ -497,212 +497,251 @@ class _TextSettingsState extends State<TextSettings> {
       builder: (context, _) {
         final style = widget.model.style;
         final selectedColor = colorFromHex(style.color);
-        return Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Tooltip(
-              message: _open ? 'Close text settings' : 'Open text settings',
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 180),
-                decoration: BoxDecoration(
-                  color: _open ? colors.surfacePressed : colors.surfaceRaised,
-                  borderRadius: theme.geo.radiusLarge,
-                  border: Border.all(
-                    color: _open ? colors.borderSubtle : colors.surfaceRaised,
+        return SizedBox(
+          height: 56,
+          child: Stack(
+            alignment: Alignment.centerLeft,
+            clipBehavior: Clip.none,
+            children: [
+              Tooltip(
+                message: _open ? 'Close text settings' : 'Open text settings',
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 180),
+                  decoration: BoxDecoration(
+                    color: _open ? colors.surfacePressed : colors.surfaceRaised,
+                    borderRadius: theme.geo.radiusLarge,
+                    border: Border.all(
+                      color: _open ? colors.borderSubtle : colors.surfaceRaised,
+                    ),
+                    boxShadow: _open
+                        ? const []
+                        : [
+                            BoxShadow(
+                              color: colors.shadow,
+                              blurRadius: 12,
+                              offset: const Offset(0, 5),
+                            ),
+                          ],
                   ),
-                  boxShadow: _open
-                      ? const []
-                      : [
-                          BoxShadow(
-                            color: colors.shadow,
-                            blurRadius: 12,
-                            offset: const Offset(0, 5),
-                          ),
-                        ],
-                ),
-                child: IconButton(
-                  key: const ValueKey('text-settings-button'),
-                  onPressed: () => setState(() => _open = !_open),
-                  style: IconButton.styleFrom(
-                    minimumSize: const Size.square(32),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: theme.geo.radiusLarge,
+                  child: IconButton(
+                    key: const ValueKey('text-settings-button'),
+                    onPressed: () => setState(() => _open = !_open),
+                    style: IconButton.styleFrom(
+                      minimumSize: const Size.square(32),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: theme.geo.radiusLarge,
+                      ),
+                    ),
+                    icon: Transform.translate(
+                      offset: _open ? const Offset(0, 1) : Offset.zero,
+                      child: const Icon(Icons.tune, size: 22),
                     ),
                   ),
-                  icon: Transform.translate(
-                    offset: _open ? const Offset(0, 1) : Offset.zero,
-                    child: const Icon(Icons.tune, size: 22),
-                  ),
                 ),
               ),
-            ),
-            AnimatedSwitcher(
-              duration: const Duration(milliseconds: 220),
-              switchInCurve: Curves.easeOutCubic,
-              switchOutCurve: Curves.easeOutCubic,
-              transitionBuilder: (child, animation) => FadeTransition(
-                opacity: animation,
-                child: SizeTransition(
-                  axis: Axis.horizontal,
-                  alignment: Alignment.centerLeft,
-                  sizeFactor: animation,
-                  child: child,
-                ),
-              ),
-              child: _open
-                  ? Padding(
-                      key: const ValueKey('text-settings-open'),
-                      padding: const EdgeInsets.only(left: 8),
-                      child: Material(
-                        key: const ValueKey('text-settings-panel'),
-                        color: colors.surfaceRaised,
-                        elevation: theme.geo.elevationLow,
-                        shadowColor: colors.shadow,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: theme.geo.radiusLarge,
-                          side: BorderSide(color: colors.borderSubtle),
-                        ),
-                        child: Padding(
-                          padding: const EdgeInsets.all(8),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              SizedBox(
-                                width: 230,
-                                child: Select<String>(
-                                  key: const ValueKey('text-font-select'),
-                                  value: style.fontFamily,
-                                  options: textFontOptions,
-                                  onChanged: (fontFamily) {
-                                    widget.model.style = style.copyWith(
-                                      fontFamily: fontFamily,
-                                    );
-                                  },
-                                ),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const SizedBox(width: 48),
+                  AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 220),
+                    switchInCurve: Curves.easeOutCubic,
+                    switchOutCurve: Curves.easeOutCubic,
+                    transitionBuilder: (child, animation) => FadeTransition(
+                      opacity: animation,
+                      child: SizeTransition(
+                        axis: Axis.horizontal,
+                        alignment: Alignment.centerLeft,
+                        sizeFactor: animation,
+                        child: child,
+                      ),
+                    ),
+                    child: _open
+                        ? Padding(
+                            key: const ValueKey('text-settings-open'),
+                            padding: const EdgeInsets.only(left: 8),
+                            child: Material(
+                              key: const ValueKey('text-settings-panel'),
+                              color: colors.surfaceRaised,
+                              elevation: theme.geo.elevationLow,
+                              shadowColor: colors.shadow,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: theme.geo.radiusLarge,
+                                side: BorderSide(color: colors.borderSubtle),
                               ),
-                              const SizedBox(width: 8),
-                              MenuAnchor(
-                                controller: _colorMenu,
-                                style: MenuStyle(
-                                  backgroundColor: WidgetStatePropertyAll(
-                                    colors.surfaceRaised,
-                                  ),
-                                  elevation: WidgetStatePropertyAll(
-                                    theme.geo.elevationMedium,
-                                  ),
-                                  padding: const WidgetStatePropertyAll(
-                                    EdgeInsets.all(8),
-                                  ),
-                                  shape: WidgetStatePropertyAll(
-                                    RoundedRectangleBorder(
-                                      borderRadius: theme.geo.radiusLarge,
-                                      side: BorderSide(
-                                        color: colors.borderSubtle,
+                              child: Padding(
+                                padding: const EdgeInsets.all(8),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    SizedBox(
+                                      width: 230,
+                                      child: Select<String>(
+                                        key: const ValueKey('text-font-select'),
+                                        value: style.fontFamily,
+                                        options: textFontOptions,
+                                        onChanged: (fontFamily) {
+                                          widget.model.style = style.copyWith(
+                                            fontFamily: fontFamily,
+                                          );
+                                        },
                                       ),
                                     ),
-                                  ),
-                                ),
-                                menuChildren: [
-                                  SizedBox(
-                                    width: 176,
-                                    child: Wrap(
-                                      spacing: 4,
-                                      runSpacing: 4,
-                                      children: [
-                                        for (final swatch in presetColors)
-                                          Tooltip(
-                                            message: swatch.label,
-                                            child: Semantics(
-                                              button: true,
-                                              selected: selectedColor == swatch.color,
-                                              label: 'Use ${swatch.label}',
-                                              child: IconButton(
-                                                key: ValueKey(
-                                                  'text-color-${swatch.label}',
-                                                ),
-                                                onPressed: () {
-                                                  widget.model.style = style.copyWith(
-                                                    color: colorToHex(
-                                                      swatch.color,
+                                    const SizedBox(width: 8),
+                                    MenuAnchor(
+                                      controller: _colorMenu,
+                                      style: MenuStyle(
+                                        backgroundColor: WidgetStatePropertyAll(
+                                          colors.surfaceRaised,
+                                        ),
+                                        elevation: WidgetStatePropertyAll(
+                                          theme.geo.elevationMedium,
+                                        ),
+                                        padding: const WidgetStatePropertyAll(
+                                          EdgeInsets.all(8),
+                                        ),
+                                        shape: WidgetStatePropertyAll(
+                                          RoundedRectangleBorder(
+                                            borderRadius: theme.geo.radiusLarge,
+                                            side: BorderSide(
+                                              color: colors.borderSubtle,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                      menuChildren: [
+                                        SizedBox(
+                                          width: 176,
+                                          child: Wrap(
+                                            spacing: 4,
+                                            runSpacing: 4,
+                                            children: [
+                                              for (final swatch in presetColors)
+                                                Tooltip(
+                                                  message: swatch.label,
+                                                  child: Semantics(
+                                                    button: true,
+                                                    selected:
+                                                        selectedColor ==
+                                                        swatch.color,
+                                                    label:
+                                                        'Use ${swatch.label}',
+                                                    child: IconButton(
+                                                      key: ValueKey(
+                                                        'text-color-${swatch.label}',
+                                                      ),
+                                                      onPressed: () {
+                                                        widget.model.style =
+                                                            style.copyWith(
+                                                              color: colorToHex(
+                                                                swatch.color,
+                                                              ),
+                                                            );
+                                                        _colorMenu.close();
+                                                      },
+                                                      style: IconButton.styleFrom(
+                                                        minimumSize:
+                                                            const Size.square(
+                                                              40,
+                                                            ),
+                                                        padding:
+                                                            const EdgeInsets.all(
+                                                              8,
+                                                            ),
+                                                        shape:
+                                                            const CircleBorder(),
+                                                        side: BorderSide(
+                                                          color:
+                                                              selectedColor ==
+                                                                  swatch.color
+                                                              ? colors.focusRing
+                                                              : Colors
+                                                                    .transparent,
+                                                          width: 2,
+                                                        ),
+                                                      ),
+                                                      icon: DecoratedBox(
+                                                        decoration: BoxDecoration(
+                                                          color: swatch.color,
+                                                          shape:
+                                                              BoxShape.circle,
+                                                          border: Border.all(
+                                                            color: colors
+                                                                .borderSubtle,
+                                                          ),
+                                                        ),
+                                                        child:
+                                                            const SizedBox.square(
+                                                              dimension: 20,
+                                                            ),
+                                                      ),
                                                     ),
-                                                  );
-                                                  _colorMenu.close();
-                                                },
-                                                style: IconButton.styleFrom(
-                                                  minimumSize: const Size.square(40),
+                                                  ),
+                                                ),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
+                                      builder: (context, controller, _) =>
+                                          IconButton(
+                                            key: const ValueKey(
+                                              'text-settings-color',
+                                            ),
+                                            tooltip: 'Choose text color',
+                                            onPressed: controller.isOpen
+                                                ? controller.close
+                                                : controller.open,
+                                            style:
+                                                IconButton.styleFrom(
+                                                  minimumSize:
+                                                      const Size.square(40),
                                                   padding: const EdgeInsets.all(
                                                     8,
                                                   ),
                                                   shape: const CircleBorder(),
-                                                  side: BorderSide(
-                                                    color: selectedColor == swatch.color
-                                                        ? colors.focusRing
-                                                        : Colors.transparent,
-                                                    width: 2,
-                                                  ),
+                                                ).copyWith(
+                                                  overlayColor:
+                                                      WidgetStateProperty.resolveWith(
+                                                        (states) =>
+                                                            states.contains(
+                                                              WidgetState
+                                                                  .focused,
+                                                            )
+                                                            ? colors.focusRing
+                                                                  .withValues(
+                                                                    alpha: 0.18,
+                                                                  )
+                                                            : Colors
+                                                                  .transparent,
+                                                      ),
                                                 ),
-                                                icon: DecoratedBox(
-                                                  decoration: BoxDecoration(
-                                                    color: swatch.color,
-                                                    shape: BoxShape.circle,
-                                                    border: Border.all(
-                                                      color: colors.borderSubtle,
-                                                    ),
-                                                  ),
-                                                  child: const SizedBox.square(
-                                                    dimension: 20,
-                                                  ),
+                                            icon: DecoratedBox(
+                                              decoration: BoxDecoration(
+                                                color: selectedColor,
+                                                shape: BoxShape.circle,
+                                                border: Border.all(
+                                                  color: colors.borderSubtle,
                                                 ),
+                                              ),
+                                              child: const SizedBox.square(
+                                                dimension: 24,
                                               ),
                                             ),
                                           ),
-                                      ],
                                     ),
-                                  ),
-                                ],
-                                builder: (context, controller, _) => IconButton(
-                                  key: const ValueKey('text-settings-color'),
-                                  tooltip: 'Choose text color',
-                                  onPressed: controller.isOpen ? controller.close : controller.open,
-                                  style:
-                                      IconButton.styleFrom(
-                                        minimumSize: const Size.square(40),
-                                        padding: const EdgeInsets.all(8),
-                                        shape: const CircleBorder(),
-                                      ).copyWith(
-                                        overlayColor: WidgetStateProperty.resolveWith(
-                                          (states) =>
-                                              states.contains(
-                                                WidgetState.focused,
-                                              )
-                                              ? colors.focusRing.withValues(
-                                                  alpha: 0.18,
-                                                )
-                                              : Colors.transparent,
-                                        ),
-                                      ),
-                                  icon: DecoratedBox(
-                                    decoration: BoxDecoration(
-                                      color: selectedColor,
-                                      shape: BoxShape.circle,
-                                      border: Border.all(
-                                        color: colors.borderSubtle,
-                                      ),
-                                    ),
-                                    child: const SizedBox.square(dimension: 24),
-                                  ),
+                                  ],
                                 ),
                               ),
-                            ],
+                            ),
+                          )
+                        : const SizedBox(
+                            key: ValueKey('text-settings-closed'),
                           ),
-                        ),
-                      ),
-                    )
-                  : const SizedBox(
-                      key: ValueKey('text-settings-closed'),
-                    ),
-            ),
-          ],
+                  ),
+                ],
+              ),
+            ],
+          ),
         );
       },
     );
