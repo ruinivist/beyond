@@ -129,7 +129,6 @@ class CodeBlock extends StatelessWidget {
                           textColor: colors.textPrimary,
                           backgroundColor: colors.surface,
                           cursorColor: colors.accent,
-                          cursorLineColor: colors.accentSoft,
                           selectionColor: colors.accentSubtle,
                           codeTheme: model.language.theme(theme.syntaxTheme),
                         ),
