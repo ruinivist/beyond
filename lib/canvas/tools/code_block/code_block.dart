@@ -15,7 +15,9 @@ class CodeBlockModel extends ChangeNotifier {
 
   Size _size;
   bool _selected = false;
-  final controller = CodeLineEditingController();
+  final controller = CodeLineEditingController(
+    options: const CodeLineOptions(indentSize: 4),
+  );
   final focusNode = FocusNode();
   final scrollController = CodeScrollController(
     verticalScroller: AnimatedScrollController(
