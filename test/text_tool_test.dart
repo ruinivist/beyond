@@ -4,7 +4,6 @@ import 'package:beyond/canvas/canvas_document_store.dart';
 import 'package:beyond/canvas/tools/text/text_block.dart';
 import 'package:beyond/canvas/tools/text/text_node.dart';
 import 'package:beyond/foundation/select.dart';
-import 'package:beyond/foundation/theme.dart';
 import 'package:beyond/main.dart';
 import 'package:beyond/utils/preset_colors.dart';
 import 'package:flutter/gestures.dart';
@@ -39,7 +38,7 @@ void main() {
     final editor = find.byKey(const ValueKey('text-markdown-editor'));
 
     expect(find.byType(TextField), findsOneWidget);
-    expect(model.selected, isTrue);
+    expect(model.editing, isTrue);
     expect(find.byType(TextBlockControls), findsOneWidget);
     expect(find.byKey(const ValueKey('text-settings-button')), findsOneWidget);
     expect(
@@ -138,7 +137,7 @@ void main() {
     await tester.pump();
 
     expect(model.node.position, originalPosition + delta);
-    expect(model.selected, isFalse);
+    expect(model.editing, isFalse);
     expect(model.focusNode.hasFocus, isFalse);
     expect(find.byKey(const ValueKey('text-markdown-preview')), findsOneWidget);
     expect(
@@ -155,7 +154,7 @@ void main() {
     await gesture.up();
     await tester.pump();
 
-    expect(model.selected, isFalse);
+    expect(model.editing, isFalse);
     expect(find.byKey(const ValueKey('text-markdown-preview')), findsOneWidget);
     expect(find.byType(TextBlockControls), findsNothing);
   });
@@ -273,7 +272,7 @@ void main() {
     await tester.pump();
     await tester.pumpAndSettle();
     expect(model.focusNode.hasFocus, isTrue);
-    expect(model.selected, isTrue);
+    expect(model.editing, isTrue);
     expect(find.byKey(const ValueKey('text-markdown-editor')), findsOneWidget);
     expect(find.byKey(const ValueKey('text-block-handle')), findsOneWidget);
     expect(find.byType(TextBlockControls), findsOneWidget);
@@ -544,7 +543,7 @@ Inline $x^2$''';
 
       expect(model.style.fontFamily, 'Inter');
       expect(model.node.markdown, source);
-      expect(model.selected, isTrue);
+      expect(model.editing, isTrue);
       expect(model.focusNode.hasFocus, isFalse);
       expect(
         find.byKey(const ValueKey('text-markdown-editor')),
@@ -574,39 +573,38 @@ Inline $x^2$''';
       await tester.tap(orangeSwatch);
       await tester.pumpAndSettle();
 
-      final theme = BTheme.of(tester.element(find.byType(TextBlock)));
       final orange = presetColors.singleWhere(
         (swatch) => swatch.label == 'Orange',
       );
       expect(model.style.color, colorToHex(orange.color));
       expect(model.node.markdown, source);
-      expect(model.selected, isTrue);
+      expect(model.editing, isTrue);
       expect(find.byType(TextBlockControls), findsOneWidget);
     },
   );
 
-  testWidgets('text selection is cleared by other blocks and empty canvas', (
+  testWidgets('text editing is cleared by other blocks and empty canvas', (
     tester,
   ) async {
     await _addTextBlock(tester, const Offset(120, 200));
     final model = tester.widget<TextBlock>(find.byType(TextBlock)).model;
-    expect(model.selected, isTrue);
+    expect(model.editing, isTrue);
     expect(find.byType(TextBlockControls), findsOneWidget);
 
     await tester.tap(find.text('Code'));
     await tester.pump();
     await tester.pumpAndSettle();
-    expect(model.selected, isFalse);
+    expect(model.editing, isFalse);
     expect(find.byType(TextBlockControls), findsNothing);
 
     await tester.tapAt(const Offset(24, 550));
     await tester.pump();
     await tester.pumpAndSettle();
-    expect(model.selected, isFalse);
+    expect(model.editing, isFalse);
     expect(find.byType(TextBlockControls), findsNothing);
   });
 
-  testWidgets('selecting a second text rebinds closed text settings', (
+  testWidgets('editing a second text rebinds closed text settings', (
     tester,
   ) async {
     await tester.pumpWidget(const BeyondApp());
@@ -769,7 +767,7 @@ Inline $x^2$''';
       first.node.style.color,
     ]);
     for (final block in restoredBlocks) {
-      expect(block.model.selected, isFalse);
+      expect(block.model.editing, isFalse);
       expect(block.model.focusNode.hasFocus, isFalse);
     }
     expect(find.byType(TextBlockControls), findsNothing);

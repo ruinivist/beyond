@@ -10,6 +10,7 @@ import 'package:beyond/canvas/tools/text/text_node.dart';
 import 'package:beyond/foundation/control_surface.dart';
 import 'package:beyond/foundation/theme.dart';
 import 'package:beyond/widgets/settings_dialog.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -32,8 +33,9 @@ class _CanvasPageState extends State<CanvasPage> {
   final CanvasDocumentStore _documentStore = CanvasDocumentStore();
   final _codeBlocks = <CodeBlockModel, ({String id, Offset position})>{};
   final _textBlocks = <TextBlockModel, String>{};
-  TextBlockModel? _selectedTextBlock;
-  TextBlockModel? _selectionChromeModel;
+  TextBlockModel? _editingTextBlock;
+  TextBlockModel? _editingChromeModel;
+  final ValueNotifier<bool> _selectionModifierPressed = ValueNotifier(false);
   final _strokeIds = <String>[];
   final _interactiveBlockPointerIds = <int>{};
   Timer? _saveTimer;
@@ -69,7 +71,7 @@ class _CanvasPageState extends State<CanvasPage> {
 
   void _toggleTextPlacement() {
     if (!_documentLoaded) return;
-    if (!_textPlacementEnabled) _clearBlockSelection();
+    if (!_textPlacementEnabled) _clearTextEditing();
     setState(() {
       _textPlacementEnabled = !_textPlacementEnabled;
       _penEnabled = false;
@@ -95,6 +97,7 @@ class _CanvasPageState extends State<CanvasPage> {
     }
     if (onInteractiveBlock) return;
     FocusManager.instance.primaryFocus?.unfocus();
+    _clearTextEditing();
     _clearBlockSelection();
   }
 
@@ -107,8 +110,12 @@ class _CanvasPageState extends State<CanvasPage> {
     if (!_documentLoaded || _textPlacementEnabled || _penEnabled) return;
     final entry = _codeBlocks[model];
     if (entry == null) return;
+    if (_selectionModifierPressed.value) {
+      model.selected = !model.selected;
+      return;
+    }
+    _clearTextEditing();
     _bringBlockToFront(entry.id);
-    _selectCodeBlock(model);
   }
 
   void _handleTextBlockPointerDown(
@@ -118,13 +125,17 @@ class _CanvasPageState extends State<CanvasPage> {
     if (event.buttons != kPrimaryButton) return;
     _interactiveBlockPointerIds.add(event.pointer);
     if (_textPlacementEnabled || _penEnabled) return;
-    final canvasId = _textBlocks.remove(model);
-    if (canvasId == null) return;
-    if (!model.selected) {
-      FocusManager.instance.primaryFocus?.unfocus();
-      _clearBlockSelection();
+    if (!_textBlocks.containsKey(model)) return;
+    if (_selectionModifierPressed.value) {
+      model.selected = !model.selected;
+      return;
     }
-    _textBlocks[model] = canvasId;
+    final canvasId = _textBlocks.remove(model);
+    if (!model.editing) {
+      FocusManager.instance.primaryFocus?.unfocus();
+      _clearTextEditing();
+    }
+    _textBlocks[model] = canvasId!;
     _bringBlockToFront(canvasId);
     _scheduleDocumentSave();
   }
@@ -136,7 +147,7 @@ class _CanvasPageState extends State<CanvasPage> {
         !_textBlocks.containsKey(model)) {
       return;
     }
-    _selectTextBlock(model);
+    _startTextEditing(model);
     model.focusNode.requestFocus();
   }
 
@@ -151,41 +162,32 @@ class _CanvasPageState extends State<CanvasPage> {
     _strokeIds.forEach(_canvasController.bringToFront);
   }
 
-  void _selectCodeBlock(CodeBlockModel selected) {
+  void _startTextEditing(TextBlockModel editing) {
     setState(() {
-      _selectedTextBlock = null;
+      _editingTextBlock = editing;
+      _editingChromeModel = editing;
       for (final model in _textBlocks.keys) {
-        model.selected = false;
-      }
-      for (final model in _codeBlocks.keys) {
-        model.selected = model == selected;
+        model.editing = identical(model, editing);
       }
     });
   }
 
-  void _selectTextBlock(TextBlockModel selected) {
+  void _clearTextEditing() {
     setState(() {
-      _selectedTextBlock = selected;
-      _selectionChromeModel = selected;
+      _editingTextBlock = null;
       for (final model in _textBlocks.keys) {
-        model.selected = identical(model, selected);
-      }
-      for (final model in _codeBlocks.keys) {
-        model.selected = false;
+        model.editing = false;
       }
     });
   }
 
   void _clearBlockSelection() {
-    setState(() {
-      _selectedTextBlock = null;
-      for (final model in _textBlocks.keys) {
-        model.selected = false;
-      }
-      for (final model in _codeBlocks.keys) {
-        model.selected = false;
-      }
-    });
+    for (final model in _textBlocks.keys) {
+      model.selected = false;
+    }
+    for (final model in _codeBlocks.keys) {
+      model.selected = false;
+    }
   }
 
   void _moveCodeBlock(CodeBlockModel model, Offset screenDelta) {
@@ -235,7 +237,7 @@ class _CanvasPageState extends State<CanvasPage> {
     final model = TextBlockModel(node);
 
     _mountTextBlock(model, requestFocus: true);
-    _selectTextBlock(model);
+    _startTextEditing(model);
     _bringStrokesToFront();
   }
 
@@ -246,12 +248,15 @@ class _CanvasPageState extends State<CanvasPage> {
     final node = model.node;
     final canvasId = _canvasController.addChild(
       node.position,
-      TextBlock(
-        model: model,
+      _SelectionPointerRegion(
+        modifierPressed: _selectionModifierPressed,
         onPointerDown: (event) => _handleTextBlockPointerDown(model, event),
-        onEdit: () => _editTextBlock(model),
-        onMove: (delta) => _moveTextBlock(model, delta),
-        onResize: (size, delta) => _resizeTextBlock(model, size, delta),
+        child: TextBlock(
+          model: model,
+          onEdit: () => _editTextBlock(model),
+          onMove: (delta) => _moveTextBlock(model, delta),
+          onResize: (size, delta) => _resizeTextBlock(model, size, delta),
+        ),
       ),
       childSize: Size(node.width, node.height ?? textNodeMinimumHeight),
     );
@@ -274,10 +279,13 @@ class _CanvasPageState extends State<CanvasPage> {
 
     final id = _canvasController.addChild(
       position,
-      CodeBlock(
-        model: model,
-        onSelect: (event) => _handleCodeBlockPointerDown(model, event),
-        onMove: (delta) => _moveCodeBlock(model, delta),
+      _SelectionPointerRegion(
+        modifierPressed: _selectionModifierPressed,
+        onPointerDown: (event) => _handleCodeBlockPointerDown(model, event),
+        child: CodeBlock(
+          model: model,
+          onMove: (delta) => _moveCodeBlock(model, delta),
+        ),
       ),
       childSize: size,
     );
@@ -304,7 +312,7 @@ class _CanvasPageState extends State<CanvasPage> {
   }
 
   void _prepareInteractiveBlock() {
-    _clearBlockSelection();
+    _clearTextEditing();
     setState(() {
       _penEnabled = false;
       _textPlacementEnabled = false;
@@ -333,7 +341,7 @@ class _CanvasPageState extends State<CanvasPage> {
 
   void _togglePen() {
     if (!_documentLoaded) return;
-    if (!_penEnabled) _clearBlockSelection();
+    if (!_penEnabled) _clearTextEditing();
     setState(() {
       _penEnabled = !_penEnabled;
       _textPlacementEnabled = false;
@@ -364,6 +372,11 @@ class _CanvasPageState extends State<CanvasPage> {
   }
 
   bool _handleKeyEvent(KeyEvent event) {
+    if (event.logicalKey == LogicalKeyboardKey.controlLeft ||
+        event.logicalKey == LogicalKeyboardKey.controlRight) {
+      _selectionModifierPressed.value =
+          HardwareKeyboard.instance.isControlPressed;
+    }
     final focusContext = FocusManager.instance.primaryFocus?.context;
     final editingText =
         focusContext?.widget is EditableText ||
@@ -460,6 +473,7 @@ class _CanvasPageState extends State<CanvasPage> {
         ..dispose();
     }
     HardwareKeyboard.instance.removeHandler(_handleKeyEvent);
+    _selectionModifierPressed.dispose();
     _penTool.dispose();
     _canvasController.dispose();
     super.dispose();
@@ -470,7 +484,7 @@ class _CanvasPageState extends State<CanvasPage> {
     final theme = BTheme.of(context);
     final colors = theme.colors;
     final geo = theme.geo;
-    final selectionChromeModel = _selectionChromeModel;
+    final editingChromeModel = _editingChromeModel;
     return Scaffold(
       body: Stack(
         children: [
@@ -492,7 +506,7 @@ class _CanvasPageState extends State<CanvasPage> {
                 child: Scribble(notifier: _penTool),
               ),
             ),
-          if (selectionChromeModel case final anchor?)
+          if (editingChromeModel case final anchor?)
             CompositedTransformFollower(
               link: anchor.layerLink,
               showWhenUnlinked: false,
@@ -508,23 +522,23 @@ class _CanvasPageState extends State<CanvasPage> {
                     reverseDuration: const Duration(milliseconds: 180),
                     switchInCurve: Curves.easeOutCubic,
                     switchOutCurve: Curves.easeOutCubic,
-                    transitionBuilder: _textSelectionChromeTransition,
-                    child: switch (_selectedTextBlock) {
-                      final selected? => ListenableBuilder(
-                        key: ValueKey(selected.node.id),
-                        listenable: selected,
+                    transitionBuilder: _textEditingChromeTransition,
+                    child: switch (_editingTextBlock) {
+                      final editing? => ListenableBuilder(
+                        key: ValueKey(editing.node.id),
+                        listenable: editing,
                         builder: (context, child) => IgnorePointer(
-                          ignoring: !selected.selected,
+                          ignoring: !editing.editing,
                           child: child,
                         ),
                         child: TextBlockControls(
-                          key: ValueKey(selected.node.id),
-                          model: selected,
-                          onMove: (delta) => _moveTextBlock(selected, delta),
+                          key: ValueKey(editing.node.id),
+                          model: editing,
+                          onMove: (delta) => _moveTextBlock(editing, delta),
                         ),
                       ),
                       null => const SizedBox(
-                        key: ValueKey('text-selection-chrome-hidden'),
+                        key: ValueKey('text-editing-chrome-hidden'),
                       ),
                     },
                   ),
@@ -618,7 +632,34 @@ class _CanvasPageState extends State<CanvasPage> {
   }
 }
 
-Widget _textSelectionChromeTransition(
+class _SelectionPointerRegion extends StatelessWidget {
+  const _SelectionPointerRegion({
+    required this.modifierPressed,
+    required this.onPointerDown,
+    required this.child,
+  });
+
+  final ValueListenable<bool> modifierPressed;
+  final ValueChanged<PointerDownEvent> onPointerDown;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Listener(
+      onPointerDown: onPointerDown,
+      child: ListenableBuilder(
+        listenable: modifierPressed,
+        builder: (context, child) => AbsorbPointer(
+          absorbing: modifierPressed.value,
+          child: child,
+        ),
+        child: child,
+      ),
+    );
+  }
+}
+
+Widget _textEditingChromeTransition(
   Widget child,
   Animation<double> animation,
 ) {

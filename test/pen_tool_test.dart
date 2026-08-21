@@ -63,7 +63,7 @@ void main() {
     expect(find.byType(ScribbleSketch), findsNothing);
   });
 
-  testWidgets('enabling pen clears text selection', (tester) async {
+  testWidgets('enabling pen stops text editing', (tester) async {
     await tester.pumpWidget(const BeyondApp());
     await tester.pump();
     await tester.tap(find.text('Text'));
@@ -73,14 +73,14 @@ void main() {
     await tester.pump();
 
     final model = tester.widget<TextBlock>(find.byType(TextBlock)).model;
-    expect(model.selected, isTrue);
+    expect(model.editing, isTrue);
     expect(find.byType(TextBlockControls), findsOneWidget);
 
     await tester.tap(find.text('Draw'));
     await tester.pump();
     await tester.pumpAndSettle();
 
-    expect(model.selected, isFalse);
+    expect(model.editing, isFalse);
     expect(find.byType(TextBlockControls), findsNothing);
   });
 
@@ -153,7 +153,9 @@ void main() {
     await tester.pump();
   });
 
-  testWidgets('code blocks select and move from the header', (tester) async {
+  testWidgets('code blocks move from the header without selecting', (
+    tester,
+  ) async {
     await tester.pumpWidget(const BeyondApp());
     await tester.pump();
 
@@ -171,7 +173,7 @@ void main() {
 
     await tester.tap(header);
     await tester.pump();
-    expect(tester.widget<CodeBlock>(block).model.selected, isTrue);
+    expect(tester.widget<CodeBlock>(block).model.selected, isFalse);
 
     const delta = Offset(80, 60);
     await tester.drag(header, delta);
@@ -188,6 +190,80 @@ void main() {
     await tester.pump();
   });
 
+  testWidgets('ctrl-click multi-selects without activating blocks', (
+    tester,
+  ) async {
+    await tester.pumpWidget(const BeyondApp());
+    await tester.pump();
+
+    await tester.tap(find.text('Text'));
+    await tester.pump();
+    await tester.tapAt(const Offset(40, 520));
+    await tester.pump();
+    await tester.pump();
+    await tester.tap(find.text('Code'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+
+    final text = tester.widget<TextBlock>(find.byType(TextBlock)).model;
+    final code = tester.widget<CodeBlock>(find.byType(CodeBlock)).model;
+    final textCenter = tester.getCenter(
+      find.byKey(const ValueKey('text-markdown-preview-surface')),
+    );
+    final codeHeaderCenter = tester.getCenter(
+      find.byKey(const ValueKey('code-block-header')),
+    );
+    FocusManager.instance.primaryFocus?.unfocus();
+    await tester.pump();
+
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+    await tester.pump();
+    await tester.tapAt(textCenter);
+    await tester.pump();
+    await tester.tapAt(codeHeaderCenter);
+    await tester.pump();
+    expect(text.selected, isTrue);
+    expect(code.selected, isTrue);
+    await tester.tapAt(codeHeaderCenter);
+    await tester.pump();
+    expect(text.selected, isTrue);
+    expect(code.selected, isFalse);
+    await tester.tapAt(codeHeaderCenter);
+    await tester.pump();
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+    await tester.pump();
+
+    expect(text.selected, isTrue);
+    expect(code.selected, isTrue);
+    expect(text.editing, isFalse);
+    expect(text.focusNode.hasFocus, isFalse);
+    expect(code.focusNode.hasFocus, isFalse);
+    final selectedSemantics = find.byWidgetPredicate(
+      (widget) => widget is Semantics && widget.properties.selected == true,
+    );
+    expect(
+      find.descendant(of: find.byType(TextBlock), matching: selectedSemantics),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(of: find.byType(CodeBlock), matching: selectedSemantics),
+      findsOneWidget,
+    );
+
+    await tester.tap(
+      find.byKey(const ValueKey('text-markdown-preview-surface')),
+    );
+    await tester.pump();
+    expect(text.editing, isTrue);
+    expect(text.selected, isTrue);
+    expect(code.selected, isTrue);
+
+    await tester.tapAt(const Offset(20, 300));
+    await tester.pump();
+    expect(text.selected, isFalse);
+    expect(code.selected, isFalse);
+  });
+
   testWidgets('right and middle drag pan over block controls', (tester) async {
     await tester.pumpWidget(const BeyondApp());
     await tester.pump();
@@ -199,9 +275,7 @@ void main() {
     final canvas = tester.widget<LazyCanvas>(find.byType(LazyCanvas));
     final originalGridPosition = canvas.controller
         .widgetsWithScreenPositions()
-        .singleWhere(
-          (child) => (child.child as Container).child is CodeBlock,
-        )
+        .single
         .gsPosition;
 
     final rightDrag = await tester.startGesture(
@@ -218,9 +292,7 @@ void main() {
     expect(
       canvas.controller
           .widgetsWithScreenPositions()
-          .singleWhere(
-            (child) => (child.child as Container).child is CodeBlock,
-          )
+          .single
           .gsPosition,
       originalGridPosition,
     );

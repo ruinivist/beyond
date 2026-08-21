@@ -76,13 +76,11 @@ Size _clampSize(Size size) {
 class CodeBlock extends StatelessWidget {
   const CodeBlock({
     required this.model,
-    required this.onSelect,
     required this.onMove,
     super.key,
   });
 
   final CodeBlockModel model;
-  final ValueChanged<PointerDownEvent> onSelect;
   final ValueChanged<Offset> onMove;
 
   @override
@@ -91,16 +89,17 @@ class CodeBlock extends StatelessWidget {
     final colors = theme.colors;
     final geo = theme.geo;
     final codeStyle = theme.typo.code.copyWith(color: colors.textPrimary);
-    return Listener(
-      onPointerDown: onSelect,
-      child: ListenableBuilder(
-        listenable: model,
-        builder: (context, _) => SizedBox.fromSize(
+    return ListenableBuilder(
+      listenable: model,
+      builder: (context, _) => Semantics(
+        container: true,
+        selected: model.selected,
+        child: SizedBox.fromSize(
           size: model.size,
           child: Material(
             key: const ValueKey('code-block-surface'),
-            color: colors.surface,
-            elevation: model.selected ? geo.elevationHigh : geo.elevationMedium,
+            color: model.selected ? colors.accentSoft : colors.surface,
+            elevation: geo.elevationMedium,
             shadowColor: colors.shadow,
             shape: RoundedRectangleBorder(
               borderRadius: geo.radiusLarge,
@@ -127,35 +126,43 @@ class CodeBlock extends StatelessWidget {
                           fontSize: codeStyle.fontSize,
                           fontHeight: codeStyle.height,
                           textColor: colors.textPrimary,
-                          backgroundColor: colors.surface,
+                          backgroundColor: model.selected
+                              ? colors.accentSoft
+                              : colors.surface,
                           cursorColor: colors.accent,
                           selectionColor: colors.accentSubtle,
-                          codeTheme: model.language.theme(theme.syntaxTheme),
+                          codeTheme: model.language.theme(
+                            theme.syntaxTheme,
+                          ),
                         ),
                         indicatorBuilder:
-                            (context, controller, chunkController, notifier) =>
-                                ColoredBox(
-                                  color: colors.surfaceSubtle,
-                                  child: Row(
-                                    children: [
-                                      DefaultCodeLineNumber(
-                                        controller: controller,
-                                        notifier: notifier,
-                                        textStyle: codeStyle.copyWith(
-                                          color: colors.textMuted,
-                                        ),
-                                        focusedTextStyle: codeStyle.copyWith(
-                                          color: colors.accent,
-                                        ),
-                                      ),
-                                      DefaultCodeChunkIndicator(
-                                        width: 16,
-                                        controller: chunkController,
-                                        notifier: notifier,
-                                      ),
-                                    ],
+                            (
+                              context,
+                              controller,
+                              chunkController,
+                              notifier,
+                            ) => ColoredBox(
+                              color: colors.surfaceSubtle,
+                              child: Row(
+                                children: [
+                                  DefaultCodeLineNumber(
+                                    controller: controller,
+                                    notifier: notifier,
+                                    textStyle: codeStyle.copyWith(
+                                      color: colors.textMuted,
+                                    ),
+                                    focusedTextStyle: codeStyle.copyWith(
+                                      color: colors.accent,
+                                    ),
                                   ),
-                                ),
+                                  DefaultCodeChunkIndicator(
+                                    width: 16,
+                                    controller: chunkController,
+                                    notifier: notifier,
+                                  ),
+                                ],
+                              ),
+                            ),
                       ),
                     ),
                   ],

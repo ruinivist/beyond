@@ -23,7 +23,8 @@ const textFontOptions = <SelectOption<String>>[
 ];
 
 class TextBlockModel extends ChangeNotifier {
-  TextBlockModel(this.node) : controller = TextEditingController(text: node.markdown) {
+  TextBlockModel(this.node)
+    : controller = TextEditingController(text: node.markdown) {
     controller.addListener(_syncMarkdown);
   }
 
@@ -34,8 +35,17 @@ class TextBlockModel extends ChangeNotifier {
     animationFactory: const ChromiumEaseInOut(),
   );
   final layerLink = LayerLink();
+  bool _editing = false;
   bool _selected = false;
   bool _resizing = false;
+
+  bool get editing => _editing;
+
+  set editing(bool value) {
+    if (_editing == value) return;
+    _editing = value;
+    notifyListeners();
+  }
 
   bool get selected => _selected;
 
@@ -94,7 +104,6 @@ class TextBlockModel extends ChangeNotifier {
 class TextBlock extends StatelessWidget {
   const TextBlock({
     required this.model,
-    required this.onPointerDown,
     required this.onEdit,
     required this.onMove,
     required this.onResize,
@@ -102,7 +111,6 @@ class TextBlock extends StatelessWidget {
   });
 
   final TextBlockModel model;
-  final ValueChanged<PointerDownEvent> onPointerDown;
   final VoidCallback onEdit;
   final ValueChanged<Offset> onMove;
   final void Function(Size renderedSize, Offset delta) onResize;
@@ -111,79 +119,50 @@ class TextBlock extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = BTheme.of(context);
     final colors = theme.colors;
-    return Listener(
-      onPointerDown: onPointerDown,
-      child: Material(
-        type: MaterialType.transparency,
-        child: ListenableBuilder(
-          listenable: model,
-          builder: (context, _) {
-            final body = model.selected
-                ? _TextMarkdownEditor(model: model)
-                : _TextMarkdownPreview(
-                    source: model.node.markdown,
-                    style: model.style,
-                    scrollController: model.node.height == null
-                        ? null
-                        : model.scrollController,
-                    onEdit: onEdit,
-                    onMove: onMove,
-                  );
-            return CompositedTransformTarget(
-              link: model.layerLink,
-              child: SizedBox(
-                width: model.node.width,
-                height: model.node.height,
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(
-                    minHeight: textNodeMinimumHeight,
-                  ),
-                  child: Stack(
-                    children: [
-                      if (model.node.height != null)
-                        Positioned.fill(child: body)
-                      else
-                        body,
-                      Positioned.fill(
-                        child: IgnorePointer(
-                          child: AnimatedSwitcher(
-                            duration: const Duration(milliseconds: 260),
-                            reverseDuration: const Duration(
-                              milliseconds: 180,
-                            ),
-                            switchInCurve: Curves.easeOutCubic,
-                            switchOutCurve: Curves.easeOutCubic,
-                            transitionBuilder: _textResizeHandleTransition,
-                            child: model.resizing
-                                ? SizedBox.expand(
-                                    key: const ValueKey(
-                                      'text-block-editing-border',
-                                    ),
-                                    child: DecoratedBox(
-                                      decoration: BoxDecoration(
-                                        borderRadius: theme.geo.radiusSmall,
-                                        border: Border.all(
-                                          color: colors.border,
-                                        ),
-                                      ),
-                                    ),
-                                  )
-                                : const SizedBox(
-                                    key: ValueKey(
-                                      'text-block-editing-border-hidden',
-                                    ),
-                                  ),
-                          ),
-                        ),
-                      ),
-                      Positioned(
-                        right: 0,
-                        bottom: 0,
-                        child: SizedBox(
-                          width: 32,
-                          height: 20,
+    return Material(
+      type: MaterialType.transparency,
+      child: ListenableBuilder(
+        listenable: model,
+        builder: (context, _) {
+          final body = model.editing
+              ? _TextMarkdownEditor(model: model)
+              : _TextMarkdownPreview(
+                  source: model.node.markdown,
+                  style: model.style,
+                  scrollController: model.node.height == null
+                      ? null
+                      : model.scrollController,
+                  onEdit: onEdit,
+                  onMove: onMove,
+                );
+          return Semantics(
+            container: true,
+            selected: model.selected,
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                color: model.selected ? colors.accentSoft : Colors.transparent,
+                border: model.selected
+                    ? Border.all(color: colors.accent, width: 2)
+                    : null,
+                borderRadius: theme.geo.radiusSmall,
+              ),
+              child: CompositedTransformTarget(
+                link: model.layerLink,
+                child: SizedBox(
+                  width: model.node.width,
+                  height: model.node.height,
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(
+                      minHeight: textNodeMinimumHeight,
+                    ),
+                    child: Stack(
+                      children: [
+                        if (model.node.height != null)
+                          Positioned.fill(child: body)
+                        else
+                          body,
+                        Positioned.fill(
                           child: IgnorePointer(
-                            ignoring: !model.selected,
                             child: AnimatedSwitcher(
                               duration: const Duration(milliseconds: 260),
                               reverseDuration: const Duration(
@@ -192,46 +171,86 @@ class TextBlock extends StatelessWidget {
                               switchInCurve: Curves.easeOutCubic,
                               switchOutCurve: Curves.easeOutCubic,
                               transitionBuilder: _textResizeHandleTransition,
-                              child: model.selected
-                                  ? MouseRegion(
-                                      cursor:
-                                          SystemMouseCursors.resizeDownRight,
-                                      child: TextFieldTapRegion(
-                                        child: ControlSurface(
-                                          child: Semantics(
-                                            button: true,
-                                            label: 'Resize text block',
-                                            child: RawGestureDetector(
-                                              key: const ValueKey(
-                                                'text-block-resize-handle',
-                                              ),
-                                              behavior: HitTestBehavior.opaque,
-                                              gestures: {
-                                                ImmediateMultiDragGestureRecognizer:
-                                                    GestureRecognizerFactoryWithHandlers<
-                                                      ImmediateMultiDragGestureRecognizer
-                                                    >(
-                                                      ImmediateMultiDragGestureRecognizer
-                                                          .new,
-                                                      (recognizer) {
-                                                        recognizer
-                                                            .onStart = (_) {
-                                                          model.resizing = true;
-                                                          return _TextBlockResizeDrag(
-                                                            (delta) => onResize(
-                                                              context.size!,
-                                                              delta,
-                                                            ),
-                                                            () => model
-                                                                .resizing = false,
-                                                          );
-                                                        };
-                                                      },
-                                                    ),
-                                              },
-                                              child: SizedBox(
-                                                width: 32,
-                                                height: 20,
+                              child: model.resizing
+                                  ? SizedBox.expand(
+                                      key: const ValueKey(
+                                        'text-block-editing-border',
+                                      ),
+                                      child: DecoratedBox(
+                                        decoration: BoxDecoration(
+                                          borderRadius: theme.geo.radiusSmall,
+                                          border: Border.all(
+                                            color: colors.border,
+                                          ),
+                                        ),
+                                      ),
+                                    )
+                                  : const SizedBox(
+                                      key: ValueKey(
+                                        'text-block-editing-border-hidden',
+                                      ),
+                                    ),
+                            ),
+                          ),
+                        ),
+                        Positioned(
+                          right: 0,
+                          bottom: 0,
+                          child: SizedBox(
+                            width: 32,
+                            height: 20,
+                            child: IgnorePointer(
+                              ignoring: !model.editing,
+                              child: AnimatedSwitcher(
+                                duration: const Duration(milliseconds: 260),
+                                reverseDuration: const Duration(
+                                  milliseconds: 180,
+                                ),
+                                switchInCurve: Curves.easeOutCubic,
+                                switchOutCurve: Curves.easeOutCubic,
+                                transitionBuilder: _textResizeHandleTransition,
+                                child: model.editing
+                                    ? MouseRegion(
+                                        cursor:
+                                            SystemMouseCursors.resizeDownRight,
+                                        child: TextFieldTapRegion(
+                                          child: ControlSurface(
+                                            child: Semantics(
+                                              button: true,
+                                              label: 'Resize text block',
+                                              child: RawGestureDetector(
+                                                key: const ValueKey(
+                                                  'text-block-resize-handle',
+                                                ),
+                                                behavior:
+                                                    HitTestBehavior.opaque,
+                                                gestures: {
+                                                  ImmediateMultiDragGestureRecognizer:
+                                                      GestureRecognizerFactoryWithHandlers<
+                                                        ImmediateMultiDragGestureRecognizer
+                                                      >(
+                                                        ImmediateMultiDragGestureRecognizer
+                                                            .new,
+                                                        (recognizer) {
+                                                          recognizer
+                                                              .onStart = (_) {
+                                                            model.resizing =
+                                                                true;
+                                                            return _TextBlockResizeDrag(
+                                                              (
+                                                                delta,
+                                                              ) => onResize(
+                                                                context.size!,
+                                                                delta,
+                                                              ),
+                                                              () =>
+                                                                  model.resizing =
+                                                                      false,
+                                                            );
+                                                          };
+                                                        },
+                                                      ),
+                                                },
                                                 child: Center(
                                                   child: Icon(
                                                     Icons.open_in_full,
@@ -243,24 +262,24 @@ class TextBlock extends StatelessWidget {
                                             ),
                                           ),
                                         ),
+                                      )
+                                    : const SizedBox(
+                                        key: ValueKey(
+                                          'text-block-resize-handle-hidden',
+                                        ),
                                       ),
-                                    )
-                                  : const SizedBox(
-                                      key: ValueKey(
-                                        'text-block-resize-handle-hidden',
-                                      ),
-                                    ),
+                              ),
                             ),
                           ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               ),
-            );
-          },
-        ),
+            ),
+          );
+        },
       ),
     );
   }
@@ -513,10 +532,13 @@ class TextBlockControls extends StatelessWidget {
                       behavior: HitTestBehavior.opaque,
                       gestures: {
                         ImmediateMultiDragGestureRecognizer:
-                            GestureRecognizerFactoryWithHandlers<ImmediateMultiDragGestureRecognizer>(
+                            GestureRecognizerFactoryWithHandlers<
+                              ImmediateMultiDragGestureRecognizer
+                            >(
                               ImmediateMultiDragGestureRecognizer.new,
                               (recognizer) {
-                                recognizer.onStart = (_) => _TextBlockDrag(onMove);
+                                recognizer.onStart = (_) =>
+                                    _TextBlockDrag(onMove);
                               },
                             ),
                       },
@@ -827,7 +849,9 @@ class _TextSettingsState extends State<TextSettings> {
 }
 
 bool _sameStyle(TextNodeStyle first, TextNodeStyle second) {
-  return first.fontFamily == second.fontFamily && first.fontSize == second.fontSize && first.color == second.color;
+  return first.fontFamily == second.fontFamily &&
+      first.fontSize == second.fontSize &&
+      first.color == second.color;
 }
 
 Widget _buildImage(Uri uri, String? alt) {
@@ -889,7 +913,10 @@ class _TextImageError extends StatelessWidget {
 
 Future<void> _openLink(BuildContext context, String? href) async {
   final uri = href == null ? null : Uri.tryParse(href);
-  final supported = uri != null && (uri.scheme == 'http' || uri.scheme == 'https') && uri.host.isNotEmpty;
+  final supported =
+      uri != null &&
+      (uri.scheme == 'http' || uri.scheme == 'https') &&
+      uri.host.isNotEmpty;
   if (supported) {
     try {
       if (await launchUrl(uri, mode: LaunchMode.externalApplication)) return;
