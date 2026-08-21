@@ -349,6 +349,95 @@ void main() {
     expect(code.selected, isFalse);
   });
 
+  testWidgets('drag marquee selects overlaps and ctrl toggles hits', (
+    tester,
+  ) async {
+    await tester.pumpWidget(const BeyondApp());
+    await tester.pump();
+
+    await tester.tap(find.text('Text'));
+    await tester.pump();
+    await tester.tapAt(const Offset(40, 520));
+    await tester.pump();
+    await tester.tap(find.text('Text'));
+    await tester.pump();
+    await tester.tapAt(const Offset(500, 520));
+    await tester.pump();
+    await tester.tap(find.text('Draw'));
+    await tester.pump();
+    await tester.dragFrom(
+      const Offset(350, 540),
+      const Offset(50, 20),
+      kind: PointerDeviceKind.mouse,
+    );
+    await tester.pump();
+    await tester.tap(find.text('Draw'));
+    await tester.tap(find.text('Code'));
+    await tester.pump(const Duration(milliseconds: 100));
+
+    final texts = tester
+        .widgetList<TextBlock>(find.byType(TextBlock))
+        .map((block) => block.model)
+        .toList();
+    final insideText = texts.singleWhere(
+      (model) => model.node.position.dx == 40,
+    );
+    final outsideText = texts.singleWhere(
+      (model) => model.node.position.dx == 500,
+    );
+    final code = tester.widget<CodeBlock>(find.byType(CodeBlock)).model;
+    final stroke = tester.widget<PenStroke>(find.byType(PenStroke)).model;
+    expect(code.focusNode.hasFocus, isTrue);
+
+    final marquee = await tester.startGesture(
+      const Offset(20, 590),
+      kind: PointerDeviceKind.mouse,
+    );
+    await marquee.moveTo(const Offset(380, 490));
+    await tester.pump();
+
+    expect(
+      find.byKey(const ValueKey('drag-selection-marquee')),
+      findsOneWidget,
+    );
+    expect(insideText.selected, isTrue);
+    expect(code.selected, isTrue);
+    expect(stroke.selected, isTrue);
+    expect(outsideText.selected, isFalse);
+    expect(insideText.editing, isFalse);
+    expect(code.focusNode.hasFocus, isFalse);
+
+    await marquee.up();
+    await tester.pump();
+    expect(
+      find.byKey(const ValueKey('drag-selection-marquee')),
+      findsNothing,
+    );
+
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+    await tester.pump();
+    await tester.tapAt(const Offset(640, 546));
+    await tester.pump();
+    expect(outsideText.selected, isTrue);
+
+    final toggleMarquee = await tester.startGesture(
+      const Offset(20, 590),
+      kind: PointerDeviceKind.mouse,
+    );
+    await toggleMarquee.moveTo(const Offset(380, 490));
+    await toggleMarquee.up();
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+    await tester.pump();
+
+    expect(insideText.selected, isFalse);
+    expect(code.selected, isFalse);
+    expect(stroke.selected, isFalse);
+    expect(outsideText.selected, isTrue);
+
+    FocusManager.instance.primaryFocus?.unfocus();
+    await tester.pump(const Duration(milliseconds: 100));
+  });
+
   testWidgets('right and middle drag pan over block controls', (tester) async {
     await tester.pumpWidget(const BeyondApp());
     await tester.pump();
@@ -375,10 +464,7 @@ void main() {
     expect(canvas.controller.offset, isNot(Offset.zero));
     expect(model.selected, isFalse);
     expect(
-      canvas.controller
-          .widgetsWithScreenPositions()
-          .single
-          .gsPosition,
+      canvas.controller.widgetsWithScreenPositions().single.gsPosition,
       originalGridPosition,
     );
 

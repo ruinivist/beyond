@@ -43,6 +43,12 @@ class _CanvasPageState extends State<CanvasPage> {
   final ValueNotifier<bool> _selectionModifierPressed = ValueNotifier(false);
   final _strokes = <PenStrokeModel, String>{};
   final _interactiveCanvasPointerIds = <int>{};
+  final _selectionKeys = <Object, GlobalKey>{};
+  final _selectionBeforeDrag = <Object>{};
+  int? _dragSelectionPointer;
+  Offset? _dragSelectionStart;
+  Offset? _dragSelectionEnd;
+  var _toggleDragSelection = false;
   Timer? _saveTimer;
   Future<void> _saveQueue = Future<void>.value();
   bool _documentDirty = false;
@@ -103,7 +109,92 @@ class _CanvasPageState extends State<CanvasPage> {
     if (onInteractiveChild) return;
     FocusManager.instance.primaryFocus?.unfocus();
     _clearTextEditing();
-    _clearSelection();
+    _selectionBeforeDrag
+      ..clear()
+      ..addAll([
+        ..._textBlocks.keys.where((model) => model.selected),
+        ..._codeBlocks.keys.where((model) => model.selected),
+        ..._strokes.keys.where((model) => model.selected),
+      ]);
+    _toggleDragSelection = _selectionModifierPressed.value;
+    if (!_toggleDragSelection) _clearSelection();
+    if (event.kind != PointerDeviceKind.mouse || _penEnabled) return;
+    setState(() {
+      _dragSelectionPointer = event.pointer;
+      _dragSelectionStart = event.localPosition;
+      _dragSelectionEnd = event.localPosition;
+    });
+  }
+
+  void _handleCanvasPointerMove(PointerMoveEvent event) {
+    if (event.pointer != _dragSelectionPointer) return;
+    _updateDragSelection(event.localPosition);
+  }
+
+  void _handleCanvasPointerUp(PointerUpEvent event) {
+    if (event.pointer != _dragSelectionPointer) return;
+    _updateDragSelection(event.localPosition);
+    _finishDragSelection();
+  }
+
+  void _handleCanvasPointerCancel(PointerCancelEvent event) {
+    if (event.pointer != _dragSelectionPointer) return;
+    for (final model in _textBlocks.keys) {
+      model.selected = _selectionBeforeDrag.contains(model);
+    }
+    for (final model in _codeBlocks.keys) {
+      model.selected = _selectionBeforeDrag.contains(model);
+    }
+    for (final model in _strokes.keys) {
+      model.selected = _selectionBeforeDrag.contains(model);
+    }
+    _finishDragSelection();
+  }
+
+  void _updateDragSelection(Offset end) {
+    final start = _dragSelectionStart;
+    if (start == null) return;
+    setState(() => _dragSelectionEnd = end);
+    final rect = Rect.fromPoints(start, end);
+    final positions = {
+      for (final child in _canvasController.widgetsWithScreenPositions())
+        child.id: child.ssPosition,
+    };
+
+    bool selected(ChangeNotifier model, String id) {
+      final position = positions[id];
+      final renderObject = _selectionKey(
+        model,
+      ).currentContext?.findRenderObject();
+      final overlaps =
+          position != null &&
+          renderObject is RenderBox &&
+          rect.overlaps(
+            position & (renderObject.size * _canvasController.scale),
+          );
+      return _toggleDragSelection
+          ? _selectionBeforeDrag.contains(model) != overlaps
+          : overlaps;
+    }
+
+    for (final entry in _textBlocks.entries) {
+      entry.key.selected = selected(entry.key, entry.value);
+    }
+    for (final entry in _codeBlocks.entries) {
+      entry.key.selected = selected(entry.key, entry.value.id);
+    }
+    for (final entry in _strokes.entries) {
+      entry.key.selected = selected(entry.key, entry.value);
+    }
+  }
+
+  void _finishDragSelection() {
+    setState(() {
+      _dragSelectionPointer = null;
+      _dragSelectionStart = null;
+      _dragSelectionEnd = null;
+      _selectionBeforeDrag.clear();
+    });
   }
 
   void _handleCodeBlockPointerDown(
@@ -191,6 +282,9 @@ class _CanvasPageState extends State<CanvasPage> {
     }
   }
 
+  GlobalKey _selectionKey(Object model) =>
+      _selectionKeys.putIfAbsent(model, GlobalKey.new);
+
   void _moveCodeBlock(CodeBlockModel model, Offset screenDelta) {
     if (_textPlacementEnabled || _penEnabled) return;
     final entry = _codeBlocks[model];
@@ -249,6 +343,7 @@ class _CanvasPageState extends State<CanvasPage> {
     final canvasId = _canvasController.addChild(
       node.position,
       _SelectionPointerRegion(
+        key: _selectionKey(model),
         modifierPressed: _selectionModifierPressed,
         onPointerDown: (event) => _handleTextBlockPointerDown(model, event),
         child: TextBlock(
@@ -284,6 +379,7 @@ class _CanvasPageState extends State<CanvasPage> {
     final id = _canvasController.addChild(
       position,
       _SelectionPointerRegion(
+        key: _selectionKey(model),
         modifierPressed: _selectionModifierPressed,
         onPointerDown: (event) => _handleCodeBlockPointerDown(model, event),
         child: CodeBlock(
@@ -334,6 +430,7 @@ class _CanvasPageState extends State<CanvasPage> {
     _strokes[model] = _canvasController.addChild(
       stroke.position,
       PenStroke(
+        key: _selectionKey(model),
         model: model,
         size: stroke.size,
         onPointerDown: (event) => _handleStrokePointerDown(model, event),
@@ -350,11 +447,11 @@ class _CanvasPageState extends State<CanvasPage> {
         !_documentLoaded ||
         _textPlacementEnabled ||
         _penEnabled ||
-        !_selectionModifierPressed.value ||
         !_strokes.containsKey(model)) {
       return;
     }
     _interactiveCanvasPointerIds.add(event.pointer);
+    if (!_selectionModifierPressed.value) return;
     model.selected = !model.selected;
   }
 
@@ -514,6 +611,9 @@ class _CanvasPageState extends State<CanvasPage> {
             child: Listener(
               behavior: HitTestBehavior.opaque,
               onPointerDown: _handleCanvasPointerDown,
+              onPointerMove: _handleCanvasPointerMove,
+              onPointerUp: _handleCanvasPointerUp,
+              onPointerCancel: _handleCanvasPointerCancel,
               child: LazyCanvas(
                 controller: _canvasController,
                 mousePanButtons: kSecondaryMouseButton | kMiddleMouseButton,
@@ -525,6 +625,22 @@ class _CanvasPageState extends State<CanvasPage> {
               child: IgnorePointer(
                 ignoring: _spaceHeld,
                 child: Scribble(notifier: _penTool),
+              ),
+            ),
+          if ((_dragSelectionStart, _dragSelectionEnd) case (
+            final start?,
+            final end?,
+          ))
+            Positioned.fromRect(
+              key: const ValueKey('drag-selection-marquee'),
+              rect: Rect.fromPoints(start, end),
+              child: IgnorePointer(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: colors.accentSubtle.withValues(alpha: 0.45),
+                    border: Border.all(color: colors.accent),
+                  ),
+                ),
               ),
             ),
           if (editingChromeModel case final anchor?)
@@ -658,6 +774,7 @@ class _SelectionPointerRegion extends StatelessWidget {
     required this.modifierPressed,
     required this.onPointerDown,
     required this.child,
+    super.key,
   });
 
   final ValueListenable<bool> modifierPressed;
