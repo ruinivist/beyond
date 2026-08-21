@@ -167,6 +167,10 @@ void main() {
       await _addTextBlock(tester, const Offset(120, 200));
       final block = find.byType(TextBlock);
       final model = tester.widget<TextBlock>(block).model;
+      final automaticScrollbars = find.descendant(
+        of: block,
+        matching: find.byType(RawScrollbar),
+      );
       final position = model.node.position;
       final style = model.node.style;
       final automaticHeight = tester.getSize(block).height;
@@ -189,6 +193,7 @@ void main() {
         find.descendant(of: block, matching: find.byType(Scrollbar)),
         findsNothing,
       );
+      expect(automaticScrollbars, findsNothing);
       final resizeHandle = find.byKey(
         const ValueKey('text-block-resize-handle'),
       );
@@ -211,6 +216,8 @@ void main() {
       expect(model.node.height, textNodeMinimumHeight);
       expect(tester.getSize(block).height, textNodeMinimumHeight);
       expect(model.scrollController.position.maxScrollExtent, greaterThan(0));
+      expect(model.editing, isTrue);
+      expect(automaticScrollbars, findsNothing);
       expect(
         tester
             .widget<Scrollbar>(
@@ -227,6 +234,7 @@ void main() {
       await tester.pump();
       expect(tester.getSize(block).height, textNodeMinimumHeight);
       expect(model.scrollController.position.maxScrollExtent, greaterThan(0));
+      expect(model.editing, isFalse);
 
       final canvas = tester.widget<LazyCanvas>(find.byType(LazyCanvas));
       final canvasOffset = canvas.controller.offset;

@@ -426,21 +426,24 @@ class _TextMarkdownEditorState extends State<_TextMarkdownEditor> {
     final code = theme.typo.code;
     return Focus(
       onKeyEvent: _onKeyEvent,
-      child: TextField(
-        key: const ValueKey('text-markdown-editor'),
-        controller: widget.model.controller,
-        focusNode: widget.model.focusNode,
-        scrollController: widget.model.scrollController,
-        expands: widget.model.node.height != null,
-        maxLines: null,
-        cursorColor: colors.accent,
-        decoration: InputDecoration(
-          border: InputBorder.none,
-          contentPadding: const EdgeInsets.all(12),
-          hintText: 'Type something',
-          hintStyle: code.copyWith(color: colors.textMuted),
+      child: ScrollConfiguration(
+        behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
+        child: TextField(
+          key: const ValueKey('text-markdown-editor'),
+          controller: widget.model.controller,
+          focusNode: widget.model.focusNode,
+          scrollController: widget.model.scrollController,
+          expands: widget.model.node.height != null,
+          maxLines: null,
+          cursorColor: colors.accent,
+          decoration: InputDecoration(
+            border: InputBorder.none,
+            contentPadding: const EdgeInsets.all(12),
+            hintText: 'Type something',
+            hintStyle: code.copyWith(color: colors.textMuted),
+          ),
+          style: code.copyWith(color: colors.textPrimary),
         ),
-        style: code.copyWith(color: colors.textPrimary),
       ),
     );
   }
