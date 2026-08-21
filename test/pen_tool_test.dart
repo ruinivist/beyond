@@ -33,11 +33,12 @@ void main() {
       canvasScale: 2,
     );
 
-    expect(stroke.position, const Offset(97.5, 77.5));
-    expect(stroke.size, const Size(55, 55));
+    expect(stroke.position, const Offset(94.5, 74.5));
+    expect(stroke.size, const Size(61, 61));
+    expect(stroke.hitSlop, 3);
     expect(stroke.sketch.lines.single.width, 2.5);
-    expect(stroke.sketch.lines.single.points.first.x, 2.5);
-    expect(stroke.sketch.lines.single.points.first.y, 2.5);
+    expect(stroke.sketch.lines.single.points.first.x, 5.5);
+    expect(stroke.sketch.lines.single.points.first.y, 5.5);
   });
 
   testWidgets('pen commits strokes and stays active', (tester) async {
@@ -61,6 +62,66 @@ void main() {
     await tester.pump();
 
     expect(find.byType(ScribbleSketch), findsNothing);
+  });
+
+  testWidgets('ctrl-click selects only near stroke ink', (tester) async {
+    await tester.pumpWidget(const BeyondApp());
+    await tester.pump();
+
+    await tester.tap(find.text('Draw'));
+    await tester.pump();
+    await tester.dragFrom(const Offset(40, 300), const Offset(60, 60));
+    await tester.pump();
+    await tester.tap(find.text('Draw'));
+    await tester.pump();
+
+    final strokeFinder = find.byType(PenStroke);
+    final stroke = tester.widget<PenStroke>(strokeFinder).model;
+    final strokeTopLeft = tester.getTopLeft(strokeFinder);
+    final strokeSize = tester.getSize(strokeFinder);
+
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+    await tester.pump();
+    await tester.tapAt(strokeTopLeft + Offset(strokeSize.width - 2, 2));
+    await tester.pump();
+    expect(stroke.selected, isFalse);
+
+    await tester.tapAt(tester.getCenter(strokeFinder));
+    await tester.pump();
+    expect(stroke.selected, isTrue);
+    expect(
+      find.descendant(
+        of: strokeFinder,
+        matching: find.byWidgetPredicate(
+          (widget) => widget is Semantics && widget.properties.selected == true,
+        ),
+      ),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.text('Code'));
+    await tester.pump();
+    await tester.tapAt(
+      tester.getCenter(find.byKey(const ValueKey('code-block-header'))),
+    );
+    await tester.pump();
+    final code = tester.widget<CodeBlock>(find.byType(CodeBlock)).model;
+    expect(stroke.selected, isTrue);
+    expect(code.selected, isTrue);
+
+    await tester.tapAt(tester.getCenter(strokeFinder));
+    await tester.pump();
+    expect(stroke.selected, isFalse);
+    expect(code.selected, isTrue);
+
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+    await tester.pump();
+    await tester.tapAt(const Offset(20, 220));
+    await tester.pump();
+    expect(code.selected, isFalse);
+
+    FocusManager.instance.primaryFocus?.unfocus();
+    await tester.pump(const Duration(milliseconds: 100));
   });
 
   testWidgets('enabling pen stops text editing', (tester) async {
@@ -95,7 +156,7 @@ void main() {
     await tester.tap(find.text('Code'));
     await tester.pump();
 
-    expect(_topCanvasChild(tester), isA<SizedBox>());
+    expect(_topCanvasChild(tester), isA<PenStroke>());
 
     FocusManager.instance.primaryFocus?.unfocus();
     await tester.pump(const Duration(milliseconds: 100));
@@ -116,7 +177,7 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('code-block-header')));
     await tester.pump();
 
-    expect(_topCanvasChild(tester), isA<SizedBox>());
+    expect(_topCanvasChild(tester), isA<PenStroke>());
 
     FocusManager.instance.primaryFocus?.unfocus();
     await tester.pump(const Duration(milliseconds: 100));

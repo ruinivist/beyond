@@ -41,8 +41,8 @@ class _CanvasPageState extends State<CanvasPage> {
   TextBlockModel? _editingTextBlock;
   TextBlockModel? _editingChromeModel;
   final ValueNotifier<bool> _selectionModifierPressed = ValueNotifier(false);
-  final _strokeIds = <String>[];
-  final _interactiveBlockPointerIds = <int>{};
+  final _strokes = <PenStrokeModel, String>{};
+  final _interactiveCanvasPointerIds = <int>{};
   Timer? _saveTimer;
   Future<void> _saveQueue = Future<void>.value();
   bool _documentDirty = false;
@@ -89,7 +89,7 @@ class _CanvasPageState extends State<CanvasPage> {
 
   void _handleCanvasPointerDown(PointerDownEvent event) {
     if (!_documentLoaded || event.buttons != kPrimaryButton) return;
-    final onInteractiveBlock = _interactiveBlockPointerIds.remove(
+    final onInteractiveChild = _interactiveCanvasPointerIds.remove(
       event.pointer,
     );
     if (_textPlacementEnabled) {
@@ -100,10 +100,10 @@ class _CanvasPageState extends State<CanvasPage> {
       );
       return;
     }
-    if (onInteractiveBlock) return;
+    if (onInteractiveChild) return;
     FocusManager.instance.primaryFocus?.unfocus();
     _clearTextEditing();
-    _clearBlockSelection();
+    _clearSelection();
   }
 
   void _handleCodeBlockPointerDown(
@@ -111,7 +111,7 @@ class _CanvasPageState extends State<CanvasPage> {
     PointerDownEvent event,
   ) {
     if (event.buttons != kPrimaryButton) return;
-    _interactiveBlockPointerIds.add(event.pointer);
+    _interactiveCanvasPointerIds.add(event.pointer);
     if (!_documentLoaded || _textPlacementEnabled || _penEnabled) return;
     final entry = _codeBlocks[model];
     if (entry == null) return;
@@ -128,7 +128,7 @@ class _CanvasPageState extends State<CanvasPage> {
     PointerDownEvent event,
   ) {
     if (event.buttons != kPrimaryButton) return;
-    _interactiveBlockPointerIds.add(event.pointer);
+    _interactiveCanvasPointerIds.add(event.pointer);
     if (_textPlacementEnabled || _penEnabled) return;
     if (!_textBlocks.containsKey(model)) return;
     if (_selectionModifierPressed.value) {
@@ -164,7 +164,7 @@ class _CanvasPageState extends State<CanvasPage> {
   void _bringStrokesToFront() {
     // ponytail: linear in stroke count; add canvas layers if profiling
     // demands it.
-    _strokeIds.forEach(_canvasController.bringToFront);
+    _strokes.values.forEach(_canvasController.bringToFront);
   }
 
   void _startTextEditing(TextBlockModel editing) {
@@ -186,11 +186,14 @@ class _CanvasPageState extends State<CanvasPage> {
     });
   }
 
-  void _clearBlockSelection() {
+  void _clearSelection() {
     for (final model in _textBlocks.keys) {
       model.selected = false;
     }
     for (final model in _codeBlocks.keys) {
+      model.selected = false;
+    }
+    for (final model in _strokes.keys) {
       model.selected = false;
     }
   }
@@ -333,16 +336,32 @@ class _CanvasPageState extends State<CanvasPage> {
       canvasOffset: _canvasController.offset,
       canvasScale: _canvasController.scale,
     );
-    _strokeIds.add(
-      _canvasController.addChild(
-        stroke.position,
-        SizedBox.fromSize(
-          size: stroke.size,
-          child: ScribbleSketch(sketch: stroke.sketch),
-        ),
-        childSize: stroke.size,
+    final model = PenStrokeModel(stroke.sketch, hitSlop: stroke.hitSlop);
+    _strokes[model] = _canvasController.addChild(
+      stroke.position,
+      PenStroke(
+        model: model,
+        size: stroke.size,
+        onPointerDown: (event) => _handleStrokePointerDown(model, event),
       ),
+      childSize: stroke.size,
     );
+  }
+
+  void _handleStrokePointerDown(
+    PenStrokeModel model,
+    PointerDownEvent event,
+  ) {
+    if (event.buttons != kPrimaryButton ||
+        !_documentLoaded ||
+        _textPlacementEnabled ||
+        _penEnabled ||
+        !_selectionModifierPressed.value ||
+        !_strokes.containsKey(model)) {
+      return;
+    }
+    _interactiveCanvasPointerIds.add(event.pointer);
+    model.selected = !model.selected;
   }
 
   void _togglePen() {
@@ -477,6 +496,9 @@ class _CanvasPageState extends State<CanvasPage> {
       block
         ..removeListener(_scheduleDocumentSave)
         ..dispose();
+    }
+    for (final stroke in _strokes.keys) {
+      stroke.dispose();
     }
     HardwareKeyboard.instance.removeHandler(_handleKeyEvent);
     _selectionModifierPressed.dispose();
