@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:beyond/canvas/attachment_store.dart';
 import 'package:beyond/canvas/canvas_page.dart';
 import 'package:beyond/canvas/tools/code_block/code_block.dart';
 import 'package:beyond/canvas/tools/text/text_block.dart';
@@ -41,6 +42,7 @@ class WidgetGalleryPage extends StatefulWidget {
 }
 
 class _WidgetGalleryPageState extends State<WidgetGalleryPage> {
+  final AttachmentStore _attachmentStore = createAttachmentStore();
   final _scrollController = AnimatedScrollController(
     animationFactory: const ChromiumEaseInOut(),
   );
@@ -171,6 +173,7 @@ class _WidgetGalleryPageState extends State<WidgetGalleryPage> {
                       child: _horizontalPreview(
                         TextBlock(
                           model: _textModel,
+                          attachmentStore: _attachmentStore,
                           onEdit: () {
                             setState(() => _textModel.editing = true);
                             _textModel.focusNode.requestFocus();

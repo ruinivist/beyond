@@ -1,5 +1,7 @@
+import 'dart:async';
 import 'dart:math' as math;
 
+import 'package:beyond/canvas/attachment_store.dart';
 import 'package:beyond/canvas/tools/text/text_node.dart';
 import 'package:beyond/foundation/control_surface.dart';
 import 'package:beyond/foundation/select.dart';
@@ -7,6 +9,7 @@ import 'package:beyond/foundation/theme.dart';
 import 'package:beyond/utils/preset_colors.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:flutter_markdown_plus_latex/flutter_markdown_plus_latex.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -14,7 +17,11 @@ import 'package:google_fonts/google_fonts.dart';
 // ignore: depend_on_referenced_packages
 import 'package:markdown/markdown.dart' as md;
 import 'package:scroll_animator/scroll_animator.dart';
+import 'package:super_clipboard/super_clipboard.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:uuid/uuid.dart';
+
+const int pastedImageMaximumBytes = 10 * 1024 * 1024;
 
 const textFontOptions = <SelectOption<String>>[
   SelectOption(value: 'Source Serif 4', label: 'Source Serif 4'),
@@ -84,6 +91,33 @@ class TextBlockModel extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> insertPastedImage(
+    Uint8List bytes,
+    String extension,
+    AttachmentStore store,
+  ) async {
+    if (bytes.length > pastedImageMaximumBytes) {
+      throw const FormatException('Image exceeds 10 MiB');
+    }
+    final path = 'attachments/${const Uuid().v4()}.$extension';
+    await store.write(path, bytes);
+    _insertText('![pasted image]($path)');
+  }
+
+  void insertPastedText(String text) => _insertText(text);
+
+  void _insertText(String text) {
+    final selection = controller.selection;
+    final start = selection.isValid ? selection.start : controller.text.length;
+    final end = selection.isValid ? selection.end : controller.text.length;
+    final from = math.min(start, end).clamp(0, controller.text.length);
+    final to = math.max(start, end).clamp(0, controller.text.length);
+    controller.value = TextEditingValue(
+      text: controller.text.replaceRange(from, to, text),
+      selection: TextSelection.collapsed(offset: from + text.length),
+    );
+  }
+
   void _syncMarkdown() {
     if (node.markdown == controller.text) return;
     node.markdown = controller.text;
@@ -104,6 +138,7 @@ class TextBlockModel extends ChangeNotifier {
 class TextBlock extends StatelessWidget {
   const TextBlock({
     required this.model,
+    required this.attachmentStore,
     required this.onEdit,
     required this.onMove,
     required this.onResize,
@@ -111,6 +146,7 @@ class TextBlock extends StatelessWidget {
   });
 
   final TextBlockModel model;
+  final AttachmentStore attachmentStore;
   final VoidCallback onEdit;
   final ValueChanged<Offset> onMove;
   final void Function(Size renderedSize, Offset delta) onResize;
@@ -125,7 +161,10 @@ class TextBlock extends StatelessWidget {
         listenable: model,
         builder: (context, _) {
           final body = model.editing
-              ? _TextMarkdownEditor(model: model)
+              ? _TextMarkdownEditor(
+                  model: model,
+                  attachmentStore: attachmentStore,
+                )
               : _TextMarkdownPreview(
                   source: model.node.markdown,
                   style: model.style,
@@ -134,6 +173,7 @@ class TextBlock extends StatelessWidget {
                       : model.scrollController,
                   onEdit: onEdit,
                   onMove: onMove,
+                  attachmentStore: attachmentStore,
                 );
           return Semantics(
             container: true,
@@ -299,33 +339,136 @@ Widget _textResizeHandleTransition(
   );
 }
 
-class _TextMarkdownEditor extends StatelessWidget {
-  const _TextMarkdownEditor({required this.model});
+class _TextMarkdownEditor extends StatefulWidget {
+  const _TextMarkdownEditor({
+    required this.model,
+    required this.attachmentStore,
+  });
 
   final TextBlockModel model;
+  final AttachmentStore attachmentStore;
+
+  @override
+  State<_TextMarkdownEditor> createState() => _TextMarkdownEditorState();
+}
+
+class _TextMarkdownEditorState extends State<_TextMarkdownEditor> {
+  ClipboardEvents? get _events => ClipboardEvents.instance;
+
+  @override
+  void initState() {
+    super.initState();
+    _events?.registerPasteEventListener(_onWebPaste);
+  }
+
+  @override
+  void dispose() {
+    _events?.unregisterPasteEventListener(_onWebPaste);
+    super.dispose();
+  }
+
+  void _onWebPaste(ClipboardReadEvent event) {
+    if (!widget.model.focusNode.hasFocus) return;
+    unawaited(_paste(event.getClipboardReader()));
+  }
+
+  KeyEventResult _onKeyEvent(FocusNode _, KeyEvent event) {
+    if (_events != null ||
+        event is! KeyDownEvent ||
+        event.logicalKey != LogicalKeyboardKey.keyV ||
+        (!HardwareKeyboard.instance.isControlPressed &&
+            !HardwareKeyboard.instance.isMetaPressed)) {
+      return KeyEventResult.ignored;
+    }
+    final clipboard = SystemClipboard.instance;
+    if (clipboard == null) return KeyEventResult.ignored;
+    unawaited(_paste(clipboard.read()));
+    return KeyEventResult.handled;
+  }
+
+  Future<void> _paste(Future<ClipboardReader> readerFuture) async {
+    try {
+      final reader = await readerFuture;
+      final formats = reader.getFormats(_pastedImageFormats.keys.toList());
+      if (formats.isNotEmpty) {
+        final format = formats.first as FileFormat;
+        final bytes = await _readClipboardFile(reader, format);
+        if (bytes == null) throw StateError('Could not read clipboard image');
+        await widget.model.insertPastedImage(
+          bytes,
+          _pastedImageFormats[format]!,
+          widget.attachmentStore,
+        );
+      } else if (reader.canProvide(Formats.plainText)) {
+        final text = await reader.readValue(Formats.plainText);
+        if (text != null) widget.model.insertPastedText(text);
+      }
+    } on Object {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not paste image')),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final theme = BTheme.of(context);
     final colors = theme.colors;
     final code = theme.typo.code;
-    return TextField(
-      key: const ValueKey('text-markdown-editor'),
-      controller: model.controller,
-      focusNode: model.focusNode,
-      scrollController: model.scrollController,
-      expands: model.node.height != null,
-      maxLines: null,
-      cursorColor: colors.accent,
-      decoration: InputDecoration(
-        border: InputBorder.none,
-        contentPadding: const EdgeInsets.all(12),
-        hintText: 'Type something',
-        hintStyle: code.copyWith(color: colors.textMuted),
+    return Focus(
+      onKeyEvent: _onKeyEvent,
+      child: TextField(
+        key: const ValueKey('text-markdown-editor'),
+        controller: widget.model.controller,
+        focusNode: widget.model.focusNode,
+        scrollController: widget.model.scrollController,
+        expands: widget.model.node.height != null,
+        maxLines: null,
+        cursorColor: colors.accent,
+        decoration: InputDecoration(
+          border: InputBorder.none,
+          contentPadding: const EdgeInsets.all(12),
+          hintText: 'Type something',
+          hintStyle: code.copyWith(color: colors.textMuted),
+        ),
+        style: code.copyWith(color: colors.textPrimary),
       ),
-      style: code.copyWith(color: colors.textPrimary),
     );
   }
+}
+
+const Map<FileFormat, String> _pastedImageFormats = <FileFormat, String>{
+  Formats.png: 'png',
+  Formats.jpeg: 'jpg',
+  Formats.gif: 'gif',
+  Formats.webp: 'webp',
+};
+
+Future<Uint8List?> _readClipboardFile(
+  ClipboardReader reader,
+  FileFormat format,
+) {
+  final result = Completer<Uint8List?>();
+  final progress = reader.getFile(
+    format,
+    (file) async {
+      try {
+        if ((file.fileSize ?? 0) > pastedImageMaximumBytes) {
+          throw const FormatException('Image exceeds 10 MiB');
+        }
+        final bytes = await file.readAll();
+        if (!result.isCompleted) result.complete(bytes);
+      } on Object catch (error, stackTrace) {
+        if (!result.isCompleted) result.completeError(error, stackTrace);
+      }
+    },
+    onError: (error) {
+      if (!result.isCompleted) result.completeError(error);
+    },
+  );
+  if (progress == null) result.complete(null);
+  return result.future;
 }
 
 class _TextMarkdownPreview extends StatelessWidget {
@@ -335,6 +478,7 @@ class _TextMarkdownPreview extends StatelessWidget {
     required this.scrollController,
     required this.onEdit,
     required this.onMove,
+    required this.attachmentStore,
   });
 
   final String source;
@@ -342,6 +486,7 @@ class _TextMarkdownPreview extends StatelessWidget {
   final ScrollController? scrollController;
   final VoidCallback onEdit;
   final ValueChanged<Offset> onMove;
+  final AttachmentStore attachmentStore;
 
   @override
   Widget build(BuildContext context) {
@@ -364,7 +509,8 @@ class _TextMarkdownPreview extends StatelessWidget {
               ),
             },
             styleSheet: _styleSheet(context, style),
-            imageBuilder: (uri, title, alt) => _buildImage(uri, alt),
+            imageBuilder: (uri, title, alt) =>
+                _buildImage(uri, alt, attachmentStore),
             onTapLink: (_, href, _) => _openLink(context, href),
           );
     return GestureDetector(
@@ -854,7 +1000,26 @@ bool _sameStyle(TextNodeStyle first, TextNodeStyle second) {
       first.color == second.color;
 }
 
-Widget _buildImage(Uri uri, String? alt) {
+Widget _buildImage(Uri uri, String? alt, AttachmentStore attachmentStore) {
+  final path = uri.toString();
+  if (attachmentPathPattern.hasMatch(path)) {
+    return FutureBuilder<Uint8List>(
+      future: attachmentStore.read(path),
+      builder: (_, snapshot) => switch (snapshot) {
+        AsyncSnapshot(hasData: true, data: final bytes?) => Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          child: Image.memory(
+            bytes,
+            width: double.infinity,
+            fit: BoxFit.fitWidth,
+            errorBuilder: (_, _, _) => _TextImageError(alt: alt),
+          ),
+        ),
+        AsyncSnapshot(hasError: true) => _TextImageError(alt: alt),
+        _ => const SizedBox.shrink(),
+      },
+    );
+  }
   if (uri.scheme != 'https' || uri.host.isEmpty || uri.host.contains('%')) {
     return _TextImageError(alt: alt);
   }

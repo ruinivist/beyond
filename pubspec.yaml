@@ -15,13 +15,16 @@ dependencies:
   google_fonts: ^6.3.3
   infinite_lazy_grid:
     git: https://github.com/ruinivist/infinite_lazy_grid.git
+  path_provider: ^2.1.6
   re_editor: ^0.10.0
   re_highlight: ^0.0.3
   scribble: ^0.10.0+1
   scroll_animator: 0.3.0
   shared_preferences: ^2.5.5
+  super_clipboard: ^0.9.1
   url_launcher: ^6.3.2
   uuid: ^4.6.0
+  web: ^1.1.1
 
 dev_dependencies:
   flutter_math_fork: ^0.7.4

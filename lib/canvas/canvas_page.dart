@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math' as math;
 
+import 'package:beyond/canvas/attachment_store.dart';
 import 'package:beyond/canvas/canvas_background.dart';
 import 'package:beyond/canvas/canvas_document_store.dart';
 import 'package:beyond/canvas/tools/code_block/code_block.dart';
@@ -19,7 +20,9 @@ import 'package:scribble/scribble.dart';
 import 'package:uuid/uuid.dart';
 
 class CanvasPage extends StatefulWidget {
-  const CanvasPage({super.key});
+  const CanvasPage({this.attachmentStore, super.key});
+
+  final AttachmentStore? attachmentStore;
 
   @override
   State<CanvasPage> createState() => _CanvasPageState();
@@ -31,6 +34,8 @@ class _CanvasPageState extends State<CanvasPage> {
   );
   CanvasBackgroundKind _canvasBackgroundKind = CanvasBackgroundKind.dotGrid;
   final CanvasDocumentStore _documentStore = CanvasDocumentStore();
+  late final AttachmentStore _attachmentStore =
+      widget.attachmentStore ?? createAttachmentStore();
   final _codeBlocks = <CodeBlockModel, ({String id, Offset position})>{};
   final _textBlocks = <TextBlockModel, String>{};
   TextBlockModel? _editingTextBlock;
@@ -253,6 +258,7 @@ class _CanvasPageState extends State<CanvasPage> {
         onPointerDown: (event) => _handleTextBlockPointerDown(model, event),
         child: TextBlock(
           model: model,
+          attachmentStore: _attachmentStore,
           onEdit: () => _editTextBlock(model),
           onMove: (delta) => _moveTextBlock(model, delta),
           onResize: (size, delta) => _resizeTextBlock(model, size, delta),

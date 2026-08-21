@@ -1,5 +1,7 @@
 import 'dart:convert';
+import 'dart:typed_data';
 
+import 'package:beyond/canvas/attachment_store.dart';
 import 'package:beyond/canvas/canvas_document_store.dart';
 import 'package:beyond/canvas/tools/text/text_block.dart';
 import 'package:beyond/canvas/tools/text/text_node.dart';
@@ -433,6 +435,62 @@ Inline $x^2$''';
     );
   });
 
+  testWidgets('stored attachment images resolve asynchronously', (
+    tester,
+  ) async {
+    const path = 'attachments/00000000-0000-4000-8000-000000000000.png';
+    final store = _FakeAttachmentStore()
+      ..files[path] = base64Decode(
+        'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwC'
+        'AAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=',
+      );
+    await _addTextBlock(
+      tester,
+      const Offset(120, 200),
+      attachmentStore: store,
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey('text-markdown-editor')),
+      '![stored]($path)',
+    );
+
+    await tester.tapAt(const Offset(400, 300));
+    await tester.pump();
+    await tester.pump();
+
+    expect(store.readPaths, <String>[path]);
+    expect(
+      tester.widget<Image>(find.byType(Image)).image,
+      isA<MemoryImage>(),
+    );
+  });
+
+  testWidgets('missing attachments use the alt-labelled fallback', (
+    tester,
+  ) async {
+    const path = 'attachments/00000000-0000-4000-8000-000000000000.webp';
+    await _addTextBlock(
+      tester,
+      const Offset(120, 200),
+      attachmentStore: _FakeAttachmentStore(),
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey('text-markdown-editor')),
+      '![missing]($path)',
+    );
+
+    await tester.tapAt(const Offset(400, 300));
+    await tester.pump();
+    await tester.pump();
+
+    expect(
+      find.byWidgetPredicate(
+        (widget) => widget is Semantics && widget.properties.label == 'missing',
+      ),
+      findsOneWidget,
+    );
+  });
+
   testWidgets('rendered link gestures do not enter text editing', (
     tester,
   ) async {
@@ -817,8 +875,12 @@ Inline $x^2$''';
   });
 }
 
-Future<void> _addTextBlock(WidgetTester tester, Offset position) async {
-  await tester.pumpWidget(const BeyondApp());
+Future<void> _addTextBlock(
+  WidgetTester tester,
+  Offset position, {
+  AttachmentStore? attachmentStore,
+}) async {
+  await tester.pumpWidget(BeyondApp(attachmentStore: attachmentStore));
   await tester.pump();
   await tester.pump();
   await _placeTextBlock(tester, position);
@@ -853,5 +915,23 @@ class _FakeUrlLauncher extends UrlLauncherPlatform {
     launched.add(url);
     this.options.add(options);
     return true;
+  }
+}
+
+class _FakeAttachmentStore implements AttachmentStore {
+  final files = <String, Uint8List>{};
+  final readPaths = <String>[];
+
+  @override
+  Future<Uint8List> read(String path) async {
+    readPaths.add(path);
+    final bytes = files[path];
+    if (bytes == null) throw StateError('missing attachment');
+    return bytes;
+  }
+
+  @override
+  Future<void> write(String path, Uint8List bytes) async {
+    files[path] = bytes;
   }
 }

@@ -1,3 +1,4 @@
+import 'package:beyond/canvas/attachment_store.dart';
 import 'package:beyond/canvas/canvas_page.dart';
 import 'package:beyond/theme/starless_light.dart';
 import 'package:flutter/foundation.dart';
@@ -12,14 +13,16 @@ Future<void> main() async {
 }
 
 class BeyondApp extends StatelessWidget {
-  const BeyondApp({super.key});
+  const BeyondApp({this.attachmentStore, super.key});
+
+  final AttachmentStore? attachmentStore;
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       theme: starlessLightThemeData,
-      home: const CanvasPage(),
+      home: CanvasPage(attachmentStore: attachmentStore),
     );
   }
 }
