@@ -50,7 +50,7 @@ const _starlessLightColors = BColors(
 
 var _useMonoFallback = false;
 
-TextStyle _ibmPlexMono() => GoogleFonts.ibmPlexMono(
+TextStyle _jetBrainsMono() => GoogleFonts.jetBrainsMono(
   color: _starlessLightColors.textPrimary,
   fontSize: 14,
   height: 1.4,
@@ -87,7 +87,7 @@ final _starlessLightTypo = BTypo(
   ),
   code: _useMonoFallback
       ? const TextStyle(fontFamily: 'monospace', fontSize: 14, height: 1.4)
-      : _ibmPlexMono(),
+      : _jetBrainsMono(),
 );
 
 const _starlessLightGeo = BGeo(
@@ -159,7 +159,7 @@ const _starlessLightColorScheme = ColorScheme(
 Future<void> loadCodeFont() async {
   try {
     await GoogleFonts.pendingFonts([
-      _ibmPlexMono(),
+      _jetBrainsMono(),
     ]).timeout(const Duration(seconds: 3));
   } on Exception {
     _useMonoFallback = true;

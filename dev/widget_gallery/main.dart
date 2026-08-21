@@ -772,7 +772,7 @@ class _WidgetGalleryPageState extends State<WidgetGalleryPage> {
         ),
         const SizedBox(height: 12),
         Text(
-          'IBM Plex Mono · code and technical metadata',
+          'JetBrains Mono · code and technical metadata',
           style: typography.code.copyWith(
             color: colors.textPrimary,
             fontWeight: FontWeight.w600,
