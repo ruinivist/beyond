@@ -175,6 +175,13 @@ class TextBlock extends StatelessWidget {
                   onMove: onMove,
                   attachmentStore: attachmentStore,
                 );
+          final visibleBody = model.node.height == null
+              ? body
+              : Scrollbar(
+                  controller: model.scrollController,
+                  thumbVisibility: true,
+                  child: body,
+                );
           return Semantics(
             container: true,
             selected: model.selected,
@@ -198,9 +205,9 @@ class TextBlock extends StatelessWidget {
                     child: Stack(
                       children: [
                         if (model.node.height != null)
-                          Positioned.fill(child: body)
+                          Positioned.fill(child: visibleBody)
                         else
-                          body,
+                          visibleBody,
                         Positioned.fill(
                           child: IgnorePointer(
                             child: AnimatedSwitcher(

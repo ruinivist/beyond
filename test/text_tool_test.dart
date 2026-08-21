@@ -185,6 +185,10 @@ void main() {
       final originalWidth = model.node.width;
       expect(originalHeight, greaterThan(automaticHeight));
       expect(model.node.height, isNull);
+      expect(
+        find.descendant(of: block, matching: find.byType(Scrollbar)),
+        findsNothing,
+      );
       final resizeHandle = find.byKey(
         const ValueKey('text-block-resize-handle'),
       );
@@ -207,6 +211,14 @@ void main() {
       expect(model.node.height, textNodeMinimumHeight);
       expect(tester.getSize(block).height, textNodeMinimumHeight);
       expect(model.scrollController.position.maxScrollExtent, greaterThan(0));
+      expect(
+        tester
+            .widget<Scrollbar>(
+              find.descendant(of: block, matching: find.byType(Scrollbar)),
+            )
+            .thumbVisibility,
+        isTrue,
+      );
       expect(model.node.position, position);
       expect(model.node.markdown, source);
       expect(model.node.style, same(style));
