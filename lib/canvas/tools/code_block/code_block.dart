@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:beyond/canvas/tools/code_block/code_language.dart';
+import 'package:beyond/foundation/pointer_scroll_boundary.dart';
 import 'package:beyond/foundation/select.dart';
 import 'package:beyond/foundation/theme.dart';
 import 'package:flutter/gestures.dart';
@@ -115,54 +116,56 @@ class CodeBlock extends StatelessWidget {
                     _CodeBlockHeader(model: model, onMove: onMove),
                     Divider(height: 1, color: colors.borderSubtle),
                     Expanded(
-                      child: CodeEditor(
-                        controller: model.controller,
-                        scrollController: model.scrollController,
-                        focusNode: model.focusNode,
-                        padding: const EdgeInsets.all(8),
-                        style: CodeEditorStyle(
-                          fontFamily: codeStyle.fontFamily,
-                          fontFamilyFallback: codeStyle.fontFamilyFallback,
-                          fontSize: codeStyle.fontSize,
-                          fontHeight: codeStyle.height,
-                          textColor: colors.textPrimary,
-                          backgroundColor: model.selected
-                              ? colors.accentSoft
-                              : colors.surface,
-                          cursorColor: colors.accent,
-                          selectionColor: colors.accentSubtle,
-                          codeTheme: model.language.theme(
-                            theme.syntaxTheme,
-                          ),
-                        ),
-                        indicatorBuilder:
-                            (
-                              context,
-                              controller,
-                              chunkController,
-                              notifier,
-                            ) => ColoredBox(
-                              color: colors.surfaceSubtle,
-                              child: Row(
-                                children: [
-                                  DefaultCodeLineNumber(
-                                    controller: controller,
-                                    notifier: notifier,
-                                    textStyle: codeStyle.copyWith(
-                                      color: colors.textMuted,
-                                    ),
-                                    focusedTextStyle: codeStyle.copyWith(
-                                      color: colors.accent,
-                                    ),
-                                  ),
-                                  DefaultCodeChunkIndicator(
-                                    width: 16,
-                                    controller: chunkController,
-                                    notifier: notifier,
-                                  ),
-                                ],
-                              ),
+                      child: PointerScrollBoundary(
+                        child: CodeEditor(
+                          controller: model.controller,
+                          scrollController: model.scrollController,
+                          focusNode: model.focusNode,
+                          padding: const EdgeInsets.all(8),
+                          style: CodeEditorStyle(
+                            fontFamily: codeStyle.fontFamily,
+                            fontFamilyFallback: codeStyle.fontFamilyFallback,
+                            fontSize: codeStyle.fontSize,
+                            fontHeight: codeStyle.height,
+                            textColor: colors.textPrimary,
+                            backgroundColor: model.selected
+                                ? colors.accentSoft
+                                : colors.surface,
+                            cursorColor: colors.accent,
+                            selectionColor: colors.accentSubtle,
+                            codeTheme: model.language.theme(
+                              theme.syntaxTheme,
                             ),
+                          ),
+                          indicatorBuilder:
+                              (
+                                context,
+                                controller,
+                                chunkController,
+                                notifier,
+                              ) => ColoredBox(
+                                color: colors.surfaceSubtle,
+                                child: Row(
+                                  children: [
+                                    DefaultCodeLineNumber(
+                                      controller: controller,
+                                      notifier: notifier,
+                                      textStyle: codeStyle.copyWith(
+                                        color: colors.textMuted,
+                                      ),
+                                      focusedTextStyle: codeStyle.copyWith(
+                                        color: colors.accent,
+                                      ),
+                                    ),
+                                    DefaultCodeChunkIndicator(
+                                      width: 16,
+                                      controller: chunkController,
+                                      notifier: notifier,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                        ),
                       ),
                     ),
                   ],

@@ -227,6 +227,26 @@ void main() {
       await tester.pump();
       expect(tester.getSize(block).height, textNodeMinimumHeight);
       expect(model.scrollController.position.maxScrollExtent, greaterThan(0));
+
+      final canvas = tester.widget<LazyCanvas>(find.byType(LazyCanvas));
+      final canvasOffset = canvas.controller.offset;
+      final pointer = TestPointer(1, PointerDeviceKind.mouse);
+      await tester.sendEventToBinding(
+        pointer.hover(
+          tester.getCenter(
+            find.byKey(const ValueKey('text-markdown-preview-surface')),
+          ),
+        ),
+      );
+      model.scrollController.jumpTo(
+        model.scrollController.position.maxScrollExtent,
+      );
+      await tester.sendEventToBinding(
+        pointer.scroll(const Offset(0, 20)),
+      );
+      await tester.pump();
+
+      expect(canvas.controller.offset, canvasOffset);
     },
   );
 

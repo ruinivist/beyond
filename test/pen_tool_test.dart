@@ -214,6 +214,42 @@ void main() {
     await tester.pump();
   });
 
+  testWidgets('code scroll boundary does not pan canvas', (tester) async {
+    await tester.pumpWidget(const BeyondApp());
+    await tester.pump();
+    await tester.tap(find.text('Code'));
+    await tester.pump();
+
+    final block = find.byType(CodeBlock);
+    final model = tester.widget<CodeBlock>(block).model;
+    final canvas = tester.widget<LazyCanvas>(find.byType(LazyCanvas));
+    model.controller.text = List.generate(
+      100,
+      (index) => 'line $index',
+    ).join('\n');
+    await tester.pump();
+    expect(
+      model.scrollController.verticalScroller.position.maxScrollExtent,
+      greaterThan(0),
+    );
+
+    model.scrollController.verticalScroller.jumpTo(
+      model.scrollController.verticalScroller.position.maxScrollExtent,
+    );
+    final pointer = TestPointer(1, PointerDeviceKind.mouse);
+    await tester.sendEventToBinding(
+      pointer.hover(tester.getCenter(block)),
+    );
+    await tester.sendEventToBinding(
+      pointer.scroll(const Offset(0, 20)),
+    );
+    await tester.pump();
+
+    expect(canvas.controller.offset, Offset.zero);
+    FocusManager.instance.primaryFocus?.unfocus();
+    await tester.pump(const Duration(milliseconds: 100));
+  });
+
   testWidgets('code blocks move from the header without selecting', (
     tester,
   ) async {

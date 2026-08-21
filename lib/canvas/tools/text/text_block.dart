@@ -4,6 +4,7 @@ import 'dart:math' as math;
 import 'package:beyond/canvas/attachment_store.dart';
 import 'package:beyond/canvas/tools/text/text_node.dart';
 import 'package:beyond/foundation/control_surface.dart';
+import 'package:beyond/foundation/pointer_scroll_boundary.dart';
 import 'package:beyond/foundation/select.dart';
 import 'package:beyond/foundation/theme.dart';
 import 'package:beyond/utils/preset_colors.dart';
@@ -180,7 +181,7 @@ class TextBlock extends StatelessWidget {
               : Scrollbar(
                   controller: model.scrollController,
                   thumbVisibility: true,
-                  child: body,
+                  child: PointerScrollBoundary(child: body),
                 );
           return Semantics(
             container: true,
