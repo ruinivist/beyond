@@ -176,12 +176,16 @@ class TextBlock extends StatelessWidget {
                   onMove: onMove,
                   attachmentStore: attachmentStore,
                 );
+          final configuredBody = ScrollConfiguration(
+            behavior: const _TextBlockScrollBehavior(),
+            child: body,
+          );
           final visibleBody = model.node.height == null
-              ? body
+              ? configuredBody
               : Scrollbar(
                   controller: model.scrollController,
                   thumbVisibility: true,
-                  child: PointerScrollBoundary(child: body),
+                  child: PointerScrollBoundary(child: configuredBody),
                 );
           return Semantics(
             container: true,
@@ -333,6 +337,17 @@ class TextBlock extends StatelessWidget {
   }
 }
 
+class _TextBlockScrollBehavior extends MaterialScrollBehavior {
+  const _TextBlockScrollBehavior();
+
+  @override
+  Widget buildScrollbar(
+    BuildContext context,
+    Widget child,
+    ScrollableDetails details,
+  ) => child;
+}
+
 Widget _textResizeHandleTransition(
   Widget child,
   Animation<double> animation,
@@ -426,24 +441,21 @@ class _TextMarkdownEditorState extends State<_TextMarkdownEditor> {
     final code = theme.typo.code;
     return Focus(
       onKeyEvent: _onKeyEvent,
-      child: ScrollConfiguration(
-        behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
-        child: TextField(
-          key: const ValueKey('text-markdown-editor'),
-          controller: widget.model.controller,
-          focusNode: widget.model.focusNode,
-          scrollController: widget.model.scrollController,
-          expands: widget.model.node.height != null,
-          maxLines: null,
-          cursorColor: colors.accent,
-          decoration: InputDecoration(
-            border: InputBorder.none,
-            contentPadding: const EdgeInsets.all(12),
-            hintText: 'Type something',
-            hintStyle: code.copyWith(color: colors.textMuted),
-          ),
-          style: code.copyWith(color: colors.textPrimary),
+      child: TextField(
+        key: const ValueKey('text-markdown-editor'),
+        controller: widget.model.controller,
+        focusNode: widget.model.focusNode,
+        scrollController: widget.model.scrollController,
+        expands: widget.model.node.height != null,
+        maxLines: null,
+        cursorColor: colors.accent,
+        decoration: InputDecoration(
+          border: InputBorder.none,
+          contentPadding: const EdgeInsets.all(12),
+          hintText: 'Type something',
+          hintStyle: code.copyWith(color: colors.textMuted),
         ),
+        style: code.copyWith(color: colors.textPrimary),
       ),
     );
   }

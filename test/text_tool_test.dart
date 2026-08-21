@@ -3,10 +3,12 @@ import 'dart:typed_data';
 
 import 'package:beyond/canvas/attachment_store.dart';
 import 'package:beyond/canvas/canvas_document_store.dart';
+import 'package:beyond/canvas/canvas_page.dart';
 import 'package:beyond/canvas/tools/text/text_block.dart';
 import 'package:beyond/canvas/tools/text/text_node.dart';
 import 'package:beyond/foundation/select.dart';
 import 'package:beyond/main.dart';
+import 'package:beyond/theme/starless_light.dart';
 import 'package:beyond/utils/preset_colors.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
@@ -164,12 +166,16 @@ void main() {
   testWidgets(
     'text resizing enters manual mode, clamps, and scrolls overflow',
     (tester) async {
-      await _addTextBlock(tester, const Offset(120, 200));
+      await _addTextBlock(
+        tester,
+        const Offset(120, 200),
+        platform: TargetPlatform.linux,
+      );
       final block = find.byType(TextBlock);
       final model = tester.widget<TextBlock>(block).model;
-      final automaticScrollbars = find.descendant(
+      final scrollbars = find.descendant(
         of: block,
-        matching: find.byType(RawScrollbar),
+        matching: find.byType(Scrollbar),
       );
       final position = model.node.position;
       final style = model.node.style;
@@ -189,11 +195,7 @@ void main() {
       final originalWidth = model.node.width;
       expect(originalHeight, greaterThan(automaticHeight));
       expect(model.node.height, isNull);
-      expect(
-        find.descendant(of: block, matching: find.byType(Scrollbar)),
-        findsNothing,
-      );
-      expect(automaticScrollbars, findsNothing);
+      expect(scrollbars, findsNothing);
       final resizeHandle = find.byKey(
         const ValueKey('text-block-resize-handle'),
       );
@@ -217,13 +219,9 @@ void main() {
       expect(tester.getSize(block).height, textNodeMinimumHeight);
       expect(model.scrollController.position.maxScrollExtent, greaterThan(0));
       expect(model.editing, isTrue);
-      expect(automaticScrollbars, findsNothing);
+      expect(scrollbars, findsOneWidget);
       expect(
-        tester
-            .widget<Scrollbar>(
-              find.descendant(of: block, matching: find.byType(Scrollbar)),
-            )
-            .thumbVisibility,
+        tester.widget<Scrollbar>(scrollbars).thumbVisibility,
         isTrue,
       );
       expect(model.node.position, position);
@@ -235,6 +233,7 @@ void main() {
       expect(tester.getSize(block).height, textNodeMinimumHeight);
       expect(model.scrollController.position.maxScrollExtent, greaterThan(0));
       expect(model.editing, isFalse);
+      expect(scrollbars, findsOneWidget);
 
       final canvas = tester.widget<LazyCanvas>(find.byType(LazyCanvas));
       final canvasOffset = canvas.controller.offset;
@@ -919,8 +918,16 @@ Future<void> _addTextBlock(
   WidgetTester tester,
   Offset position, {
   AttachmentStore? attachmentStore,
+  TargetPlatform? platform,
 }) async {
-  await tester.pumpWidget(BeyondApp(attachmentStore: attachmentStore));
+  await tester.pumpWidget(
+    platform == null
+        ? BeyondApp(attachmentStore: attachmentStore)
+        : MaterialApp(
+            theme: starlessLightThemeData.copyWith(platform: platform),
+            home: CanvasPage(attachmentStore: attachmentStore),
+          ),
+  );
   await tester.pump();
   await tester.pump();
   await _placeTextBlock(tester, position);
