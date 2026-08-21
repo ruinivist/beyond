@@ -255,8 +255,10 @@ class _CodeBlockHeader extends StatelessWidget {
               children: [
                 Icon(Icons.code, size: 18, color: colors.textMuted),
                 const SizedBox(width: 8),
-                Select<CodeLanguage>(
+                SearchableSelect<CodeLanguage>(
                   value: model.language,
+                  preferredValues: CodeLanguage.values,
+                  searchHint: 'Search languages…',
                   options: [
                     for (final language in CodeLanguage.values)
                       SelectOption(value: language, label: language.label),
