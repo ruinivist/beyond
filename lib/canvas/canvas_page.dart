@@ -533,60 +533,57 @@ class _CanvasPageState extends State<CanvasPage> {
                 padding: const EdgeInsets.only(top: 12),
                 child: ControlSurface(
                   key: const ValueKey('toolbar-surface'),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 4),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Tooltip(
-                          message: 'Place text',
-                          child: Semantics(
-                            selected: _textPlacementEnabled,
-                            child: TextButton(
-                              onPressed: _toggleTextPlacement,
-                              style: _toolbarButtonStyle(
-                                colors,
-                                geo,
-                                selected: _textPlacementEnabled,
-                                minimumSize: _toolbarSegmentMinimumSize,
-                                borderRadius: geo.radiusMedium,
-                              ),
-                              child: const Text('Text'),
-                            ),
-                          ),
-                        ),
-                        Tooltip(
-                          message: 'Add code block',
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Tooltip(
+                        message: 'Place text',
+                        child: Semantics(
+                          selected: _textPlacementEnabled,
                           child: TextButton(
-                            onPressed: _addCodeBlock,
+                            onPressed: _toggleTextPlacement,
                             style: _toolbarButtonStyle(
                               colors,
                               geo,
+                              selected: _textPlacementEnabled,
                               minimumSize: _toolbarSegmentMinimumSize,
                               borderRadius: geo.radiusMedium,
                             ),
-                            child: const Text('Code'),
+                            child: const Text('Text'),
                           ),
                         ),
-                        Tooltip(
-                          message: 'Draw with pen',
-                          child: Semantics(
-                            selected: _penEnabled,
-                            child: TextButton(
-                              onPressed: _togglePen,
-                              style: _toolbarButtonStyle(
-                                colors,
-                                geo,
-                                selected: _penEnabled,
-                                minimumSize: _toolbarSegmentMinimumSize,
-                                borderRadius: geo.radiusMedium,
-                              ),
-                              child: const Text('Draw'),
+                      ),
+                      Tooltip(
+                        message: 'Add code block',
+                        child: TextButton(
+                          onPressed: _addCodeBlock,
+                          style: _toolbarButtonStyle(
+                            colors,
+                            geo,
+                            minimumSize: _toolbarSegmentMinimumSize,
+                            borderRadius: geo.radiusMedium,
+                          ),
+                          child: const Text('Code'),
+                        ),
+                      ),
+                      Tooltip(
+                        message: 'Draw with pen',
+                        child: Semantics(
+                          selected: _penEnabled,
+                          child: TextButton(
+                            onPressed: _togglePen,
+                            style: _toolbarButtonStyle(
+                              colors,
+                              geo,
+                              selected: _penEnabled,
+                              minimumSize: _toolbarSegmentMinimumSize,
+                              borderRadius: geo.radiusMedium,
                             ),
+                            child: const Text('Draw'),
                           ),
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                 ),
               ),
@@ -649,7 +646,7 @@ ButtonStyle _toolbarButtonStyle(
         return colors.surfacePressed;
       }
       if (states.contains(WidgetState.hovered)) return colors.surfaceHover;
-      return selected ? colors.surfaceSubtle : Colors.transparent;
+      return selected ? colors.surfacePressed : Colors.transparent;
     }),
     side: WidgetStateProperty.resolveWith(
       (states) => states.contains(WidgetState.focused)
