@@ -36,6 +36,7 @@ const _starlessLightColors = BColors(
   textPrimary: _Palette.text,
   textSecondary: _Palette.secondaryText,
   textMuted: _Palette.mutedText,
+  border: _Palette.grid,
   borderSubtle: _Palette.border,
   accent: _Palette.rose500,
   accentHover: _Palette.rose600,

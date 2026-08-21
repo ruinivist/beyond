@@ -208,10 +208,14 @@ class _CanvasPageState extends State<CanvasPage> {
     _scheduleDocumentSave();
   }
 
-  void _resizeTextBlock(TextBlockModel model, double screenDelta) {
+  void _resizeTextBlock(
+    TextBlockModel model,
+    Size renderedSize,
+    Offset screenDelta,
+  ) {
     if (!_documentLoaded || _textPlacementEnabled || _penEnabled) return;
     if (!_textBlocks.containsKey(model)) return;
-    model.width = model.node.width + screenDelta / _canvasController.scale;
+    model.resize(renderedSize, screenDelta / _canvasController.scale);
   }
 
   void _addTextBlock(Offset position) {
@@ -220,6 +224,7 @@ class _CanvasPageState extends State<CanvasPage> {
       id: const Uuid().v4(),
       position: position,
       width: textNodeDefaultWidth,
+      height: null,
       markdown: '',
       style: const TextNodeStyle(
         fontFamily: 'Source Serif 4',
@@ -246,9 +251,9 @@ class _CanvasPageState extends State<CanvasPage> {
         onPointerDown: (event) => _handleTextBlockPointerDown(model, event),
         onEdit: () => _editTextBlock(model),
         onMove: (delta) => _moveTextBlock(model, delta),
-        onResize: (delta) => _resizeTextBlock(model, delta),
+        onResize: (size, delta) => _resizeTextBlock(model, size, delta),
       ),
-      childSize: Size(node.width, 52),
+      childSize: Size(node.width, node.height ?? textNodeMinimumHeight),
     );
     _textBlocks[model] = canvasId;
     model.addListener(_scheduleDocumentSave);

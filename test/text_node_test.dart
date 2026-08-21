@@ -13,6 +13,7 @@ void main() {
           id: 'text-1',
           position: const Offset(-120, 200),
           width: 320,
+          height: 180,
           markdown: source,
           style: const TextNodeStyle(
             fontFamily: 'Inter',
@@ -31,6 +32,8 @@ void main() {
     expect(node.id, 'text-1');
     expect(node.position, const Offset(-120, 200));
     expect(node.width, 320);
+    expect(node.height, 180);
+    expect(document.copy().nodes.single.height, 180);
     expect(node.markdown, source);
     expect(node.style.fontFamily, 'Inter');
     expect(node.style.fontSize, 20);
@@ -115,6 +118,10 @@ void main() {
       throwsA(isA<FormatException>()),
     );
     expect(
+      () => CanvasDocument.fromJson(_document(height: double.nan)),
+      throwsA(isA<FormatException>()),
+    );
+    expect(
       () => CanvasDocument.fromJson(_document(fontSize: double.infinity)),
       throwsA(isA<FormatException>()),
     );
@@ -127,6 +134,22 @@ void main() {
       ),
       throwsA(isA<FormatException>()),
     );
+  });
+
+  test('height below the minimum is rejected', () {
+    expect(
+      () => CanvasDocument.fromJson(
+        _document(height: textNodeMinimumHeight - 1),
+      ),
+      throwsA(isA<FormatException>()),
+    );
+  });
+
+  test('missing height keeps automatic sizing', () {
+    final node = CanvasDocument.fromJson(_document()).nodes.single;
+
+    expect(node.height, isNull);
+    expect(node.toJson(), isNot(contains('height')));
   });
 
   test('unknown font families are rejected', () {
@@ -152,6 +175,7 @@ Map<String, Object?> _document({
   List<Map<String, Object?>>? nodes,
   Map<String, Object?> position = const {'x': 0.0, 'y': 0.0},
   Object width = textNodeDefaultWidth,
+  Object? height,
   String fontFamily = 'Source Serif 4',
   Object fontSize = textNodeDefaultFontSize,
   String color = '#201C1A',
@@ -165,6 +189,7 @@ Map<String, Object?> _document({
           _encodedNode(
             position: position,
             width: width,
+            height: height,
             fontFamily: fontFamily,
             fontSize: fontSize,
             color: color,
@@ -178,6 +203,7 @@ Map<String, Object?> _encodedNode({
   String id = 'text-1',
   Map<String, Object?> position = const {'x': 0.0, 'y': 0.0},
   Object width = textNodeDefaultWidth,
+  Object? height,
   String fontFamily = 'Source Serif 4',
   Object fontSize = textNodeDefaultFontSize,
   String color = '#201C1A',
@@ -188,6 +214,7 @@ Map<String, Object?> _encodedNode({
     'type': 'text',
     'position': position,
     'width': width,
+    'height': ?height,
     'markdown': '',
     'style':
         style ??

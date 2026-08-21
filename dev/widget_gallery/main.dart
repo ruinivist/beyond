@@ -49,6 +49,7 @@ class _WidgetGalleryPageState extends State<WidgetGalleryPage> {
       id: 'gallery-text',
       position: Offset.zero,
       width: textNodeDefaultWidth,
+      height: null,
       markdown: '',
       style: const TextNodeStyle(
         fontFamily: 'Source Serif 4',
@@ -176,7 +177,7 @@ class _WidgetGalleryPageState extends State<WidgetGalleryPage> {
                             _textModel.focusNode.requestFocus();
                           },
                           onMove: (_) {},
-                          onResize: (_) {},
+                          onResize: (_, _) {},
                         ),
                       ),
                     ),

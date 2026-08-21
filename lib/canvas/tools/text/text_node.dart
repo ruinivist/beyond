@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 const textNodeDefaultWidth = 280.0;
 const textNodeMinimumWidth = 160.0;
+const textNodeMinimumHeight = 52.0;
 const textNodeDefaultFontSize = 20.0;
 
 const textNodeFontFamilies = <String>{
@@ -79,6 +80,7 @@ class TextNodeData {
     required this.id,
     required this.position,
     required this.width,
+    required this.height,
     required this.markdown,
     required this.style,
   });
@@ -92,6 +94,7 @@ class TextNodeData {
         'type',
         'position',
         'width',
+        'height',
         'markdown',
         'style',
       },
@@ -116,6 +119,13 @@ class TextNodeData {
     if (width < textNodeMinimumWidth) {
       throw const FormatException('node.width must be at least 160.0');
     }
+    final encodedHeight = value['height'];
+    final height = encodedHeight == null
+        ? null
+        : _finiteNumber(encodedHeight, 'node.height');
+    if (height != null && height < textNodeMinimumHeight) {
+      throw const FormatException('node.height must be at least 52.0');
+    }
 
     final markdown = value['markdown'];
     if (markdown is! String) {
@@ -126,6 +136,7 @@ class TextNodeData {
       id: id,
       position: Offset(x, y),
       width: width,
+      height: height,
       markdown: markdown,
       style: TextNodeStyle.fromJson(value['style']),
     );
@@ -134,6 +145,7 @@ class TextNodeData {
   final String id;
   Offset position;
   double width;
+  double? height;
   String markdown;
   TextNodeStyle style;
 
@@ -145,6 +157,7 @@ class TextNodeData {
       'y': position.dy,
     },
     'width': width,
+    'height': ?height,
     'markdown': markdown,
     'style': style.toJson(),
   };
@@ -153,6 +166,7 @@ class TextNodeData {
     id: id,
     position: position,
     width: width,
+    height: height,
     markdown: markdown,
     style: style.copy(),
   );

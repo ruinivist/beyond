@@ -13,6 +13,7 @@ import 'package:google_fonts/google_fonts.dart';
 // The renderer exposes its Markdown AST type through this callback.
 // ignore: depend_on_referenced_packages
 import 'package:markdown/markdown.dart' as md;
+import 'package:scroll_animator/scroll_animator.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 const textFontOptions = <SelectOption<String>>[
@@ -29,14 +30,26 @@ class TextBlockModel extends ChangeNotifier {
   final TextNodeData node;
   final TextEditingController controller;
   final FocusNode focusNode = FocusNode();
+  final scrollController = AnimatedScrollController(
+    animationFactory: const ChromiumEaseInOut(),
+  );
   final layerLink = LayerLink();
   bool _selected = false;
+  bool _resizing = false;
 
   bool get selected => _selected;
 
   set selected(bool value) {
     if (_selected == value) return;
     _selected = value;
+    notifyListeners();
+  }
+
+  bool get resizing => _resizing;
+
+  set resizing(bool value) {
+    if (_resizing == value) return;
+    _resizing = value;
     notifyListeners();
   }
 
@@ -48,12 +61,16 @@ class TextBlockModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  double get width => node.width;
-
-  set width(double value) {
-    final next = math.max(textNodeMinimumWidth, value);
-    if (node.width == next) return;
-    node.width = next;
+  void resize(Size renderedSize, Offset delta) {
+    final width = math.max(textNodeMinimumWidth, node.width + delta.dx);
+    final height = math.max(
+      textNodeMinimumHeight,
+      (node.height ?? renderedSize.height) + delta.dy,
+    );
+    if (node.width == width && node.height == height) return;
+    node
+      ..width = width
+      ..height = height;
     notifyListeners();
   }
 
@@ -69,6 +86,7 @@ class TextBlockModel extends ChangeNotifier {
       ..removeListener(_syncMarkdown)
       ..dispose();
     focusNode.dispose();
+    scrollController.dispose();
     super.dispose();
   }
 }
@@ -87,11 +105,12 @@ class TextBlock extends StatelessWidget {
   final ValueChanged<PointerDownEvent> onPointerDown;
   final VoidCallback onEdit;
   final ValueChanged<Offset> onMove;
-  final ValueChanged<double> onResize;
+  final void Function(Size renderedSize, Offset delta) onResize;
 
   @override
   Widget build(BuildContext context) {
-    final colors = BTheme.of(context).colors;
+    final theme = BTheme.of(context);
+    final colors = theme.colors;
     return Listener(
       onPointerDown: onPointerDown,
       child: Material(
@@ -99,23 +118,64 @@ class TextBlock extends StatelessWidget {
         child: ListenableBuilder(
           listenable: model,
           builder: (context, _) {
+            final body = model.selected
+                ? _TextMarkdownEditor(model: model)
+                : _TextMarkdownPreview(
+                    source: model.node.markdown,
+                    style: model.style,
+                    scrollController: model.node.height == null
+                        ? null
+                        : model.scrollController,
+                    onEdit: onEdit,
+                    onMove: onMove,
+                  );
             return CompositedTransformTarget(
               link: model.layerLink,
               child: SizedBox(
                 width: model.node.width,
+                height: model.node.height,
                 child: ConstrainedBox(
-                  constraints: const BoxConstraints(minHeight: 52),
+                  constraints: const BoxConstraints(
+                    minHeight: textNodeMinimumHeight,
+                  ),
                   child: Stack(
                     children: [
-                      if (model.selected)
-                        _TextMarkdownEditor(model: model)
+                      if (model.node.height != null)
+                        Positioned.fill(child: body)
                       else
-                        _TextMarkdownPreview(
-                          source: model.node.markdown,
-                          style: model.style,
-                          onEdit: onEdit,
-                          onMove: onMove,
+                        body,
+                      Positioned.fill(
+                        child: IgnorePointer(
+                          child: AnimatedSwitcher(
+                            duration: const Duration(milliseconds: 260),
+                            reverseDuration: const Duration(
+                              milliseconds: 180,
+                            ),
+                            switchInCurve: Curves.easeOutCubic,
+                            switchOutCurve: Curves.easeOutCubic,
+                            transitionBuilder: _textResizeHandleTransition,
+                            child: model.resizing
+                                ? SizedBox.expand(
+                                    key: const ValueKey(
+                                      'text-block-editing-border',
+                                    ),
+                                    child: DecoratedBox(
+                                      decoration: BoxDecoration(
+                                        borderRadius: theme.geo.radiusSmall,
+                                        border: Border.all(
+                                          color: colors.border,
+                                        ),
+                                      ),
+                                    ),
+                                  )
+                                : const SizedBox(
+                                    key: ValueKey(
+                                      'text-block-editing-border-hidden',
+                                    ),
+                                  ),
+                          ),
                         ),
+                      ),
                       Positioned(
                         right: 0,
                         bottom: 0,
@@ -135,12 +195,12 @@ class TextBlock extends StatelessWidget {
                               child: model.selected
                                   ? MouseRegion(
                                       cursor:
-                                          SystemMouseCursors.resizeLeftRight,
+                                          SystemMouseCursors.resizeDownRight,
                                       child: TextFieldTapRegion(
                                         child: ControlSurface(
                                           child: Semantics(
                                             button: true,
-                                            label: 'Resize text width',
+                                            label: 'Resize text block',
                                             child: RawGestureDetector(
                                               key: const ValueKey(
                                                 'text-block-resize-handle',
@@ -155,10 +215,17 @@ class TextBlock extends StatelessWidget {
                                                           .new,
                                                       (recognizer) {
                                                         recognizer
-                                                            .onStart = (_) =>
-                                                            _TextBlockResizeDrag(
-                                                              onResize,
-                                                            );
+                                                            .onStart = (_) {
+                                                          model.resizing = true;
+                                                          return _TextBlockResizeDrag(
+                                                            (delta) => onResize(
+                                                              context.size!,
+                                                              delta,
+                                                            ),
+                                                            () => model
+                                                                .resizing = false,
+                                                          );
+                                                        };
                                                       },
                                                     ),
                                               },
@@ -167,7 +234,7 @@ class TextBlock extends StatelessWidget {
                                                 height: 20,
                                                 child: Center(
                                                   child: Icon(
-                                                    Icons.swap_horiz,
+                                                    Icons.open_in_full,
                                                     size: 16,
                                                     color: colors.textMuted,
                                                   ),
@@ -227,6 +294,8 @@ class _TextMarkdownEditor extends StatelessWidget {
       key: const ValueKey('text-markdown-editor'),
       controller: model.controller,
       focusNode: model.focusNode,
+      scrollController: model.scrollController,
+      expands: model.node.height != null,
       maxLines: null,
       cursorColor: colors.accent,
       decoration: InputDecoration(
@@ -244,44 +313,52 @@ class _TextMarkdownPreview extends StatelessWidget {
   const _TextMarkdownPreview({
     required this.source,
     required this.style,
+    required this.scrollController,
     required this.onEdit,
     required this.onMove,
   });
 
   final String source;
   final TextNodeStyle style;
+  final ScrollController? scrollController;
   final VoidCallback onEdit;
   final ValueChanged<Offset> onMove;
 
   @override
   Widget build(BuildContext context) {
+    final content = source.isEmpty
+        ? _EmptyTextMarkdownPreview(
+            key: const ValueKey('text-markdown-preview'),
+            style: style,
+          )
+        : MarkdownBody(
+            key: const ValueKey('text-markdown-preview'),
+            data: source,
+            blockSyntaxes: [LatexBlockSyntax()],
+            inlineSyntaxes: [
+              _TextImageSyntax(),
+              LatexInlineSyntax(),
+            ],
+            builders: {
+              'latex': LatexElementBuilder(
+                textStyle: _fontStyle(style),
+              ),
+            },
+            styleSheet: _styleSheet(context, style),
+            imageBuilder: (uri, title, alt) => _buildImage(uri, alt),
+            onTapLink: (_, href, _) => _openLink(context, href),
+          );
     return GestureDetector(
       key: const ValueKey('text-markdown-preview-surface'),
       behavior: HitTestBehavior.opaque,
       dragStartBehavior: DragStartBehavior.down,
       onTap: onEdit,
       onPanUpdate: (details) => onMove(details.delta),
-      child: source.isEmpty
-          ? _EmptyTextMarkdownPreview(
-              key: const ValueKey('text-markdown-preview'),
-              style: style,
-            )
-          : MarkdownBody(
-              key: const ValueKey('text-markdown-preview'),
-              data: source,
-              blockSyntaxes: [LatexBlockSyntax()],
-              inlineSyntaxes: [
-                _TextImageSyntax(),
-                LatexInlineSyntax(),
-              ],
-              builders: {
-                'latex': LatexElementBuilder(
-                  textStyle: _fontStyle(style),
-                ),
-              },
-              styleSheet: _styleSheet(context, style),
-              imageBuilder: (uri, title, alt) => _buildImage(uri, alt),
-              onTapLink: (_, href, _) => _openLink(context, href),
+      child: scrollController == null
+          ? content
+          : SingleChildScrollView(
+              controller: scrollController,
+              child: content,
             ),
     );
   }
@@ -836,10 +913,17 @@ class _TextBlockDrag extends Drag {
 }
 
 class _TextBlockResizeDrag extends Drag {
-  _TextBlockResizeDrag(this.onResize);
+  _TextBlockResizeDrag(this.onResize, this.onEnd);
 
-  final ValueChanged<double> onResize;
+  final ValueChanged<Offset> onResize;
+  final VoidCallback onEnd;
 
   @override
-  void update(DragUpdateDetails details) => onResize(details.delta.dx);
+  void update(DragUpdateDetails details) => onResize(details.delta);
+
+  @override
+  void end(DragEndDetails details) => onEnd();
+
+  @override
+  void cancel() => onEnd();
 }

@@ -161,15 +161,14 @@ void main() {
   });
 
   testWidgets(
-    'text width resizing is clamped and keeps node data independent',
-    (
-      tester,
-    ) async {
+    'text resizing enters manual mode, clamps, and scrolls overflow',
+    (tester) async {
       await _addTextBlock(tester, const Offset(120, 200));
       final block = find.byType(TextBlock);
       final model = tester.widget<TextBlock>(block).model;
       final position = model.node.position;
       final style = model.node.style;
+      final automaticHeight = tester.getSize(block).height;
       const source =
           'word word word word word word word word word word word word word '
           'word word word word word word word';
@@ -183,31 +182,42 @@ void main() {
 
       final originalHeight = tester.getSize(block).height;
       final originalWidth = model.node.width;
+      expect(originalHeight, greaterThan(automaticHeight));
+      expect(model.node.height, isNull);
       final resizeHandle = find.byKey(
         const ValueKey('text-block-resize-handle'),
       );
 
-      await tester.drag(resizeHandle, const Offset(80, 0));
+      await tester.drag(resizeHandle, const Offset(80, 40));
       await tester.pump();
 
       expect(model.node.width, originalWidth + 80);
+      expect(model.node.height, originalHeight + 40);
       expect(tester.getSize(block).width, originalWidth + 80);
+      expect(tester.getSize(block).height, originalHeight + 40);
       expect(model.node.position, position);
       expect(model.node.markdown, source);
       expect(model.node.style, same(style));
 
-      await tester.drag(resizeHandle, const Offset(-1000, 0));
+      await tester.drag(resizeHandle, const Offset(-1000, -1000));
       await tester.pump();
 
       expect(model.node.width, textNodeMinimumWidth);
-      expect(tester.getSize(block).height, greaterThan(originalHeight));
+      expect(model.node.height, textNodeMinimumHeight);
+      expect(tester.getSize(block).height, textNodeMinimumHeight);
+      expect(model.scrollController.position.maxScrollExtent, greaterThan(0));
       expect(model.node.position, position);
       expect(model.node.markdown, source);
       expect(model.node.style, same(style));
+
+      await tester.tapAt(const Offset(400, 300));
+      await tester.pump();
+      expect(tester.getSize(block).height, textNodeMinimumHeight);
+      expect(model.scrollController.position.maxScrollExtent, greaterThan(0));
     },
   );
 
-  testWidgets('text width resizing converts screen delta at canvas scale', (
+  testWidgets('text resizing converts screen delta at canvas scale', (
     tester,
   ) async {
     await _addTextBlock(tester, const Offset(120, 200));
@@ -219,7 +229,7 @@ void main() {
     canvas.controller.updateScalebyDelta(1);
     await tester.pump();
 
-    final originalWidth = model.node.width;
+    final originalSize = tester.getSize(find.byType(TextBlock));
     final child = canvas.controller.widgetsWithScreenPositions().single;
     final blockSize = tester.getSize(find.byType(TextBlock));
     final handleSize = tester.getSize(
@@ -231,14 +241,12 @@ void main() {
           (model.node.width - handleSize.width / 2) * canvas.controller.scale,
           (blockSize.height - handleSize.height / 2) * canvas.controller.scale,
         );
-    await tester.dragFrom(
-      handlePosition,
-      const Offset(80, 0),
-    );
+    await tester.dragFrom(handlePosition, const Offset(80, 40));
     await tester.pump();
 
     expect(canvas.controller.scale, 2);
-    expect(model.node.width, originalWidth + 40);
+    expect(model.node.width, originalSize.width + 40);
+    expect(model.node.height, originalSize.height + 20);
   });
 
   testWidgets('text source survives preview edit cycles', (tester) async {
@@ -707,6 +715,7 @@ Inline $x^2$''';
     expect(savedDocument.nodes.last.markdown, firstSource);
     expect(savedDocument.nodes.first.position, second.node.position);
     expect(savedDocument.nodes.first.width, second.node.width);
+    expect(savedDocument.nodes.first.height, second.node.height);
     expect(savedDocument.nodes.first.style.fontFamily, 'Inter');
     expect(
       savedDocument.nodes.first.style.fontSize,
@@ -742,6 +751,10 @@ Inline $x^2$''';
     expect(restoredNodes.map((node) => node.width).toList(), [
       second.node.width,
       first.node.width,
+    ]);
+    expect(restoredNodes.map((node) => node.height).toList(), [
+      second.node.height,
+      first.node.height,
     ]);
     expect(restoredNodes.map((node) => node.style.fontFamily).toList(), [
       second.node.style.fontFamily,
