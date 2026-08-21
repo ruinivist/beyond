@@ -283,8 +283,11 @@ class _CanvasPageState extends State<CanvasPage> {
     _prepareInteractiveBlock();
     final size = _fittedBlockSize(const Size(600, 400), codeBlockMinimumSize);
     final model = CodeBlockModel(size);
-    final position =
-        _viewportCenter() - Offset(size.width / 2, size.height / 2);
+    var position = _viewportCenter() - Offset(size.width / 2, size.height / 2);
+    final placementOffset = const Offset(24, 24) / _canvasController.scale;
+    while (_codeBlocks.values.any((block) => block.position == position)) {
+      position += placementOffset;
+    }
 
     final id = _canvasController.addChild(
       position,

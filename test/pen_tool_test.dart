@@ -162,6 +162,32 @@ void main() {
     await tester.pump(const Duration(milliseconds: 100));
   });
 
+  testWidgets('repeated code blocks cascade down and right', (tester) async {
+    await tester.pumpWidget(const BeyondApp());
+    await tester.pump();
+
+    await tester.tap(find.text('Code'));
+    await tester.pump();
+    await tester.tap(find.text('Code'));
+    await tester.pump();
+    await tester.tap(find.text('Code'));
+    await tester.pump();
+
+    final blocks = find.byType(CodeBlock);
+    expect(blocks, findsNWidgets(3));
+    expect(
+      tester.getTopLeft(blocks.at(1)),
+      tester.getTopLeft(blocks.at(0)) + const Offset(24, 24),
+    );
+    expect(
+      tester.getTopLeft(blocks.at(2)),
+      tester.getTopLeft(blocks.at(1)) + const Offset(24, 24),
+    );
+
+    FocusManager.instance.primaryFocus?.unfocus();
+    await tester.pump(const Duration(milliseconds: 100));
+  });
+
   testWidgets('raised blocks stay below strokes', (tester) async {
     await tester.pumpWidget(const BeyondApp());
     await tester.pump();
