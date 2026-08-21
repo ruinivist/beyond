@@ -858,12 +858,14 @@ Widget _buildImage(Uri uri, String? alt) {
   if (uri.scheme != 'https' || uri.host.isEmpty || uri.host.contains('%')) {
     return _TextImageError(alt: alt);
   }
-  return Image.network(
-    uri.toString(),
-    width: 120,
-    height: 80,
-    fit: BoxFit.contain,
-    errorBuilder: (_, _, _) => _TextImageError(alt: alt),
+  return Padding(
+    padding: const EdgeInsets.symmetric(horizontal: 12),
+    child: Image.network(
+      uri.toString(),
+      width: double.infinity,
+      fit: BoxFit.fitWidth,
+      errorBuilder: (_, _, _) => _TextImageError(alt: alt),
+    ),
   );
 }
 

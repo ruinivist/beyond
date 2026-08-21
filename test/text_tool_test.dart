@@ -366,7 +366,11 @@ Inline $x^2$''';
       null,
       'unsafe',
     );
-    expect((secureImage as Image).image, isA<NetworkImage>());
+    final networkImage = (secureImage as Padding).child! as Image;
+    expect(networkImage.image, isA<NetworkImage>());
+    expect(networkImage.width, double.infinity);
+    expect(networkImage.height, isNull);
+    expect(networkImage.fit, BoxFit.fitWidth);
     expect(insecureImage, isNot(isA<Image>()));
     expect(
       find.byWidgetPredicate(
@@ -406,13 +410,14 @@ Inline $x^2$''';
     final preview = tester.widget<MarkdownBody>(
       find.byKey(const ValueKey('text-markdown-preview')),
     );
-    final image =
+    final imagePadding =
         preview.imageBuilder!(
               Uri.parse('https://example.com/fails.png'),
               null,
               'failed',
             )
-            as Image;
+            as Padding;
+    final image = imagePadding.child! as Image;
     final fallback = image.errorBuilder!(
       tester.element(find.byKey(const ValueKey('text-markdown-preview'))),
       Exception('failed image'),
@@ -485,7 +490,15 @@ Inline $x^2$''';
     final model = tester.widget<TextBlock>(find.byType(TextBlock)).model;
     final image = find.byType(Image);
     expect(image, findsOneWidget);
-    await tester.tap(image);
+    final imageLink = tester.widget<GestureDetector>(
+      find.byWidgetPredicate(
+        (widget) =>
+            widget is GestureDetector &&
+            widget.child is Padding &&
+            (widget.child! as Padding).child is Image,
+      ),
+    );
+    imageLink.onTap!();
     await tester.pump();
 
     expect(launcher.launched, ['https://example.com/image']);
