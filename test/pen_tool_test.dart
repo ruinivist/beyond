@@ -145,23 +145,6 @@ void main() {
     expect(find.byType(TextBlockControls), findsNothing);
   });
 
-  testWidgets('blocks added after strokes stay below them', (tester) async {
-    await tester.pumpWidget(const BeyondApp());
-    await tester.pump();
-
-    await tester.tap(find.text('Draw'));
-    await tester.pump();
-    await tester.dragFrom(const Offset(20, 500), const Offset(40, 20));
-    await tester.pump();
-    await tester.tap(find.text('Code'));
-    await tester.pump();
-
-    expect(_topCanvasChild(tester), isA<PenStroke>());
-
-    FocusManager.instance.primaryFocus?.unfocus();
-    await tester.pump(const Duration(milliseconds: 100));
-  });
-
   testWidgets('repeated code blocks cascade down and right', (tester) async {
     await tester.pumpWidget(const BeyondApp());
     await tester.pump();
@@ -183,27 +166,6 @@ void main() {
       tester.getTopLeft(blocks.at(2)),
       tester.getTopLeft(blocks.at(1)) + const Offset(24, 24),
     );
-
-    FocusManager.instance.primaryFocus?.unfocus();
-    await tester.pump(const Duration(milliseconds: 100));
-  });
-
-  testWidgets('raised blocks stay below strokes', (tester) async {
-    await tester.pumpWidget(const BeyondApp());
-    await tester.pump();
-
-    await tester.tap(find.text('Code'));
-    await tester.pump();
-    await tester.tap(find.text('Draw'));
-    await tester.pump();
-    await tester.dragFrom(const Offset(20, 500), const Offset(40, 20));
-    await tester.pump();
-    await tester.tap(find.text('Draw'));
-    await tester.pump();
-    await tester.tap(find.byKey(const ValueKey('code-block-header')));
-    await tester.pump();
-
-    expect(_topCanvasChild(tester), isA<PenStroke>());
 
     FocusManager.instance.primaryFocus?.unfocus();
     await tester.pump(const Duration(milliseconds: 100));
@@ -463,10 +425,4 @@ void main() {
     await tester.pump();
     expect(find.byType(ScribbleSketch), findsOneWidget);
   });
-}
-
-Widget _topCanvasChild(WidgetTester tester) {
-  final canvas = tester.widget<LazyCanvas>(find.byType(LazyCanvas));
-  final wrapper = canvas.controller.widgetsWithScreenPositions().last.child;
-  return (wrapper as Container).child!;
 }

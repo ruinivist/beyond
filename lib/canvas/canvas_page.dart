@@ -158,13 +158,6 @@ class _CanvasPageState extends State<CanvasPage> {
 
   void _bringBlockToFront(String id) {
     _canvasController.bringToFront(id);
-    _bringStrokesToFront();
-  }
-
-  void _bringStrokesToFront() {
-    // ponytail: linear in stroke count; add canvas layers if profiling
-    // demands it.
-    _strokes.values.forEach(_canvasController.bringToFront);
   }
 
   void _startTextEditing(TextBlockModel editing) {
@@ -246,7 +239,6 @@ class _CanvasPageState extends State<CanvasPage> {
 
     _mountTextBlock(model, requestFocus: true);
     _startTextEditing(model);
-    _bringStrokesToFront();
   }
 
   void _mountTextBlock(
@@ -302,7 +294,6 @@ class _CanvasPageState extends State<CanvasPage> {
       childSize: size,
     );
     _codeBlocks[model] = (id: id, position: position);
-    _bringStrokesToFront();
     WidgetsBinding.instance.addPostFrameCallback(
       (_) => model.focusNode.requestFocus(),
     );
@@ -430,7 +421,6 @@ class _CanvasPageState extends State<CanvasPage> {
             requestFocus: false,
           );
         }
-        _bringStrokesToFront();
       }
       _documentLoaded = true;
       if (mounted) setState(() {});
