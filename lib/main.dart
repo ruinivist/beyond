@@ -8,7 +8,8 @@ import 'package:flutter/services.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   if (kIsWeb) await BrowserContextMenu.disableContextMenu();
-  await loadCodeFont();
+  // TODO(dev): bundle it instead of fetching fonts at runtime.
+  await loadFonts();
   runApp(const BeyondApp());
 }
 

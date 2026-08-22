@@ -16,7 +16,7 @@ import 'package:scroll_animator/scroll_animator.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await loadCodeFont();
+  await loadFonts();
   runApp(const WidgetGalleryApp());
 }
 

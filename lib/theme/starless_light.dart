@@ -156,10 +156,15 @@ const _starlessLightColorScheme = ColorScheme(
   surfaceTint: Colors.transparent,
 );
 
-Future<void> loadCodeFont() async {
+Future<void> loadFonts() async {
   try {
     await GoogleFonts.pendingFonts([
+      _starlessLight.typo.display,
+      _starlessLight.typo.title,
+      _starlessLight.typo.body,
       _jetBrainsMono(),
+      GoogleFonts.sourceSerif4(),
+      GoogleFonts.inter(),
     ]).timeout(const Duration(seconds: 3));
   } on Exception {
     _useMonoFallback = true;
