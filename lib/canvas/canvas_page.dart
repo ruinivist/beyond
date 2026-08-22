@@ -36,12 +36,12 @@ class _CanvasPageState extends State<CanvasPage> {
   final CanvasDocumentStore _documentStore = CanvasDocumentStore();
   late final AttachmentStore _attachmentStore =
       widget.attachmentStore ?? createAttachmentStore();
-  final _codeBlocks = <CodeBlockModel, ({String id, Offset position})>{};
-  final _textBlocks = <TextBlockModel, String>{};
+  final _codeBlocks = <CodeBlockModel, ({CanvasChildId id, Offset position})>{};
+  final _textBlocks = <TextBlockModel, CanvasChildId>{};
   TextBlockModel? _editingTextBlock;
   TextBlockModel? _editingChromeModel;
   final ValueNotifier<bool> _selectionModifierPressed = ValueNotifier(false);
-  final _strokes = <PenStrokeModel, String>{};
+  final _strokes = <PenStrokeModel, CanvasChildId>{};
   final _interactiveCanvasPointerIds = <int>{};
   final _selectionKeys = <Object, GlobalKey>{};
   final _selectionBeforeDrag = <Object>{};
@@ -285,24 +285,67 @@ class _CanvasPageState extends State<CanvasPage> {
   GlobalKey _selectionKey(Object model) =>
       _selectionKeys.putIfAbsent(model, GlobalKey.new);
 
-  void _moveCodeBlock(CodeBlockModel model, Offset screenDelta) {
-    if (_textPlacementEnabled || _penEnabled) return;
-    final entry = _codeBlocks[model];
-    if (entry == null) return;
+  void _moveSelectedChildren(ChangeNotifier dragged, Offset screenDelta) {
+    if (!_documentLoaded ||
+        _textPlacementEnabled ||
+        _penEnabled ||
+        _selectionModifierPressed.value ||
+        screenDelta == Offset.zero) {
+      return;
+    }
 
-    final position = entry.position + screenDelta / _canvasController.scale;
-    _codeBlocks[model] = (id: entry.id, position: position);
-    _canvasController.updatePosition(entry.id, position);
-  }
+    var draggedSelected = false;
+    if (dragged case final TextBlockModel model
+        when _textBlocks.containsKey(model)) {
+      draggedSelected = model.selected;
+    } else if (dragged case final CodeBlockModel model
+        when _codeBlocks.containsKey(model)) {
+      draggedSelected = model.selected;
+    } else if (dragged case final PenStrokeModel model
+        when _strokes.containsKey(model)) {
+      draggedSelected = model.selected;
+    }
 
-  void _moveTextBlock(TextBlockModel model, Offset screenDelta) {
-    if (!_documentLoaded || _textPlacementEnabled || _penEnabled) return;
-    final canvasId = _textBlocks[model];
-    if (canvasId == null) return;
+    if (!draggedSelected) _clearSelection();
 
-    model.node.position += screenDelta / _canvasController.scale;
-    _canvasController.updatePosition(canvasId, model.node.position);
-    _scheduleDocumentSave();
+    final gridDelta = screenDelta / _canvasController.scale;
+    final ids = <CanvasChildId>[];
+    final textModels = <TextBlockModel>[];
+    final codeModels = <CodeBlockModel>[];
+    for (final entry in _textBlocks.entries) {
+      if (identical(entry.key, dragged) ||
+          draggedSelected && entry.key.selected) {
+        ids.add(entry.value);
+        textModels.add(entry.key);
+      }
+    }
+    for (final entry in _codeBlocks.entries) {
+      if (identical(entry.key, dragged) ||
+          draggedSelected && entry.key.selected) {
+        ids.add(entry.value.id);
+        codeModels.add(entry.key);
+      }
+    }
+    for (final entry in _strokes.entries) {
+      if (identical(entry.key, dragged) ||
+          draggedSelected && entry.key.selected) {
+        ids.add(entry.value);
+      }
+    }
+
+    if (ids.isEmpty) return;
+    _canvasController.moveChildrenBy(ids, gridDelta);
+    for (final model in textModels) {
+      model.node.position += gridDelta;
+    }
+    for (final model in codeModels) {
+      final entry = _codeBlocks[model]!;
+      _codeBlocks[model] = (
+        id: entry.id,
+        position: entry.position + gridDelta,
+      );
+    }
+    if (textModels.isNotEmpty) _scheduleDocumentSave();
   }
 
   void _resizeTextBlock(
@@ -350,7 +393,7 @@ class _CanvasPageState extends State<CanvasPage> {
           model: model,
           attachmentStore: _attachmentStore,
           onEdit: () => _editTextBlock(model),
-          onMove: (delta) => _moveTextBlock(model, delta),
+          onMove: (delta) => _moveSelectedChildren(model, delta),
           onResize: (size, delta) => _resizeTextBlock(model, size, delta),
         ),
       ),
@@ -384,7 +427,7 @@ class _CanvasPageState extends State<CanvasPage> {
         onPointerDown: (event) => _handleCodeBlockPointerDown(model, event),
         child: CodeBlock(
           model: model,
-          onMove: (delta) => _moveCodeBlock(model, delta),
+          onMove: (delta) => _moveSelectedChildren(model, delta),
         ),
       ),
       childSize: size,
@@ -434,6 +477,7 @@ class _CanvasPageState extends State<CanvasPage> {
         model: model,
         size: stroke.size,
         onPointerDown: (event) => _handleStrokePointerDown(model, event),
+        onMove: (delta) => _moveSelectedChildren(model, delta),
       ),
       childSize: stroke.size,
     );
@@ -671,7 +715,8 @@ class _CanvasPageState extends State<CanvasPage> {
                         child: TextBlockControls(
                           key: ValueKey(editing.node.id),
                           model: editing,
-                          onMove: (delta) => _moveTextBlock(editing, delta),
+                          onMove: (delta) =>
+                              _moveSelectedChildren(editing, delta),
                         ),
                       ),
                       null => const SizedBox(

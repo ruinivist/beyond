@@ -89,6 +89,17 @@ void main() {
     await tester.tapAt(tester.getCenter(strokeFinder));
     await tester.pump();
     expect(stroke.selected, isTrue);
+    final selectedStrokePosition = tester.getTopLeft(strokeFinder);
+    await tester.drag(
+      strokeFinder,
+      const Offset(48, 36),
+      kind: PointerDeviceKind.mouse,
+    );
+    await tester.pump();
+    expect(tester.getTopLeft(strokeFinder), selectedStrokePosition);
+    await tester.tapAt(tester.getCenter(strokeFinder));
+    await tester.pump();
+    expect(stroke.selected, isTrue);
     expect(
       find.descendant(
         of: strokeFinder,
@@ -347,6 +358,119 @@ void main() {
     await tester.pump();
     expect(text.selected, isFalse);
     expect(code.selected, isFalse);
+  });
+
+  testWidgets('dragging a selected mixed group moves every child', (
+    tester,
+  ) async {
+    await tester.pumpWidget(const BeyondApp());
+    await tester.pump();
+
+    await tester.tap(find.text('Text'));
+    await tester.pump();
+    await tester.tapAt(const Offset(40, 520));
+    await tester.pump();
+    await tester.pump();
+    await tester.tap(find.text('Draw'));
+    await tester.pump();
+    await tester.dragFrom(
+      const Offset(350, 540),
+      const Offset(50, 20),
+      kind: PointerDeviceKind.mouse,
+    );
+    await tester.pump();
+    await tester.tap(find.text('Draw'));
+    await tester.tap(find.text('Code'));
+    await tester.pump(const Duration(milliseconds: 100));
+
+    final textFinder = find.byType(TextBlock);
+    final codeFinder = find.byType(CodeBlock);
+    final strokeFinder = find.byType(PenStroke);
+    final text = tester.widget<TextBlock>(textFinder).model;
+    final code = tester.widget<CodeBlock>(codeFinder).model;
+    final stroke = tester.widget<PenStroke>(strokeFinder).model;
+    final textPosition = tester.getTopLeft(textFinder);
+    final codePosition = tester.getTopLeft(codeFinder);
+    final strokePosition = tester.getTopLeft(strokeFinder);
+
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+    await tester.pump();
+    await tester.tapAt(
+      tester.getCenter(
+        find.byKey(const ValueKey('text-markdown-preview-surface')),
+      ),
+    );
+    await tester.pump();
+    await tester.tapAt(
+      tester.getCenter(find.byKey(const ValueKey('code-block-header'))),
+    );
+    await tester.pump();
+    await tester.tapAt(tester.getCenter(strokeFinder));
+    await tester.pump();
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+    await tester.pump();
+
+    expect(text.selected, isTrue);
+    expect(code.selected, isTrue);
+    expect(stroke.selected, isTrue);
+
+    const delta = Offset(48, 36);
+    await tester.drag(strokeFinder, delta, kind: PointerDeviceKind.mouse);
+    await tester.pump();
+
+    expect(tester.getTopLeft(textFinder), textPosition + delta);
+    expect(tester.getTopLeft(codeFinder), codePosition + delta);
+    expect(tester.getTopLeft(strokeFinder), strokePosition + delta);
+
+    FocusManager.instance.primaryFocus?.unfocus();
+    await tester.pump(const Duration(milliseconds: 100));
+  });
+
+  testWidgets('dragging an unselected child clears selection and moves alone', (
+    tester,
+  ) async {
+    await tester.pumpWidget(const BeyondApp());
+    await tester.pump();
+
+    await tester.tap(find.text('Text'));
+    await tester.pump();
+    await tester.tapAt(const Offset(40, 520));
+    await tester.pump();
+    await tester.pump();
+    await tester.tap(find.text('Code'));
+    await tester.pump(const Duration(milliseconds: 100));
+
+    final textFinder = find.byType(TextBlock);
+    final codeFinder = find.byType(CodeBlock);
+    final text = tester.widget<TextBlock>(textFinder).model;
+    final code = tester.widget<CodeBlock>(codeFinder).model;
+    final header = find.byKey(const ValueKey('code-block-header'));
+
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+    await tester.pump();
+    await tester.tapAt(
+      tester.getCenter(
+        find.byKey(const ValueKey('text-markdown-preview-surface')),
+      ),
+    );
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+    await tester.pump();
+    expect(text.selected, isTrue);
+    expect(code.selected, isFalse);
+
+    final textPosition = tester.getTopLeft(textFinder);
+    final codePosition = tester.getTopLeft(codeFinder);
+    const delta = Offset(72, 44);
+    await tester.drag(header, delta, kind: PointerDeviceKind.mouse);
+    await tester.pump();
+
+    expect(tester.getTopLeft(textFinder), textPosition);
+    expect(tester.getTopLeft(codeFinder), codePosition + delta);
+    expect(text.selected, isFalse);
+    expect(code.selected, isFalse);
+
+    FocusManager.instance.primaryFocus?.unfocus();
+    await tester.pump(const Duration(milliseconds: 100));
   });
 
   testWidgets('drag marquee selects overlaps and ctrl toggles hits', (

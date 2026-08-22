@@ -33,12 +33,14 @@ class PenStroke extends StatelessWidget {
     required this.model,
     required this.size,
     required this.onPointerDown,
+    required this.onMove,
     super.key,
   });
 
   final PenStrokeModel model;
   final Size size;
   final ValueChanged<PointerDownEvent> onPointerDown;
+  final ValueChanged<Offset> onMove;
 
   @override
   Widget build(BuildContext context) {
@@ -53,15 +55,18 @@ class PenStroke extends StatelessWidget {
             container: true,
             label: 'Drawing stroke',
             selected: model.selected,
-            child: CustomPaint(
-              foregroundPainter: _PenStrokePainter(
-                sketch: model.sketch,
-                hitSlop: model.hitSlop,
-                selected: model.selected,
-                accent: accent,
-              ),
-              child: IgnorePointer(
-                child: ScribbleSketch(sketch: model.sketch),
+            child: GestureDetector(
+              onPanUpdate: (details) => onMove(details.delta),
+              child: CustomPaint(
+                foregroundPainter: _PenStrokePainter(
+                  sketch: model.sketch,
+                  hitSlop: model.hitSlop,
+                  selected: model.selected,
+                  accent: accent,
+                ),
+                child: IgnorePointer(
+                  child: ScribbleSketch(sketch: model.sketch),
+                ),
               ),
             ),
           ),
