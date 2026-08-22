@@ -10,12 +10,15 @@ import 'package:beyond/foundation/select.dart';
 import 'package:beyond/foundation/theme.dart';
 import 'package:beyond/theme/starless_light.dart';
 import 'package:beyond/widgets/settings_dialog.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:re_editor/re_editor.dart';
 import 'package:scroll_animator/scroll_animator.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  if (kIsWeb) await BrowserContextMenu.disableContextMenu();
   await loadFonts();
   runApp(const WidgetGalleryApp());
 }
@@ -385,6 +388,14 @@ class _WidgetGalleryPageState extends State<WidgetGalleryPage> {
                         onChanged: (value) =>
                             setState(() => _searchableLanguage = value),
                       ),
+                    ),
+                    const _GalleryCard(
+                      title: 'Context menu',
+                      existing: false,
+                      note:
+                          'Secondary-click the preview to open actions '
+                          'at the pointer.',
+                      child: _ContextMenuPreview(),
                     ),
                   ],
                 ),
@@ -952,6 +963,196 @@ class _GalleryCard extends StatelessWidget {
             const SizedBox(height: 20),
             child,
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ContextMenuPreview extends StatelessWidget {
+  const _ContextMenuPreview();
+
+  static const _menuWidth = 224.0;
+
+  static MenuStyle _menuStyle(BTheme theme) {
+    final colors = theme.colors;
+    return MenuStyle(
+      backgroundColor: WidgetStatePropertyAll(colors.surfaceRaised),
+      shadowColor: WidgetStatePropertyAll(colors.shadow),
+      elevation: WidgetStatePropertyAll(theme.geo.elevationMedium),
+      padding: const WidgetStatePropertyAll(EdgeInsets.all(4)),
+      minimumSize: const WidgetStatePropertyAll(Size(_menuWidth, 0)),
+      side: WidgetStatePropertyAll(BorderSide(color: colors.borderSubtle)),
+      shape: WidgetStatePropertyAll(
+        RoundedRectangleBorder(borderRadius: theme.geo.radiusMedium),
+      ),
+    );
+  }
+
+  static ButtonStyle _itemStyle(BTheme theme, {bool destructive = false}) {
+    final colors = theme.colors;
+    final foreground = destructive ? colors.accentPressed : colors.textPrimary;
+    return MenuItemButton.styleFrom(
+      foregroundColor: foreground,
+      disabledForegroundColor: colors.textMuted,
+      iconColor: foreground,
+      disabledIconColor: colors.textMuted,
+      backgroundColor: Colors.transparent,
+      disabledBackgroundColor: Colors.transparent,
+      textStyle: theme.typo.body,
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      minimumSize: const Size(0, 34),
+      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      alignment: Alignment.centerLeft,
+      shape: RoundedRectangleBorder(borderRadius: theme.geo.radiusSmall),
+    ).copyWith(
+      overlayColor: WidgetStateProperty.resolveWith((states) {
+        if (states.contains(WidgetState.pressed)) return colors.surfacePressed;
+        if (states.contains(WidgetState.hovered) ||
+            states.contains(WidgetState.focused)) {
+          return colors.surfaceHover;
+        }
+        return Colors.transparent;
+      }),
+    );
+  }
+
+  Widget _item(
+    BuildContext context,
+    String label,
+    IconData icon,
+    MenuSerializableShortcut shortcut, {
+    bool enabled = true,
+    bool destructive = false,
+    bool autofocus = false,
+    String? shortcutLabel,
+  }) {
+    final theme = BTheme.of(context);
+    final item = MenuItemButton(
+      autofocus: autofocus,
+      onPressed: enabled ? () {} : null,
+      shortcut: shortcutLabel == null ? shortcut : null,
+      style: _itemStyle(theme, destructive: destructive),
+      leadingIcon: Icon(icon, size: 16),
+      child: shortcutLabel == null
+          ? Text(label)
+          : Row(
+              children: [
+                Text(label),
+                const Spacer(),
+                Text(
+                  shortcutLabel,
+                  style: theme.typo.body.copyWith(
+                    color: theme.colors.textSecondary,
+                  ),
+                ),
+              ],
+            ),
+    );
+    return SizedBox(
+      width: _menuWidth,
+      child: shortcutLabel == null
+          ? item
+          : Shortcuts(
+              shortcuts: {shortcut: const ActivateIntent()},
+              child: item,
+            ),
+    );
+  }
+
+  Widget _divider(BTheme theme) {
+    return SizedBox(
+      width: _menuWidth,
+      child: Divider(height: 8, color: theme.colors.borderSubtle),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = BTheme.of(context);
+    final colors = theme.colors;
+    return MenuAnchor(
+      consumeOutsideTap: true,
+      style: _menuStyle(theme),
+      menuChildren: [
+        _item(
+          context,
+          'Open in new tab',
+          Icons.open_in_new,
+          const SingleActivator(LogicalKeyboardKey.enter, control: true),
+          autofocus: true,
+        ),
+        _item(
+          context,
+          'Duplicate',
+          Icons.copy_outlined,
+          const SingleActivator(LogicalKeyboardKey.keyD, control: true),
+        ),
+        _divider(theme),
+        _item(
+          context,
+          'Rename',
+          Icons.edit_outlined,
+          const SingleActivator(LogicalKeyboardKey.f2),
+          shortcutLabel: 'F2',
+        ),
+        _item(
+          context,
+          'Share',
+          Icons.ios_share_outlined,
+          const SingleActivator(
+            LogicalKeyboardKey.keyS,
+            control: true,
+            shift: true,
+          ),
+          enabled: false,
+        ),
+        _divider(theme),
+        _item(
+          context,
+          'Delete',
+          Icons.delete_outline,
+          const SingleActivator(LogicalKeyboardKey.delete, shift: true),
+          destructive: true,
+        ),
+      ],
+      builder: (context, controller, child) => Semantics(
+        label: 'Context menu target',
+        hint: 'Right-click for actions',
+        button: true,
+        child: InkWell(
+          mouseCursor: SystemMouseCursors.contextMenu,
+          onTap: controller.open,
+          onSecondaryTapDown: (details) =>
+              controller.open(position: details.localPosition),
+          child: child,
+        ),
+      ),
+      child: SizedBox(
+        width: double.infinity,
+        height: 144,
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            color: colors.surface,
+            borderRadius: theme.geo.radiusMedium,
+            border: Border.all(color: colors.borderSubtle),
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.ads_click, size: 28, color: colors.accent),
+              const SizedBox(height: 10),
+              Text(
+                'Right-click this area',
+                style: theme.typo.title.copyWith(color: colors.textPrimary),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Use arrow keys and Enter in the menu',
+                style: theme.typo.body.copyWith(color: colors.textSecondary),
+              ),
+            ],
+          ),
         ),
       ),
     );
