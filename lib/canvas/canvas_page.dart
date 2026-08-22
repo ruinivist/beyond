@@ -4,6 +4,7 @@ import 'dart:math' as math;
 import 'package:beyond/canvas/attachment_store.dart';
 import 'package:beyond/canvas/canvas_background.dart';
 import 'package:beyond/canvas/canvas_document_store.dart';
+import 'package:beyond/canvas/tools/arrow/arrow_tool.dart';
 import 'package:beyond/canvas/tools/code_block/code_block.dart';
 import 'package:beyond/canvas/tools/pen/pen_tool.dart';
 import 'package:beyond/canvas/tools/text/text_block.dart';
@@ -43,6 +44,7 @@ class _CanvasPageState extends State<CanvasPage> {
   TextBlockModel? _editingChromeModel;
   final ValueNotifier<bool> _selectionModifierPressed = ValueNotifier(false);
   final _strokes = <PenStrokeModel, CanvasChildId>{};
+  final _arrows = <ArrowModel, ({CanvasChildId id, Rect bounds})>{};
   final _interactiveCanvasPointerIds = <int>{};
   final _selectionBeforeWidgetPointer = <Object>{};
   final _selectionKeys = <Object, GlobalKey>{};
@@ -51,13 +53,17 @@ class _CanvasPageState extends State<CanvasPage> {
   int? _dragSelectionPointer;
   Offset? _dragSelectionStart;
   Offset? _dragSelectionEnd;
+  int? _dragArrowPointer;
+  ArrowModel? _dragArrow;
   var _toggleDragSelection = false;
   Timer? _saveTimer;
   Future<void> _saveQueue = Future<void>.value();
   bool _documentDirty = false;
   bool _documentLoaded = false;
   late final PenTool _penTool;
+  late final ArrowTool _arrowTool;
   var _penEnabled = false;
+  var _arrowEnabled = false;
   var _textPlacementEnabled = false;
   var _spaceHeld = false;
 
@@ -67,8 +73,14 @@ class _CanvasPageState extends State<CanvasPage> {
     _penTool = PenTool(onStroke: _addStroke)
       ..setColor(presetColors.first.color)
       ..setStrokeWidth(3);
+    _arrowTool = ArrowTool(onArrow: _addArrow)
+      ..addListener(_handleArrowToolChanged);
     HardwareKeyboard.instance.addHandler(_handleKeyEvent);
     unawaited(_restoreDocument());
+  }
+
+  void _handleArrowToolChanged() {
+    if (mounted) setState(() {});
   }
 
   @override
@@ -90,6 +102,7 @@ class _CanvasPageState extends State<CanvasPage> {
     setState(() {
       _textPlacementEnabled = !_textPlacementEnabled;
       _penEnabled = false;
+      _arrowEnabled = false;
       _spaceHeld = false;
     });
     if (_textPlacementEnabled) {
@@ -120,6 +133,14 @@ class _CanvasPageState extends State<CanvasPage> {
       }
       return;
     }
+    if (_arrowEnabled) {
+      _arrowTool.onPointerDown(
+        event,
+        _canvasController.offset +
+            event.localPosition / _canvasController.scale,
+      );
+      return;
+    }
     FocusManager.instance.primaryFocus?.unfocus();
     _clearTextEditing();
     _selectionBeforeDrag
@@ -136,12 +157,37 @@ class _CanvasPageState extends State<CanvasPage> {
   }
 
   void _handleCanvasPointerMove(PointerMoveEvent event) {
+    if (_arrowTool.ownsPointer(event.pointer)) {
+      _arrowTool.onPointerMove(
+        event,
+        _canvasController.offset +
+            event.localPosition / _canvasController.scale,
+      );
+      return;
+    }
+    if (event.pointer == _dragArrowPointer) {
+      final arrow = _dragArrow;
+      if (arrow != null) _moveSelectedChildren(arrow, event.delta);
+      return;
+    }
     if (event.pointer != _dragSelectionPointer) return;
     _updateDragSelection(event.localPosition);
   }
 
   void _handleCanvasPointerUp(PointerUpEvent event) {
     _finishWidgetPointer(event.pointer);
+    if (_arrowTool.ownsPointer(event.pointer)) {
+      _arrowTool.onPointerUp(
+        event,
+        _canvasController.offset +
+            event.localPosition / _canvasController.scale,
+      );
+      return;
+    }
+    if (event.pointer == _dragArrowPointer) {
+      _finishArrowDrag();
+      return;
+    }
     if (event.pointer != _dragSelectionPointer) return;
     _updateDragSelection(event.localPosition);
     _finishDragSelection();
@@ -149,6 +195,14 @@ class _CanvasPageState extends State<CanvasPage> {
 
   void _handleCanvasPointerCancel(PointerCancelEvent event) {
     _finishWidgetPointer(event.pointer);
+    if (_arrowTool.ownsPointer(event.pointer)) {
+      _arrowTool.onPointerCancel(event);
+      return;
+    }
+    if (event.pointer == _dragArrowPointer) {
+      _finishArrowDrag();
+      return;
+    }
     if (event.pointer != _dragSelectionPointer) return;
     for (final model in _textBlocks.keys) {
       model.selected = _selectionBeforeDrag.contains(model);
@@ -157,6 +211,9 @@ class _CanvasPageState extends State<CanvasPage> {
       model.selected = _selectionBeforeDrag.contains(model);
     }
     for (final model in _strokes.keys) {
+      model.selected = _selectionBeforeDrag.contains(model);
+    }
+    for (final model in _arrows.keys) {
       model.selected = _selectionBeforeDrag.contains(model);
     }
     _finishDragSelection();
@@ -196,6 +253,9 @@ class _CanvasPageState extends State<CanvasPage> {
     }
     for (final entry in _strokes.entries) {
       entry.key.selected = selected(entry.key, entry.value);
+    }
+    for (final entry in _arrows.entries) {
+      entry.key.selected = selected(entry.key, entry.value.id);
     }
   }
 
@@ -302,12 +362,16 @@ class _CanvasPageState extends State<CanvasPage> {
     for (final model in _strokes.keys) {
       model.selected = selection.contains(model);
     }
+    for (final model in _arrows.keys) {
+      model.selected = selection.contains(model);
+    }
   }
 
   Set<Object> _selectedModels() => {
     ..._textBlocks.keys.where((model) => model.selected),
     ..._codeBlocks.keys.where((model) => model.selected),
     ..._strokes.keys.where((model) => model.selected),
+    ..._arrows.keys.where((model) => model.selected),
   };
 
   GlobalKey _selectionKey(Object model) =>
@@ -336,6 +400,9 @@ class _CanvasPageState extends State<CanvasPage> {
     } else if (dragged case final PenStrokeModel model
         when _strokes.containsKey(model)) {
       draggedSelected = model.selected;
+    } else if (dragged case final ArrowModel model
+        when _arrows.containsKey(model)) {
+      draggedSelected = model.selected;
     }
 
     if (!draggedSelected) _clearSelection();
@@ -344,6 +411,7 @@ class _CanvasPageState extends State<CanvasPage> {
     final ids = <CanvasChildId>[];
     final textModels = <TextBlockModel>[];
     final codeModels = <CodeBlockModel>[];
+    final arrowModels = <ArrowModel>[];
     for (final entry in _textBlocks.entries) {
       if (identical(entry.key, dragged) ||
           draggedSelected && entry.key.selected) {
@@ -364,6 +432,13 @@ class _CanvasPageState extends State<CanvasPage> {
         ids.add(entry.value);
       }
     }
+    for (final entry in _arrows.entries) {
+      if (identical(entry.key, dragged) ||
+          draggedSelected && entry.key.selected) {
+        ids.add(entry.value.id);
+        arrowModels.add(entry.key);
+      }
+    }
 
     if (ids.isEmpty) return;
     _canvasController.moveChildrenBy(ids, gridDelta);
@@ -375,6 +450,14 @@ class _CanvasPageState extends State<CanvasPage> {
       _codeBlocks[model] = (
         id: entry.id,
         position: entry.position + gridDelta,
+      );
+    }
+    for (final model in arrowModels) {
+      final entry = _arrows[model]!;
+      model.moveBy(gridDelta);
+      _arrows[model] = (
+        id: entry.id,
+        bounds: entry.bounds.shift(gridDelta),
       );
     }
     if (textModels.isNotEmpty) _scheduleDocumentSave();
@@ -487,6 +570,7 @@ class _CanvasPageState extends State<CanvasPage> {
     setState(() {
       _penEnabled = false;
       _textPlacementEnabled = false;
+      _arrowEnabled = false;
       _spaceHeld = false;
     });
     FocusManager.instance.primaryFocus?.unfocus();
@@ -510,6 +594,49 @@ class _CanvasPageState extends State<CanvasPage> {
       ),
       childSize: stroke.size,
     );
+  }
+
+  void _addArrow(ArrowModel model) {
+    if (!_documentLoaded) return;
+    final bounds = model.bounds;
+    final id = _canvasController.addChild(
+      bounds.topLeft,
+      _SelectionPointerRegion(
+        key: _selectionKey(model),
+        modifierPressed: _selectionModifierPressed,
+        onPointerDown: (event) => _handleArrowPointerDown(model, event),
+        child: Arrow(model: model, bounds: bounds),
+      ),
+      childSize: bounds.size,
+    );
+    _arrows[model] = (id: id, bounds: bounds);
+  }
+
+  void _handleArrowPointerDown(
+    ArrowModel model,
+    PointerDownEvent event,
+  ) {
+    if (event.buttons != kPrimaryButton ||
+        !_documentLoaded ||
+        _textPlacementEnabled ||
+        _penEnabled ||
+        _arrowEnabled ||
+        !_arrows.containsKey(model)) {
+      return;
+    }
+    _interactiveCanvasPointerIds.add(event.pointer);
+    if (_selectionModifierPressed.value) {
+      model.selected = !model.selected;
+      return;
+    }
+    _clearTextEditing();
+    _dragArrowPointer = event.pointer;
+    _dragArrow = model;
+  }
+
+  void _finishArrowDrag() {
+    _dragArrowPointer = null;
+    _dragArrow = null;
   }
 
   void _handleStrokePointerDown(
@@ -538,6 +665,9 @@ class _CanvasPageState extends State<CanvasPage> {
     for (final model in _strokes.keys) {
       model.selected = true;
     }
+    for (final model in _arrows.keys) {
+      model.selected = true;
+    }
   }
 
   void _deleteSelected() {
@@ -550,7 +680,15 @@ class _CanvasPageState extends State<CanvasPage> {
     final strokes = _strokes.entries
         .where((entry) => entry.key.selected)
         .toList();
-    if (textBlocks.isEmpty && codeBlocks.isEmpty && strokes.isEmpty) return;
+    final arrows = _arrows.entries
+        .where((entry) => entry.key.selected)
+        .toList();
+    if (textBlocks.isEmpty &&
+        codeBlocks.isEmpty &&
+        strokes.isEmpty &&
+        arrows.isEmpty) {
+      return;
+    }
     final modelsToDispose = <ChangeNotifier>[];
 
     final removesEditingText = textBlocks.any(
@@ -585,6 +723,13 @@ class _CanvasPageState extends State<CanvasPage> {
       _selectionBeforeDrag.remove(entry.key);
       modelsToDispose.add(entry.key);
     }
+    for (final entry in arrows) {
+      _canvasController.removeChild(entry.value.id);
+      _arrows.remove(entry.key);
+      _selectionKeys.remove(entry.key);
+      _selectionBeforeDrag.remove(entry.key);
+      modelsToDispose.add(entry.key);
+    }
     WidgetsBinding.instance.addPostFrameCallback((_) {
       for (final model in modelsToDispose) {
         model.dispose();
@@ -599,9 +744,24 @@ class _CanvasPageState extends State<CanvasPage> {
     setState(() {
       _penEnabled = !_penEnabled;
       _textPlacementEnabled = false;
+      _arrowEnabled = false;
       _spaceHeld = false;
     });
     if (_penEnabled) {
+      FocusManager.instance.primaryFocus?.unfocus();
+    }
+  }
+
+  void _toggleArrow() {
+    if (!_documentLoaded) return;
+    if (!_arrowEnabled) _clearTextEditing();
+    setState(() {
+      _arrowEnabled = !_arrowEnabled;
+      _textPlacementEnabled = false;
+      _penEnabled = false;
+      _spaceHeld = false;
+    });
+    if (_arrowEnabled) {
       FocusManager.instance.primaryFocus?.unfocus();
     }
   }
@@ -742,9 +902,15 @@ class _CanvasPageState extends State<CanvasPage> {
     for (final stroke in _strokes.keys) {
       stroke.dispose();
     }
+    for (final arrow in _arrows.keys) {
+      arrow.dispose();
+    }
     HardwareKeyboard.instance.removeHandler(_handleKeyEvent);
     _selectionModifierPressed.dispose();
     _penTool.dispose();
+    _arrowTool
+      ..removeListener(_handleArrowToolChanged)
+      ..dispose();
     _canvasController.dispose();
     super.dispose();
   }
@@ -772,6 +938,20 @@ class _CanvasPageState extends State<CanvasPage> {
               ),
             ),
           ),
+          if (_arrowTool.preview case final preview?)
+            Positioned.fill(
+              child: IgnorePointer(
+                child: CustomPaint(
+                  key: const ValueKey('arrow-preview'),
+                  painter: ArrowPreviewPainter(
+                    geometry: preview.geometry,
+                    canvasOffset: _canvasController.offset,
+                    canvasScale: _canvasController.scale,
+                    color: colors.accent,
+                  ),
+                ),
+              ),
+            ),
           if (_penEnabled)
             Positioned.fill(
               child: IgnorePointer(
@@ -889,6 +1069,23 @@ class _CanvasPageState extends State<CanvasPage> {
                               borderRadius: geo.radiusMedium,
                             ),
                             child: const Text('Draw'),
+                          ),
+                        ),
+                      ),
+                      Tooltip(
+                        message: 'Draw an arrow',
+                        child: Semantics(
+                          selected: _arrowEnabled,
+                          child: TextButton(
+                            onPressed: _toggleArrow,
+                            style: _toolbarButtonStyle(
+                              colors,
+                              geo,
+                              selected: _arrowEnabled,
+                              minimumSize: _toolbarSegmentMinimumSize,
+                              borderRadius: geo.radiusMedium,
+                            ),
+                            child: const Text('Arrow'),
                           ),
                         ),
                       ),
