@@ -281,6 +281,7 @@ class _CanvasPageState extends State<CanvasPage> {
   void _clearTextEditing() {
     setState(() {
       _editingTextBlock = null;
+      _editingChromeModel = null;
       for (final model in _textBlocks.keys) {
         model.editing = false;
       }
@@ -464,9 +465,6 @@ class _CanvasPageState extends State<CanvasPage> {
       childSize: size,
     );
     _codeBlocks[model] = (id: id, position: position);
-    WidgetsBinding.instance.addPostFrameCallback(
-      (_) => model.focusNode.requestFocus(),
-    );
   }
 
   Size _fittedBlockSize(Size preferred, Size minimum) {
@@ -530,6 +528,71 @@ class _CanvasPageState extends State<CanvasPage> {
     model.selected = !model.selected;
   }
 
+  void _selectAll() {
+    for (final model in _textBlocks.keys) {
+      model.selected = true;
+    }
+    for (final model in _codeBlocks.keys) {
+      model.selected = true;
+    }
+    for (final model in _strokes.keys) {
+      model.selected = true;
+    }
+  }
+
+  void _deleteSelected() {
+    final textBlocks = _textBlocks.entries
+        .where((entry) => entry.key.selected)
+        .toList();
+    final codeBlocks = _codeBlocks.entries
+        .where((entry) => entry.key.selected)
+        .toList();
+    final strokes = _strokes.entries
+        .where((entry) => entry.key.selected)
+        .toList();
+    if (textBlocks.isEmpty && codeBlocks.isEmpty && strokes.isEmpty) return;
+    final modelsToDispose = <ChangeNotifier>[];
+
+    final removesEditingText = textBlocks.any(
+      (entry) =>
+          identical(entry.key, _editingTextBlock) ||
+          identical(entry.key, _editingChromeModel),
+    );
+    if (removesEditingText) {
+      _clearTextEditing();
+    }
+    for (final entry in textBlocks) {
+      entry.key.focusNode.unfocus();
+      _canvasController.removeChild(entry.value);
+      _textBlocks.remove(entry.key);
+      _selectionKeys.remove(entry.key);
+      _selectionBeforeDrag.remove(entry.key);
+      entry.key.removeListener(_scheduleDocumentSave);
+      modelsToDispose.add(entry.key);
+    }
+    for (final entry in codeBlocks) {
+      entry.key.focusNode.unfocus();
+      _canvasController.removeChild(entry.value.id);
+      _codeBlocks.remove(entry.key);
+      _selectionKeys.remove(entry.key);
+      _selectionBeforeDrag.remove(entry.key);
+      modelsToDispose.add(entry.key);
+    }
+    for (final entry in strokes) {
+      _canvasController.removeChild(entry.value);
+      _strokes.remove(entry.key);
+      _selectionKeys.remove(entry.key);
+      _selectionBeforeDrag.remove(entry.key);
+      modelsToDispose.add(entry.key);
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      for (final model in modelsToDispose) {
+        model.dispose();
+      }
+    });
+    if (textBlocks.isNotEmpty) _scheduleDocumentSave();
+  }
+
   void _togglePen() {
     if (!_documentLoaded) return;
     if (!_penEnabled) _clearTextEditing();
@@ -563,18 +626,32 @@ class _CanvasPageState extends State<CanvasPage> {
   }
 
   bool _handleKeyEvent(KeyEvent event) {
-    if (event.logicalKey == LogicalKeyboardKey.controlLeft ||
-        event.logicalKey == LogicalKeyboardKey.controlRight) {
-      _selectionModifierPressed.value =
-          HardwareKeyboard.instance.isControlPressed;
-    }
+    _selectionModifierPressed.value =
+        Theme.of(context).platform == TargetPlatform.macOS
+        ? HardwareKeyboard.instance.isMetaPressed
+        : HardwareKeyboard.instance.isControlPressed;
     final focusContext = FocusManager.instance.primaryFocus?.context;
     final editingText =
         focusContext?.widget is EditableText ||
-        focusContext?.findAncestorWidgetOfExactType<EditableText>() != null;
-    if (!_penEnabled ||
-        editingText ||
-        event.logicalKey != LogicalKeyboardKey.space) {
+        focusContext?.findAncestorWidgetOfExactType<EditableText>() != null ||
+        _textBlocks.keys.any((model) => model.focusNode.hasFocus) ||
+        _codeBlocks.keys.any((model) => model.focusNode.hasFocus);
+    if (editingText) return false;
+    if (event is KeyDownEvent &&
+        event.logicalKey == LogicalKeyboardKey.keyA &&
+        _selectionModifierPressed.value) {
+      _selectAll();
+      return true;
+    }
+    final deletionKey =
+        event.logicalKey == LogicalKeyboardKey.delete ||
+        (Theme.of(context).platform == TargetPlatform.macOS &&
+            event.logicalKey == LogicalKeyboardKey.backspace);
+    if ((event is KeyDownEvent || event is KeyRepeatEvent) && deletionKey) {
+      _deleteSelected();
+      return true;
+    }
+    if (!_penEnabled || event.logicalKey != LogicalKeyboardKey.space) {
       return false;
     }
     final held = event is! KeyUpEvent;

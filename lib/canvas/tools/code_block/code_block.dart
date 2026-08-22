@@ -121,6 +121,7 @@ class CodeBlock extends StatelessWidget {
                           controller: model.controller,
                           scrollController: model.scrollController,
                           focusNode: model.focusNode,
+                          autofocus: false,
                           padding: const EdgeInsets.all(8),
                           style: CodeEditorStyle(
                             fontFamily: codeStyle.fontFamily,

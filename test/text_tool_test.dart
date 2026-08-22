@@ -1,9 +1,9 @@
 import 'dart:convert';
-import 'dart:typed_data';
 
 import 'package:beyond/canvas/attachment_store.dart';
 import 'package:beyond/canvas/canvas_document_store.dart';
 import 'package:beyond/canvas/canvas_page.dart';
+import 'package:beyond/canvas/tools/code_block/code_block.dart';
 import 'package:beyond/canvas/tools/text/text_block.dart';
 import 'package:beyond/canvas/tools/text/text_node.dart';
 import 'package:beyond/foundation/select.dart';
@@ -13,6 +13,7 @@ import 'package:beyond/utils/preset_colors.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:flutter_math_fork/flutter_math.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -90,6 +91,101 @@ void main() {
       findsNothing,
     );
     expect(find.byType(TextBlockControls), findsNothing);
+  });
+
+  testWidgets('text editor keeps native select and delete actions', (
+    tester,
+  ) async {
+    await tester.pumpWidget(const BeyondApp());
+    await tester.pump();
+    await tester.pump();
+    await tester.tap(find.text('Code'));
+    await tester.pump();
+    final code = tester.widget<CodeBlock>(find.byType(CodeBlock)).model
+      ..selected = true;
+
+    await tester.tap(find.text('Text'));
+    await tester.pump();
+    await tester.tapAt(const Offset(120, 200));
+    await tester.pump();
+    await tester.pump();
+    final text = tester.widget<TextBlock>(find.byType(TextBlock)).model;
+    final editor = find.byKey(const ValueKey('text-markdown-editor'));
+    await tester.enterText(editor, 'native text');
+    text.controller.selection = TextSelection(
+      baseOffset: 0,
+      extentOffset: text.controller.text.length,
+    );
+    await tester.pump();
+    expect(text.controller.selection.isCollapsed, isFalse);
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.delete);
+    await tester.pump();
+    expect(find.byType(TextBlock), findsOneWidget);
+    expect(find.byType(CodeBlock), findsOneWidget);
+    expect(code.selected, isTrue);
+    FocusManager.instance.primaryFocus?.unfocus();
+    await tester.pump(const Duration(milliseconds: 100));
+  });
+
+  testWidgets('code editor keeps native select and delete actions', (
+    tester,
+  ) async {
+    await tester.pumpWidget(const BeyondApp());
+    await tester.pump();
+    await tester.pump();
+    await tester.tap(find.text('Code'));
+    await tester.pump();
+    final code = tester.widget<CodeBlock>(find.byType(CodeBlock)).model
+      ..selected = true;
+    code.controller.text = 'native code';
+    code.focusNode.requestFocus();
+    await tester.pump();
+    code.controller.selectAll();
+    await tester.pump();
+    expect(code.controller.isAllSelected, isTrue);
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.delete);
+    await tester.pump();
+    expect(find.byType(CodeBlock), findsOneWidget);
+    expect(code.selected, isTrue);
+    FocusManager.instance.primaryFocus?.unfocus();
+    await tester.pump(const Duration(milliseconds: 100));
+  });
+
+  testWidgets('deleting code keeps unrelated text editing open', (
+    tester,
+  ) async {
+    await tester.pumpWidget(const BeyondApp());
+    await tester.pump();
+    await tester.pump();
+    await tester.tap(find.text('Code'));
+    await tester.pump();
+    final code = tester.widget<CodeBlock>(find.byType(CodeBlock)).model
+      ..selected = true;
+
+    await tester.tap(find.text('Text'));
+    await tester.pump();
+    await tester.tapAt(const Offset(120, 200));
+    await tester.pump();
+    await tester.pump();
+    final text = tester.widget<TextBlock>(find.byType(TextBlock)).model;
+    expect(text.editing, isTrue);
+    expect(find.byType(TextBlockControls), findsOneWidget);
+
+    FocusManager.instance.primaryFocus?.unfocus();
+    await tester.pump(const Duration(milliseconds: 100));
+    await tester.sendKeyEvent(LogicalKeyboardKey.delete);
+    await tester.pump();
+    await tester.pump();
+
+    expect(find.byType(CodeBlock), findsNothing);
+    expect(find.byType(TextBlock), findsOneWidget);
+    expect(text.editing, isTrue);
+    expect(find.byType(TextBlockControls), findsOneWidget);
+    expect(code.selected, isTrue);
+    FocusManager.instance.primaryFocus?.unfocus();
+    await tester.pump(const Duration(milliseconds: 100));
   });
 
   testWidgets('text blocks move from their handle', (tester) async {

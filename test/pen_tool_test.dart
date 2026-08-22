@@ -1,7 +1,10 @@
+import 'dart:convert';
+
 import 'package:beyond/canvas/canvas_document_store.dart';
 import 'package:beyond/canvas/tools/code_block/code_block.dart';
 import 'package:beyond/canvas/tools/pen/pen_tool.dart';
 import 'package:beyond/canvas/tools/text/text_block.dart';
+import 'package:beyond/canvas/tools/text/text_node.dart';
 import 'package:beyond/main.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
@@ -133,6 +136,103 @@ void main() {
 
     FocusManager.instance.primaryFocus?.unfocus();
     await tester.pump(const Duration(milliseconds: 100));
+  });
+
+  testWidgets('ctrl+A selects code immediately after spawning it', (
+    tester,
+  ) async {
+    await tester.pumpWidget(const BeyondApp());
+    await tester.pump();
+    await tester.pump();
+
+    await tester.tap(find.text('Code'));
+    await tester.pump();
+    final code = tester.widget<CodeBlock>(find.byType(CodeBlock)).model;
+    expect(code.focusNode.hasFocus, isFalse);
+
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.keyA);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.keyA);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+    await tester.pump();
+
+    expect(code.selected, isTrue);
+    FocusManager.instance.primaryFocus?.unfocus();
+    await tester.pump(const Duration(milliseconds: 100));
+  });
+
+  testWidgets('primary+A selects and deletes offscreen mixed children', (
+    tester,
+  ) async {
+    await tester.pumpWidget(const BeyondApp());
+    await tester.pump();
+    await tester.pump();
+
+    await tester.tap(find.text('Text'));
+    await tester.pump();
+    await tester.tapAt(const Offset(40, 520));
+    await tester.pump();
+    await tester.pump();
+    final text = tester.widget<TextBlock>(find.byType(TextBlock)).model;
+    final canvas = tester.widget<LazyCanvas>(find.byType(LazyCanvas));
+    final textId = canvas.controller.widgetsWithScreenPositions().single.id;
+    canvas.controller.updatePosition(textId, const Offset(10000, 10000));
+    await tester.pump();
+
+    await tester.tap(find.text('Draw'));
+    await tester.pump();
+    await tester.dragFrom(
+      const Offset(350, 540),
+      const Offset(50, 20),
+    );
+    await tester.pump();
+    await tester.tap(find.text('Draw'));
+    await tester.tap(find.text('Code'));
+    await tester.pump(const Duration(milliseconds: 100));
+
+    final code = tester.widget<CodeBlock>(find.byType(CodeBlock)).model;
+    final stroke = tester.widget<PenStroke>(find.byType(PenStroke)).model;
+    final visibleIds = canvas.controller
+        .widgetsWithScreenPositions()
+        .map((child) => child.id)
+        .toList();
+    FocusManager.instance.primaryFocus?.unfocus();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.keyA);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.keyA);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+    await tester.pump();
+
+    expect(text.selected, isTrue);
+    expect(code.selected, isTrue);
+    expect(stroke.selected, isTrue);
+
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.delete);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.delete);
+    await tester.pump();
+    await tester.pump();
+
+    expect(find.byType(TextBlock), findsNothing);
+    expect(find.byType(CodeBlock), findsNothing);
+    expect(find.byType(PenStroke), findsNothing);
+    expect(canvas.controller.hasChild(textId), isFalse);
+    for (final id in visibleIds) {
+      expect(canvas.controller.hasChild(id), isFalse);
+    }
+    await tester.pump(const Duration(milliseconds: 320));
+    await tester.pump();
+    final saved = await SharedPreferencesAsync().getString(
+      CanvasDocumentStore.key,
+    );
+    final savedNodes = CanvasDocument.fromJson(jsonDecode(saved!)).nodes;
+    expect(savedNodes, hasLength(0));
+
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.delete);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.delete);
+    await tester.pump();
   });
 
   testWidgets('enabling pen stops text editing', (tester) async {
@@ -562,7 +662,6 @@ void main() {
     );
     final code = tester.widget<CodeBlock>(find.byType(CodeBlock)).model;
     final stroke = tester.widget<PenStroke>(find.byType(PenStroke)).model;
-    expect(code.focusNode.hasFocus, isTrue);
 
     final marquee = await tester.startGesture(
       const Offset(20, 590),
