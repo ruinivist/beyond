@@ -185,7 +185,7 @@ class _CanvasPageState extends State<CanvasPage> {
       return;
     }
     if (event.pointer == _dragArrowPointer) {
-      _finishArrowDrag();
+      _finishArrowDrag(select: true);
       return;
     }
     if (event.pointer != _dragSelectionPointer) return;
@@ -634,7 +634,8 @@ class _CanvasPageState extends State<CanvasPage> {
     _dragArrow = model;
   }
 
-  void _finishArrowDrag() {
+  void _finishArrowDrag({bool select = false}) {
+    if (select) _dragArrow?.selected = true;
     _dragArrowPointer = null;
     _dragArrow = null;
   }
