@@ -149,6 +149,26 @@ class PenTool extends ScribbleNotifier {
   PenTool({required this.onStroke});
 
   final ValueChanged<Sketch> onStroke;
+  Color? _pendingColor;
+  double? _pendingStrokeWidth;
+
+  @override
+  void setColor(Color color) {
+    if (value.activePointerIds.isNotEmpty) {
+      _pendingColor = color;
+      return;
+    }
+    super.setColor(color);
+  }
+
+  @override
+  void setStrokeWidth(double strokeWidth) {
+    if (value.activePointerIds.isNotEmpty) {
+      _pendingStrokeWidth = strokeWidth;
+      return;
+    }
+    super.setStrokeWidth(strokeWidth);
+  }
 
   void _commit() {
     final sketch = currentSketch;
@@ -157,22 +177,35 @@ class PenTool extends ScribbleNotifier {
     clear();
   }
 
+  void _applyPendingSettings() {
+    if (value.activePointerIds.isNotEmpty) return;
+    final color = _pendingColor;
+    final strokeWidth = _pendingStrokeWidth;
+    _pendingColor = null;
+    _pendingStrokeWidth = null;
+    if (color != null) super.setColor(color);
+    if (strokeWidth != null) super.setStrokeWidth(strokeWidth);
+  }
+
   @override
   void onPointerUp(PointerUpEvent event) {
     super.onPointerUp(event);
     _commit();
+    _applyPendingSettings();
   }
 
   @override
   void onPointerCancel(PointerCancelEvent event) {
     super.onPointerCancel(event);
     _commit();
+    _applyPendingSettings();
   }
 
   @override
   void onPointerExit(PointerExitEvent event) {
     super.onPointerExit(event);
     _commit();
+    _applyPendingSettings();
   }
 }
 

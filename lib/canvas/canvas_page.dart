@@ -10,6 +10,7 @@ import 'package:beyond/canvas/tools/text/text_block.dart';
 import 'package:beyond/canvas/tools/text/text_node.dart';
 import 'package:beyond/foundation/control_surface.dart';
 import 'package:beyond/foundation/theme.dart';
+import 'package:beyond/utils/preset_colors.dart';
 import 'package:beyond/widgets/settings_dialog.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
@@ -63,7 +64,9 @@ class _CanvasPageState extends State<CanvasPage> {
   @override
   void initState() {
     super.initState();
-    _penTool = PenTool(onStroke: _addStroke);
+    _penTool = PenTool(onStroke: _addStroke)
+      ..setColor(presetColors.first.color)
+      ..setStrokeWidth(3);
     HardwareKeyboard.instance.addHandler(_handleKeyEvent);
     unawaited(_restoreDocument());
   }
@@ -73,7 +76,6 @@ class _CanvasPageState extends State<CanvasPage> {
     super.didChangeDependencies();
     final colors = BTheme.of(context).colors;
     _canvasController.background = _canvasBackgroundKind.build(colors);
-    _penTool.setColor(colors.accent);
   }
 
   Offset _viewportCenter() {
