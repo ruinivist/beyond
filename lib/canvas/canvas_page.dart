@@ -43,8 +43,10 @@ class _CanvasPageState extends State<CanvasPage> {
   final ValueNotifier<bool> _selectionModifierPressed = ValueNotifier(false);
   final _strokes = <PenStrokeModel, CanvasChildId>{};
   final _interactiveCanvasPointerIds = <int>{};
+  final _selectionBeforeWidgetPointer = <Object>{};
   final _selectionKeys = <Object, GlobalKey>{};
   final _selectionBeforeDrag = <Object>{};
+  int? _widgetPointer;
   int? _dragSelectionPointer;
   Offset? _dragSelectionStart;
   Offset? _dragSelectionEnd;
@@ -106,16 +108,21 @@ class _CanvasPageState extends State<CanvasPage> {
       );
       return;
     }
-    if (onInteractiveChild) return;
+    if (onInteractiveChild) {
+      if (!_selectionModifierPressed.value) {
+        _selectionBeforeWidgetPointer
+          ..clear()
+          ..addAll(_selectedModels());
+        _widgetPointer = event.pointer;
+        _clearSelection();
+      }
+      return;
+    }
     FocusManager.instance.primaryFocus?.unfocus();
     _clearTextEditing();
     _selectionBeforeDrag
       ..clear()
-      ..addAll([
-        ..._textBlocks.keys.where((model) => model.selected),
-        ..._codeBlocks.keys.where((model) => model.selected),
-        ..._strokes.keys.where((model) => model.selected),
-      ]);
+      ..addAll(_selectedModels());
     _toggleDragSelection = _selectionModifierPressed.value;
     if (!_toggleDragSelection) _clearSelection();
     if (event.kind != PointerDeviceKind.mouse || _penEnabled) return;
@@ -132,12 +139,14 @@ class _CanvasPageState extends State<CanvasPage> {
   }
 
   void _handleCanvasPointerUp(PointerUpEvent event) {
+    _finishWidgetPointer(event.pointer);
     if (event.pointer != _dragSelectionPointer) return;
     _updateDragSelection(event.localPosition);
     _finishDragSelection();
   }
 
   void _handleCanvasPointerCancel(PointerCancelEvent event) {
+    _finishWidgetPointer(event.pointer);
     if (event.pointer != _dragSelectionPointer) return;
     for (final model in _textBlocks.keys) {
       model.selected = _selectionBeforeDrag.contains(model);
@@ -195,6 +204,12 @@ class _CanvasPageState extends State<CanvasPage> {
       _dragSelectionEnd = null;
       _selectionBeforeDrag.clear();
     });
+  }
+
+  void _finishWidgetPointer(int pointer) {
+    if (pointer != _widgetPointer) return;
+    _widgetPointer = null;
+    _selectionBeforeWidgetPointer.clear();
   }
 
   void _handleCodeBlockPointerDown(
@@ -271,16 +286,26 @@ class _CanvasPageState extends State<CanvasPage> {
   }
 
   void _clearSelection() {
+    _setSelection(const <Object>{});
+  }
+
+  void _setSelection(Set<Object> selection) {
     for (final model in _textBlocks.keys) {
-      model.selected = false;
+      model.selected = selection.contains(model);
     }
     for (final model in _codeBlocks.keys) {
-      model.selected = false;
+      model.selected = selection.contains(model);
     }
     for (final model in _strokes.keys) {
-      model.selected = false;
+      model.selected = selection.contains(model);
     }
   }
+
+  Set<Object> _selectedModels() => {
+    ..._textBlocks.keys.where((model) => model.selected),
+    ..._codeBlocks.keys.where((model) => model.selected),
+    ..._strokes.keys.where((model) => model.selected),
+  };
 
   GlobalKey _selectionKey(Object model) =>
       _selectionKeys.putIfAbsent(model, GlobalKey.new);
@@ -294,7 +319,11 @@ class _CanvasPageState extends State<CanvasPage> {
       return;
     }
 
-    var draggedSelected = false;
+    final selectedBeforeWidgetPointer = _selectionBeforeWidgetPointer;
+    final draggedWasSelected = selectedBeforeWidgetPointer.contains(dragged);
+    if (draggedWasSelected) _setSelection(selectedBeforeWidgetPointer);
+
+    var draggedSelected = draggedWasSelected;
     if (dragged case final TextBlockModel model
         when _textBlocks.containsKey(model)) {
       draggedSelected = model.selected;

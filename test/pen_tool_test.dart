@@ -351,8 +351,8 @@ void main() {
     );
     await tester.pump();
     expect(text.editing, isTrue);
-    expect(text.selected, isTrue);
-    expect(code.selected, isTrue);
+    expect(text.selected, isFalse);
+    expect(code.selected, isFalse);
 
     await tester.tapAt(const Offset(20, 300));
     await tester.pump();
@@ -421,6 +421,57 @@ void main() {
     expect(tester.getTopLeft(textFinder), textPosition + delta);
     expect(tester.getTopLeft(codeFinder), codePosition + delta);
     expect(tester.getTopLeft(strokeFinder), strokePosition + delta);
+    expect(text.selected, isTrue);
+    expect(code.selected, isTrue);
+    expect(stroke.selected, isTrue);
+
+    FocusManager.instance.primaryFocus?.unfocus();
+    await tester.pump(const Duration(milliseconds: 100));
+  });
+
+  testWidgets('resizing a selected widget clears the rest of the selection', (
+    tester,
+  ) async {
+    await tester.pumpWidget(const BeyondApp());
+    await tester.pump();
+
+    await tester.tap(find.text('Text'));
+    await tester.pump();
+    await tester.tapAt(const Offset(40, 520));
+    await tester.pump();
+    await tester.pump();
+    await tester.tap(find.text('Code'));
+    await tester.pump(const Duration(milliseconds: 100));
+
+    final text = tester.widget<TextBlock>(find.byType(TextBlock)).model;
+    final code = tester.widget<CodeBlock>(find.byType(CodeBlock)).model;
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+    await tester.pump();
+    await tester.tapAt(
+      tester.getCenter(
+        find.byKey(const ValueKey('text-markdown-preview-surface')),
+      ),
+    );
+    await tester.pump();
+    await tester.tapAt(
+      tester.getCenter(find.byKey(const ValueKey('code-block-header'))),
+    );
+    await tester.pump();
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+    await tester.pump();
+
+    expect(text.selected, isTrue);
+    expect(code.selected, isTrue);
+    final originalSize = code.size;
+    await tester.drag(
+      find.byKey(const ValueKey('code-block-resize-handle')),
+      const Offset(80, 60),
+    );
+    await tester.pump();
+
+    expect(code.size, isNot(originalSize));
+    expect(text.selected, isFalse);
+    expect(code.selected, isFalse);
 
     FocusManager.instance.primaryFocus?.unfocus();
     await tester.pump(const Duration(milliseconds: 100));
