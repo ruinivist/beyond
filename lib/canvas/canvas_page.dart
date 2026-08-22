@@ -897,7 +897,7 @@ ButtonStyle _toolbarButtonStyle(
   return ButtonStyle(
     foregroundColor: WidgetStateProperty.resolveWith((states) {
       if (!selected) return colors.textSecondary;
-      return colors.textPrimary;
+      return colors.accent;
     }),
     backgroundColor: WidgetStateProperty.resolveWith((states) {
       if (states.contains(WidgetState.pressed)) {
