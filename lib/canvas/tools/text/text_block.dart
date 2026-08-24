@@ -92,6 +92,12 @@ class TextBlockModel extends ChangeNotifier {
     notifyListeners();
   }
 
+  void rotate(double angle) {
+    if (node.rotation == angle) return;
+    node.rotation = angle;
+    notifyListeners();
+  }
+
   Future<void> insertPastedImage(
     Uint8List bytes,
     String extension,
@@ -169,6 +175,7 @@ class TextBlock extends StatelessWidget {
               : _TextMarkdownPreview(
                   source: model.node.markdown,
                   style: model.style,
+                  rotation: model.node.rotation,
                   scrollController: model.node.height == null
                       ? null
                       : model.scrollController,
@@ -498,6 +505,7 @@ class _TextMarkdownPreview extends StatelessWidget {
   const _TextMarkdownPreview({
     required this.source,
     required this.style,
+    required this.rotation,
     required this.scrollController,
     required this.onEdit,
     required this.onMove,
@@ -506,6 +514,7 @@ class _TextMarkdownPreview extends StatelessWidget {
 
   final String source;
   final TextNodeStyle style;
+  final double rotation;
   final ScrollController? scrollController;
   final VoidCallback onEdit;
   final ValueChanged<Offset> onMove;
@@ -541,7 +550,8 @@ class _TextMarkdownPreview extends StatelessWidget {
       behavior: HitTestBehavior.opaque,
       dragStartBehavior: DragStartBehavior.down,
       onTap: onEdit,
-      onPanUpdate: (details) => onMove(details.delta),
+      onPanUpdate: (details) =>
+          onMove(_localToScreenDelta(details.delta, rotation)),
       child: scrollController == null
           ? content
           : SingleChildScrollView(
@@ -550,6 +560,15 @@ class _TextMarkdownPreview extends StatelessWidget {
             ),
     );
   }
+}
+
+Offset _localToScreenDelta(Offset delta, double rotation) {
+  final cosine = math.cos(rotation);
+  final sine = math.sin(rotation);
+  return Offset(
+    delta.dx * cosine - delta.dy * sine,
+    delta.dx * sine + delta.dy * cosine,
+  );
 }
 
 class _EmptyTextMarkdownPreview extends StatelessWidget {
@@ -664,11 +683,15 @@ class TextBlockControls extends StatelessWidget {
   const TextBlockControls({
     required this.model,
     required this.onMove,
+    required this.onRotate,
+    required this.rotationCenter,
     super.key,
   });
 
   final TextBlockModel model;
   final ValueChanged<Offset> onMove;
+  final ValueChanged<double> onRotate;
+  final ValueGetter<Offset> rotationCenter;
 
   static const size = Size(500, 168);
   static const followerOffset = Offset(-132, 0);
@@ -725,23 +748,39 @@ class TextBlockControls extends StatelessWidget {
             top: 127,
             left: 30,
             child: Tooltip(
-              message: 'Rotate text (coming soon)',
-              child: Semantics(
-                button: true,
-                enabled: false,
-                label: 'Rotate text (coming soon)',
-                child: ExcludeSemantics(
+              message: 'Rotate text',
+              child: MouseRegion(
+                cursor: SystemMouseCursors.grab,
+                child: TextFieldTapRegion(
                   child: ControlSurface(
-                    child: IconButton(
-                      key: const ValueKey('text-block-rotate-control'),
-                      onPressed: null,
-                      style: IconButton.styleFrom(
-                        minimumSize: const Size.square(32),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BTheme.of(context).geo.radiusLarge,
+                    child: Semantics(
+                      button: true,
+                      label: 'Rotate text block',
+                      child: RawGestureDetector(
+                        key: const ValueKey('text-block-rotate-control'),
+                        behavior: HitTestBehavior.opaque,
+                        gestures: {
+                          ImmediateMultiDragGestureRecognizer:
+                              GestureRecognizerFactoryWithHandlers<
+                                ImmediateMultiDragGestureRecognizer
+                              >(
+                                ImmediateMultiDragGestureRecognizer.new,
+                                (recognizer) {
+                                  recognizer.onStart = (position) =>
+                                      _TextBlockRotateDrag(
+                                        startPosition: position,
+                                        center: rotationCenter(),
+                                        rotation: model.node.rotation,
+                                        onRotate: onRotate,
+                                      );
+                                },
+                              ),
+                        },
+                        child: const SizedBox.square(
+                          dimension: 32,
+                          child: Icon(Icons.rotate_right, size: 24),
                         ),
                       ),
-                      icon: const Icon(Icons.rotate_right, size: 24),
                     ),
                   ),
                 ),
@@ -1144,3 +1183,31 @@ class _TextBlockResizeDrag extends Drag {
   @override
   void cancel() => onEnd();
 }
+
+class _TextBlockRotateDrag extends Drag {
+  _TextBlockRotateDrag({
+    required Offset startPosition,
+    required this.center,
+    required this._rotation,
+    required this.onRotate,
+  }) : _lastPointerAngle = _pointerAngle(startPosition, center);
+
+  final Offset center;
+  final ValueChanged<double> onRotate;
+  double _lastPointerAngle;
+  double _rotation;
+
+  @override
+  void update(DragUpdateDetails details) {
+    final pointerAngle = _pointerAngle(details.globalPosition, center);
+    var delta = pointerAngle - _lastPointerAngle;
+    if (delta > math.pi) delta -= math.pi * 2;
+    if (delta < -math.pi) delta += math.pi * 2;
+    _rotation += delta;
+    _lastPointerAngle = pointerAngle;
+    onRotate(_rotation);
+  }
+}
+
+double _pointerAngle(Offset pointer, Offset center) =>
+    math.atan2(pointer.dy - center.dy, pointer.dx - center.dx);

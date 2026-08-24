@@ -83,6 +83,7 @@ class TextNodeData {
     required this.height,
     required this.markdown,
     required this.style,
+    this.rotation = 0,
   });
 
   factory TextNodeData.fromJson(Object? json) {
@@ -97,6 +98,7 @@ class TextNodeData {
         'height',
         'markdown',
         'style',
+        'rotation',
       },
     );
 
@@ -126,6 +128,9 @@ class TextNodeData {
     if (height != null && height < textNodeMinimumHeight) {
       throw const FormatException('node.height must be at least 52.0');
     }
+    final rotation = value.containsKey('rotation')
+        ? _finiteNumber(value['rotation'], 'node.rotation')
+        : 0.0;
 
     final markdown = value['markdown'];
     if (markdown is! String) {
@@ -139,6 +144,7 @@ class TextNodeData {
       height: height,
       markdown: markdown,
       style: TextNodeStyle.fromJson(value['style']),
+      rotation: rotation,
     );
   }
 
@@ -148,6 +154,7 @@ class TextNodeData {
   double? height;
   String markdown;
   TextNodeStyle style;
+  double rotation;
 
   Map<String, Object> toJson() => <String, Object>{
     'id': id,
@@ -160,6 +167,7 @@ class TextNodeData {
     'height': ?height,
     'markdown': markdown,
     'style': style.toJson(),
+    'rotation': rotation,
   };
 
   TextNodeData copy() => TextNodeData(
@@ -169,6 +177,7 @@ class TextNodeData {
     height: height,
     markdown: markdown,
     style: style.copy(),
+    rotation: rotation,
   );
 }
 

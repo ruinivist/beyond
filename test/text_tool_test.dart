@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:math' as math;
 
 import 'package:beyond/canvas/attachment_store.dart';
 import 'package:beyond/canvas/canvas_document_store.dart';
@@ -259,6 +260,98 @@ void main() {
     expect(find.byKey(const ValueKey('text-markdown-preview')), findsOneWidget);
     expect(find.byType(TextBlockControls), findsNothing);
   });
+
+  testWidgets('rotated preview movement stays in screen coordinates', (
+    tester,
+  ) async {
+    await _addTextBlock(tester, const Offset(120, 200));
+
+    final block = find.byType(TextBlock);
+    final model = tester.widget<TextBlock>(block).model;
+    model.rotate(math.pi / 2);
+    await tester.pump();
+    await tester.tapAt(const Offset(400, 300));
+    await tester.pump();
+
+    final originalPosition = model.node.position;
+    const delta = Offset(40, 0);
+    final gesture = await tester.startGesture(
+      tester.getCenter(
+        find.byKey(const ValueKey('text-markdown-preview-surface')),
+      ),
+      kind: PointerDeviceKind.mouse,
+    );
+    await gesture.moveBy(delta);
+    await tester.pump();
+
+    expect(model.node.position, originalPosition + delta);
+    expect(model.editing, isFalse);
+
+    await gesture.up();
+    await tester.pump();
+  });
+
+  testWidgets(
+    'text blocks rotate without clamping and keep controls coherent',
+    (
+      tester,
+    ) async {
+      await _addTextBlock(tester, const Offset(120, 200));
+
+      final block = find.byType(TextBlock);
+      final model = tester.widget<TextBlock>(block).model;
+      final rotate = find.byKey(const ValueKey('text-block-rotate-control'));
+      final center = tester.getCenter(block);
+      final start = tester.getCenter(rotate);
+      final radius = (start - center).distance;
+      final startAngle = math.atan2(
+        start.dy - center.dy,
+        start.dx - center.dx,
+      );
+      final controlOffset = start - center;
+      final gesture = await tester.startGesture(
+        start,
+        kind: PointerDeviceKind.mouse,
+      );
+
+      for (var step = 1; step <= 3; step++) {
+        await gesture.moveTo(
+          center +
+              Offset.fromDirection(startAngle + step * math.pi / 2, radius),
+        );
+        await tester.pump();
+        if (step == 2) {
+          expect(model.node.rotation.abs(), closeTo(math.pi, 0.01));
+          final rotatedControl = tester.getCenter(rotate);
+          expect(rotatedControl.dx, closeTo((center - controlOffset).dx, 1));
+          expect(rotatedControl.dy, closeTo((center - controlOffset).dy, 1));
+        }
+      }
+      await gesture.up();
+      await tester.pump();
+
+      expect(model.node.rotation.abs(), closeTo(math.pi * 1.5, 0.01));
+
+      final originalWidth = model.node.width;
+      final resize = find.byKey(const ValueKey('text-block-resize-handle'));
+      await tester.drag(
+        resize,
+        const Offset(0, -40),
+        kind: PointerDeviceKind.mouse,
+      );
+      await tester.pump();
+      expect(model.node.width, closeTo(originalWidth + 40, 0.01));
+
+      final originalPosition = model.node.position;
+      await tester.drag(
+        find.byKey(const ValueKey('text-block-handle')),
+        const Offset(30, 20),
+        kind: PointerDeviceKind.mouse,
+      );
+      await tester.pump();
+      expect(model.node.position, originalPosition + const Offset(30, 20));
+    },
+  );
 
   testWidgets(
     'text resizing enters manual mode, clamps, and scrolls overflow',

@@ -469,7 +469,31 @@ class _CanvasPageState extends State<CanvasPage> {
   ) {
     if (!_documentLoaded || _textPlacementEnabled || _penEnabled) return;
     if (!_textBlocks.containsKey(model)) return;
-    model.resize(renderedSize, screenDelta / _canvasController.scale);
+    final delta = screenDelta / _canvasController.scale;
+    final angle = -model.node.rotation;
+    final cosine = math.cos(angle);
+    final sine = math.sin(angle);
+    model.resize(
+      renderedSize,
+      Offset(
+        delta.dx * cosine - delta.dy * sine,
+        delta.dx * sine + delta.dy * cosine,
+      ),
+    );
+  }
+
+  void _rotateTextBlock(TextBlockModel model, double angle) {
+    if (!_documentLoaded || _textPlacementEnabled || _penEnabled) return;
+    if (!_textBlocks.containsKey(model)) return;
+    model.rotate(angle);
+  }
+
+  Offset _textBlockCenter(TextBlockModel model) {
+    final renderObject = _selectionKey(
+      model,
+    ).currentContext?.findRenderObject();
+    if (renderObject is! RenderBox) return Offset.zero;
+    return renderObject.localToGlobal(renderObject.size.center(Offset.zero));
   }
 
   void _addTextBlock(Offset position) {
@@ -502,6 +526,7 @@ class _CanvasPageState extends State<CanvasPage> {
       _SelectionPointerRegion(
         key: _selectionKey(model),
         modifierPressed: _selectionModifierPressed,
+        rotationModel: model,
         onPointerDown: (event) => _handleTextBlockPointerDown(model, event),
         child: TextBlock(
           model: model,
@@ -977,41 +1002,52 @@ class _CanvasPageState extends State<CanvasPage> {
               ),
             ),
           if (editingChromeModel case final anchor?)
-            CompositedTransformFollower(
-              link: anchor.layerLink,
-              showWhenUnlinked: false,
-              targetAnchor: Alignment.centerLeft,
-              followerAnchor: Alignment.centerLeft,
-              offset: TextBlockControls.followerOffset,
-              child: SizedBox.fromSize(
-                size: TextBlockControls.size,
-                child: Overlay.wrap(
-                  clipBehavior: Clip.none,
-                  child: AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 260),
-                    reverseDuration: const Duration(milliseconds: 180),
-                    switchInCurve: Curves.easeOutCubic,
-                    switchOutCurve: Curves.easeOutCubic,
-                    transitionBuilder: _textEditingChromeTransition,
-                    child: switch (_editingTextBlock) {
-                      final editing? => ListenableBuilder(
-                        key: ValueKey(editing.node.id),
-                        listenable: editing,
-                        builder: (context, child) => IgnorePointer(
-                          ignoring: !editing.editing,
-                          child: child,
-                        ),
-                        child: TextBlockControls(
+            ListenableBuilder(
+              listenable: anchor,
+              builder: (context, _) => CompositedTransformFollower(
+                link: anchor.layerLink,
+                showWhenUnlinked: false,
+                targetAnchor: Alignment.center,
+                followerAnchor: Alignment.center,
+                offset:
+                    TextBlockControls.followerOffset +
+                    Offset(
+                      TextBlockControls.size.width / 2 - anchor.node.width / 2,
+                      0,
+                    ),
+                child: SizedBox.fromSize(
+                  size: TextBlockControls.size,
+                  child: Overlay.wrap(
+                    clipBehavior: Clip.none,
+                    child: AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 260),
+                      reverseDuration: const Duration(milliseconds: 180),
+                      switchInCurve: Curves.easeOutCubic,
+                      switchOutCurve: Curves.easeOutCubic,
+                      transitionBuilder: _textEditingChromeTransition,
+                      child: switch (_editingTextBlock) {
+                        final editing? => ListenableBuilder(
                           key: ValueKey(editing.node.id),
-                          model: editing,
-                          onMove: (delta) =>
-                              _moveSelectedChildren(editing, delta),
+                          listenable: editing,
+                          builder: (context, child) => IgnorePointer(
+                            ignoring: !editing.editing,
+                            child: child,
+                          ),
+                          child: TextBlockControls(
+                            key: ValueKey(editing.node.id),
+                            model: editing,
+                            onMove: (delta) =>
+                                _moveSelectedChildren(editing, delta),
+                            onRotate: (angle) =>
+                                _rotateTextBlock(editing, angle),
+                            rotationCenter: () => _textBlockCenter(editing),
+                          ),
                         ),
-                      ),
-                      null => const SizedBox(
-                        key: ValueKey('text-editing-chrome-hidden'),
-                      ),
-                    },
+                        null => const SizedBox(
+                          key: ValueKey('text-editing-chrome-hidden'),
+                        ),
+                      },
+                    ),
                   ),
                 ),
               ),
@@ -1125,16 +1161,18 @@ class _SelectionPointerRegion extends StatelessWidget {
     required this.modifierPressed,
     required this.onPointerDown,
     required this.child,
+    this.rotationModel,
     super.key,
   });
 
   final ValueListenable<bool> modifierPressed;
   final ValueChanged<PointerDownEvent> onPointerDown;
   final Widget child;
+  final TextBlockModel? rotationModel;
 
   @override
   Widget build(BuildContext context) {
-    return Listener(
+    final listener = Listener(
       onPointerDown: onPointerDown,
       child: ListenableBuilder(
         listenable: modifierPressed,
@@ -1145,6 +1183,16 @@ class _SelectionPointerRegion extends StatelessWidget {
         child: child,
       ),
     );
+    return rotationModel == null
+        ? listener
+        : ListenableBuilder(
+            listenable: rotationModel!,
+            builder: (context, child) => Transform.rotate(
+              angle: rotationModel!.node.rotation,
+              child: child,
+            ),
+            child: listener,
+          );
   }
 }
 

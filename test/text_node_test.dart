@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:math' as math;
 
 import 'package:beyond/canvas/tools/text/text_node.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -15,6 +16,7 @@ void main() {
           width: 320,
           height: 180,
           markdown: source,
+          rotation: math.pi * 3,
           style: const TextNodeStyle(
             fontFamily: 'Inter',
             fontSize: 20,
@@ -33,7 +35,9 @@ void main() {
     expect(node.position, const Offset(-120, 200));
     expect(node.width, 320);
     expect(node.height, 180);
+    expect(node.rotation, math.pi * 3);
     expect(document.copy().nodes.single.height, 180);
+    expect(document.copy().nodes.single.rotation, math.pi * 3);
     expect(node.markdown, source);
     expect(node.style.fontFamily, 'Inter');
     expect(node.style.fontSize, 20);
@@ -125,6 +129,10 @@ void main() {
       () => CanvasDocument.fromJson(_document(fontSize: double.infinity)),
       throwsA(isA<FormatException>()),
     );
+    expect(
+      () => CanvasDocument.fromJson(_document(rotation: double.infinity)),
+      throwsA(isA<FormatException>()),
+    );
   });
 
   test('width below the minimum is rejected', () {
@@ -176,6 +184,7 @@ Map<String, Object?> _document({
   Map<String, Object?> position = const {'x': 0.0, 'y': 0.0},
   Object width = textNodeDefaultWidth,
   Object? height,
+  Object rotation = 0.0,
   String fontFamily = 'Source Serif 4',
   Object fontSize = textNodeDefaultFontSize,
   String color = '#201C1A',
@@ -190,6 +199,7 @@ Map<String, Object?> _document({
             position: position,
             width: width,
             height: height,
+            rotation: rotation,
             fontFamily: fontFamily,
             fontSize: fontSize,
             color: color,
@@ -204,6 +214,7 @@ Map<String, Object?> _encodedNode({
   Map<String, Object?> position = const {'x': 0.0, 'y': 0.0},
   Object width = textNodeDefaultWidth,
   Object? height,
+  Object rotation = 0.0,
   String fontFamily = 'Source Serif 4',
   Object fontSize = textNodeDefaultFontSize,
   String color = '#201C1A',
@@ -215,6 +226,7 @@ Map<String, Object?> _encodedNode({
     'position': position,
     'width': width,
     'height': ?height,
+    'rotation': rotation,
     'markdown': '',
     'style':
         style ??
