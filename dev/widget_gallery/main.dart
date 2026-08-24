@@ -6,6 +6,7 @@ import 'package:beyond/canvas/tools/code_block/code_block.dart';
 import 'package:beyond/canvas/tools/text/text_block.dart';
 import 'package:beyond/canvas/tools/text/text_node.dart';
 import 'package:beyond/foundation/button.dart';
+import 'package:beyond/foundation/discrete_slider.dart';
 import 'package:beyond/foundation/select.dart';
 import 'package:beyond/foundation/theme.dart';
 import 'package:beyond/theme/starless_light.dart';
@@ -68,8 +69,7 @@ class _WidgetGalleryPageState extends State<WidgetGalleryPage> {
   var _searchableLanguage = 'Dart';
   var _checked = true;
   var _choice = 0;
-  var _switched = false;
-  var _slider = 0.62;
+  var _snapValue = 9;
   var _chip = 0;
   var _segment = 0;
 
@@ -407,8 +407,7 @@ class _WidgetGalleryPageState extends State<WidgetGalleryPage> {
                     _GalleryCard(
                       title: 'Selection controls',
                       existing: false,
-                      note:
-                          'Boolean, exclusive, and continuous value controls.',
+                      note: 'Boolean and exclusive value controls.',
                       child: Column(
                         children: [
                           CheckboxListTile(
@@ -441,23 +440,18 @@ class _WidgetGalleryPageState extends State<WidgetGalleryPage> {
                               ],
                             ),
                           ),
-                          SwitchListTile(
-                            key: const ValueKey('gallery-switch'),
-                            contentPadding: EdgeInsets.zero,
-                            title: const Text('Snap to grid'),
-                            value: _switched,
-                            activeThumbColor: theme.colors.accent,
-                            onChanged: (value) =>
-                                setState(() => _switched = value),
-                          ),
-                          Slider(
-                            value: _slider,
-                            activeColor: theme.colors.accent,
-                            label: '${(_slider * 100).round()}%',
-                            onChanged: (value) =>
-                                setState(() => _slider = value),
-                          ),
                         ],
+                      ),
+                    ),
+                    _GalleryCard(
+                      title: 'Slider',
+                      existing: false,
+                      note: 'Choose a discrete pixel value.',
+                      child: DiscreteSlider(
+                        key: const ValueKey('gallery-discrete-slider'),
+                        value: _snapValue,
+                        onChanged: (value) =>
+                            setState(() => _snapValue = value),
                       ),
                     ),
                     _GalleryCard(
