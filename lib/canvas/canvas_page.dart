@@ -341,7 +341,6 @@ class _CanvasPageState extends State<CanvasPage> {
   void _clearTextEditing() {
     setState(() {
       _editingTextBlock = null;
-      _editingChromeModel = null;
       for (final model in _textBlocks.keys) {
         model.editing = false;
       }
@@ -699,6 +698,7 @@ class _CanvasPageState extends State<CanvasPage> {
     );
     if (removesEditingText) {
       _clearTextEditing();
+      setState(() => _editingChromeModel = null);
     }
     for (final entry in textBlocks) {
       entry.key.focusNode.unfocus();

@@ -85,6 +85,7 @@ void main() {
       find.byKey(const ValueKey('text-block-resize-handle')).hitTestable(),
       findsNothing,
     );
+    expect(find.byType(TextBlockControls), findsOneWidget);
     await tester.pumpAndSettle();
     expect(
       find.byKey(const ValueKey('text-block-resize-handle')),
