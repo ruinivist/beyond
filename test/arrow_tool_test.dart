@@ -13,33 +13,38 @@ void main() {
     await SharedPreferencesAsync().remove(CanvasDocumentStore.key);
   });
 
-  test('arrow geometry is stable, subtly asymmetric, and head-led', () {
+  test('arrow bends continuously toward the visual counterclockwise side', () {
+    const directions = [
+      (start: Offset(0, 0), end: Offset(100, 0), side: Offset(0, -1)),
+      (start: Offset(100, 0), end: Offset(0, 0), side: Offset(0, 1)),
+      (start: Offset(0, 100), end: Offset(0, 0), side: Offset(-1, 0)),
+      (start: Offset(0, 0), end: Offset(0, 100), side: Offset(1, 0)),
+    ];
+
+    Offset bend(Offset start, Offset end) {
+      final vector = end - start;
+      final control = arrowControlPoint(start: start, end: end);
+      return control - (start + vector * 0.5);
+    }
+
+    for (final direction in directions) {
+      final offset = bend(direction.start, direction.end);
+      expect(
+        offset.dx * direction.side.dx + offset.dy * direction.side.dy,
+        greaterThan(0),
+      );
+    }
+
     const start = Offset(40, 80);
-    const end = Offset(340, 180);
-    final first = arrowControlPoint(
-      id: 'stable-arrow',
-      start: start,
-      end: end,
+    const firstEnd = Offset(340, 180);
+    const secondEnd = Offset(340.1, 180.1);
+    final firstBend = bend(start, firstEnd);
+    final secondBend = bend(start, secondEnd);
+    expect((secondBend - firstBend).distance, lessThan(0.1));
+    expect(
+      firstBend.dx * secondBend.dx + firstBend.dy * secondBend.dy,
+      greaterThan(0),
     );
-    final second = arrowControlPoint(
-      id: 'stable-arrow',
-      start: start,
-      end: end,
-    );
-    expect(first, second);
-
-    final vector = end - start;
-    final controlT =
-        ((first - start).dx * vector.dx + (first - start).dy * vector.dy) /
-        vector.distanceSquared;
-    expect(controlT, inInclusiveRange(0.44, 0.56));
-    final bow = (first - (start + vector * controlT)).distance;
-    expect(bow, inInclusiveRange(3 * 2 * 0.85, 16 * 2 * 1.15));
-
-    final geometry = ArrowGeometry(start: start, control: first, end: end);
-    final tangent = (end - first) / (end - first).distance;
-    expect(geometry.endTangent.dx, closeTo(tangent.dx, 0.000001));
-    expect(geometry.endTangent.dy, closeTo(tangent.dy, 0.000001));
   });
 
   test('arrow tool previews, commits on up, and discards tiny drags', () {

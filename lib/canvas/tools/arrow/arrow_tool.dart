@@ -64,12 +64,12 @@ class ArrowModel extends ChangeNotifier {
   ArrowModel({required this.id, required Offset start, required Offset end})
     : _geometry = ArrowGeometry(
         start: start,
-        control: arrowControlPoint(id: id, start: start, end: end),
+        control: arrowControlPoint(start: start, end: end),
         end: end,
       ),
       _initialBounds = ArrowGeometry(
         start: start,
-        control: arrowControlPoint(id: id, start: start, end: end),
+        control: arrowControlPoint(start: start, end: end),
         end: end,
       ).bounds;
 
@@ -134,7 +134,7 @@ class ArrowTool extends ChangeNotifier {
       id: id,
       geometry: ArrowGeometry(
         start: start,
-        control: arrowControlPoint(id: id, start: start, end: end),
+        control: arrowControlPoint(start: start, end: end),
         end: end,
       ),
     );
@@ -190,7 +190,6 @@ class ArrowTool extends ChangeNotifier {
 }
 
 Offset arrowControlPoint({
-  required String id,
   required Offset start,
   required Offset end,
 }) {
@@ -198,15 +197,10 @@ Offset arrowControlPoint({
   final length = vector.distance;
   if (length == 0) return start;
 
-  final hash = _arrowHash(id, start, end);
-  final controlT = hash.isEven ? -0.06 : 0.06;
-  final side = hash & 2 == 0 ? -1.0 : 1.0;
-  final variation = 0.85 + (hash % 31) / 100;
-  final bow = length * 0.045;
-  final bowLength = bow.clamp(3.0, 16.0) * 2 * variation;
-  final normal = Offset(-vector.dy / length, vector.dx / length);
+  final bendLength = (length * 0.09).clamp(6.0, 32.0).toDouble();
+  final normal = Offset(vector.dy / length, -vector.dx / length);
 
-  return start + vector * (0.5 + controlT) + normal * side * bowLength;
+  return start + vector * 0.5 + normal * bendLength;
 }
 
 class Arrow extends StatelessWidget {
@@ -348,28 +342,6 @@ class _ArrowPainter extends CustomPainter {
         oldDelegate.geometry.end != geometry.end ||
         oldDelegate.color != color;
   }
-}
-
-int _arrowHash(String id, Offset start, Offset end) {
-  var hash = 0x811c9dc5;
-
-  void addByte(int byte) {
-    hash ^= byte & 0xff;
-    hash = (hash * 0x01000193) & 0xffffffff;
-  }
-
-  for (final codeUnit in id.codeUnits) {
-    addByte(codeUnit);
-    addByte(codeUnit >> 8);
-  }
-  for (final coordinate in [start.dx, start.dy, end.dx, end.dy]) {
-    var value = (coordinate * 1000).round();
-    for (var index = 0; index < 4; index++) {
-      addByte(value);
-      value >>= 8;
-    }
-  }
-  return hash;
 }
 
 double _distanceToSegmentSquared(Offset point, Offset start, Offset end) {
