@@ -11,13 +11,12 @@ import 'package:beyond/foundation/discrete_slider.dart';
 import 'package:beyond/foundation/select.dart';
 import 'package:beyond/foundation/theme.dart';
 import 'package:beyond/theme/starless_light.dart';
+import 'package:beyond/widgets/settings_dialog.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:re_editor/re_editor.dart';
 import 'package:scroll_animator/scroll_animator.dart';
-
-import 'gallery_settings_dialog.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -887,7 +886,7 @@ class _WidgetGalleryPageState extends State<WidgetGalleryPage> {
       showDialog<void>(
         context: context,
         barrierColor: BTheme.of(context).colors.scrim,
-        builder: (_) => const GallerySettingsDialog(),
+        builder: (_) => const SettingsDialog(),
       ),
     );
   }

@@ -27,8 +27,8 @@ class SettingsDialog extends StatefulWidget {
 enum _SettingsSection { about, canvas }
 
 class _SettingsDialogState extends State<SettingsDialog> {
+  _SettingsSection _section = _SettingsSection.canvas;
   late CanvasBackgroundKind _canvasBackgroundKind = widget.canvasBackgroundKind;
-  _SettingsSection _section = _SettingsSection.about;
   var _transferActive = false;
 
   Future<void> _importCanvas() async {
@@ -58,188 +58,297 @@ class _SettingsDialogState extends State<SettingsDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final viewport = MediaQuery.sizeOf(context);
     final theme = BTheme.of(context);
     final colors = theme.colors;
-    final typo = theme.typo;
+    final viewport = MediaQuery.sizeOf(context);
+    final width = math.min(840, math.max(0, viewport.width - 32)).toDouble();
+    final height = math.min(540, math.max(0, viewport.height - 32)).toDouble();
+
     return Dialog(
       backgroundColor: colors.surfaceRaised,
       surfaceTintColor: Colors.transparent,
       elevation: theme.geo.elevationMedium,
       shadowColor: colors.shadow,
-      clipBehavior: Clip.antiAlias,
-      shape: RoundedRectangleBorder(
-        borderRadius: theme.geo.radiusLarge,
-        side: BorderSide(color: colors.borderSubtle),
-      ),
       insetPadding: const EdgeInsets.all(16),
+      clipBehavior: Clip.antiAlias,
+      shape: RoundedRectangleBorder(borderRadius: theme.geo.radiusLarge),
       child: SizedBox(
-        width: math.min(560, math.max(0, viewport.width - 32)),
-        height: math.min(360, math.max(0, viewport.height - 32)),
-        child: Row(
+        width: width,
+        height: height,
+        child: Stack(
+          fit: StackFit.expand,
           children: [
-            SizedBox(
-              width: 152,
-              child: Material(
-                color: colors.surface,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 20, 16, 12),
-                      child: Text(
-                        'Settings',
-                        style: typo.title.copyWith(color: colors.textPrimary),
-                      ),
-                    ),
-                    Divider(height: 1, color: colors.borderSubtle),
-                    ListTile(
-                      selected: _section == _SettingsSection.about,
-                      selectedColor: colors.accent,
-                      selectedTileColor: colors.accentSoft,
-                      hoverColor: colors.surfaceHover,
-                      focusColor: colors.focusRing,
-                      leading: const Icon(Icons.info_outline, size: 20),
-                      title: const Text('About'),
-                      onTap: () => setState(
-                        () => _section = _SettingsSection.about,
-                      ),
-                    ),
-                    ListTile(
-                      selected: _section == _SettingsSection.canvas,
-                      selectedColor: colors.accent,
-                      selectedTileColor: colors.accentSoft,
-                      hoverColor: colors.surfaceHover,
-                      focusColor: colors.focusRing,
-                      leading: const Icon(Icons.grid_view, size: 20),
-                      title: const Text('Canvas'),
-                      onTap: () => setState(
-                        () => _section = _SettingsSection.canvas,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+            LayoutBuilder(
+              builder: (context, constraints) => constraints.maxWidth < 520
+                  ? _compactBody(context)
+                  : _wideBody(context),
             ),
-            VerticalDivider(width: 1, color: colors.borderSubtle),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(24, 12, 12, 24),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Text(
-                          _section == _SettingsSection.about
-                              ? 'About'
-                              : 'Canvas',
-                          style: typo.title.copyWith(
-                            color: colors.textPrimary,
-                            fontSize: 14,
-                          ),
-                        ),
-                        const Spacer(),
-                        IconButton(
-                          tooltip: 'Close',
-                          onPressed: () => Navigator.of(context).pop(),
-                          style: ButtonStyle(
-                            foregroundColor: WidgetStatePropertyAll(
-                              colors.textSecondary,
-                            ),
-                            backgroundColor: WidgetStateProperty.resolveWith((
-                              states,
-                            ) {
-                              if (states.contains(WidgetState.pressed)) {
-                                return colors.surfacePressed;
-                              }
-                              if (states.contains(WidgetState.hovered)) {
-                                return colors.surfaceHover;
-                              }
-                              return Colors.transparent;
-                            }),
-                            side: WidgetStateProperty.resolveWith(
-                              (states) => states.contains(WidgetState.focused)
-                                  ? BorderSide(color: colors.focusRing)
-                                  : BorderSide.none,
-                            ),
-                          ),
-                          icon: const Icon(Icons.close),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 20),
-                    if (_section == _SettingsSection.about)
-                      Text(
-                        'beyond - dev build',
-                        style: typo.body.copyWith(color: colors.textSecondary),
-                      )
-                    else ...[
-                      Text(
-                        'Background',
-                        style: typo.label.copyWith(color: colors.textPrimary),
-                      ),
-                      const SizedBox(height: 8),
-                      Select<CanvasBackgroundKind>(
-                        key: const ValueKey('canvas-background-select'),
-                        value: _canvasBackgroundKind,
-                        options: const [
-                          SelectOption(
-                            value: CanvasBackgroundKind.dotGrid,
-                            label: 'Dot grid',
-                          ),
-                          SelectOption(
-                            value: CanvasBackgroundKind.plain,
-                            label: 'Plain',
-                          ),
-                        ],
-                        onChanged: (kind) {
-                          setState(() => _canvasBackgroundKind = kind);
-                          widget.onCanvasBackgroundChanged?.call(kind);
-                        },
-                      ),
-                      const SizedBox(height: 20),
-                      Text(
-                        'Data',
-                        style: typo.label.copyWith(color: colors.textPrimary),
-                      ),
-                      const SizedBox(height: 8),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Button(
-                              key: const ValueKey('canvas-import-button'),
-                              onPressed:
-                                  _transferActive ||
-                                      widget.onImportCanvas == null
-                                  ? null
-                                  : _importCanvas,
-                              variant: ButtonVariant.outline,
-                              child: const Text('Import canvas'),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Button(
-                              key: const ValueKey('canvas-export-button'),
-                              onPressed:
-                                  _transferActive ||
-                                      widget.onExportCanvas == null
-                                  ? null
-                                  : _exportCanvas,
-                              child: const Text('Export canvas'),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-            ),
+            Positioned(top: 16, right: 16, child: _closeButton(context)),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _closeButton(BuildContext context) {
+    final theme = BTheme.of(context);
+    return IconButton(
+      key: const ValueKey('settings-close'),
+      tooltip: 'Close',
+      onPressed: () => Navigator.of(context).pop(),
+      icon: const Icon(Icons.close),
+      iconSize: 20,
+      color: theme.colors.textSecondary,
+      style: ButtonStyle(
+        backgroundColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.pressed)) {
+            return theme.colors.surfacePressed;
+          }
+          if (states.contains(WidgetState.hovered) ||
+              states.contains(WidgetState.focused)) {
+            return theme.colors.surfaceHover;
+          }
+          return Colors.transparent;
+        }),
+        side: WidgetStateProperty.resolveWith(
+          (states) => states.contains(WidgetState.focused)
+              ? BorderSide(color: theme.colors.focusRing)
+              : BorderSide.none,
+        ),
+        shape: WidgetStatePropertyAll(
+          RoundedRectangleBorder(borderRadius: theme.geo.radiusSmall),
+        ),
+      ),
+    );
+  }
+
+  Widget _wideBody(BuildContext context) {
+    final theme = BTheme.of(context);
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        SizedBox(
+          width: 152,
+          child: _navigation(
+            context,
+            padding: const EdgeInsets.all(16),
+          ),
+        ),
+        _divider(theme),
+        Expanded(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(16),
+            child: _sectionContent(context),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _compactBody(BuildContext context) {
+    final theme = BTheme.of(context);
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final horizontalNavigation = constraints.maxWidth >= 340;
+        final navigation = _navigation(
+          context,
+          padding: const EdgeInsets.all(16),
+          horizontal: horizontalNavigation,
+        );
+        return SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              navigation,
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Divider(
+                  height: 25,
+                  color: theme.colors.borderSubtle.withValues(alpha: 0.55),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: _sectionContent(context),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _navigation(
+    BuildContext context, {
+    required EdgeInsets padding,
+    bool horizontal = false,
+  }) {
+    final children = [
+      _navigationItem(
+        context,
+        section: _SettingsSection.about,
+        icon: Icons.info_outline,
+        label: 'About',
+      ),
+      _navigationItem(
+        context,
+        section: _SettingsSection.canvas,
+        icon: Icons.grid_view,
+        label: 'Canvas',
+      ),
+    ];
+
+    return Padding(
+      padding: padding,
+      child: horizontal
+          ? Row(
+              children: [
+                for (final child in children) Expanded(child: child),
+              ],
+            )
+          : Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: children,
+            ),
+    );
+  }
+
+  Widget _navigationItem(
+    BuildContext context, {
+    required _SettingsSection section,
+    required IconData icon,
+    required String label,
+  }) {
+    final theme = BTheme.of(context);
+    final colors = theme.colors;
+    final selected = _section == section;
+    final foreground = selected ? colors.accent : colors.textPrimary;
+
+    return Semantics(
+      button: true,
+      selected: selected,
+      label: label,
+      child: Material(
+        color: selected ? colors.accentSoft : Colors.transparent,
+        borderRadius: theme.geo.radiusSmall,
+        child: InkWell(
+          borderRadius: theme.geo.radiusSmall,
+          hoverColor: colors.surfaceHover,
+          focusColor: colors.surfaceHover,
+          splashColor: colors.surfacePressed,
+          onTap: () => setState(() => _section = section),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            child: Row(
+              children: [
+                Icon(icon, size: 20, color: foreground),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    label,
+                    style: theme.typo.body.copyWith(color: foreground),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _divider(BTheme theme) {
+    return SizedBox(
+      width: 1,
+      child: LayoutBuilder(
+        builder: (context, constraints) => Align(
+          child: SizedBox(
+            width: 1,
+            height: constraints.maxHeight * 0.75,
+            child: ColoredBox(
+              color: theme.colors.borderSubtle.withValues(alpha: 0.55),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _sectionContent(BuildContext context) {
+    return switch (_section) {
+      _SettingsSection.about => _aboutContent(context),
+      _SettingsSection.canvas => _canvasContent(context),
+    };
+  }
+
+  Widget _aboutContent(BuildContext context) {
+    final theme = BTheme.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'beyond - dev build',
+          style: theme.typo.body.copyWith(color: theme.colors.textSecondary),
+        ),
+      ],
+    );
+  }
+
+  Widget _canvasContent(BuildContext context) {
+    final theme = BTheme.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Background',
+          style: theme.typo.label.copyWith(color: theme.colors.textPrimary),
+        ),
+        const SizedBox(height: 10),
+        Select<CanvasBackgroundKind>(
+          key: const ValueKey('canvas-background-select'),
+          value: _canvasBackgroundKind,
+          options: const [
+            SelectOption(
+              value: CanvasBackgroundKind.dotGrid,
+              label: 'Dot grid',
+            ),
+            SelectOption(value: CanvasBackgroundKind.plain, label: 'Plain'),
+          ],
+          showBorder: false,
+          onChanged: (kind) {
+            setState(() => _canvasBackgroundKind = kind);
+            widget.onCanvasBackgroundChanged?.call(kind);
+          },
+        ),
+        const SizedBox(height: 20),
+        Text(
+          'Data',
+          style: theme.typo.label.copyWith(color: theme.colors.textPrimary),
+        ),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            Button(
+              key: const ValueKey('canvas-import-button'),
+              onPressed: _transferActive || widget.onImportCanvas == null
+                  ? null
+                  : _importCanvas,
+              variant: ButtonVariant.secondary,
+              child: const Text('Import canvas'),
+            ),
+            Button(
+              key: const ValueKey('canvas-export-button'),
+              onPressed: _transferActive || widget.onExportCanvas == null
+                  ? null
+                  : _exportCanvas,
+              variant: ButtonVariant.secondary,
+              child: const Text('Export canvas'),
+            ),
+          ],
+        ),
+      ],
     );
   }
 }
