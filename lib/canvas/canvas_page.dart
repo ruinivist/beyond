@@ -124,7 +124,12 @@ class _CanvasPageState extends State<CanvasPage> {
   }
 
   void _handleCanvasPointerDown(PointerDownEvent event) {
-    if (!_documentLoaded || event.buttons != kPrimaryButton) return;
+    if (!_documentLoaded) return;
+    if (_penEnabled && !_spaceHeld) {
+      _penTool.onPointerDown(event);
+      return;
+    }
+    if (event.buttons != kPrimaryButton) return;
     final onInteractiveChild = _interactiveCanvasPointerIds.remove(
       event.pointer,
     );
@@ -170,6 +175,10 @@ class _CanvasPageState extends State<CanvasPage> {
   }
 
   void _handleCanvasPointerMove(PointerMoveEvent event) {
+    if (_penEnabled) {
+      _penTool.onPointerUpdate(event);
+      return;
+    }
     if (_arrowTool.ownsPointer(event.pointer)) {
       _arrowTool.onPointerMove(
         event,
@@ -188,6 +197,10 @@ class _CanvasPageState extends State<CanvasPage> {
   }
 
   void _handleCanvasPointerUp(PointerUpEvent event) {
+    if (_penEnabled) {
+      _penTool.onPointerUp(event);
+      return;
+    }
     _finishWidgetPointer(event.pointer);
     if (_arrowTool.ownsPointer(event.pointer)) {
       _arrowTool.onPointerUp(
@@ -207,6 +220,10 @@ class _CanvasPageState extends State<CanvasPage> {
   }
 
   void _handleCanvasPointerCancel(PointerCancelEvent event) {
+    if (_penEnabled) {
+      _penTool.onPointerCancel(event);
+      return;
+    }
     _finishWidgetPointer(event.pointer);
     if (_arrowTool.ownsPointer(event.pointer)) {
       _arrowTool.onPointerCancel(event);
@@ -274,9 +291,13 @@ class _CanvasPageState extends State<CanvasPage> {
     CodeBlockModel model,
     PointerDownEvent event,
   ) {
-    if (event.buttons != kPrimaryButton) return;
+    if (event.buttons != kPrimaryButton ||
+        !_documentLoaded ||
+        _textPlacementEnabled ||
+        _penEnabled) {
+      return;
+    }
     _interactiveCanvasPointerIds.add(event.pointer);
-    if (!_documentLoaded || _textPlacementEnabled || _penEnabled) return;
     if (!_elements.contains(model)) return;
     if (_selectionModifierPressed.value) {
       model.selected = !model.selected;
@@ -290,9 +311,12 @@ class _CanvasPageState extends State<CanvasPage> {
     TextBlockModel model,
     PointerDownEvent event,
   ) {
-    if (event.buttons != kPrimaryButton) return;
+    if (event.buttons != kPrimaryButton ||
+        _textPlacementEnabled ||
+        _penEnabled) {
+      return;
+    }
     _interactiveCanvasPointerIds.add(event.pointer);
-    if (_textPlacementEnabled || _penEnabled) return;
     if (!_elements.contains(model)) return;
     if (_selectionModifierPressed.value) {
       model.selected = !model.selected;
@@ -516,6 +540,14 @@ class _CanvasPageState extends State<CanvasPage> {
         (_) => text.focusNode.requestFocus(),
       );
     }
+  }
+
+  void _handleCanvasPointerExit(PointerExitEvent event) {
+    if (_penEnabled) _penTool.onPointerExit(event);
+  }
+
+  void _handleCanvasPointerHover(PointerHoverEvent event) {
+    if (_penEnabled && !_spaceHeld) _penTool.onPointerHover(event);
   }
 
   void _addCodeBlock() {
@@ -1047,15 +1079,25 @@ class _CanvasPageState extends State<CanvasPage> {
         children: [
           IgnorePointer(
             ignoring: !_documentLoaded,
-            child: Listener(
-              behavior: HitTestBehavior.opaque,
-              onPointerDown: _handleCanvasPointerDown,
-              onPointerMove: _handleCanvasPointerMove,
-              onPointerUp: _handleCanvasPointerUp,
-              onPointerCancel: _handleCanvasPointerCancel,
-              child: LazyCanvas(
-                controller: _canvasController,
-                mousePanButtons: kSecondaryMouseButton | kMiddleMouseButton,
+            child: MouseRegion(
+              cursor: _penEnabled && !_spaceHeld
+                  ? SystemMouseCursors.none
+                  : MouseCursor.defer,
+              onExit: _handleCanvasPointerExit,
+              child: Listener(
+                behavior: HitTestBehavior.opaque,
+                onPointerDown: _handleCanvasPointerDown,
+                onPointerMove: _handleCanvasPointerMove,
+                onPointerUp: _handleCanvasPointerUp,
+                onPointerCancel: _handleCanvasPointerCancel,
+                onPointerHover: _handleCanvasPointerHover,
+                child: LazyCanvas(
+                  controller: _canvasController,
+                  mousePanButtons:
+                      kSecondaryMouseButton |
+                      kMiddleMouseButton |
+                      (_spaceHeld ? kPrimaryMouseButton : 0),
+                ),
               ),
             ),
           ),
@@ -1076,7 +1118,6 @@ class _CanvasPageState extends State<CanvasPage> {
           if (_penEnabled)
             Positioned.fill(
               child: IgnorePointer(
-                ignoring: _spaceHeld,
                 child: Scribble(notifier: _penTool),
               ),
             ),

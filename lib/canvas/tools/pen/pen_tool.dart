@@ -154,8 +154,12 @@ class PenTool extends ScribbleNotifier {
   PenTool({required this.onStroke});
 
   final ValueChanged<Sketch> onStroke;
+  final _activePointerIds = <int>{};
   Color? _pendingColor;
   double? _pendingStrokeWidth;
+
+  bool _isAllowedPointer(PointerEvent event) =>
+      event.kind != PointerDeviceKind.mouse || event.buttons == kPrimaryButton;
 
   @override
   void setColor(Color color) {
@@ -194,6 +198,7 @@ class PenTool extends ScribbleNotifier {
 
   @override
   void onPointerUp(PointerUpEvent event) {
+    if (!_activePointerIds.remove(event.pointer)) return;
     super.onPointerUp(event);
     _commit();
     _applyPendingSettings();
@@ -201,6 +206,7 @@ class PenTool extends ScribbleNotifier {
 
   @override
   void onPointerCancel(PointerCancelEvent event) {
+    if (!_activePointerIds.remove(event.pointer)) return;
     super.onPointerCancel(event);
     _commit();
     _applyPendingSettings();
@@ -208,9 +214,23 @@ class PenTool extends ScribbleNotifier {
 
   @override
   void onPointerExit(PointerExitEvent event) {
+    if (!_activePointerIds.remove(event.pointer)) return;
     super.onPointerExit(event);
     _commit();
     _applyPendingSettings();
+  }
+
+  @override
+  void onPointerDown(PointerDownEvent event) {
+    if (!_isAllowedPointer(event)) return;
+    _activePointerIds.add(event.pointer);
+    super.onPointerDown(event);
+  }
+
+  @override
+  void onPointerUpdate(PointerMoveEvent event) {
+    if (!_activePointerIds.contains(event.pointer)) return;
+    super.onPointerUpdate(event);
   }
 }
 

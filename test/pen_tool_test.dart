@@ -988,6 +988,28 @@ void main() {
     await tester.pump(const Duration(milliseconds: 100));
   });
 
+  testWidgets('right drag pans instead of drawing in Draw mode', (
+    tester,
+  ) async {
+    await tester.pumpWidget(const BeyondApp());
+    await tester.pump();
+    await tester.tap(find.text('Draw'));
+    await tester.pump();
+
+    final canvas = tester.widget<LazyCanvas>(find.byType(LazyCanvas));
+    final rightDrag = await tester.startGesture(
+      const Offset(300, 500),
+      kind: PointerDeviceKind.mouse,
+      buttons: kSecondaryMouseButton,
+    );
+    await rightDrag.moveBy(const Offset(80, 60));
+    await rightDrag.up();
+    await tester.pump();
+
+    expect(canvas.controller.offset, isNot(Offset.zero));
+    expect(find.byType(PenStroke), findsNothing);
+  });
+
   testWidgets('space temporarily hands dragging back to the canvas', (
     tester,
   ) async {
