@@ -3,12 +3,16 @@ import 'dart:math' as math;
 
 import 'package:beyond/canvas/attachment_store.dart';
 import 'package:beyond/canvas/canvas_background.dart';
+import 'package:beyond/canvas/canvas_document.dart';
 import 'package:beyond/canvas/canvas_document_store.dart';
+import 'package:beyond/canvas/canvas_element_model.dart';
+import 'package:beyond/canvas/canvas_project.dart';
+import 'package:beyond/canvas/canvas_project_files.dart';
 import 'package:beyond/canvas/tools/arrow/arrow_tool.dart';
 import 'package:beyond/canvas/tools/code_block/code_block.dart';
+import 'package:beyond/canvas/tools/code_block/code_language.dart';
 import 'package:beyond/canvas/tools/pen/pen_tool.dart';
 import 'package:beyond/canvas/tools/text/text_block.dart';
-import 'package:beyond/canvas/tools/text/text_node.dart';
 import 'package:beyond/foundation/control_surface.dart';
 import 'package:beyond/foundation/theme.dart';
 import 'package:beyond/utils/preset_colors.dart';
@@ -22,9 +26,16 @@ import 'package:scribble/scribble.dart';
 import 'package:uuid/uuid.dart';
 
 class CanvasPage extends StatefulWidget {
-  const CanvasPage({this.attachmentStore, super.key});
+  const CanvasPage({
+    this.attachmentStore,
+    this.documentStore,
+    this.projectFiles,
+    super.key,
+  });
 
   final AttachmentStore? attachmentStore;
+  final CanvasDocumentStore? documentStore;
+  final CanvasProjectFiles? projectFiles;
 
   @override
   State<CanvasPage> createState() => _CanvasPageState();
@@ -33,18 +44,19 @@ class CanvasPage extends StatefulWidget {
 class _CanvasPageState extends State<CanvasPage> {
   final _canvasController = LazyCanvasController(
     buildCacheExtent: const Offset(600, 400),
+    useIdsFromArgs: true,
   );
   CanvasBackgroundKind _canvasBackgroundKind = CanvasBackgroundKind.dotGrid;
-  final CanvasDocumentStore _documentStore = CanvasDocumentStore();
+  late final CanvasDocumentStore _documentStore =
+      widget.documentStore ?? CanvasDocumentStore();
   late final AttachmentStore _attachmentStore =
       widget.attachmentStore ?? createAttachmentStore();
-  final _codeBlocks = <CodeBlockModel, ({CanvasChildId id, Offset position})>{};
-  final _textBlocks = <TextBlockModel, CanvasChildId>{};
+  late final CanvasProjectFiles _projectFiles =
+      widget.projectFiles ?? createCanvasProjectFiles();
+  final _elements = <CanvasElementModel>[];
   TextBlockModel? _editingTextBlock;
   TextBlockModel? _editingChromeModel;
   final ValueNotifier<bool> _selectionModifierPressed = ValueNotifier(false);
-  final _strokes = <PenStrokeModel, CanvasChildId>{};
-  final _arrows = <ArrowModel, ({CanvasChildId id, Rect bounds})>{};
   final _interactiveCanvasPointerIds = <int>{};
   final _selectionBeforeWidgetPointer = <Object>{};
   final _selectionKeys = <Object, GlobalKey>{};
@@ -60,6 +72,7 @@ class _CanvasPageState extends State<CanvasPage> {
   Future<void> _saveQueue = Future<void>.value();
   bool _documentDirty = false;
   bool _documentLoaded = false;
+  var _projectTransferActive = false;
   late final PenTool _penTool;
   late final ArrowTool _arrowTool;
   var _penEnabled = false;
@@ -204,16 +217,7 @@ class _CanvasPageState extends State<CanvasPage> {
       return;
     }
     if (event.pointer != _dragSelectionPointer) return;
-    for (final model in _textBlocks.keys) {
-      model.selected = _selectionBeforeDrag.contains(model);
-    }
-    for (final model in _codeBlocks.keys) {
-      model.selected = _selectionBeforeDrag.contains(model);
-    }
-    for (final model in _strokes.keys) {
-      model.selected = _selectionBeforeDrag.contains(model);
-    }
-    for (final model in _arrows.keys) {
+    for (final model in _elements) {
       model.selected = _selectionBeforeDrag.contains(model);
     }
     _finishDragSelection();
@@ -229,7 +233,8 @@ class _CanvasPageState extends State<CanvasPage> {
         child.id: child.ssPosition,
     };
 
-    bool selected(ChangeNotifier model, String id) {
+    bool selected(CanvasElementModel model) {
+      final id = model.data.id;
       final position = positions[id];
       final renderObject = _selectionKey(
         model,
@@ -245,17 +250,8 @@ class _CanvasPageState extends State<CanvasPage> {
           : overlaps;
     }
 
-    for (final entry in _textBlocks.entries) {
-      entry.key.selected = selected(entry.key, entry.value);
-    }
-    for (final entry in _codeBlocks.entries) {
-      entry.key.selected = selected(entry.key, entry.value.id);
-    }
-    for (final entry in _strokes.entries) {
-      entry.key.selected = selected(entry.key, entry.value);
-    }
-    for (final entry in _arrows.entries) {
-      entry.key.selected = selected(entry.key, entry.value.id);
+    for (final model in _elements) {
+      model.selected = selected(model);
     }
   }
 
@@ -281,14 +277,13 @@ class _CanvasPageState extends State<CanvasPage> {
     if (event.buttons != kPrimaryButton) return;
     _interactiveCanvasPointerIds.add(event.pointer);
     if (!_documentLoaded || _textPlacementEnabled || _penEnabled) return;
-    final entry = _codeBlocks[model];
-    if (entry == null) return;
+    if (!_elements.contains(model)) return;
     if (_selectionModifierPressed.value) {
       model.selected = !model.selected;
       return;
     }
     _clearTextEditing();
-    _bringBlockToFront(entry.id);
+    _bringElementToFront(model);
   }
 
   void _handleTextBlockPointerDown(
@@ -298,41 +293,43 @@ class _CanvasPageState extends State<CanvasPage> {
     if (event.buttons != kPrimaryButton) return;
     _interactiveCanvasPointerIds.add(event.pointer);
     if (_textPlacementEnabled || _penEnabled) return;
-    if (!_textBlocks.containsKey(model)) return;
+    if (!_elements.contains(model)) return;
     if (_selectionModifierPressed.value) {
       model.selected = !model.selected;
       return;
     }
-    final canvasId = _textBlocks.remove(model);
     if (!model.editing) {
       FocusManager.instance.primaryFocus?.unfocus();
       _clearTextEditing();
     }
-    _textBlocks[model] = canvasId!;
-    _bringBlockToFront(canvasId);
-    _scheduleDocumentSave();
+    _bringElementToFront(model);
   }
 
   void _editTextBlock(TextBlockModel model) {
     if (!_documentLoaded ||
         _textPlacementEnabled ||
         _penEnabled ||
-        !_textBlocks.containsKey(model)) {
+        !_elements.contains(model)) {
       return;
     }
     _startTextEditing(model);
     model.focusNode.requestFocus();
   }
 
-  void _bringBlockToFront(String id) {
-    _canvasController.bringToFront(id);
+  void _bringElementToFront(CanvasElementModel model) {
+    if (!_documentLoaded || !_elements.contains(model)) return;
+    _elements
+      ..remove(model)
+      ..add(model);
+    _canvasController.bringToFront(model.data.id);
+    _scheduleDocumentSave();
   }
 
   void _startTextEditing(TextBlockModel editing) {
     setState(() {
       _editingTextBlock = editing;
       _editingChromeModel = editing;
-      for (final model in _textBlocks.keys) {
+      for (final model in _elements.whereType<TextBlockModel>()) {
         model.editing = identical(model, editing);
       }
     });
@@ -341,7 +338,7 @@ class _CanvasPageState extends State<CanvasPage> {
   void _clearTextEditing() {
     setState(() {
       _editingTextBlock = null;
-      for (final model in _textBlocks.keys) {
+      for (final model in _elements.whereType<TextBlockModel>()) {
         model.editing = false;
       }
     });
@@ -352,31 +349,19 @@ class _CanvasPageState extends State<CanvasPage> {
   }
 
   void _setSelection(Set<Object> selection) {
-    for (final model in _textBlocks.keys) {
-      model.selected = selection.contains(model);
-    }
-    for (final model in _codeBlocks.keys) {
-      model.selected = selection.contains(model);
-    }
-    for (final model in _strokes.keys) {
-      model.selected = selection.contains(model);
-    }
-    for (final model in _arrows.keys) {
+    for (final model in _elements) {
       model.selected = selection.contains(model);
     }
   }
 
   Set<Object> _selectedModels() => {
-    ..._textBlocks.keys.where((model) => model.selected),
-    ..._codeBlocks.keys.where((model) => model.selected),
-    ..._strokes.keys.where((model) => model.selected),
-    ..._arrows.keys.where((model) => model.selected),
+    ..._elements.where((model) => model.selected),
   };
 
   GlobalKey _selectionKey(Object model) =>
       _selectionKeys.putIfAbsent(model, GlobalKey.new);
 
-  void _moveSelectedChildren(ChangeNotifier dragged, Offset screenDelta) {
+  void _moveSelectedChildren(CanvasElementModel dragged, Offset screenDelta) {
     if (!_documentLoaded ||
         _textPlacementEnabled ||
         _penEnabled ||
@@ -389,77 +374,27 @@ class _CanvasPageState extends State<CanvasPage> {
     final draggedWasSelected = selectedBeforeWidgetPointer.contains(dragged);
     if (draggedWasSelected) _setSelection(selectedBeforeWidgetPointer);
 
-    var draggedSelected = draggedWasSelected;
-    if (dragged case final TextBlockModel model
-        when _textBlocks.containsKey(model)) {
-      draggedSelected = model.selected;
-    } else if (dragged case final CodeBlockModel model
-        when _codeBlocks.containsKey(model)) {
-      draggedSelected = model.selected;
-    } else if (dragged case final PenStrokeModel model
-        when _strokes.containsKey(model)) {
-      draggedSelected = model.selected;
-    } else if (dragged case final ArrowModel model
-        when _arrows.containsKey(model)) {
-      draggedSelected = model.selected;
-    }
+    final draggedSelected =
+        draggedWasSelected || (_elements.contains(dragged) && dragged.selected);
 
     if (!draggedSelected) _clearSelection();
 
     final gridDelta = screenDelta / _canvasController.scale;
-    final ids = <CanvasChildId>[];
-    final textModels = <TextBlockModel>[];
-    final codeModels = <CodeBlockModel>[];
-    final arrowModels = <ArrowModel>[];
-    for (final entry in _textBlocks.entries) {
-      if (identical(entry.key, dragged) ||
-          draggedSelected && entry.key.selected) {
-        ids.add(entry.value);
-        textModels.add(entry.key);
-      }
-    }
-    for (final entry in _codeBlocks.entries) {
-      if (identical(entry.key, dragged) ||
-          draggedSelected && entry.key.selected) {
-        ids.add(entry.value.id);
-        codeModels.add(entry.key);
-      }
-    }
-    for (final entry in _strokes.entries) {
-      if (identical(entry.key, dragged) ||
-          draggedSelected && entry.key.selected) {
-        ids.add(entry.value);
-      }
-    }
-    for (final entry in _arrows.entries) {
-      if (identical(entry.key, dragged) ||
-          draggedSelected && entry.key.selected) {
-        ids.add(entry.value.id);
-        arrowModels.add(entry.key);
-      }
-    }
+    final affected = _elements
+        .where(
+          (model) =>
+              identical(model, dragged) || draggedSelected && model.selected,
+        )
+        .toList();
 
-    if (ids.isEmpty) return;
-    _canvasController.moveChildrenBy(ids, gridDelta);
-    for (final model in textModels) {
-      model.node.position += gridDelta;
-    }
-    for (final model in codeModels) {
-      final entry = _codeBlocks[model]!;
-      _codeBlocks[model] = (
-        id: entry.id,
-        position: entry.position + gridDelta,
-      );
-    }
-    for (final model in arrowModels) {
-      final entry = _arrows[model]!;
+    if (affected.isEmpty) return;
+    _canvasController.moveChildrenBy(
+      affected.map((model) => model.data.id),
+      gridDelta,
+    );
+    for (final model in affected) {
       model.moveBy(gridDelta);
-      _arrows[model] = (
-        id: entry.id,
-        bounds: entry.bounds.shift(gridDelta),
-      );
     }
-    if (textModels.isNotEmpty) _scheduleDocumentSave();
   }
 
   void _resizeTextBlock(
@@ -468,9 +403,9 @@ class _CanvasPageState extends State<CanvasPage> {
     Offset screenDelta,
   ) {
     if (!_documentLoaded || _textPlacementEnabled || _penEnabled) return;
-    if (!_textBlocks.containsKey(model)) return;
+    if (!_elements.contains(model)) return;
     final delta = screenDelta / _canvasController.scale;
-    final angle = -model.node.rotation;
+    final angle = -model.data.rotation;
     final cosine = math.cos(angle);
     final sine = math.sin(angle);
     model.resize(
@@ -484,7 +419,7 @@ class _CanvasPageState extends State<CanvasPage> {
 
   void _rotateTextBlock(TextBlockModel model, double angle) {
     if (!_documentLoaded || _textPlacementEnabled || _penEnabled) return;
-    if (!_textBlocks.containsKey(model)) return;
+    if (!_elements.contains(model)) return;
     model.rotate(angle);
   }
 
@@ -498,7 +433,7 @@ class _CanvasPageState extends State<CanvasPage> {
 
   void _addTextBlock(Offset position) {
     if (!_documentLoaded) return;
-    final node = TextNodeData(
+    final node = TextElementData(
       id: const Uuid().v4(),
       position: position,
       width: textNodeDefaultWidth,
@@ -512,37 +447,73 @@ class _CanvasPageState extends State<CanvasPage> {
     );
     final model = TextBlockModel(node);
 
-    _mountTextBlock(model, requestFocus: true);
+    _mountElement(model, requestFocus: true);
     _startTextEditing(model);
+    _scheduleDocumentSave();
   }
 
-  void _mountTextBlock(
-    TextBlockModel model, {
-    required bool requestFocus,
+  CanvasElementModel _createElementModel(CanvasElementData data) {
+    return switch (data) {
+      final TextElementData data => TextBlockModel(data),
+      final CodeElementData data => CodeBlockModel(data),
+      final PenElementData data => PenStrokeModel(data),
+      final ArrowElementData data => ArrowModel(data),
+    };
+  }
+
+  void _mountElement(
+    CanvasElementModel model, {
+    bool requestFocus = false,
   }) {
-    final node = model.node;
-    final canvasId = _canvasController.addChild(
-      node.position,
-      _SelectionPointerRegion(
-        key: _selectionKey(model),
+    _elements.add(model);
+    model.addListener(_scheduleDocumentSave);
+    final child = switch (model) {
+      final TextBlockModel text => _SelectionPointerRegion(
+        key: _selectionKey(text),
         modifierPressed: _selectionModifierPressed,
-        rotationModel: model,
-        onPointerDown: (event) => _handleTextBlockPointerDown(model, event),
+        rotationModel: text,
+        onPointerDown: (event) => _handleTextBlockPointerDown(text, event),
         child: TextBlock(
-          model: model,
+          model: text,
           attachmentStore: _attachmentStore,
-          onEdit: () => _editTextBlock(model),
-          onMove: (delta) => _moveSelectedChildren(model, delta),
-          onResize: (size, delta) => _resizeTextBlock(model, size, delta),
+          onEdit: () => _editTextBlock(text),
+          onMove: (delta) => _moveSelectedChildren(text, delta),
+          onResize: (size, delta) => _resizeTextBlock(text, size, delta),
         ),
       ),
-      childSize: Size(node.width, node.height ?? textNodeMinimumHeight),
+      final CodeBlockModel code => _SelectionPointerRegion(
+        key: _selectionKey(code),
+        modifierPressed: _selectionModifierPressed,
+        onPointerDown: (event) => _handleCodeBlockPointerDown(code, event),
+        child: CodeBlock(
+          model: code,
+          onMove: (delta) => _moveSelectedChildren(code, delta),
+        ),
+      ),
+      final PenStrokeModel pen => PenStroke(
+        key: _selectionKey(pen),
+        model: pen,
+        onPointerDown: (event) => _handleStrokePointerDown(pen, event),
+        onMove: (delta) => _moveSelectedChildren(pen, delta),
+      ),
+      final ArrowModel arrow => _SelectionPointerRegion(
+        key: _selectionKey(arrow),
+        modifierPressed: _selectionModifierPressed,
+        onPointerDown: (event) => _handleArrowPointerDown(arrow, event),
+        child: Arrow(model: arrow),
+      ),
+      _ => throw StateError('Unknown canvas element model'),
+    };
+    _canvasController.addChild(
+      model.canvasPosition,
+      child,
+      id: model.data.id,
+      childSize: model.canvasSize,
     );
-    _textBlocks[model] = canvasId;
-    model.addListener(_scheduleDocumentSave);
     if (requestFocus) {
+      final text = model as TextBlockModel;
       WidgetsBinding.instance.addPostFrameCallback(
-        (_) => model.focusNode.requestFocus(),
+        (_) => text.focusNode.requestFocus(),
       );
     }
   }
@@ -551,27 +522,24 @@ class _CanvasPageState extends State<CanvasPage> {
     if (!_documentLoaded) return;
     _prepareInteractiveBlock();
     final size = _fittedBlockSize(const Size(600, 400), codeBlockMinimumSize);
-    final model = CodeBlockModel(size);
     var position = _viewportCenter() - Offset(size.width / 2, size.height / 2);
     final placementOffset = const Offset(24, 24) / _canvasController.scale;
-    while (_codeBlocks.values.any((block) => block.position == position)) {
+    while (_elements.whereType<CodeBlockModel>().any(
+      (block) => block.data.position == position,
+    )) {
       position += placementOffset;
     }
-
-    final id = _canvasController.addChild(
-      position,
-      _SelectionPointerRegion(
-        key: _selectionKey(model),
-        modifierPressed: _selectionModifierPressed,
-        onPointerDown: (event) => _handleCodeBlockPointerDown(model, event),
-        child: CodeBlock(
-          model: model,
-          onMove: (delta) => _moveSelectedChildren(model, delta),
-        ),
+    final model = CodeBlockModel(
+      CodeElementData(
+        id: const Uuid().v4(),
+        position: position,
+        size: size,
+        language: CodeLanguage.dart,
+        source: '',
       ),
-      childSize: size,
     );
-    _codeBlocks[model] = (id: id, position: position);
+    _mountElement(model);
+    _scheduleDocumentSave();
   }
 
   Size _fittedBlockSize(Size preferred, Size minimum) {
@@ -601,39 +569,29 @@ class _CanvasPageState extends State<CanvasPage> {
   }
 
   void _addStroke(Sketch sketch) {
+    if (!_documentLoaded) return;
     final stroke = positionSketch(
       sketch,
       canvasOffset: _canvasController.offset,
       canvasScale: _canvasController.scale,
     );
-    final model = PenStrokeModel(stroke.sketch, hitSlop: stroke.hitSlop);
-    _strokes[model] = _canvasController.addChild(
-      stroke.position,
-      PenStroke(
-        key: _selectionKey(model),
-        model: model,
+    final model = PenStrokeModel(
+      PenElementData(
+        id: const Uuid().v4(),
+        position: stroke.position,
         size: stroke.size,
-        onPointerDown: (event) => _handleStrokePointerDown(model, event),
-        onMove: (delta) => _moveSelectedChildren(model, delta),
+        hitSlop: stroke.hitSlop,
+        sketch: stroke.sketch,
       ),
-      childSize: stroke.size,
     );
+    _mountElement(model);
+    _scheduleDocumentSave();
   }
 
   void _addArrow(ArrowModel model) {
     if (!_documentLoaded) return;
-    final bounds = model.bounds;
-    final id = _canvasController.addChild(
-      bounds.topLeft,
-      _SelectionPointerRegion(
-        key: _selectionKey(model),
-        modifierPressed: _selectionModifierPressed,
-        onPointerDown: (event) => _handleArrowPointerDown(model, event),
-        child: Arrow(model: model, bounds: bounds),
-      ),
-      childSize: bounds.size,
-    );
-    _arrows[model] = (id: id, bounds: bounds);
+    _mountElement(model);
+    _scheduleDocumentSave();
   }
 
   void _handleArrowPointerDown(
@@ -645,7 +603,7 @@ class _CanvasPageState extends State<CanvasPage> {
         _textPlacementEnabled ||
         _penEnabled ||
         _arrowEnabled ||
-        !_arrows.containsKey(model)) {
+        !_elements.contains(model)) {
       return;
     }
     _interactiveCanvasPointerIds.add(event.pointer);
@@ -672,7 +630,7 @@ class _CanvasPageState extends State<CanvasPage> {
         !_documentLoaded ||
         _textPlacementEnabled ||
         _penEnabled ||
-        !_strokes.containsKey(model)) {
+        !_elements.contains(model)) {
       return;
     }
     _interactiveCanvasPointerIds.add(event.pointer);
@@ -681,87 +639,45 @@ class _CanvasPageState extends State<CanvasPage> {
   }
 
   void _selectAll() {
-    for (final model in _textBlocks.keys) {
-      model.selected = true;
-    }
-    for (final model in _codeBlocks.keys) {
-      model.selected = true;
-    }
-    for (final model in _strokes.keys) {
-      model.selected = true;
-    }
-    for (final model in _arrows.keys) {
+    if (!_documentLoaded) return;
+    for (final model in _elements) {
       model.selected = true;
     }
   }
 
   void _deleteSelected() {
-    final textBlocks = _textBlocks.entries
-        .where((entry) => entry.key.selected)
-        .toList();
-    final codeBlocks = _codeBlocks.entries
-        .where((entry) => entry.key.selected)
-        .toList();
-    final strokes = _strokes.entries
-        .where((entry) => entry.key.selected)
-        .toList();
-    final arrows = _arrows.entries
-        .where((entry) => entry.key.selected)
-        .toList();
-    if (textBlocks.isEmpty &&
-        codeBlocks.isEmpty &&
-        strokes.isEmpty &&
-        arrows.isEmpty) {
-      return;
-    }
-    final modelsToDispose = <ChangeNotifier>[];
+    if (!_documentLoaded) return;
+    final modelsToDispose = _elements.where((model) => model.selected).toList();
+    if (modelsToDispose.isEmpty) return;
 
-    final removesEditingText = textBlocks.any(
-      (entry) =>
-          identical(entry.key, _editingTextBlock) ||
-          identical(entry.key, _editingChromeModel),
+    final removesEditingText = modelsToDispose.any(
+      (model) =>
+          model is TextBlockModel &&
+          (identical(model, _editingTextBlock) ||
+              identical(model, _editingChromeModel)),
     );
     if (removesEditingText) {
       _clearTextEditing();
       setState(() => _editingChromeModel = null);
     }
-    for (final entry in textBlocks) {
-      entry.key.focusNode.unfocus();
-      _canvasController.removeChild(entry.value);
-      _textBlocks.remove(entry.key);
-      _selectionKeys.remove(entry.key);
-      _selectionBeforeDrag.remove(entry.key);
-      entry.key.removeListener(_scheduleDocumentSave);
-      modelsToDispose.add(entry.key);
+    for (final model in modelsToDispose) {
+      if (model case final TextBlockModel text) text.focusNode.unfocus();
+      if (model case final CodeBlockModel code) code.focusNode.unfocus();
+      _canvasController.removeChild(model.data.id);
+      _elements.remove(model);
+      _selectionKeys.remove(model);
+      _selectionBeforeDrag.remove(model);
+      _selectionBeforeWidgetPointer.remove(model);
+      model.removeListener(_scheduleDocumentSave);
     }
-    for (final entry in codeBlocks) {
-      entry.key.focusNode.unfocus();
-      _canvasController.removeChild(entry.value.id);
-      _codeBlocks.remove(entry.key);
-      _selectionKeys.remove(entry.key);
-      _selectionBeforeDrag.remove(entry.key);
-      modelsToDispose.add(entry.key);
-    }
-    for (final entry in strokes) {
-      _canvasController.removeChild(entry.value);
-      _strokes.remove(entry.key);
-      _selectionKeys.remove(entry.key);
-      _selectionBeforeDrag.remove(entry.key);
-      modelsToDispose.add(entry.key);
-    }
-    for (final entry in arrows) {
-      _canvasController.removeChild(entry.value.id);
-      _arrows.remove(entry.key);
-      _selectionKeys.remove(entry.key);
-      _selectionBeforeDrag.remove(entry.key);
-      modelsToDispose.add(entry.key);
-    }
+    if (_selectionBeforeWidgetPointer.isEmpty) _widgetPointer = null;
+    if (modelsToDispose.contains(_dragArrow)) _finishArrowDrag();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       for (final model in modelsToDispose) {
         model.dispose();
       }
     });
-    if (textBlocks.isNotEmpty) _scheduleDocumentSave();
+    _scheduleDocumentSave();
   }
 
   void _togglePen() {
@@ -800,18 +716,180 @@ class _CanvasPageState extends State<CanvasPage> {
         builder: (_) => SettingsDialog(
           canvasBackgroundKind: _canvasBackgroundKind,
           onCanvasBackgroundChanged: _setCanvasBackground,
+          onImportCanvas: _importProject,
+          onExportCanvas: _exportProject,
         ),
       ),
     );
   }
 
+  Future<void> _exportProject() async {
+    if (_projectTransferActive || !_documentLoaded) return;
+    _projectTransferActive = true;
+    try {
+      final snapshot = _currentDocument();
+      final bytes = await encodeCanvasProject(snapshot, _attachmentStore);
+      if (await _projectFiles.save(bytes)) {
+        _showProjectSnackBar('Canvas exported');
+      }
+    } on Object {
+      _showProjectSnackBar('Could not export canvas');
+    } finally {
+      _projectTransferActive = false;
+    }
+  }
+
+  Future<bool> _importProject() async {
+    if (_projectTransferActive || !_documentLoaded) return false;
+    _projectTransferActive = true;
+    try {
+      final bytes = await _projectFiles.open();
+      if (bytes == null) return false;
+      final project = await decodeCanvasProject(bytes);
+
+      _saveTimer?.cancel();
+      _saveTimer = null;
+      final dirtyFlush = _documentDirty
+          ? _enqueueDocumentSave(throwOnFailure: true)
+          : null;
+      _documentLoaded = false;
+      if (dirtyFlush != null) await dirtyFlush;
+
+      final operation = _saveQueue.then((_) => _commitImportedProject(project));
+      _saveQueue = operation.then<void>(
+        (_) {},
+        onError: (Object error, StackTrace stackTrace) {},
+      );
+      await operation;
+      _showProjectSnackBar('Canvas imported');
+      return true;
+    } on Object {
+      if (!_documentLoaded) {
+        _documentLoaded = true;
+        if (mounted) setState(() {});
+      }
+      _showProjectSnackBar('Could not import canvas');
+      return false;
+    } finally {
+      _projectTransferActive = false;
+    }
+  }
+
+  Future<void> _commitImportedProject(CanvasProject project) async {
+    final currentDocument = _currentDocument();
+    final currentPaths = canvasAttachmentPaths(currentDocument);
+    final importedPaths = project.attachments.keys.toSet();
+    final collisionPaths = currentPaths.intersection(importedPaths).toList()
+      ..sort();
+    final backups = <String, Uint8List>{};
+    final attemptedPaths = <String>[];
+
+    try {
+      for (final path in collisionPaths) {
+        final bytes = await _attachmentStore.readIfExists(path);
+        if (bytes == null) {
+          throw StateError('Missing current attachment: $path');
+        }
+        backups[path] = Uint8List.fromList(bytes);
+      }
+
+      try {
+        final paths = project.attachments.keys.toList()..sort();
+        for (final path in paths) {
+          attemptedPaths.add(path);
+          await _attachmentStore.write(path, project.attachments[path]!);
+        }
+        await _persistDocument(project.document);
+      } on Object catch (error, stackTrace) {
+        Object? rollbackError;
+        StackTrace? rollbackStackTrace;
+        for (final path in attemptedPaths) {
+          final backup = backups[path];
+          if (backup == null) continue;
+          try {
+            await _attachmentStore.write(path, Uint8List.fromList(backup));
+          } on Object catch (error, stackTrace) {
+            rollbackError ??= error;
+            rollbackStackTrace ??= stackTrace;
+          }
+        }
+        if (rollbackError != null) {
+          debugPrint(
+            'Canvas import rollback failed: $rollbackError\n'
+            '$rollbackStackTrace',
+          );
+        }
+        Error.throwWithStackTrace(error, stackTrace);
+      }
+
+      _replaceLiveModels(project.document);
+    } on Object {
+      _documentLoaded = true;
+      if (mounted) setState(() {});
+      rethrow;
+    }
+  }
+
+  void _replaceLiveModels(CanvasDocument document) {
+    final oldElements = List<CanvasElementModel>.of(_elements);
+    _clearTextEditing();
+    FocusManager.instance.primaryFocus?.unfocus();
+    _arrowTool.cancel();
+    _penEnabled = false;
+    _arrowEnabled = false;
+    _textPlacementEnabled = false;
+    _spaceHeld = false;
+    _interactiveCanvasPointerIds.clear();
+    _selectionBeforeWidgetPointer.clear();
+    _selectionBeforeDrag.clear();
+    _selectionKeys.clear();
+    _widgetPointer = null;
+    _dragSelectionPointer = null;
+    _dragSelectionStart = null;
+    _dragSelectionEnd = null;
+    _dragArrowPointer = null;
+    _dragArrow = null;
+    _editingTextBlock = null;
+    _editingChromeModel = null;
+
+    for (final model in oldElements) {
+      model.removeListener(_scheduleDocumentSave);
+    }
+    _elements.clear();
+    _canvasController.clear();
+    _canvasBackgroundKind = document.background;
+    _canvasController.background = document.background.build(
+      BTheme.of(context).colors,
+    );
+    for (final data in document.elements) {
+      _mountElement(_createElementModel(data));
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      for (final model in oldElements) {
+        model.dispose();
+      }
+    });
+    _documentDirty = false;
+    _documentLoaded = true;
+    if (mounted) setState(() {});
+  }
+
+  void _showProjectSnackBar(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
+  }
+
   void _setCanvasBackground(CanvasBackgroundKind kind) {
-    if (_canvasBackgroundKind == kind) return;
+    if (!_documentLoaded || _canvasBackgroundKind == kind) return;
     _canvasBackgroundKind = kind;
     _canvasController.background = kind.build(BTheme.of(context).colors);
+    _scheduleDocumentSave();
   }
 
   bool _handleKeyEvent(KeyEvent event) {
+    if (!_documentLoaded) return false;
     _selectionModifierPressed.value =
         Theme.of(context).platform == TargetPlatform.macOS
         ? HardwareKeyboard.instance.isMetaPressed
@@ -820,8 +898,12 @@ class _CanvasPageState extends State<CanvasPage> {
     final editingText =
         focusContext?.widget is EditableText ||
         focusContext?.findAncestorWidgetOfExactType<EditableText>() != null ||
-        _textBlocks.keys.any((model) => model.focusNode.hasFocus) ||
-        _codeBlocks.keys.any((model) => model.focusNode.hasFocus);
+        _elements.whereType<TextBlockModel>().any(
+          (model) => model.focusNode.hasFocus,
+        ) ||
+        _elements.whereType<CodeBlockModel>().any(
+          (model) => model.focusNode.hasFocus,
+        );
     if (editingText) return false;
     if (event is KeyDownEvent &&
         event.logicalKey == LogicalKeyboardKey.keyA &&
@@ -850,11 +932,12 @@ class _CanvasPageState extends State<CanvasPage> {
       final document = await _documentStore.load();
       if (!mounted) return;
       if (document != null) {
-        for (final node in document.nodes) {
-          _mountTextBlock(
-            TextBlockModel(node),
-            requestFocus: false,
-          );
+        _canvasBackgroundKind = document.background;
+        _canvasController.background = document.background.build(
+          BTheme.of(context).colors,
+        );
+        for (final data in document.elements) {
+          _mountElement(_createElementModel(data));
         }
       }
       _documentLoaded = true;
@@ -874,7 +957,8 @@ class _CanvasPageState extends State<CanvasPage> {
 
   CanvasDocument _currentDocument() {
     return CanvasDocument(
-      nodes: _textBlocks.keys.map((model) => model.node).toList(),
+      background: _canvasBackgroundKind,
+      elements: _elements.map((model) => model.data.copy()).toList(),
     );
   }
 
@@ -888,17 +972,39 @@ class _CanvasPageState extends State<CanvasPage> {
     );
   }
 
-  void _enqueueDocumentSave() {
+  Future<void>? _enqueueDocumentSave({bool throwOnFailure = false}) {
     _saveTimer = null;
-    if (!_documentLoaded || !_documentDirty) return;
+    if (!_documentLoaded || !_documentDirty) return null;
     _documentDirty = false;
-    final snapshot = _currentDocument().copy();
-    _saveQueue = _saveQueue.then((_) => _saveDocument(snapshot));
+    final snapshot = _currentDocument();
+    final operation = _saveQueue.then(
+      (_) =>
+          throwOnFailure ? _persistDocument(snapshot) : _saveDocument(snapshot),
+    );
+    _saveQueue = operation.then<void>(
+      (_) {},
+      onError: (Object error, StackTrace stackTrace) {},
+    );
+    if (!throwOnFailure) return null;
+    return _saveAndRestoreDirty(operation);
+  }
+
+  Future<void> _saveAndRestoreDirty(Future<void> operation) async {
+    try {
+      await operation;
+    } on Object {
+      _documentDirty = true;
+      rethrow;
+    }
+  }
+
+  Future<void> _persistDocument(CanvasDocument document) {
+    return _documentStore.save(document);
   }
 
   Future<void> _saveDocument(CanvasDocument document) async {
     try {
-      await _documentStore.save(document);
+      await _persistDocument(document);
     } on Object {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -912,24 +1018,13 @@ class _CanvasPageState extends State<CanvasPage> {
     _saveTimer?.cancel();
     _saveTimer = null;
     if (_documentLoaded && _documentDirty) {
-      _documentDirty = false;
-      final snapshot = _currentDocument().copy();
-      _saveQueue = _saveQueue.then((_) => _saveDocument(snapshot));
+      unawaited(_enqueueDocumentSave() ?? Future<void>.value());
     }
     unawaited(_saveQueue);
-    for (final block in _codeBlocks.keys) {
-      block.dispose();
-    }
-    for (final block in _textBlocks.keys) {
-      block
+    for (final model in _elements) {
+      model
         ..removeListener(_scheduleDocumentSave)
         ..dispose();
-    }
-    for (final stroke in _strokes.keys) {
-      stroke.dispose();
-    }
-    for (final arrow in _arrows.keys) {
-      arrow.dispose();
     }
     HardwareKeyboard.instance.removeHandler(_handleKeyEvent);
     _selectionModifierPressed.dispose();

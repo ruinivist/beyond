@@ -1,10 +1,14 @@
 import 'dart:convert';
 
+import 'package:beyond/canvas/canvas_background.dart';
+import 'package:beyond/canvas/canvas_document.dart';
 import 'package:beyond/canvas/canvas_document_store.dart';
+import 'package:beyond/canvas/tools/arrow/arrow_tool.dart';
 import 'package:beyond/canvas/tools/code_block/code_block.dart';
+import 'package:beyond/canvas/tools/code_block/code_language.dart';
 import 'package:beyond/canvas/tools/pen/pen_tool.dart';
 import 'package:beyond/canvas/tools/text/text_block.dart';
-import 'package:beyond/canvas/tools/text/text_node.dart';
+import 'package:beyond/foundation/select.dart';
 import 'package:beyond/main.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
@@ -42,6 +46,228 @@ void main() {
     expect(stroke.sketch.lines.single.width, 2.5);
     expect(stroke.sketch.lines.single.points.first.x, 5.5);
     expect(stroke.sketch.lines.single.points.first.y, 5.5);
+  });
+
+  test('positioned pen models keep durable geometry when moved', () {
+    final model = PenStrokeModel(
+      PenElementData(
+        id: 'pen',
+        position: const Offset(10, 20),
+        size: const Size(61, 61),
+        hitSlop: 3,
+        sketch: const Sketch(
+          lines: [
+            SketchLine(
+              color: 0xff000000,
+              width: 2.5,
+              points: [Point(5.5, 5.5)],
+            ),
+          ],
+        ),
+      ),
+    )..moveBy(const Offset(8, -4));
+
+    expect(model.data.position, const Offset(18, 16));
+    expect(model.data.size, const Size(61, 61));
+    expect(model.data.sketch.lines.single.points.single.x, 5.5);
+    model.dispose();
+  });
+
+  test('code source edits update durable data', () {
+    final model = CodeBlockModel(
+      CodeElementData(
+        id: 'code',
+        position: Offset.zero,
+        size: const Size(280, 240),
+        language: CodeLanguage.dart,
+        source: '',
+      ),
+    );
+
+    model.controller.text = 'void main() {}';
+
+    expect(model.data.source, 'void main() {}');
+    model.moveBy(const Offset(4, 6));
+    expect(model.data.position, const Offset(4, 6));
+    model.dispose();
+  });
+
+  test('arrow movement shifts every durable point equally', () {
+    final model = ArrowModel(
+      ArrowElementData(
+        id: 'arrow',
+        start: Offset.zero,
+        control: const Offset(20, -8),
+        end: const Offset(40, 10),
+      ),
+    );
+    final before = model.geometry;
+
+    model.moveBy(const Offset(12, 7));
+
+    expect(model.geometry.start, before.start + const Offset(12, 7));
+    expect(model.geometry.control, before.control + const Offset(12, 7));
+    expect(model.geometry.end, before.end + const Offset(12, 7));
+    model.dispose();
+  });
+
+  testWidgets('all element types restore in document order', (tester) async {
+    await tester.pumpWidget(const BeyondApp());
+    await tester.pump();
+    await tester.pump();
+
+    await tester.tap(find.text('Text'));
+    await tester.pump();
+    await tester.tapAt(const Offset(40, 160));
+    await tester.pump();
+    await tester.pump();
+    final text = tester.widget<TextBlock>(find.byType(TextBlock)).model;
+    final textPosition = text.data.position;
+    await tester.enterText(
+      find.byKey(const ValueKey('text-markdown-editor')),
+      'saved text',
+    );
+
+    await tester.tap(find.text('Code'));
+    await tester.pump();
+    final code = tester.widget<CodeBlock>(find.byType(CodeBlock)).model
+      ..language = CodeLanguage.json
+      ..controller.text = '{"saved": true}';
+    final codePosition = code.data.position;
+    await tester.pump();
+
+    await tester.tap(find.text('Draw'));
+    await tester.pump();
+    await tester.dragFrom(
+      const Offset(40, 520),
+      const Offset(100, 40),
+      kind: PointerDeviceKind.mouse,
+    );
+    await tester.pump();
+    final pen = tester.widget<PenStroke>(find.byType(PenStroke)).model;
+    final penPosition = pen.data.position;
+    final penSize = pen.data.size;
+    final penPoint = pen.data.sketch.lines.single.points.first;
+    await tester.tap(find.text('Draw'));
+    await tester.pump();
+
+    await tester.tap(find.text('Arrow'));
+    await tester.pump();
+    final arrowDrag = await tester.startGesture(
+      const Offset(520, 520),
+      kind: PointerDeviceKind.mouse,
+    );
+    await arrowDrag.moveTo(const Offset(700, 560));
+    await arrowDrag.up();
+    await tester.pump();
+    final arrow = tester.widget<Arrow>(find.byType(Arrow)).model;
+    final arrowGeometry = arrow.geometry;
+
+    await tester.tap(find.byKey(const ValueKey('settings-button')));
+    await tester.pump();
+    await tester.tap(find.text('Canvas'));
+    await tester.pump();
+    tester
+        .widget<Select<CanvasBackgroundKind>>(
+          find.byKey(const ValueKey('canvas-background-select')),
+        )
+        .onChanged!
+        .call(CanvasBackgroundKind.plain);
+    await tester.pump();
+    await tester.tap(find.byTooltip('Close'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 320));
+    await tester.pump();
+
+    final saved = await SharedPreferencesAsync().getString(
+      CanvasDocumentStore.key,
+    );
+    final document = CanvasDocument.fromJson(jsonDecode(saved!));
+    final ids = document.elements.map((element) => element.id).toList();
+    expect(document.background, CanvasBackgroundKind.plain);
+    expect(document.elements, hasLength(4));
+    expect(document.elements.map((element) => element.type), [
+      'text',
+      'code',
+      'pen',
+      'arrow',
+    ]);
+    expect((document.elements[0] as TextElementData).markdown, 'saved text');
+    expect((document.elements[0] as TextElementData).position, textPosition);
+    expect(
+      (document.elements[1] as CodeElementData).language,
+      CodeLanguage.json,
+    );
+    expect((document.elements[1] as CodeElementData).position, codePosition);
+    expect((document.elements[2] as PenElementData).position, penPosition);
+    expect((document.elements[2] as PenElementData).size, penSize);
+    expect(
+      (document.elements[2] as PenElementData).sketch.lines.single.points.first,
+      penPoint,
+    );
+    expect(
+      (document.elements[3] as ArrowElementData).start,
+      arrowGeometry.start,
+    );
+    expect(
+      (document.elements[3] as ArrowElementData).control,
+      arrowGeometry.control,
+    );
+    expect((document.elements[3] as ArrowElementData).end, arrowGeometry.end);
+
+    await tester.pumpWidget(const SizedBox());
+    await tester.pump();
+    await tester.pumpWidget(const BeyondApp());
+    await tester.pump();
+    await tester.pump();
+
+    final restored = CanvasDocument.fromJson(
+      jsonDecode(
+        (await SharedPreferencesAsync().getString(
+          CanvasDocumentStore.key,
+        ))!,
+      ),
+    );
+    expect(restored.elements.map((element) => element.id), ids);
+    expect(find.byType(TextBlock), findsOneWidget);
+    expect(find.byType(CodeBlock), findsOneWidget);
+    expect(find.byType(PenStroke), findsOneWidget);
+    expect(find.byType(Arrow), findsOneWidget);
+    final restoredCanvas = tester.widget<LazyCanvas>(find.byType(LazyCanvas));
+    expect(
+      restoredCanvas.controller.widgetsWithScreenPositions().map(
+        (child) => child.id,
+      ),
+      ids,
+    );
+    for (final block in tester.widgetList<TextBlock>(find.byType(TextBlock))) {
+      expect(block.model.selected, isFalse);
+      expect(block.model.focusNode.hasFocus, isFalse);
+    }
+    for (final block in tester.widgetList<CodeBlock>(find.byType(CodeBlock))) {
+      expect(block.model.selected, isFalse);
+      expect(block.model.focusNode.hasFocus, isFalse);
+    }
+    expect(
+      tester.widget<CodeBlock>(find.byType(CodeBlock)).model.data.source,
+      '{"saved": true}',
+    );
+    expect(
+      tester.widget<TextBlock>(find.byType(TextBlock)).model.data.position,
+      textPosition,
+    );
+    expect(
+      tester.widget<CodeBlock>(find.byType(CodeBlock)).model.data.position,
+      codePosition,
+    );
+    final restoredPen = tester.widget<PenStroke>(find.byType(PenStroke)).model;
+    expect(restoredPen.data.position, penPosition);
+    expect(restoredPen.data.size, penSize);
+    expect(restoredPen.data.sketch.lines.single.points.first, penPoint);
+    final restoredArrow = tester.widget<Arrow>(find.byType(Arrow)).model;
+    expect(restoredArrow.geometry.start, arrowGeometry.start);
+    expect(restoredArrow.geometry.control, arrowGeometry.control);
+    expect(restoredArrow.geometry.end, arrowGeometry.end);
   });
 
   testWidgets('pen commits strokes and stays active', (tester) async {
@@ -227,7 +453,7 @@ void main() {
     final saved = await SharedPreferencesAsync().getString(
       CanvasDocumentStore.key,
     );
-    final savedNodes = CanvasDocument.fromJson(jsonDecode(saved!)).nodes;
+    final savedNodes = CanvasDocument.fromJson(jsonDecode(saved!)).elements;
     expect(savedNodes, hasLength(0));
 
     await tester.sendKeyDownEvent(LogicalKeyboardKey.delete);

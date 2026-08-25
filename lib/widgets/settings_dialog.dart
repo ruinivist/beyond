@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:beyond/canvas/canvas_background.dart';
+import 'package:beyond/foundation/button.dart';
 import 'package:beyond/foundation/select.dart';
 import 'package:beyond/foundation/theme.dart';
 import 'package:flutter/material.dart';
@@ -9,11 +10,15 @@ class SettingsDialog extends StatefulWidget {
   const SettingsDialog({
     this.canvasBackgroundKind = CanvasBackgroundKind.dotGrid,
     this.onCanvasBackgroundChanged,
+    this.onImportCanvas,
+    this.onExportCanvas,
     super.key,
   });
 
   final CanvasBackgroundKind canvasBackgroundKind;
   final ValueChanged<CanvasBackgroundKind>? onCanvasBackgroundChanged;
+  final Future<bool> Function()? onImportCanvas;
+  final Future<void> Function()? onExportCanvas;
 
   @override
   State<SettingsDialog> createState() => _SettingsDialogState();
@@ -24,6 +29,32 @@ enum _SettingsSection { about, canvas }
 class _SettingsDialogState extends State<SettingsDialog> {
   late CanvasBackgroundKind _canvasBackgroundKind = widget.canvasBackgroundKind;
   _SettingsSection _section = _SettingsSection.about;
+  var _transferActive = false;
+
+  Future<void> _importCanvas() async {
+    final callback = widget.onImportCanvas;
+    if (_transferActive || callback == null) return;
+    setState(() => _transferActive = true);
+    try {
+      final imported = await callback();
+      if (!mounted) return;
+      if (imported) Navigator.of(context).pop();
+    } finally {
+      if (mounted) setState(() => _transferActive = false);
+    }
+  }
+
+  Future<void> _exportCanvas() async {
+    final callback = widget.onExportCanvas;
+    if (_transferActive || callback == null) return;
+    setState(() => _transferActive = true);
+    try {
+      await callback();
+      if (!mounted) return;
+    } finally {
+      if (mounted) setState(() => _transferActive = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -166,6 +197,40 @@ class _SettingsDialogState extends State<SettingsDialog> {
                           setState(() => _canvasBackgroundKind = kind);
                           widget.onCanvasBackgroundChanged?.call(kind);
                         },
+                      ),
+                      const SizedBox(height: 20),
+                      Text(
+                        'Data',
+                        style: typo.label.copyWith(color: colors.textPrimary),
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Button(
+                              key: const ValueKey('canvas-import-button'),
+                              onPressed:
+                                  _transferActive ||
+                                      widget.onImportCanvas == null
+                                  ? null
+                                  : _importCanvas,
+                              variant: ButtonVariant.outline,
+                              child: const Text('Import canvas'),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Button(
+                              key: const ValueKey('canvas-export-button'),
+                              onPressed:
+                                  _transferActive ||
+                                      widget.onExportCanvas == null
+                                  ? null
+                                  : _exportCanvas,
+                              child: const Text('Export canvas'),
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ],

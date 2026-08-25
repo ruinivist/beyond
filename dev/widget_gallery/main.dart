@@ -1,10 +1,11 @@
 import 'dart:async';
 
 import 'package:beyond/canvas/attachment_store.dart';
+import 'package:beyond/canvas/canvas_document.dart';
 import 'package:beyond/canvas/canvas_page.dart';
 import 'package:beyond/canvas/tools/code_block/code_block.dart';
+import 'package:beyond/canvas/tools/code_block/code_language.dart';
 import 'package:beyond/canvas/tools/text/text_block.dart';
-import 'package:beyond/canvas/tools/text/text_node.dart';
 import 'package:beyond/foundation/button.dart';
 import 'package:beyond/foundation/discrete_slider.dart';
 import 'package:beyond/foundation/select.dart';
@@ -51,7 +52,7 @@ class _WidgetGalleryPageState extends State<WidgetGalleryPage> {
     animationFactory: const ChromiumEaseInOut(),
   );
   final _textModel = TextBlockModel(
-    TextNodeData(
+    TextElementData(
       id: 'gallery-text',
       position: Offset.zero,
       width: textNodeDefaultWidth,
@@ -64,7 +65,15 @@ class _WidgetGalleryPageState extends State<WidgetGalleryPage> {
       ),
     ),
   );
-  final _codeModel = CodeBlockModel(const Size(520, 320));
+  final _codeModel = CodeBlockModel(
+    CodeElementData(
+      id: 'gallery-code',
+      position: Offset.zero,
+      size: const Size(520, 320),
+      language: CodeLanguage.dart,
+      source: '',
+    ),
+  );
   var _dropdownValue = 'Canvas';
   var _searchableLanguage = 'Dart';
   var _checked = true;

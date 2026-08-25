@@ -2,11 +2,11 @@ import 'dart:convert';
 import 'dart:math' as math;
 
 import 'package:beyond/canvas/attachment_store.dart';
+import 'package:beyond/canvas/canvas_document.dart';
 import 'package:beyond/canvas/canvas_document_store.dart';
 import 'package:beyond/canvas/canvas_page.dart';
 import 'package:beyond/canvas/tools/code_block/code_block.dart';
 import 'package:beyond/canvas/tools/text/text_block.dart';
-import 'package:beyond/canvas/tools/text/text_node.dart';
 import 'package:beyond/foundation/select.dart';
 import 'package:beyond/main.dart';
 import 'package:beyond/theme/starless_light.dart';
@@ -267,8 +267,7 @@ void main() {
     await _addTextBlock(tester, const Offset(120, 200));
 
     final block = find.byType(TextBlock);
-    final model = tester.widget<TextBlock>(block).model;
-    model.rotate(math.pi / 2);
+    final model = tester.widget<TextBlock>(block).model..rotate(math.pi / 2);
     await tester.pump();
     await tester.tapAt(const Offset(400, 300));
     await tester.pump();
@@ -1006,22 +1005,25 @@ Inline $x^2$''';
     final preferences = SharedPreferencesAsync();
     final savedSource = await preferences.getString(CanvasDocumentStore.key);
     final savedDocument = CanvasDocument.fromJson(jsonDecode(savedSource!));
-    expect(savedDocument.nodes, hasLength(2));
-    expect(savedDocument.nodes.first.id, second.node.id);
-    expect(savedDocument.nodes.last.id, first.node.id);
-    expect(savedDocument.nodes.first.markdown, secondSource);
-    expect(savedDocument.nodes.last.markdown, firstSource);
-    expect(savedDocument.nodes.first.position, second.node.position);
-    expect(savedDocument.nodes.first.width, second.node.width);
-    expect(savedDocument.nodes.first.height, second.node.height);
-    expect(savedDocument.nodes.first.style.fontFamily, 'Inter');
+    final savedNodes = savedDocument.elements
+        .whereType<TextElementData>()
+        .toList();
+    expect(savedNodes, hasLength(2));
+    expect(savedNodes.first.id, second.node.id);
+    expect(savedNodes.last.id, first.node.id);
+    expect(savedNodes.first.markdown, secondSource);
+    expect(savedNodes.last.markdown, firstSource);
+    expect(savedNodes.first.position, second.node.position);
+    expect(savedNodes.first.width, second.node.width);
+    expect(savedNodes.first.height, second.node.height);
+    expect(savedNodes.first.style.fontFamily, 'Inter');
     expect(
-      savedDocument.nodes.first.style.fontSize,
+      savedNodes.first.style.fontSize,
       second.node.style.fontSize,
     );
     expect(
-      savedDocument.nodes.first.style.color,
-      isNot(savedDocument.nodes.last.style.color),
+      savedNodes.first.style.color,
+      isNot(savedNodes.last.style.color),
     );
 
     await tester.pumpWidget(const SizedBox());
@@ -1077,7 +1079,7 @@ Inline $x^2$''';
   testWidgets('malformed saved documents are preserved and reported', (
     tester,
   ) async {
-    const invalid = '{"version":99,"nodes":[]}';
+    const invalid = '{"version":99,"background":"dotGrid","elements":[]}';
     final preferences = SharedPreferencesAsync();
     await preferences.setString(CanvasDocumentStore.key, invalid);
 
@@ -1098,7 +1100,7 @@ Inline $x^2$''';
 
     final replacement = await preferences.getString(CanvasDocumentStore.key);
     expect(
-      CanvasDocument.fromJson(jsonDecode(replacement!)).nodes,
+      CanvasDocument.fromJson(jsonDecode(replacement!)).elements,
       hasLength(1),
     );
   });
@@ -1166,6 +1168,9 @@ class _FakeAttachmentStore implements AttachmentStore {
     if (bytes == null) throw StateError('missing attachment');
     return bytes;
   }
+
+  @override
+  Future<Uint8List?> readIfExists(String path) async => files[path];
 
   @override
   Future<void> write(String path, Uint8List bytes) async {

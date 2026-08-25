@@ -1,5 +1,7 @@
 import 'dart:math' as math;
 
+import 'package:beyond/canvas/canvas_document.dart';
+import 'package:beyond/canvas/canvas_element_model.dart';
 import 'package:beyond/canvas/tools/code_block/code_language.dart';
 import 'package:beyond/foundation/pointer_scroll_boundary.dart';
 import 'package:beyond/foundation/select.dart';
@@ -9,13 +11,12 @@ import 'package:flutter/material.dart';
 import 'package:re_editor/re_editor.dart';
 import 'package:scroll_animator/scroll_animator.dart';
 
-const codeBlockMinimumSize = Size(280, 240);
+class CodeBlockModel extends CanvasElementModel<CodeElementData> {
+  CodeBlockModel(CodeElementData data) : super(data) {
+    controller.text = data.source;
+    controller.addListener(_syncSource);
+  }
 
-class CodeBlockModel extends ChangeNotifier {
-  CodeBlockModel(Size size) : _size = _clampSize(size);
-
-  Size _size;
-  bool _selected = false;
   final controller = CodeLineEditingController(
     options: const CodeLineOptions(indentSize: 4),
   );
@@ -28,36 +29,47 @@ class CodeBlockModel extends ChangeNotifier {
       animationFactory: const ChromiumEaseInOut(),
     ),
   );
-  CodeLanguage _language = CodeLanguage.dart;
+  @override
+  Offset get canvasPosition => data.position;
 
-  Size get size => _size;
+  @override
+  Size get canvasSize => data.size;
 
-  bool get selected => _selected;
-
-  set selected(bool value) {
-    if (_selected == value) return;
-    _selected = value;
-    notifyListeners();
-  }
+  Size get size => data.size;
 
   set size(Size value) {
     final nextSize = _clampSize(value);
-    if (_size == nextSize) return;
-    _size = nextSize;
+    if (data.size == nextSize) return;
+    data.size = nextSize;
     notifyListeners();
   }
 
-  CodeLanguage get language => _language;
+  CodeLanguage get language => data.language;
 
   set language(CodeLanguage value) {
-    if (_language == value) return;
-    _language = value;
+    if (data.language == value) return;
+    data.language = value;
+    notifyListeners();
+  }
+
+  @override
+  void moveBy(Offset delta) {
+    if (delta == Offset.zero) return;
+    data.position += delta;
+    notifyListeners();
+  }
+
+  void _syncSource() {
+    if (data.source == controller.text) return;
+    data.source = controller.text;
     notifyListeners();
   }
 
   @override
   void dispose() {
-    controller.dispose();
+    controller
+      ..removeListener(_syncSource)
+      ..dispose();
     focusNode.dispose();
     scrollController
       ..verticalScroller.dispose()

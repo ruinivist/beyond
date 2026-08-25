@@ -1,6 +1,6 @@
 import 'package:beyond/canvas/attachment_store.dart';
+import 'package:beyond/canvas/canvas_document.dart';
 import 'package:beyond/canvas/tools/text/text_block.dart';
-import 'package:beyond/canvas/tools/text/text_node.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -32,7 +32,7 @@ void main() {
 
     await expectLater(
       model.insertPastedImage(
-        Uint8List(pastedImageMaximumBytes + 1),
+        Uint8List(attachmentMaximumBytes + 1),
         'png',
         _MemoryAttachmentStore(),
       ),
@@ -86,10 +86,31 @@ void main() {
 
     expect(await createAttachmentStore().read(path), bytes);
   });
+
+  test('optional attachment reads return present bytes or null', () async {
+    const path = 'attachments/00000000-0000-4000-8000-000000000000.png';
+    final bytes = Uint8List.fromList(<int>[7, 8, 9]);
+    final store = _MemoryAttachmentStore()..files[path] = bytes;
+
+    expect(await store.readIfExists(path), bytes);
+    expect(
+      await store.readIfExists(
+        'attachments/11111111-1111-4111-8111-111111111111.png',
+      ),
+      isNull,
+    );
+  });
+
+  test('optional attachment reads still validate paths', () async {
+    await expectLater(
+      createAttachmentStore().readIfExists('not-an-attachment'),
+      throwsFormatException,
+    );
+  });
 }
 
 TextBlockModel _model(String markdown) => TextBlockModel(
-  TextNodeData(
+  TextElementData(
     id: 'text',
     position: Offset.zero,
     width: textNodeDefaultWidth,
@@ -111,6 +132,9 @@ class _MemoryAttachmentStore implements AttachmentStore {
 
   @override
   Future<Uint8List> read(String path) async => files[path]!;
+
+  @override
+  Future<Uint8List?> readIfExists(String path) async => files[path];
 
   @override
   Future<void> write(String path, Uint8List bytes) async {

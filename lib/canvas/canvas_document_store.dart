@@ -1,12 +1,12 @@
 import 'dart:convert';
 
-import 'package:beyond/canvas/tools/text/text_node.dart';
+import 'package:beyond/canvas/canvas_document.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class CanvasDocumentStore {
-  static const key = 'beyond.canvas.document.v1';
+  static const key = 'beyond.canvas.document.v2';
 
-  final SharedPreferencesAsync _preferences = SharedPreferencesAsync();
+  late final SharedPreferencesAsync _preferences = SharedPreferencesAsync();
 
   Future<CanvasDocument?> load() async {
     final source = await _preferences.getString(key);

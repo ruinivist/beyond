@@ -1,9 +1,13 @@
 import 'dart:typed_data';
 
+const int attachmentMaximumBytes = 10 * 1024 * 1024;
+
 abstract interface class AttachmentStore {
   Future<void> write(String path, Uint8List bytes);
 
   Future<Uint8List> read(String path);
+
+  Future<Uint8List?> readIfExists(String path);
 }
 
 final attachmentPathPattern = RegExp(

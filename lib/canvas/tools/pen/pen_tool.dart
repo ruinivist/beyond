@@ -1,3 +1,5 @@
+import 'package:beyond/canvas/canvas_document.dart';
+import 'package:beyond/canvas/canvas_element_model.dart';
 import 'package:beyond/foundation/theme.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
@@ -12,18 +14,23 @@ typedef PositionedSketch = ({
 
 const _strokeHitSlop = 6.0;
 
-class PenStrokeModel extends ChangeNotifier {
-  PenStrokeModel(this.sketch, {required this.hitSlop});
+class PenStrokeModel extends CanvasElementModel<PenElementData> {
+  PenStrokeModel(super.data);
 
-  final Sketch sketch;
-  final double hitSlop;
-  bool _selected = false;
+  Sketch get sketch => data.sketch;
 
-  bool get selected => _selected;
+  double get hitSlop => data.hitSlop;
 
-  set selected(bool value) {
-    if (_selected == value) return;
-    _selected = value;
+  @override
+  Offset get canvasPosition => data.position;
+
+  @override
+  Size get canvasSize => data.size;
+
+  @override
+  void moveBy(Offset delta) {
+    if (delta == Offset.zero) return;
+    data.position += delta;
     notifyListeners();
   }
 }
@@ -31,14 +38,12 @@ class PenStrokeModel extends ChangeNotifier {
 class PenStroke extends StatelessWidget {
   const PenStroke({
     required this.model,
-    required this.size,
     required this.onPointerDown,
     required this.onMove,
     super.key,
   });
 
   final PenStrokeModel model;
-  final Size size;
   final ValueChanged<PointerDownEvent> onPointerDown;
   final ValueChanged<Offset> onMove;
 
@@ -46,7 +51,7 @@ class PenStroke extends StatelessWidget {
   Widget build(BuildContext context) {
     final accent = BTheme.of(context).colors.accent;
     return SizedBox.fromSize(
-      size: size,
+      size: model.canvasSize,
       child: Listener(
         onPointerDown: onPointerDown,
         child: ListenableBuilder(

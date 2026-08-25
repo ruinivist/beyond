@@ -1,5 +1,7 @@
 import 'package:beyond/canvas/attachment_store.dart';
+import 'package:beyond/canvas/canvas_document_store.dart';
 import 'package:beyond/canvas/canvas_page.dart';
+import 'package:beyond/canvas/canvas_project_files.dart';
 import 'package:beyond/theme/starless_light.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -14,16 +16,27 @@ Future<void> main() async {
 }
 
 class BeyondApp extends StatelessWidget {
-  const BeyondApp({this.attachmentStore, super.key});
+  const BeyondApp({
+    this.attachmentStore,
+    this.documentStore,
+    this.projectFiles,
+    super.key,
+  });
 
   final AttachmentStore? attachmentStore;
+  final CanvasDocumentStore? documentStore;
+  final CanvasProjectFiles? projectFiles;
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       theme: starlessLightThemeData,
-      home: CanvasPage(attachmentStore: attachmentStore),
+      home: CanvasPage(
+        attachmentStore: attachmentStore,
+        documentStore: documentStore,
+        projectFiles: projectFiles,
+      ),
     );
   }
 }

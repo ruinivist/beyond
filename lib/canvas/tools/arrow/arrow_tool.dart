@@ -1,9 +1,10 @@
+import 'package:beyond/canvas/canvas_document.dart';
+import 'package:beyond/canvas/canvas_element_model.dart';
 import 'package:beyond/foundation/theme.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
 
-const arrowMinimumLength = 4.0;
 const _arrowStrokeWidth = 2.0;
 const _arrowHeadLength = 12.0;
 const _arrowHeadHalfWidth = 5.0;
@@ -60,30 +61,26 @@ class ArrowGeometry {
   );
 }
 
-class ArrowModel extends ChangeNotifier {
-  ArrowModel({required this.id, required Offset start, required Offset end})
-    : _geometry = ArrowGeometry(
-        start: start,
-        control: arrowControlPoint(start: start, end: end),
-        end: end,
-      ),
-      _initialBounds = ArrowGeometry(
-        start: start,
-        control: arrowControlPoint(start: start, end: end),
-        end: end,
-      ).bounds;
+class ArrowModel extends CanvasElementModel<ArrowElementData> {
+  ArrowModel(super.data);
 
-  final String id;
-  final ArrowGeometry _geometry;
-  final Rect _initialBounds;
-  Offset _translation = Offset.zero;
-  bool _selected = false;
+  String get id => data.id;
 
-  ArrowGeometry get geometry => _geometry.shift(_translation);
+  ArrowGeometry get geometry => ArrowGeometry(
+    start: data.start,
+    control: data.control,
+    end: data.end,
+  );
 
-  ArrowGeometry get localGeometry => _geometry;
+  Rect get bounds => geometry.bounds;
 
-  Rect get bounds => _initialBounds.shift(_translation);
+  ArrowGeometry get localGeometry => geometry.shift(-bounds.topLeft);
+
+  @override
+  Offset get canvasPosition => bounds.topLeft;
+
+  @override
+  Size get canvasSize => bounds.size;
 
   Offset get start => geometry.start;
 
@@ -91,17 +88,13 @@ class ArrowModel extends ChangeNotifier {
 
   Offset get end => geometry.end;
 
-  bool get selected => _selected;
-
-  set selected(bool value) {
-    if (_selected == value) return;
-    _selected = value;
-    notifyListeners();
-  }
-
+  @override
   void moveBy(Offset delta) {
     if (delta == Offset.zero) return;
-    _translation += delta;
+    data
+      ..start += delta
+      ..control += delta
+      ..end += delta;
     notifyListeners();
   }
 }
@@ -175,9 +168,21 @@ class ArrowTool extends ChangeNotifier {
     _clearPreview();
   }
 
+  void cancel() {
+    if (!isDrawing) return;
+    _clearPreview();
+  }
+
   ArrowModel? _newArrow(String id, Offset start, Offset end) {
     if ((end - start).distance < arrowMinimumLength) return null;
-    return ArrowModel(id: id, start: start, end: end);
+    return ArrowModel(
+      ArrowElementData(
+        id: id,
+        start: start,
+        control: arrowControlPoint(start: start, end: end),
+        end: end,
+      ),
+    );
   }
 
   void _clearPreview() {
@@ -197,36 +202,32 @@ Offset arrowControlPoint({
   final length = vector.distance;
   if (length == 0) return start;
 
-  final bendLength = (length * 0.09).clamp(6.0, 32.0).toDouble();
+  final bendLength = (length * 0.09).clamp(6.0, 32.0);
   final normal = Offset(vector.dy / length, -vector.dx / length);
 
   return start + vector * 0.5 + normal * bendLength;
 }
 
 class Arrow extends StatelessWidget {
-  const Arrow({required this.model, required this.bounds, super.key});
+  const Arrow({required this.model, super.key});
 
   final ArrowModel model;
-  final Rect bounds;
 
   @override
   Widget build(BuildContext context) {
     final colors = BTheme.of(context).colors;
     return SizedBox.fromSize(
-      size: bounds.size,
+      size: model.canvasSize,
       child: ListenableBuilder(
         listenable: model,
         builder: (context, _) {
-          final geometry = model.localGeometry.shift(
-            Offset(-bounds.left, -bounds.top),
-          );
           return Semantics(
             container: true,
             label: 'Arrow',
             selected: model.selected,
             child: CustomPaint(
               foregroundPainter: _ArrowPainter(
-                geometry: geometry,
+                geometry: model.localGeometry,
                 color: model.selected ? colors.accent : colors.textSecondary,
               ),
               child: const IgnorePointer(child: SizedBox.expand()),

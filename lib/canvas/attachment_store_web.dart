@@ -19,10 +19,25 @@ class PlatformAttachmentStore implements AttachmentStore {
     return (await file.arrayBuffer().toDart).toDart.asUint8List();
   }
 
+  @override
+  Future<Uint8List?> readIfExists(String path) async {
+    try {
+      final file = await (await _file(path, create: false)).getFile().toDart;
+      return (await file.arrayBuffer().toDart).toDart.asUint8List();
+    } catch (error) {
+      if (error.isA<DOMException>()) {
+        final exception = error as DOMException;
+        if (exception.name == 'NotFoundError') return null;
+      }
+      rethrow;
+    }
+  }
+
   Future<FileSystemFileHandle> _file(
     String path, {
     required bool create,
   }) async {
+    final fileName = attachmentFileName(path);
     final root = await window.navigator.storage.getDirectory().toDart;
     final attachments = await root
         .getDirectoryHandle(
@@ -32,7 +47,7 @@ class PlatformAttachmentStore implements AttachmentStore {
         .toDart;
     return attachments
         .getFileHandle(
-          attachmentFileName(path),
+          fileName,
           FileSystemGetFileOptions(create: create),
         )
         .toDart;

@@ -1,8 +1,12 @@
+// The deeply nested toolbar configuration stays inline with its widgets.
+// ignore_for_file: lines_longer_than_80_chars
+
 import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:beyond/canvas/attachment_store.dart';
-import 'package:beyond/canvas/tools/text/text_node.dart';
+import 'package:beyond/canvas/canvas_document.dart';
+import 'package:beyond/canvas/canvas_element_model.dart';
 import 'package:beyond/foundation/control_surface.dart';
 import 'package:beyond/foundation/pointer_scroll_boundary.dart';
 import 'package:beyond/foundation/select.dart';
@@ -15,14 +19,11 @@ import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:flutter_markdown_plus_latex/flutter_markdown_plus_latex.dart';
 import 'package:google_fonts/google_fonts.dart';
 // The renderer exposes its Markdown AST type through this callback.
-// ignore: depend_on_referenced_packages
 import 'package:markdown/markdown.dart' as md;
 import 'package:scroll_animator/scroll_animator.dart';
 import 'package:super_clipboard/super_clipboard.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:uuid/uuid.dart';
-
-const int pastedImageMaximumBytes = 10 * 1024 * 1024;
 
 const textFontOptions = <SelectOption<String>>[
   SelectOption(value: 'Source Serif 4', label: 'Source Serif 4'),
@@ -30,36 +31,40 @@ const textFontOptions = <SelectOption<String>>[
   SelectOption(value: 'Roboto Mono', label: 'Roboto Mono'),
 ];
 
-class TextBlockModel extends ChangeNotifier {
-  TextBlockModel(this.node)
-    : controller = TextEditingController(text: node.markdown) {
+class TextBlockModel extends CanvasElementModel<TextElementData> {
+  TextBlockModel(TextElementData data) : super(data) {
+    controller = TextEditingController(text: data.markdown);
     controller.addListener(_syncMarkdown);
   }
 
-  final TextNodeData node;
-  final TextEditingController controller;
+  TextElementData get node => data;
+  late final TextEditingController controller;
   final FocusNode focusNode = FocusNode();
   final scrollController = AnimatedScrollController(
     animationFactory: const ChromiumEaseInOut(),
   );
   final layerLink = LayerLink();
   bool _editing = false;
-  bool _selected = false;
   bool _resizing = false;
+
+  @override
+  Offset get canvasPosition => data.position;
+
+  @override
+  Size get canvasSize => Size(data.width, data.height ?? textNodeMinimumHeight);
+
+  @override
+  void moveBy(Offset delta) {
+    if (delta == Offset.zero) return;
+    data.position += delta;
+    notifyListeners();
+  }
 
   bool get editing => _editing;
 
   set editing(bool value) {
     if (_editing == value) return;
     _editing = value;
-    notifyListeners();
-  }
-
-  bool get selected => _selected;
-
-  set selected(bool value) {
-    if (_selected == value) return;
-    _selected = value;
     notifyListeners();
   }
 
@@ -103,7 +108,7 @@ class TextBlockModel extends ChangeNotifier {
     String extension,
     AttachmentStore store,
   ) async {
-    if (bytes.length > pastedImageMaximumBytes) {
+    if (bytes.length > attachmentMaximumBytes) {
       throw const FormatException('Image exceeds 10 MiB');
     }
     final path = 'attachments/${const Uuid().v4()}.$extension';
@@ -194,6 +199,22 @@ class TextBlock extends StatelessWidget {
                   thumbVisibility: true,
                   child: PointerScrollBoundary(child: configuredBody),
                 );
+          final resizeGestureFactory =
+              GestureRecognizerFactoryWithHandlers<
+                ImmediateMultiDragGestureRecognizer
+              >(
+                ImmediateMultiDragGestureRecognizer.new,
+                (recognizer) {
+                  recognizer.onStart = (_) {
+                    model.resizing = true;
+                    return _TextBlockResizeDrag(
+                      (delta) => onResize(context.size!, delta),
+                      () => model.resizing = false,
+                    );
+                  };
+                },
+              );
+          const resizeRecognizer = ImmediateMultiDragGestureRecognizer;
           return Semantics(
             container: true,
             selected: model.selected,
@@ -284,31 +305,8 @@ class TextBlock extends StatelessWidget {
                                                 behavior:
                                                     HitTestBehavior.opaque,
                                                 gestures: {
-                                                  ImmediateMultiDragGestureRecognizer:
-                                                      GestureRecognizerFactoryWithHandlers<
-                                                        ImmediateMultiDragGestureRecognizer
-                                                      >(
-                                                        ImmediateMultiDragGestureRecognizer
-                                                            .new,
-                                                        (recognizer) {
-                                                          recognizer
-                                                              .onStart = (_) {
-                                                            model.resizing =
-                                                                true;
-                                                            return _TextBlockResizeDrag(
-                                                              (
-                                                                delta,
-                                                              ) => onResize(
-                                                                context.size!,
-                                                                delta,
-                                                              ),
-                                                              () =>
-                                                                  model.resizing =
-                                                                      false,
-                                                            );
-                                                          };
-                                                        },
-                                                      ),
+                                                  resizeRecognizer:
+                                                      resizeGestureFactory,
                                                 },
                                                 child: Center(
                                                   child: Icon(
@@ -484,7 +482,7 @@ Future<Uint8List?> _readClipboardFile(
     format,
     (file) async {
       try {
-        if ((file.fileSize ?? 0) > pastedImageMaximumBytes) {
+        if ((file.fileSize ?? 0) > attachmentMaximumBytes) {
           throw const FormatException('Image exceeds 10 MiB');
         }
         final bytes = await file.readAll();
@@ -821,6 +819,15 @@ class _TextSettingsState extends State<TextSettings> {
       builder: (context, _) {
         final style = widget.model.style;
         final selectedColor = colorFromHex(style.color);
+        const colorButtonPadding = EdgeInsets.all(8);
+        const colorButtonShape = CircleBorder();
+        const colorSwatch = SizedBox.square(dimension: 20);
+        const clear = Colors.transparent;
+        final colorButtonOverlay = WidgetStateProperty.resolveWith<Color?>(
+          (states) => states.contains(WidgetState.focused)
+              ? colors.focusRing.withValues(alpha: 0.18)
+              : Colors.transparent,
+        );
         return SizedBox(
           height: 56,
           child: Stack(
@@ -936,7 +943,8 @@ class _TextSettingsState extends State<TextSettings> {
                                                         'Use ${swatch.label}',
                                                     child: IconButton(
                                                       key: ValueKey(
-                                                        'text-color-${swatch.label}',
+                                                        'text-color-'
+                                                        '${swatch.label}',
                                                       ),
                                                       onPressed: () {
                                                         widget.model.style =
@@ -953,18 +961,14 @@ class _TextSettingsState extends State<TextSettings> {
                                                               40,
                                                             ),
                                                         padding:
-                                                            const EdgeInsets.all(
-                                                              8,
-                                                            ),
-                                                        shape:
-                                                            const CircleBorder(),
+                                                            colorButtonPadding,
+                                                        shape: colorButtonShape,
                                                         side: BorderSide(
                                                           color:
                                                               selectedColor ==
                                                                   swatch.color
                                                               ? colors.focusRing
-                                                              : Colors
-                                                                    .transparent,
+                                                              : clear,
                                                           width: 2,
                                                         ),
                                                       ),
@@ -978,10 +982,7 @@ class _TextSettingsState extends State<TextSettings> {
                                                                 .borderSubtle,
                                                           ),
                                                         ),
-                                                        child:
-                                                            const SizedBox.square(
-                                                              dimension: 20,
-                                                            ),
+                                                        child: colorSwatch,
                                                       ),
                                                     ),
                                                   ),
@@ -1009,19 +1010,7 @@ class _TextSettingsState extends State<TextSettings> {
                                                   shape: const CircleBorder(),
                                                 ).copyWith(
                                                   overlayColor:
-                                                      WidgetStateProperty.resolveWith(
-                                                        (states) =>
-                                                            states.contains(
-                                                              WidgetState
-                                                                  .focused,
-                                                            )
-                                                            ? colors.focusRing
-                                                                  .withValues(
-                                                                    alpha: 0.18,
-                                                                  )
-                                                            : Colors
-                                                                  .transparent,
-                                                      ),
+                                                      colorButtonOverlay,
                                                 ),
                                             icon: DecoratedBox(
                                               decoration: BoxDecoration(

@@ -15,10 +15,10 @@ void main() {
 
   test('arrow bends continuously toward the visual counterclockwise side', () {
     const directions = [
-      (start: Offset(0, 0), end: Offset(100, 0), side: Offset(0, -1)),
-      (start: Offset(100, 0), end: Offset(0, 0), side: Offset(0, 1)),
-      (start: Offset(0, 100), end: Offset(0, 0), side: Offset(-1, 0)),
-      (start: Offset(0, 0), end: Offset(0, 100), side: Offset(1, 0)),
+      (start: Offset.zero, end: Offset(100, 0), side: Offset(0, -1)),
+      (start: Offset(100, 0), end: Offset.zero, side: Offset(0, 1)),
+      (start: Offset(0, 100), end: Offset.zero, side: Offset(-1, 0)),
+      (start: Offset.zero, end: Offset(0, 100), side: Offset(1, 0)),
     ];
 
     Offset bend(Offset start, Offset end) {

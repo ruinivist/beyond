@@ -16,8 +16,16 @@ class PlatformAttachmentStore implements AttachmentStore {
   Future<Uint8List> read(String path) async =>
       (await _file(path)).readAsBytes();
 
+  @override
+  Future<Uint8List?> readIfExists(String path) async {
+    final file = await _file(path);
+    if (!file.existsSync()) return null;
+    return file.readAsBytes();
+  }
+
   Future<File> _file(String path) async {
+    final fileName = attachmentFileName(path);
     final directory = await getApplicationSupportDirectory();
-    return File('${directory.path}/attachments/${attachmentFileName(path)}');
+    return File('${directory.path}/attachments/$fileName');
   }
 }
