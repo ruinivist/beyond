@@ -1035,4 +1035,121 @@ void main() {
     await tester.pump();
     expect(find.byType(ScribbleSketch), findsOneWidget);
   });
+
+  testWidgets('eraser scrubs every overlapping element and saves', (
+    tester,
+  ) async {
+    PenElementData stroke(String id, Offset position) => PenElementData(
+      id: id,
+      position: position,
+      size: const Size(100, 100),
+      hitSlop: 6,
+      sketch: const Sketch(
+        lines: [
+          SketchLine(
+            points: [Point(0, 50), Point(100, 50)],
+            color: 0xff000000,
+            width: 3,
+          ),
+        ],
+      ),
+    );
+
+    final document = CanvasDocument(
+      background: CanvasBackgroundKind.plain,
+      elements: [
+        TextElementData(
+          id: 'text-overlap',
+          position: const Offset(100, 250),
+          width: 280,
+          height: 100,
+          markdown: 'overlap',
+          style: const TextNodeStyle(
+            fontFamily: 'Source Serif 4',
+            fontSize: 20,
+            color: '#201C1A',
+          ),
+        ),
+        CodeElementData(
+          id: 'code-overlap',
+          position: const Offset(100, 250),
+          size: const Size(280, 240),
+          language: CodeLanguage.dart,
+          source: '',
+        ),
+        stroke('pen-overlap', const Offset(100, 250)),
+        ArrowElementData(
+          id: 'arrow-overlap',
+          start: const Offset(100, 300),
+          control: const Offset(150, 300),
+          end: const Offset(200, 300),
+        ),
+        TextElementData(
+          id: 'text-drag',
+          position: const Offset(500, 250),
+          width: 160,
+          height: 100,
+          markdown: 'drag',
+          style: const TextNodeStyle(
+            fontFamily: 'Source Serif 4',
+            fontSize: 20,
+            color: '#201C1A',
+          ),
+        ),
+        stroke('pen-safe', const Offset(100, 450)),
+      ],
+    );
+    await SharedPreferencesAsync().setString(
+      CanvasDocumentStore.key,
+      jsonEncode(document.toJson()),
+    );
+    await tester.pumpWidget(const BeyondApp());
+    await tester.pump();
+    await tester.pump();
+
+    await tester.tap(find.text('Draw'));
+    await tester.tap(find.text('Erase'));
+    await tester.pump();
+    final erase = await tester.startGesture(
+      const Offset(150, 300),
+      kind: PointerDeviceKind.mouse,
+    );
+    await erase.moveTo(const Offset(550, 300));
+    await erase.up();
+    await tester.pump();
+
+    expect(find.byType(TextBlock), findsNothing);
+    expect(find.byType(CodeBlock), findsNothing);
+    expect(find.byType(Arrow), findsNothing);
+    expect(find.byType(PenStroke), findsOneWidget);
+    expect(
+      tester.widget<PenStroke>(find.byType(PenStroke)).model.data.id,
+      'pen-safe',
+    );
+
+    final canvas = tester.widget<LazyCanvas>(find.byType(LazyCanvas));
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.space);
+    await tester.pump();
+    final pan = await tester.startGesture(
+      const Offset(150, 500),
+      kind: PointerDeviceKind.mouse,
+    );
+    await pan.moveBy(const Offset(40, 20));
+    await pan.up();
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.space);
+    await tester.pump();
+    expect(canvas.controller.offset, isNot(Offset.zero));
+    expect(find.byType(PenStroke), findsOneWidget);
+
+    await tester.pump(const Duration(milliseconds: 320));
+    await tester.pump();
+    final saved = CanvasDocument.fromJson(
+      jsonDecode(
+        (await SharedPreferencesAsync().getString(
+          CanvasDocumentStore.key,
+        ))!,
+      ),
+    );
+    expect(saved.elements.map((element) => element.id), ['pen-safe']);
+  });
 }

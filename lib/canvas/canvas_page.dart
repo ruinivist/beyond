@@ -20,10 +20,13 @@ import 'package:beyond/widgets/settings_dialog.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:infinite_lazy_grid/infinite_lazy_grid.dart';
 import 'package:scribble/scribble.dart';
 import 'package:uuid/uuid.dart';
+
+enum _CanvasTool { select, text, pen, arrow, eraser }
 
 class CanvasPage extends StatefulWidget {
   const CanvasPage({
@@ -75,10 +78,19 @@ class _CanvasPageState extends State<CanvasPage> {
   var _projectTransferActive = false;
   late final PenTool _penTool;
   late final ArrowTool _arrowTool;
-  var _penEnabled = false;
-  var _arrowEnabled = false;
-  var _textPlacementEnabled = false;
+  final ValueNotifier<_CanvasTool> _activeTool = ValueNotifier(
+    _CanvasTool.select,
+  );
+  int? _eraserPointer;
   var _spaceHeld = false;
+
+  bool get _penEnabled => _activeTool.value == _CanvasTool.pen;
+
+  bool get _arrowEnabled => _activeTool.value == _CanvasTool.arrow;
+
+  bool get _textPlacementEnabled => _activeTool.value == _CanvasTool.text;
+
+  bool get _eraserEnabled => _activeTool.value == _CanvasTool.eraser;
 
   @override
   void initState() {
@@ -109,22 +121,31 @@ class _CanvasPageState extends State<CanvasPage> {
         Offset(viewport.width, viewport.height) / (2 * _canvasController.scale);
   }
 
-  void _toggleTextPlacement() {
+  void _toggleTool(_CanvasTool tool) {
     if (!_documentLoaded) return;
-    if (!_textPlacementEnabled) _clearTextEditing();
+    final enabling = _activeTool.value != tool;
+    if (enabling) _clearTextEditing();
     setState(() {
-      _textPlacementEnabled = !_textPlacementEnabled;
-      _penEnabled = false;
-      _arrowEnabled = false;
+      _activeTool.value = enabling ? tool : _CanvasTool.select;
+      _eraserPointer = null;
       _spaceHeld = false;
     });
-    if (_textPlacementEnabled) {
+    if (enabling) {
       FocusManager.instance.primaryFocus?.unfocus();
     }
   }
 
   void _handleCanvasPointerDown(PointerDownEvent event) {
     if (!_documentLoaded) return;
+    if (_eraserEnabled && !_spaceHeld) {
+      if (_eraserPointer == null &&
+          (event.kind != PointerDeviceKind.mouse ||
+              event.buttons == kPrimaryButton)) {
+        _eraserPointer = event.pointer;
+        _eraseAt(event.position);
+      }
+      return;
+    }
     if (_penEnabled && !_spaceHeld) {
       _penTool.onPointerDown(event);
       return;
@@ -134,7 +155,7 @@ class _CanvasPageState extends State<CanvasPage> {
       event.pointer,
     );
     if (_textPlacementEnabled) {
-      setState(() => _textPlacementEnabled = false);
+      setState(() => _activeTool.value = _CanvasTool.select);
       _addTextBlock(
         _canvasController.offset +
             event.localPosition / _canvasController.scale,
@@ -166,7 +187,11 @@ class _CanvasPageState extends State<CanvasPage> {
       ..addAll(_selectedModels());
     _toggleDragSelection = _selectionModifierPressed.value;
     if (!_toggleDragSelection) _clearSelection();
-    if (event.kind != PointerDeviceKind.mouse || _penEnabled) return;
+    if (event.kind != PointerDeviceKind.mouse ||
+        _penEnabled ||
+        _eraserEnabled) {
+      return;
+    }
     setState(() {
       _dragSelectionPointer = event.pointer;
       _dragSelectionStart = event.localPosition;
@@ -177,6 +202,10 @@ class _CanvasPageState extends State<CanvasPage> {
   void _handleCanvasPointerMove(PointerMoveEvent event) {
     if (_penEnabled) {
       _penTool.onPointerUpdate(event);
+      return;
+    }
+    if (event.pointer == _eraserPointer) {
+      _eraseAt(event.position);
       return;
     }
     if (_arrowTool.ownsPointer(event.pointer)) {
@@ -201,6 +230,10 @@ class _CanvasPageState extends State<CanvasPage> {
       _penTool.onPointerUp(event);
       return;
     }
+    if (event.pointer == _eraserPointer) {
+      _eraserPointer = null;
+      return;
+    }
     _finishWidgetPointer(event.pointer);
     if (_arrowTool.ownsPointer(event.pointer)) {
       _arrowTool.onPointerUp(
@@ -222,6 +255,10 @@ class _CanvasPageState extends State<CanvasPage> {
   void _handleCanvasPointerCancel(PointerCancelEvent event) {
     if (_penEnabled) {
       _penTool.onPointerCancel(event);
+      return;
+    }
+    if (event.pointer == _eraserPointer) {
+      _eraserPointer = null;
       return;
     }
     _finishWidgetPointer(event.pointer);
@@ -294,7 +331,8 @@ class _CanvasPageState extends State<CanvasPage> {
     if (event.buttons != kPrimaryButton ||
         !_documentLoaded ||
         _textPlacementEnabled ||
-        _penEnabled) {
+        _penEnabled ||
+        _eraserEnabled) {
       return;
     }
     _interactiveCanvasPointerIds.add(event.pointer);
@@ -313,7 +351,8 @@ class _CanvasPageState extends State<CanvasPage> {
   ) {
     if (event.buttons != kPrimaryButton ||
         _textPlacementEnabled ||
-        _penEnabled) {
+        _penEnabled ||
+        _eraserEnabled) {
       return;
     }
     _interactiveCanvasPointerIds.add(event.pointer);
@@ -333,6 +372,7 @@ class _CanvasPageState extends State<CanvasPage> {
     if (!_documentLoaded ||
         _textPlacementEnabled ||
         _penEnabled ||
+        _eraserEnabled ||
         !_elements.contains(model)) {
       return;
     }
@@ -389,6 +429,7 @@ class _CanvasPageState extends State<CanvasPage> {
     if (!_documentLoaded ||
         _textPlacementEnabled ||
         _penEnabled ||
+        _eraserEnabled ||
         _selectionModifierPressed.value ||
         screenDelta == Offset.zero) {
       return;
@@ -426,7 +467,12 @@ class _CanvasPageState extends State<CanvasPage> {
     Size renderedSize,
     Offset screenDelta,
   ) {
-    if (!_documentLoaded || _textPlacementEnabled || _penEnabled) return;
+    if (!_documentLoaded ||
+        _textPlacementEnabled ||
+        _penEnabled ||
+        _eraserEnabled) {
+      return;
+    }
     if (!_elements.contains(model)) return;
     final delta = screenDelta / _canvasController.scale;
     final angle = -model.data.rotation;
@@ -442,7 +488,12 @@ class _CanvasPageState extends State<CanvasPage> {
   }
 
   void _rotateTextBlock(TextBlockModel model, double angle) {
-    if (!_documentLoaded || _textPlacementEnabled || _penEnabled) return;
+    if (!_documentLoaded ||
+        _textPlacementEnabled ||
+        _penEnabled ||
+        _eraserEnabled) {
+      return;
+    }
     if (!_elements.contains(model)) return;
     model.rotate(angle);
   }
@@ -494,6 +545,7 @@ class _CanvasPageState extends State<CanvasPage> {
     final child = switch (model) {
       final TextBlockModel text => _SelectionPointerRegion(
         key: _selectionKey(text),
+        activeTool: _activeTool,
         modifierPressed: _selectionModifierPressed,
         rotationModel: text,
         onPointerDown: (event) => _handleTextBlockPointerDown(text, event),
@@ -507,6 +559,7 @@ class _CanvasPageState extends State<CanvasPage> {
       ),
       final CodeBlockModel code => _SelectionPointerRegion(
         key: _selectionKey(code),
+        activeTool: _activeTool,
         modifierPressed: _selectionModifierPressed,
         onPointerDown: (event) => _handleCodeBlockPointerDown(code, event),
         child: CodeBlock(
@@ -522,15 +575,26 @@ class _CanvasPageState extends State<CanvasPage> {
       ),
       final ArrowModel arrow => _SelectionPointerRegion(
         key: _selectionKey(arrow),
+        activeTool: _activeTool,
         modifierPressed: _selectionModifierPressed,
         onPointerDown: (event) => _handleArrowPointerDown(arrow, event),
         child: Arrow(model: arrow),
       ),
       _ => throw StateError('Unknown canvas element model'),
     };
+    final canvasChild = model is PenStrokeModel
+        ? ListenableBuilder(
+            listenable: _activeTool,
+            builder: (context, child) => AbsorbPointer(
+              absorbing: _activeTool.value != _CanvasTool.select,
+              child: child,
+            ),
+            child: child,
+          )
+        : child;
     _canvasController.addChild(
       model.canvasPosition,
-      child,
+      canvasChild,
       id: model.data.id,
       childSize: model.canvasSize,
     );
@@ -592,9 +656,8 @@ class _CanvasPageState extends State<CanvasPage> {
   void _prepareInteractiveBlock() {
     _clearTextEditing();
     setState(() {
-      _penEnabled = false;
-      _textPlacementEnabled = false;
-      _arrowEnabled = false;
+      _activeTool.value = _CanvasTool.select;
+      _eraserPointer = null;
       _spaceHeld = false;
     });
     FocusManager.instance.primaryFocus?.unfocus();
@@ -634,6 +697,7 @@ class _CanvasPageState extends State<CanvasPage> {
         !_documentLoaded ||
         _textPlacementEnabled ||
         _penEnabled ||
+        _eraserEnabled ||
         _arrowEnabled ||
         !_elements.contains(model)) {
       return;
@@ -662,6 +726,7 @@ class _CanvasPageState extends State<CanvasPage> {
         !_documentLoaded ||
         _textPlacementEnabled ||
         _penEnabled ||
+        _eraserEnabled ||
         !_elements.contains(model)) {
       return;
     }
@@ -678,8 +743,28 @@ class _CanvasPageState extends State<CanvasPage> {
   }
 
   void _deleteSelected() {
+    _removeElements(_elements.where((model) => model.selected));
+  }
+
+  void _eraseAt(Offset globalPosition) {
+    final hits = <CanvasElementModel>[];
+    for (final model in _elements) {
+      final renderObject = _selectionKeys[model]?.currentContext
+          ?.findRenderObject();
+      if (renderObject is RenderBox &&
+          renderObject.hitTest(
+            BoxHitTestResult(),
+            position: renderObject.globalToLocal(globalPosition),
+          )) {
+        hits.add(model);
+      }
+    }
+    _removeElements(hits);
+  }
+
+  void _removeElements(Iterable<CanvasElementModel> models) {
     if (!_documentLoaded) return;
-    final modelsToDispose = _elements.where((model) => model.selected).toList();
+    final modelsToDispose = models.where(_elements.contains).toList();
     if (modelsToDispose.isEmpty) return;
 
     final removesEditingText = modelsToDispose.any(
@@ -710,34 +795,6 @@ class _CanvasPageState extends State<CanvasPage> {
       }
     });
     _scheduleDocumentSave();
-  }
-
-  void _togglePen() {
-    if (!_documentLoaded) return;
-    if (!_penEnabled) _clearTextEditing();
-    setState(() {
-      _penEnabled = !_penEnabled;
-      _textPlacementEnabled = false;
-      _arrowEnabled = false;
-      _spaceHeld = false;
-    });
-    if (_penEnabled) {
-      FocusManager.instance.primaryFocus?.unfocus();
-    }
-  }
-
-  void _toggleArrow() {
-    if (!_documentLoaded) return;
-    if (!_arrowEnabled) _clearTextEditing();
-    setState(() {
-      _arrowEnabled = !_arrowEnabled;
-      _textPlacementEnabled = false;
-      _penEnabled = false;
-      _spaceHeld = false;
-    });
-    if (_arrowEnabled) {
-      FocusManager.instance.primaryFocus?.unfocus();
-    }
   }
 
   void _showSettingsDialog() {
@@ -867,9 +924,8 @@ class _CanvasPageState extends State<CanvasPage> {
     _clearTextEditing();
     FocusManager.instance.primaryFocus?.unfocus();
     _arrowTool.cancel();
-    _penEnabled = false;
-    _arrowEnabled = false;
-    _textPlacementEnabled = false;
+    _activeTool.value = _CanvasTool.select;
+    _eraserPointer = null;
     _spaceHeld = false;
     _interactiveCanvasPointerIds.clear();
     _selectionBeforeWidgetPointer.clear();
@@ -951,7 +1007,8 @@ class _CanvasPageState extends State<CanvasPage> {
       _deleteSelected();
       return true;
     }
-    if (!_penEnabled || event.logicalKey != LogicalKeyboardKey.space) {
+    if ((!_penEnabled && !_eraserEnabled) ||
+        event.logicalKey != LogicalKeyboardKey.space) {
       return false;
     }
     final held = event is! KeyUpEvent;
@@ -1059,6 +1116,7 @@ class _CanvasPageState extends State<CanvasPage> {
         ..dispose();
     }
     HardwareKeyboard.instance.removeHandler(_handleKeyEvent);
+    _activeTool.dispose();
     _selectionModifierPressed.dispose();
     _penTool.dispose();
     _arrowTool
@@ -1080,8 +1138,10 @@ class _CanvasPageState extends State<CanvasPage> {
           IgnorePointer(
             ignoring: !_documentLoaded,
             child: MouseRegion(
-              cursor: _penEnabled && !_spaceHeld
+              cursor: !_spaceHeld && _penEnabled
                   ? SystemMouseCursors.none
+                  : !_spaceHeld && _eraserEnabled
+                  ? SystemMouseCursors.precise
                   : MouseCursor.defer,
               onExit: _handleCanvasPointerExit,
               child: Listener(
@@ -1203,7 +1263,7 @@ class _CanvasPageState extends State<CanvasPage> {
                         child: Semantics(
                           selected: _textPlacementEnabled,
                           child: TextButton(
-                            onPressed: _toggleTextPlacement,
+                            onPressed: () => _toggleTool(_CanvasTool.text),
                             style: _toolbarButtonStyle(
                               colors,
                               geo,
@@ -1233,7 +1293,7 @@ class _CanvasPageState extends State<CanvasPage> {
                         child: Semantics(
                           selected: _penEnabled,
                           child: TextButton(
-                            onPressed: _togglePen,
+                            onPressed: () => _toggleTool(_CanvasTool.pen),
                             style: _toolbarButtonStyle(
                               colors,
                               geo,
@@ -1246,11 +1306,28 @@ class _CanvasPageState extends State<CanvasPage> {
                         ),
                       ),
                       Tooltip(
+                        message: 'Erase elements',
+                        child: Semantics(
+                          selected: _eraserEnabled,
+                          child: TextButton(
+                            onPressed: () => _toggleTool(_CanvasTool.eraser),
+                            style: _toolbarButtonStyle(
+                              colors,
+                              geo,
+                              selected: _eraserEnabled,
+                              minimumSize: _toolbarSegmentMinimumSize,
+                              borderRadius: geo.radiusMedium,
+                            ),
+                            child: const Text('Erase'),
+                          ),
+                        ),
+                      ),
+                      Tooltip(
                         message: 'Draw an arrow',
                         child: Semantics(
                           selected: _arrowEnabled,
                           child: TextButton(
-                            onPressed: _toggleArrow,
+                            onPressed: () => _toggleTool(_CanvasTool.arrow),
                             style: _toolbarButtonStyle(
                               colors,
                               geo,
@@ -1294,6 +1371,7 @@ class _CanvasPageState extends State<CanvasPage> {
 
 class _SelectionPointerRegion extends StatelessWidget {
   const _SelectionPointerRegion({
+    required this.activeTool,
     required this.modifierPressed,
     required this.onPointerDown,
     required this.child,
@@ -1301,6 +1379,7 @@ class _SelectionPointerRegion extends StatelessWidget {
     super.key,
   });
 
+  final ValueListenable<_CanvasTool> activeTool;
   final ValueListenable<bool> modifierPressed;
   final ValueChanged<PointerDownEvent> onPointerDown;
   final Widget child;
@@ -1311,9 +1390,10 @@ class _SelectionPointerRegion extends StatelessWidget {
     final listener = Listener(
       onPointerDown: onPointerDown,
       child: ListenableBuilder(
-        listenable: modifierPressed,
+        listenable: Listenable.merge([activeTool, modifierPressed]),
         builder: (context, child) => AbsorbPointer(
-          absorbing: modifierPressed.value,
+          absorbing:
+              activeTool.value != _CanvasTool.select || modifierPressed.value,
           child: child,
         ),
         child: child,
