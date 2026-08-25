@@ -997,6 +997,7 @@ void main() {
     await tester.pump();
 
     final canvas = tester.widget<LazyCanvas>(find.byType(LazyCanvas));
+    final pen = tester.widget<Scribble>(find.byType(Scribble)).notifier;
     final rightDrag = await tester.startGesture(
       const Offset(300, 500),
       kind: PointerDeviceKind.mouse,
@@ -1008,6 +1009,7 @@ void main() {
 
     expect(canvas.controller.offset, isNot(Offset.zero));
     expect(find.byType(PenStroke), findsNothing);
+    expect(pen.value.pointerPosition, const Point(380, 560));
   });
 
   testWidgets('space temporarily hands dragging back to the canvas', (

@@ -229,8 +229,10 @@ class PenTool extends ScribbleNotifier {
 
   @override
   void onPointerUpdate(PointerMoveEvent event) {
-    if (!_activePointerIds.contains(event.pointer)) return;
-    super.onPointerUpdate(event);
+    if (_activePointerIds.isEmpty ||
+        _activePointerIds.contains(event.pointer)) {
+      super.onPointerUpdate(event);
+    }
   }
 }
 
