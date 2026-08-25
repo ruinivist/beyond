@@ -1,9 +1,9 @@
 import 'package:beyond/foundation/theme.dart';
 import 'package:flutter/material.dart';
 
-const _minimum = 1;
-const _maximum = 20;
-const int _divisions = _maximum - _minimum;
+const _minimum = 0.25;
+const _maximum = 5.0;
+const _divisions = 19;
 const _trackHeight = 4.0;
 const _thumbDiameter = 16.0;
 
@@ -16,11 +16,11 @@ class DiscreteSlider extends StatelessWidget {
     super.key,
   }) : assert(
          value >= _minimum && value <= _maximum,
-         'value must be between 1 and 20',
+         'value must be between 0.25 and 5',
        );
 
-  final int value;
-  final ValueChanged<int>? onChanged;
+  final double value;
+  final ValueChanged<double>? onChanged;
   final FocusNode? focusNode;
   final bool autofocus;
 
@@ -35,7 +35,7 @@ class DiscreteSlider extends StatelessWidget {
     );
 
     return SizedBox(
-      height: 88,
+      height: 56,
       child: Align(
         alignment: Alignment.bottomCenter,
         child: SliderTheme(
@@ -56,7 +56,6 @@ class DiscreteSlider extends StatelessWidget {
               accentColor: colors.accent,
               backgroundColor: colors.surfaceRaised,
               borderColor: colors.borderSubtle,
-              textColor: colors.textSecondary,
               textStyle: labelStyle,
             ),
             valueIndicatorColor: colors.surfaceRaised,
@@ -65,22 +64,17 @@ class DiscreteSlider extends StatelessWidget {
           ),
           child: Slider(
             key: const ValueKey('discrete-slider'),
-            value: value.toDouble(),
-            min: _minimum.toDouble(),
-            max: _maximum.toDouble(),
+            value: value,
+            min: _minimum,
+            max: _maximum,
             divisions: _divisions,
-            label: '$value px',
-            semanticFormatterCallback: (value) => '${value.round()} px',
+            label: '${(value * 4).round()}',
+            semanticFormatterCallback: (value) => '${(value * 4).round()}',
             focusNode: focusNode,
             autofocus: autofocus,
             onChanged: onChanged == null
                 ? null
-                : (next) => onChanged!(
-                    next.round().clamp(
-                      _minimum,
-                      _maximum,
-                    ),
-                  ),
+                : (next) => onChanged!(next.clamp(_minimum, _maximum)),
           ),
         ),
       ),
@@ -154,14 +148,12 @@ class _DiscreteSliderValueIndicatorShape extends SliderComponentShape {
     required this.accentColor,
     required this.backgroundColor,
     required this.borderColor,
-    required this.textColor,
     required this.textStyle,
   });
 
   final Color accentColor;
   final Color backgroundColor;
   final Color borderColor;
-  final Color textColor;
   final TextStyle textStyle;
 
   @override
@@ -187,28 +179,17 @@ class _DiscreteSliderValueIndicatorShape extends SliderComponentShape {
     final progress = activationAnimation.value.clamp(0.0, 1.0);
     final scale = 0.94 + progress * 0.06;
     final label = labelPainter.text?.toPlainText() ?? '';
-    final separator = label.lastIndexOf(' ');
-    final number = separator < 0 ? label : label.substring(0, separator);
-    final unit = separator < 0 ? '' : label.substring(separator + 1);
     final numberPainter = _textPainter(
-      number,
+      label,
       accentColor,
       textDirection,
       textScaleFactor,
       progress,
     );
-    final unitPainter = _textPainter(
-      unit,
-      textColor,
-      textDirection,
-      textScaleFactor,
-      progress,
-    );
-    final textWidth = numberPainter.width + 4 + unitPainter.width;
     const horizontalPadding = 9.0;
     const pillHeight = 24.0;
-    const pillGap = 12.0;
-    final pillWidth = textWidth + horizontalPadding * 2;
+    const pillGap = 8.0;
+    final pillWidth = numberPainter.width + horizontalPadding * 2;
     final bounds = sizeWithOverflow.isEmpty ? parentBox.size : sizeWithOverflow;
     final left = (center.dx - pillWidth / 2).clamp(
       0.0,
@@ -245,13 +226,6 @@ class _DiscreteSliderValueIndicatorShape extends SliderComponentShape {
     numberPainter.paint(
       canvas,
       Offset(pillRect.left + horizontalPadding, textTop),
-    );
-    unitPainter.paint(
-      canvas,
-      Offset(
-        pillRect.left + horizontalPadding + numberPainter.width + 4,
-        textTop,
-      ),
     );
     canvas.restore();
   }

@@ -14,6 +14,7 @@ import 'package:beyond/canvas/tools/code_block/code_language.dart';
 import 'package:beyond/canvas/tools/pen/pen_tool.dart';
 import 'package:beyond/canvas/tools/text/text_block.dart';
 import 'package:beyond/foundation/control_surface.dart';
+import 'package:beyond/foundation/discrete_slider.dart';
 import 'package:beyond/foundation/theme.dart';
 import 'package:beyond/utils/preset_colors.dart';
 import 'package:beyond/widgets/settings_dialog.dart';
@@ -78,6 +79,8 @@ class _CanvasPageState extends State<CanvasPage> {
   var _projectTransferActive = false;
   late final PenTool _penTool;
   late final ArrowTool _arrowTool;
+  Color _penColor = presetColors.first.color;
+  double _penWidth = 4;
   final ValueNotifier<_CanvasTool> _activeTool = ValueNotifier(
     _CanvasTool.select,
   );
@@ -96,8 +99,8 @@ class _CanvasPageState extends State<CanvasPage> {
   void initState() {
     super.initState();
     _penTool = PenTool(onStroke: _addStroke)
-      ..setColor(presetColors.first.color)
-      ..setStrokeWidth(3);
+      ..setColor(_penColor)
+      ..setStrokeWidth(_penWidth);
     _arrowTool = ArrowTool(onArrow: _addArrow)
       ..addListener(_handleArrowToolChanged);
     HardwareKeyboard.instance.addHandler(_handleKeyEvent);
@@ -133,6 +136,16 @@ class _CanvasPageState extends State<CanvasPage> {
     if (enabling) {
       FocusManager.instance.primaryFocus?.unfocus();
     }
+  }
+
+  void _setPenColor(Color color) {
+    setState(() => _penColor = color);
+    _penTool.setColor(color);
+  }
+
+  void _setPenWidth(double width) {
+    setState(() => _penWidth = width);
+    _penTool.setStrokeWidth(width);
   }
 
   void _handleCanvasPointerDown(PointerDownEvent event) {
@@ -1353,21 +1366,131 @@ class _CanvasPageState extends State<CanvasPage> {
             child: Align(
               alignment: Alignment.topRight,
               child: Padding(
-                padding: const EdgeInsets.all(12),
-                child: ControlSurface(
-                  key: const ValueKey('settings-button-surface'),
-                  child: IconButton(
-                    key: const ValueKey('settings-button'),
-                    tooltip: 'Settings',
-                    onPressed: _showSettingsDialog,
-                    style: _toolbarIconButtonStyle(colors, geo),
-                    icon: const Icon(Icons.settings_outlined),
-                  ),
+                padding: EdgeInsets.fromLTRB(
+                  12,
+                  MediaQuery.sizeOf(context).width < 600 ? 72 : 12,
+                  12,
+                  12,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    ControlSurface(
+                      key: const ValueKey('settings-button-surface'),
+                      child: IconButton(
+                        key: const ValueKey('settings-button'),
+                        tooltip: 'Settings',
+                        onPressed: _showSettingsDialog,
+                        style: _toolbarIconButtonStyle(colors, geo),
+                        icon: const Icon(Icons.settings_outlined),
+                      ),
+                    ),
+                    if (_penEnabled) ...[
+                      const SizedBox(height: 8),
+                      _DrawSettings(
+                        color: _penColor,
+                        width: _penWidth,
+                        onColorChanged: _setPenColor,
+                        onWidthChanged: _setPenWidth,
+                      ),
+                    ],
+                  ],
                 ),
               ),
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _DrawSettings extends StatelessWidget {
+  const _DrawSettings({
+    required this.color,
+    required this.width,
+    required this.onColorChanged,
+    required this.onWidthChanged,
+  });
+
+  final Color color;
+  final double width;
+  final ValueChanged<Color> onColorChanged;
+  final ValueChanged<double> onWidthChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = BTheme.of(context);
+    final colors = theme.colors;
+    final swatches = presetColors.where(
+      (swatch) => const {
+        'Black',
+        'Gray',
+        'Red',
+        'Orange',
+        'Green',
+        'Blue',
+      }.contains(swatch.label),
+    );
+    return ControlSurface(
+      key: const ValueKey('draw-settings-panel'),
+      child: SizedBox(
+        width: 248,
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('Color', style: theme.typo.label),
+              const SizedBox(height: 6),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  for (final swatch in swatches)
+                    Tooltip(
+                      message: swatch.label,
+                      child: Semantics(
+                        button: true,
+                        selected: color == swatch.color,
+                        label: swatch.label,
+                        child: InkWell(
+                          key: ValueKey(
+                            'draw-color-${swatch.label.toLowerCase()}',
+                          ),
+                          customBorder: const CircleBorder(),
+                          onTap: () => onColorChanged(swatch.color),
+                          child: Padding(
+                            padding: const EdgeInsets.all(5),
+                            child: DecoratedBox(
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: swatch.color,
+                                border: Border.all(
+                                  color: color == swatch.color
+                                      ? colors.focusRing
+                                      : colors.borderSubtle,
+                                  width: color == swatch.color ? 2 : 1,
+                                ),
+                              ),
+                              child: const SizedBox.square(dimension: 22),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              Text('Width', style: theme.typo.label),
+              DiscreteSlider(
+                value: width,
+                onChanged: onWidthChanged,
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

@@ -10,6 +10,7 @@ import 'package:beyond/canvas/tools/pen/pen_tool.dart';
 import 'package:beyond/canvas/tools/text/text_block.dart';
 import 'package:beyond/foundation/select.dart';
 import 'package:beyond/main.dart';
+import 'package:beyond/utils/preset_colors.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -287,6 +288,9 @@ void main() {
     await tester.pumpWidget(const BeyondApp());
     await tester.pump();
 
+    expect(find.byKey(const ValueKey('draw-settings-panel')), findsNothing);
+    expect(find.byType(Scribble), findsNothing);
+
     await tester.dragFrom(const Offset(100, 200), const Offset(80, 40));
     await tester.pump();
 
@@ -382,6 +386,121 @@ void main() {
       ),
     );
     expect(saved.elements.map((element) => element.id), ['pen', 'arrow']);
+  });
+
+  testWidgets('draw settings persist and affect only future strokes', (
+    tester,
+  ) async {
+    await tester.pumpWidget(const BeyondApp());
+    await tester.pump();
+
+    await tester.tap(find.text('Draw'));
+    await tester.pump();
+    expect(find.byKey(const ValueKey('draw-settings-panel')), findsOneWidget);
+    expect(find.textContaining('px'), findsNothing);
+    expect(
+      tester
+          .widget<Slider>(find.byKey(const ValueKey('discrete-slider')))
+          .label,
+      '16',
+    );
+    expect(
+      tester
+          .widget<SliderTheme>(find.byType(SliderTheme))
+          .data
+          .showValueIndicator,
+      ShowValueIndicator.onDrag,
+    );
+
+    await tester.dragFrom(const Offset(100, 300), const Offset(80, 40));
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('draw-color-red')));
+    tester
+        .widget<Slider>(find.byKey(const ValueKey('discrete-slider')))
+        .onChanged!(2.25);
+    await tester.pump();
+    expect(
+      tester
+          .widget<Slider>(find.byKey(const ValueKey('discrete-slider')))
+          .label,
+      '9',
+    );
+    await tester.dragFrom(const Offset(100, 450), const Offset(80, 40));
+    await tester.pump();
+
+    final strokes = tester
+        .widgetList<PenStroke>(find.byType(PenStroke))
+        .map((stroke) => stroke.model.data.sketch.lines.single)
+        .toList();
+    expect(strokes, hasLength(2));
+    expect(strokes.first.color, presetColors.first.color.toARGB32());
+    expect(strokes.first.width, 4);
+    expect(
+      strokes.last.color,
+      presetColors
+          .firstWhere((swatch) => swatch.label == 'Red')
+          .color
+          .toARGB32(),
+    );
+    expect(strokes.last.width, 2.25);
+
+    await tester.tap(find.text('Erase'));
+    await tester.pump();
+    expect(find.byKey(const ValueKey('draw-settings-panel')), findsNothing);
+    await tester.tap(find.text('Draw'));
+    await tester.pump();
+    expect(
+      tester
+          .widget<Slider>(find.byKey(const ValueKey('discrete-slider')))
+          .value,
+      2.25,
+    );
+    expect(
+      tester
+          .widget<Slider>(find.byKey(const ValueKey('discrete-slider')))
+          .label,
+      '9',
+    );
+    expect(
+      tester
+          .widget<Semantics>(
+            find
+                .ancestor(
+                  of: find.byKey(const ValueKey('draw-color-red')),
+                  matching: find.byType(Semantics),
+                )
+                .first,
+          )
+          .properties
+          .selected,
+      isTrue,
+    );
+  });
+
+  testWidgets('toolbar and settings island avoid overlap', (tester) async {
+    tester.view.physicalSize = const Size(550, 700);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    await tester.pumpWidget(const BeyondApp());
+    await tester.pump();
+    await tester.tap(find.text('Draw'));
+    await tester.pump();
+
+    final toolbar = tester.getRect(
+      find.byKey(const ValueKey('toolbar-surface')),
+    );
+    final settings = tester.getRect(
+      find.byKey(const ValueKey('settings-button-surface')),
+    );
+    final panel = tester.getRect(
+      find.byKey(const ValueKey('draw-settings-panel')),
+    );
+    expect(toolbar.center.dx, 275);
+    expect(settings.top, greaterThan(toolbar.bottom));
+    expect(panel.top, greaterThan(settings.bottom));
+    expect(toolbar.overlaps(settings), isFalse);
+    expect(settings.overlaps(panel), isFalse);
   });
 
   testWidgets('ctrl-click selects only near stroke ink', (tester) async {

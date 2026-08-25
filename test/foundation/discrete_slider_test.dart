@@ -12,7 +12,7 @@ void main() {
       MaterialApp(
         theme: starlessLightThemeData,
         home: const Scaffold(
-          body: DiscreteSlider(value: 9, onChanged: null),
+          body: DiscreteSlider(value: 2.25, onChanged: null),
         ),
       ),
     );
@@ -28,8 +28,8 @@ void main() {
   testWidgets('slider stays discrete for keyboard and pointer input', (
     tester,
   ) async {
-    var value = 9;
-    final changes = <int>[];
+    var value = 2.25;
+    final changes = <double>[];
     final focusNode = FocusNode();
     addTearDown(focusNode.dispose);
 
@@ -55,10 +55,10 @@ void main() {
 
     final sliderFinder = find.byKey(const ValueKey('discrete-slider'));
     final slider = tester.widget<Slider>(sliderFinder);
-    expect(slider.min, 1);
-    expect(slider.max, 20);
+    expect(slider.min, 0.25);
+    expect(slider.max, 5);
     expect(slider.divisions, 19);
-    expect(slider.label, '9 px');
+    expect(slider.label, '9');
     final sliderTheme = tester.widget<SliderTheme>(find.byType(SliderTheme));
     expect(sliderTheme.data.trackHeight, 4);
     expect(
@@ -72,20 +72,20 @@ void main() {
     final valueBeforeKeyboard = value;
     await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
     await tester.pumpAndSettle();
-    expect(value, valueBeforeKeyboard + 1);
+    expect(value, valueBeforeKeyboard + 0.25);
 
     changes.clear();
     await tester.drag(sliderFinder, const Offset(160, 0));
     await tester.pumpAndSettle();
     expect(changes, isNotEmpty);
-    expect(changes.every((next) => next >= 1 && next <= 20), isTrue);
-    expect(value, greaterThan(10));
+    expect(changes.every((next) => next >= 0.25 && next <= 5), isTrue);
+    expect(value, greaterThan(2.25));
   });
 
   testWidgets('value pill appears only during pointer dragging', (
     tester,
   ) async {
-    var value = 9;
+    var value = 2.25;
     final focusNode = FocusNode();
     addTearDown(focusNode.dispose);
     await tester.pumpWidget(

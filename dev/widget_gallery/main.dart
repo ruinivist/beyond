@@ -78,7 +78,7 @@ class _WidgetGalleryPageState extends State<WidgetGalleryPage> {
   var _searchableLanguage = 'Dart';
   var _checked = true;
   var _choice = 0;
-  var _snapValue = 9;
+  var _snapValue = 2.25;
   var _chip = 0;
   var _segment = 0;
 
@@ -455,7 +455,7 @@ class _WidgetGalleryPageState extends State<WidgetGalleryPage> {
                     _GalleryCard(
                       title: 'Slider',
                       existing: false,
-                      note: 'Choose a discrete pixel value.',
+                      note: 'Choose a discrete width.',
                       child: DiscreteSlider(
                         key: const ValueKey('gallery-discrete-slider'),
                         value: _snapValue,
