@@ -53,3 +53,6 @@ Thumbs.db
 # Crash symbolication files
 app.*.symbols
 app.*.map.json
+
+.wrangler/
+scratch/
