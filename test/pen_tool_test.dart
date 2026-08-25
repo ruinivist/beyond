@@ -293,6 +293,97 @@ void main() {
     expect(find.byType(ScribbleSketch), findsNothing);
   });
 
+  testWidgets('pen and arrow clicks update order without modifier reorder', (
+    tester,
+  ) async {
+    final document = CanvasDocument(
+      background: CanvasBackgroundKind.plain,
+      elements: [
+        PenElementData(
+          id: 'pen',
+          position: const Offset(100, 250),
+          size: const Size(100, 30),
+          hitSlop: 6,
+          sketch: const Sketch(
+            lines: [
+              SketchLine(
+                points: [Point(0, 15), Point(100, 15)],
+                color: 0xff000000,
+                width: 3,
+              ),
+            ],
+          ),
+        ),
+        ArrowElementData(
+          id: 'arrow',
+          start: const Offset(300, 250),
+          control: const Offset(380, 235),
+          end: const Offset(460, 250),
+        ),
+      ],
+    );
+    await SharedPreferencesAsync().setString(
+      CanvasDocumentStore.key,
+      jsonEncode(document.toJson()),
+    );
+    await tester.pumpWidget(const BeyondApp());
+    await tester.pump();
+    await tester.pump();
+
+    final penFinder = find.byType(PenStroke);
+    final arrowFinder = find.byType(Arrow);
+    final pen = tester.widget<PenStroke>(penFinder).model;
+    final arrow = tester.widget<Arrow>(arrowFinder).model;
+    List<String> elementIds() => tester
+        .widget<LazyCanvas>(find.byType(LazyCanvas))
+        .controller
+        .widgetsWithScreenPositions()
+        .map((child) => child.id)
+        .toList();
+
+    expect(elementIds(), ['pen', 'arrow']);
+
+    await tester.tapAt(tester.getCenter(penFinder));
+    await tester.pump();
+    expect(elementIds(), ['arrow', 'pen']);
+    expect(pen.selected, isFalse);
+
+    final arrowStart =
+        tester.getTopLeft(arrowFinder) +
+        Offset(
+          arrow.start.dx - arrow.bounds.left,
+          arrow.start.dy - arrow.bounds.top,
+        );
+    await tester.tapAt(arrowStart);
+    await tester.pump();
+    expect(elementIds(), ['pen', 'arrow']);
+    expect(arrow.selected, isTrue);
+
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+    await tester.pump();
+    await tester.tapAt(tester.getCenter(penFinder));
+    await tester.pump();
+    expect(elementIds(), ['pen', 'arrow']);
+    expect(pen.selected, isTrue);
+
+    await tester.tapAt(arrowStart);
+    await tester.pump();
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+    await tester.pump();
+    expect(elementIds(), ['pen', 'arrow']);
+    expect(arrow.selected, isFalse);
+
+    await tester.pump(const Duration(milliseconds: 320));
+    final saved = CanvasDocument.fromJson(
+      jsonDecode(
+        (await SharedPreferencesAsync().getString(
+          CanvasDocumentStore.key,
+        ))!,
+      ),
+    );
+    expect(saved.elements.map((element) => element.id), ['pen', 'arrow']);
+  });
+
   testWidgets('ctrl-click selects only near stroke ink', (tester) async {
     await tester.pumpWidget(const BeyondApp());
     await tester.pump();

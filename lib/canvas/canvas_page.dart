@@ -707,6 +707,7 @@ class _CanvasPageState extends State<CanvasPage> {
       model.selected = !model.selected;
       return;
     }
+    _bringElementToFront(model);
     _clearTextEditing();
     _dragArrowPointer = event.pointer;
     _dragArrow = model;
@@ -731,8 +732,11 @@ class _CanvasPageState extends State<CanvasPage> {
       return;
     }
     _interactiveCanvasPointerIds.add(event.pointer);
-    if (!_selectionModifierPressed.value) return;
-    model.selected = !model.selected;
+    if (_selectionModifierPressed.value) {
+      model.selected = !model.selected;
+      return;
+    }
+    _bringElementToFront(model);
   }
 
   void _selectAll() {
