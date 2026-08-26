@@ -875,15 +875,8 @@ class _TextSettingsState extends State<TextSettings> {
                         ? Padding(
                             key: const ValueKey('text-settings-open'),
                             padding: const EdgeInsets.only(left: 8),
-                            child: Material(
+                            child: ControlSurface(
                               key: const ValueKey('text-settings-panel'),
-                              color: colors.surfaceRaised,
-                              elevation: theme.geo.elevationLow,
-                              shadowColor: colors.shadow,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: theme.geo.radiusLarge,
-                                side: BorderSide(color: colors.borderSubtle),
-                              ),
                               child: Padding(
                                 padding: const EdgeInsets.all(8),
                                 child: Row(
