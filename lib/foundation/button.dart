@@ -1,9 +1,17 @@
 import 'package:beyond/foundation/theme.dart';
 import 'package:flutter/material.dart';
 
-enum ButtonVariant { primary, outline, secondary, ghost, destructive, link }
+enum ButtonVariant {
+  primary,
+  outline,
+  secondary,
+  ghost,
+  destructive,
+  link,
+  toolbar,
+}
 
-enum ButtonSize { small, medium, large, icon }
+enum ButtonSize { small, medium, large, toolbar, icon }
 
 class Button extends StatelessWidget {
   const Button({
@@ -13,6 +21,7 @@ class Button extends StatelessWidget {
     this.trailingIcon,
     this.variant = ButtonVariant.primary,
     this.size = ButtonSize.medium,
+    this.selected,
     this.focusNode,
     this.autofocus = false,
     this.onLongPress,
@@ -29,6 +38,7 @@ class Button extends StatelessWidget {
   final Widget? trailingIcon;
   final ButtonVariant variant;
   final ButtonSize size;
+  final bool? selected;
   final FocusNode? focusNode;
   final bool autofocus;
 
@@ -36,6 +46,7 @@ class Button extends StatelessWidget {
     ButtonSize.small => 32,
     ButtonSize.medium => 40,
     ButtonSize.large => 44,
+    ButtonSize.toolbar => 48,
     ButtonSize.icon => 40,
   };
 
@@ -43,6 +54,7 @@ class Button extends StatelessWidget {
     ButtonSize.small => 16,
     ButtonSize.medium => 20,
     ButtonSize.large => 24,
+    ButtonSize.toolbar => 20,
     ButtonSize.icon => 0,
   };
 
@@ -50,6 +62,7 @@ class Button extends StatelessWidget {
     ButtonSize.small => 6,
     ButtonSize.medium => 8,
     ButtonSize.large => 10,
+    ButtonSize.toolbar => 8,
     ButtonSize.icon => 0,
   };
 
@@ -57,6 +70,7 @@ class Button extends StatelessWidget {
     ButtonSize.small => 14,
     ButtonSize.medium => 16,
     ButtonSize.large => 18,
+    ButtonSize.toolbar => 16,
     ButtonSize.icon => 18,
   };
 
@@ -64,6 +78,7 @@ class Button extends StatelessWidget {
     ButtonSize.small => 6,
     ButtonSize.medium => 8,
     ButtonSize.large => 8,
+    ButtonSize.toolbar => 8,
     ButtonSize.icon => 0,
   };
 
@@ -74,6 +89,8 @@ class Button extends StatelessWidget {
     ButtonVariant.ghost => colors.textPrimary,
     ButtonVariant.destructive => colors.accentPressed,
     ButtonVariant.link => colors.accent,
+    ButtonVariant.toolbar =>
+      selected == true ? colors.accent : colors.textSecondary,
   };
 
   Color _background(BColors colors) => switch (variant) {
@@ -82,6 +99,8 @@ class Button extends StatelessWidget {
     ButtonVariant.secondary => colors.surfaceSubtle,
     ButtonVariant.ghost || ButtonVariant.link => Colors.transparent,
     ButtonVariant.destructive => colors.accentSoft,
+    ButtonVariant.toolbar =>
+      selected == true ? colors.surfacePressed : Colors.transparent,
   };
 
   Color _hoverBackground(BColors colors) => switch (variant) {
@@ -91,6 +110,7 @@ class Button extends StatelessWidget {
     ButtonVariant.ghost => colors.surfaceHover,
     ButtonVariant.destructive => colors.accentSubtle,
     ButtonVariant.link => Colors.transparent,
+    ButtonVariant.toolbar => colors.surfaceHover,
   };
 
   Color _pressedBackground(BColors colors) => switch (variant) {
@@ -100,6 +120,7 @@ class Button extends StatelessWidget {
     ButtonVariant.ghost => colors.surfacePressed,
     ButtonVariant.destructive => colors.accentSubtle,
     ButtonVariant.link => Colors.transparent,
+    ButtonVariant.toolbar => colors.surfacePressed,
   };
 
   ButtonStyle _style(
@@ -160,7 +181,9 @@ class Button extends StatelessWidget {
           vertical: _verticalPadding,
         ),
       ),
-      minimumSize: WidgetStatePropertyAll(Size(0, _height)),
+      minimumSize: WidgetStatePropertyAll(
+        Size(size == ButtonSize.toolbar ? 88 : 0, _height),
+      ),
       fixedSize: size == ButtonSize.icon
           ? WidgetStatePropertyAll(Size.square(_height))
           : null,
@@ -189,7 +212,7 @@ class Button extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = BTheme.of(context);
-    return TextButton(
+    final button = TextButton(
       onPressed: onPressed,
       onLongPress: onLongPress,
       focusNode: focusNode,
@@ -200,5 +223,8 @@ class Button extends StatelessWidget {
         child: _content(),
       ),
     );
+    return selected == null
+        ? button
+        : Semantics(selected: selected, child: button);
   }
 }

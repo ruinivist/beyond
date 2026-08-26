@@ -13,6 +13,7 @@ import 'package:beyond/canvas/tools/code_block/code_block.dart';
 import 'package:beyond/canvas/tools/code_block/code_language.dart';
 import 'package:beyond/canvas/tools/pen/pen_tool.dart';
 import 'package:beyond/canvas/tools/text/text_block.dart';
+import 'package:beyond/foundation/button.dart';
 import 'package:beyond/foundation/control_surface.dart';
 import 'package:beyond/foundation/discrete_slider.dart';
 import 'package:beyond/foundation/theme.dart';
@@ -1277,83 +1278,51 @@ class _CanvasPageState extends State<CanvasPage> {
                     children: [
                       Tooltip(
                         message: 'Place text',
-                        child: Semantics(
+                        child: Button(
+                          variant: ButtonVariant.toolbar,
+                          size: ButtonSize.toolbar,
                           selected: _textPlacementEnabled,
-                          child: TextButton(
-                            onPressed: () => _toggleTool(_CanvasTool.text),
-                            style: _toolbarButtonStyle(
-                              colors,
-                              geo,
-                              selected: _textPlacementEnabled,
-                              minimumSize: _toolbarSegmentMinimumSize,
-                              borderRadius: geo.radiusMedium,
-                            ),
-                            child: const Text('Text'),
-                          ),
+                          onPressed: () => _toggleTool(_CanvasTool.text),
+                          child: const Text('Text'),
                         ),
                       ),
                       Tooltip(
                         message: 'Add code block',
-                        child: TextButton(
+                        child: Button(
+                          variant: ButtonVariant.toolbar,
+                          size: ButtonSize.toolbar,
                           onPressed: _addCodeBlock,
-                          style: _toolbarButtonStyle(
-                            colors,
-                            geo,
-                            minimumSize: _toolbarSegmentMinimumSize,
-                            borderRadius: geo.radiusMedium,
-                          ),
                           child: const Text('Code'),
                         ),
                       ),
                       Tooltip(
                         message: 'Draw with pen',
-                        child: Semantics(
+                        child: Button(
+                          variant: ButtonVariant.toolbar,
+                          size: ButtonSize.toolbar,
                           selected: _penEnabled,
-                          child: TextButton(
-                            onPressed: () => _toggleTool(_CanvasTool.pen),
-                            style: _toolbarButtonStyle(
-                              colors,
-                              geo,
-                              selected: _penEnabled,
-                              minimumSize: _toolbarSegmentMinimumSize,
-                              borderRadius: geo.radiusMedium,
-                            ),
-                            child: const Text('Draw'),
-                          ),
+                          onPressed: () => _toggleTool(_CanvasTool.pen),
+                          child: const Text('Draw'),
                         ),
                       ),
                       Tooltip(
                         message: 'Erase elements',
-                        child: Semantics(
+                        child: Button(
+                          variant: ButtonVariant.toolbar,
+                          size: ButtonSize.toolbar,
                           selected: _eraserEnabled,
-                          child: TextButton(
-                            onPressed: () => _toggleTool(_CanvasTool.eraser),
-                            style: _toolbarButtonStyle(
-                              colors,
-                              geo,
-                              selected: _eraserEnabled,
-                              minimumSize: _toolbarSegmentMinimumSize,
-                              borderRadius: geo.radiusMedium,
-                            ),
-                            child: const Text('Erase'),
-                          ),
+                          onPressed: () => _toggleTool(_CanvasTool.eraser),
+                          child: const Text('Erase'),
                         ),
                       ),
                       Tooltip(
                         message: 'Draw an arrow',
-                        child: Semantics(
+                        child: Button(
+                          variant: ButtonVariant.toolbar,
+                          size: ButtonSize.toolbar,
                           selected: _arrowEnabled,
-                          child: TextButton(
-                            onPressed: () => _toggleTool(_CanvasTool.arrow),
-                            style: _toolbarButtonStyle(
-                              colors,
-                              geo,
-                              selected: _arrowEnabled,
-                              minimumSize: _toolbarSegmentMinimumSize,
-                              borderRadius: geo.radiusMedium,
-                            ),
-                            child: const Text('Arrow'),
-                          ),
+                          onPressed: () => _toggleTool(_CanvasTool.arrow),
+                          child: const Text('Arrow'),
                         ),
                       ),
                     ],
@@ -1553,26 +1522,15 @@ Widget _textEditingChromeTransition(
   );
 }
 
-const _toolbarSegmentMinimumSize = Size(88, 48);
-
-ButtonStyle _toolbarButtonStyle(
-  BColors colors,
-  BGeo geo, {
-  bool selected = false,
-  Size? minimumSize,
-  BorderRadius? borderRadius,
-}) {
+ButtonStyle _toolbarButtonStyle(BColors colors, BGeo geo) {
   return ButtonStyle(
-    foregroundColor: WidgetStateProperty.resolveWith((states) {
-      if (!selected) return colors.textSecondary;
-      return colors.accent;
-    }),
+    foregroundColor: WidgetStatePropertyAll(colors.textSecondary),
     backgroundColor: WidgetStateProperty.resolveWith((states) {
       if (states.contains(WidgetState.pressed)) {
         return colors.surfacePressed;
       }
       if (states.contains(WidgetState.hovered)) return colors.surfaceHover;
-      return selected ? colors.surfacePressed : Colors.transparent;
+      return Colors.transparent;
     }),
     side: WidgetStateProperty.resolveWith(
       (states) => states.contains(WidgetState.focused)
@@ -1580,11 +1538,8 @@ ButtonStyle _toolbarButtonStyle(
           : BorderSide.none,
     ),
     shape: WidgetStatePropertyAll(
-      RoundedRectangleBorder(borderRadius: borderRadius ?? geo.radiusSmall),
+      RoundedRectangleBorder(borderRadius: geo.radiusSmall),
     ),
-    minimumSize: minimumSize == null
-        ? null
-        : WidgetStatePropertyAll(minimumSize),
   );
 }
 
