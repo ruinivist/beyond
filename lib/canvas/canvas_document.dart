@@ -112,7 +112,7 @@ sealed class CanvasElementData {
 
   Map<String, Object> toJson();
 
-  CanvasElementData copy();
+  CanvasElementData copy({String? id});
 }
 
 class TextNodeStyle {
@@ -252,8 +252,8 @@ class TextElementData extends CanvasElementData {
   };
 
   @override
-  TextElementData copy() => TextElementData(
-    id: id,
+  TextElementData copy({String? id}) => TextElementData(
+    id: id ?? this.id,
     position: position,
     width: width,
     height: height,
@@ -328,8 +328,8 @@ class CodeElementData extends CanvasElementData {
   };
 
   @override
-  CodeElementData copy() => CodeElementData(
-    id: id,
+  CodeElementData copy({String? id}) => CodeElementData(
+    id: id ?? this.id,
     position: position,
     size: size,
     language: language,
@@ -477,8 +477,8 @@ class PenElementData extends CanvasElementData {
   };
 
   @override
-  PenElementData copy() => PenElementData(
-    id: id,
+  PenElementData copy({String? id}) => PenElementData(
+    id: id ?? this.id,
     position: position,
     size: size,
     hitSlop: hitSlop,
@@ -536,8 +536,8 @@ class ArrowElementData extends CanvasElementData {
   };
 
   @override
-  ArrowElementData copy() => ArrowElementData(
-    id: id,
+  ArrowElementData copy({String? id}) => ArrowElementData(
+    id: id ?? this.id,
     start: start,
     control: control,
     end: end,

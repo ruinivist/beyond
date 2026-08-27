@@ -3,6 +3,7 @@ import 'dart:math' as math;
 
 import 'package:beyond/canvas/attachment_store.dart';
 import 'package:beyond/canvas/canvas_background.dart';
+import 'package:beyond/canvas/canvas_clipboard.dart';
 import 'package:beyond/canvas/canvas_document.dart';
 import 'package:beyond/canvas/canvas_document_store.dart';
 import 'package:beyond/canvas/canvas_element_model.dart';
@@ -26,6 +27,7 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:infinite_lazy_grid/infinite_lazy_grid.dart';
 import 'package:scribble/scribble.dart';
+import 'package:super_clipboard/super_clipboard.dart';
 import 'package:uuid/uuid.dart';
 
 enum _CanvasTool { select, text, pen, arrow, eraser }
@@ -35,12 +37,16 @@ class CanvasPage extends StatefulWidget {
     this.attachmentStore,
     this.documentStore,
     this.projectFiles,
+    this.readClipboardText,
+    this.writeClipboardText,
     super.key,
   });
 
   final AttachmentStore? attachmentStore;
   final CanvasDocumentStore? documentStore;
   final CanvasProjectFiles? projectFiles;
+  final Future<String?> Function()? readClipboardText;
+  final Future<void> Function(String text)? writeClipboardText;
 
   @override
   State<CanvasPage> createState() => _CanvasPageState();
@@ -87,6 +93,12 @@ class _CanvasPageState extends State<CanvasPage> {
   );
   int? _eraserPointer;
   var _spaceHeld = false;
+  ClipboardEvents? _clipboardEvents;
+  String? _lastPastedPayload;
+  String? _cutPayload;
+  Offset _pasteOffset = Offset.zero;
+  Offset? _canvasPointerPosition;
+  (String, Offset?)? _pointerReference;
 
   bool get _penEnabled => _activeTool.value == _CanvasTool.pen;
 
@@ -105,6 +117,14 @@ class _CanvasPageState extends State<CanvasPage> {
     _arrowTool = ArrowTool(onArrow: _addArrow)
       ..addListener(_handleArrowToolChanged);
     HardwareKeyboard.instance.addHandler(_handleKeyEvent);
+    _clipboardEvents =
+        widget.readClipboardText == null && widget.writeClipboardText == null
+        ? ClipboardEvents.instance
+        : null;
+    _clipboardEvents
+      ?..registerCopyEventListener(_handleWebCopy)
+      ..registerCutEventListener(_handleWebCut)
+      ..registerPasteEventListener(_handleWebPaste);
     unawaited(_restoreDocument());
   }
 
@@ -621,10 +641,12 @@ class _CanvasPageState extends State<CanvasPage> {
   }
 
   void _handleCanvasPointerExit(PointerExitEvent event) {
+    _canvasPointerPosition = null;
     if (_penEnabled) _penTool.onPointerExit(event);
   }
 
   void _handleCanvasPointerHover(PointerHoverEvent event) {
+    _canvasPointerPosition = event.localPosition;
     if (_penEnabled && !_spaceHeld) _penTool.onPointerHover(event);
   }
 
@@ -762,6 +784,114 @@ class _CanvasPageState extends State<CanvasPage> {
 
   void _deleteSelected() {
     _removeElements(_elements.where((model) => model.selected));
+  }
+
+  bool get _editingElement {
+    final focusContext = FocusManager.instance.primaryFocus?.context;
+    return focusContext?.widget is EditableText ||
+        focusContext?.findAncestorWidgetOfExactType<EditableText>() != null ||
+        _elements.whereType<TextBlockModel>().any(
+          (model) => model.focusNode.hasFocus,
+        ) ||
+        _elements.whereType<CodeBlockModel>().any(
+          (model) => model.focusNode.hasFocus,
+        );
+  }
+
+  List<CanvasElementModel> get _selectedInStackingOrder =>
+      _elements.where((model) => model.selected).toList();
+
+  void _handleWebCopy(ClipboardWriteEvent event) =>
+      unawaited(_copySelection(event));
+
+  void _handleWebCut(ClipboardWriteEvent event) =>
+      unawaited(_copySelection(event, cut: true));
+
+  void _handleWebPaste(ClipboardReadEvent event) {
+    if (!_documentLoaded || _editingElement) return;
+    unawaited(_pasteSelection(event.getClipboardReader()));
+  }
+
+  Future<void> _copySelection(
+    ClipboardWriter? writer, {
+    bool cut = false,
+  }) async {
+    if (!_documentLoaded || _editingElement) return;
+    final selected = _selectedInStackingOrder;
+    if (selected.isEmpty) return;
+    final payload = encodeCanvasClipboard(
+      selected.map((model) => model.data.copy()),
+    );
+    try {
+      final write = widget.writeClipboardText;
+      if (write != null) {
+        await write(payload);
+      } else {
+        final clipboard = writer ?? SystemClipboard.instance;
+        if (clipboard == null) throw StateError('Clipboard unavailable');
+        final item = DataWriterItem()..add(Formats.plainText(payload));
+        await clipboard.write([item]);
+      }
+      if (!mounted) return;
+      _lastPastedPayload = null;
+      _pasteOffset = Offset.zero;
+      _cutPayload = cut ? payload : null;
+      _pointerReference = (payload, _canvasPointerPosition);
+      if (cut) _removeElements(selected);
+    } on Object {
+      _showProjectSnackBar(
+        cut
+            ? 'Could not cut canvas elements'
+            : 'Could not copy canvas elements',
+      );
+    }
+  }
+
+  Future<void> _pasteSelection(Future<ClipboardReader>? readerFuture) async {
+    try {
+      final read = widget.readClipboardText;
+      final text = read != null
+          ? await read()
+          : await (await readerFuture!).readValue(Formats.plainText);
+      if (text == null) return;
+      final elements = decodeCanvasClipboard(text);
+      if (elements == null) return;
+      if (!mounted || !_documentLoaded) return;
+
+      final pointer = _canvasPointerPosition;
+      final placeAtPointer =
+          pointer != null && (text, pointer) != _pointerReference;
+      final pasted = [
+        for (final element in elements)
+          _createElementModel(element.copy(id: const Uuid().v4())),
+      ];
+      if (placeAtPointer) {
+        final bounds = pasted
+            .map((model) => model.canvasPosition & model.canvasSize)
+            .reduce((bounds, next) => bounds.expandToInclude(next));
+        _pasteOffset =
+            _canvasController.offset +
+            pointer / _canvasController.scale -
+            bounds.center;
+      } else if (_lastPastedPayload != text) {
+        _pasteOffset = text == _cutPayload
+            ? Offset.zero
+            : const Offset(24, 24) / _canvasController.scale;
+      } else {
+        _pasteOffset += const Offset(24, 24) / _canvasController.scale;
+      }
+      _lastPastedPayload = text;
+      _pointerReference = (text, pointer);
+      for (final model in pasted) {
+        model.moveBy(_pasteOffset);
+        _mountElement(model);
+      }
+      _clearTextEditing();
+      _setSelection(pasted.toSet());
+      _scheduleDocumentSave();
+    } on Object {
+      _showProjectSnackBar('Could not paste canvas elements');
+    }
   }
 
   void _eraseAt(Offset globalPosition) {
@@ -1000,17 +1130,32 @@ class _CanvasPageState extends State<CanvasPage> {
         Theme.of(context).platform == TargetPlatform.macOS
         ? HardwareKeyboard.instance.isMetaPressed
         : HardwareKeyboard.instance.isControlPressed;
-    final focusContext = FocusManager.instance.primaryFocus?.context;
-    final editingText =
-        focusContext?.widget is EditableText ||
-        focusContext?.findAncestorWidgetOfExactType<EditableText>() != null ||
-        _elements.whereType<TextBlockModel>().any(
-          (model) => model.focusNode.hasFocus,
-        ) ||
-        _elements.whereType<CodeBlockModel>().any(
-          (model) => model.focusNode.hasFocus,
+    if (_editingElement) return false;
+    if (event is KeyDownEvent &&
+        _selectionModifierPressed.value &&
+        _clipboardEvents == null) {
+      if (event.logicalKey == LogicalKeyboardKey.keyC ||
+          event.logicalKey == LogicalKeyboardKey.keyX) {
+        if (_selectedInStackingOrder.isEmpty) return false;
+        unawaited(
+          _copySelection(
+            null,
+            cut: event.logicalKey == LogicalKeyboardKey.keyX,
+          ),
         );
-    if (editingText) return false;
+        return true;
+      }
+      if (event.logicalKey == LogicalKeyboardKey.keyV) {
+        final read = widget.readClipboardText;
+        final clipboard = SystemClipboard.instance;
+        if (read == null && clipboard == null) {
+          _showProjectSnackBar('Could not paste canvas elements');
+          return true;
+        }
+        unawaited(_pasteSelection(read != null ? null : clipboard!.read()));
+        return true;
+      }
+    }
     if (event is KeyDownEvent &&
         event.logicalKey == LogicalKeyboardKey.keyA &&
         _selectionModifierPressed.value) {
@@ -1134,6 +1279,10 @@ class _CanvasPageState extends State<CanvasPage> {
         ..dispose();
     }
     HardwareKeyboard.instance.removeHandler(_handleKeyEvent);
+    _clipboardEvents
+      ?..unregisterCopyEventListener(_handleWebCopy)
+      ..unregisterCutEventListener(_handleWebCut)
+      ..unregisterPasteEventListener(_handleWebPaste);
     _activeTool.dispose();
     _selectionModifierPressed.dispose();
     _penTool.dispose();
