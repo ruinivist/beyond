@@ -682,6 +682,8 @@ class TextBlockControls extends StatelessWidget {
     required this.model,
     required this.onMove,
     required this.onRotate,
+    required this.onTransformStart,
+    required this.onTransformEnd,
     required this.rotationCenter,
     super.key,
   });
@@ -689,6 +691,8 @@ class TextBlockControls extends StatelessWidget {
   final TextBlockModel model;
   final ValueChanged<Offset> onMove;
   final ValueChanged<double> onRotate;
+  final VoidCallback onTransformStart;
+  final VoidCallback onTransformEnd;
   final ValueGetter<Offset> rotationCenter;
 
   static const size = Size(500, 168);
@@ -705,7 +709,10 @@ class TextBlockControls extends StatelessWidget {
           Positioned(
             top: 0,
             left: 30,
-            child: TextSettings(model: model),
+            child: TextSettings(
+              model: model,
+              onChangeBoundary: onTransformEnd,
+            ),
           ),
           Positioned(
             top: 63,
@@ -727,8 +734,13 @@ class TextBlockControls extends StatelessWidget {
                             >(
                               ImmediateMultiDragGestureRecognizer.new,
                               (recognizer) {
-                                recognizer.onStart = (_) =>
-                                    _TextBlockDrag(onMove);
+                                recognizer.onStart = (_) {
+                                  onTransformStart();
+                                  return _TextBlockDrag(
+                                    onMove,
+                                    onTransformEnd,
+                                  );
+                                };
                               },
                             ),
                       },
@@ -764,13 +776,16 @@ class TextBlockControls extends StatelessWidget {
                               >(
                                 ImmediateMultiDragGestureRecognizer.new,
                                 (recognizer) {
-                                  recognizer.onStart = (position) =>
-                                      _TextBlockRotateDrag(
-                                        startPosition: position,
-                                        center: rotationCenter(),
-                                        rotation: model.node.rotation,
-                                        onRotate: onRotate,
-                                      );
+                                  recognizer.onStart = (position) {
+                                    onTransformStart();
+                                    return _TextBlockRotateDrag(
+                                      startPosition: position,
+                                      center: rotationCenter(),
+                                      rotation: model.node.rotation,
+                                      onRotate: onRotate,
+                                      onEnd: onTransformEnd,
+                                    );
+                                  };
                                 },
                               ),
                         },
@@ -792,9 +807,14 @@ class TextBlockControls extends StatelessWidget {
 }
 
 class TextSettings extends StatefulWidget {
-  const TextSettings({required this.model, super.key});
+  const TextSettings({
+    required this.model,
+    required this.onChangeBoundary,
+    super.key,
+  });
 
   final TextBlockModel model;
+  final VoidCallback onChangeBoundary;
 
   @override
   State<TextSettings> createState() => _TextSettingsState();
@@ -889,9 +909,11 @@ class _TextSettingsState extends State<TextSettings> {
                                         value: style.fontFamily,
                                         options: textFontOptions,
                                         onChanged: (fontFamily) {
+                                          widget.onChangeBoundary();
                                           widget.model.style = style.copyWith(
                                             fontFamily: fontFamily,
                                           );
+                                          widget.onChangeBoundary();
                                         },
                                       ),
                                     ),
@@ -940,12 +962,16 @@ class _TextSettingsState extends State<TextSettings> {
                                                         '${swatch.label}',
                                                       ),
                                                       onPressed: () {
+                                                        widget
+                                                            .onChangeBoundary();
                                                         widget.model.style =
                                                             style.copyWith(
                                                               color: colorToHex(
                                                                 swatch.color,
                                                               ),
                                                             );
+                                                        widget
+                                                            .onChangeBoundary();
                                                         _colorMenu.close();
                                                       },
                                                       style: IconButton.styleFrom(
@@ -1142,12 +1168,19 @@ Future<void> _openLink(BuildContext context, String? href) async {
 }
 
 class _TextBlockDrag extends Drag {
-  _TextBlockDrag(this.onMove);
+  _TextBlockDrag(this.onMove, this.onEnd);
 
   final ValueChanged<Offset> onMove;
+  final VoidCallback onEnd;
 
   @override
   void update(DragUpdateDetails details) => onMove(details.delta);
+
+  @override
+  void end(DragEndDetails details) => onEnd();
+
+  @override
+  void cancel() => onEnd();
 }
 
 class _TextBlockResizeDrag extends Drag {
@@ -1172,10 +1205,12 @@ class _TextBlockRotateDrag extends Drag {
     required this.center,
     required this._rotation,
     required this.onRotate,
+    required this.onEnd,
   }) : _lastPointerAngle = _pointerAngle(startPosition, center);
 
   final Offset center;
   final ValueChanged<double> onRotate;
+  final VoidCallback onEnd;
   double _lastPointerAngle;
   double _rotation;
 
@@ -1189,6 +1224,12 @@ class _TextBlockRotateDrag extends Drag {
     _lastPointerAngle = pointerAngle;
     onRotate(_rotation);
   }
+
+  @override
+  void end(DragEndDetails details) => onEnd();
+
+  @override
+  void cancel() => onEnd();
 }
 
 double _pointerAngle(Offset pointer, Offset center) =>

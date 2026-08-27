@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:math' as math;
 
 import 'package:beyond/canvas/attachment_store.dart';
@@ -53,6 +54,8 @@ class CanvasPage extends StatefulWidget {
 }
 
 class _CanvasPageState extends State<CanvasPage> {
+  static const _historyLimit = 50;
+
   final _canvasController = LazyCanvasController(
     buildCacheExtent: const Offset(600, 400),
     useIdsFromArgs: true,
@@ -99,6 +102,10 @@ class _CanvasPageState extends State<CanvasPage> {
   Offset _pasteOffset = Offset.zero;
   Offset? _canvasPointerPosition;
   (String, Offset?)? _pointerReference;
+  final _undoHistory = <String>[];
+  final _redoHistory = <String>[];
+  String? _historyCurrent;
+  var _historyOperationActive = false;
 
   bool get _penEnabled => _activeTool.value == _CanvasTool.pen;
 
@@ -266,6 +273,7 @@ class _CanvasPageState extends State<CanvasPage> {
     }
     if (event.pointer == _eraserPointer) {
       _eraserPointer = null;
+      _finishHistoryOperation();
       return;
     }
     _finishWidgetPointer(event.pointer);
@@ -293,6 +301,7 @@ class _CanvasPageState extends State<CanvasPage> {
     }
     if (event.pointer == _eraserPointer) {
       _eraserPointer = null;
+      _finishHistoryOperation();
       return;
     }
     _finishWidgetPointer(event.pointer);
@@ -356,6 +365,7 @@ class _CanvasPageState extends State<CanvasPage> {
     if (pointer != _widgetPointer) return;
     _widgetPointer = null;
     _selectionBeforeWidgetPointer.clear();
+    _finishHistoryOperation();
   }
 
   void _handleCodeBlockPointerDown(
@@ -375,6 +385,7 @@ class _CanvasPageState extends State<CanvasPage> {
       model.selected = !model.selected;
       return;
     }
+    if (model.focusNode.hasFocus) _finishHistoryOperation();
     _clearTextEditing();
     _bringElementToFront(model);
   }
@@ -395,6 +406,7 @@ class _CanvasPageState extends State<CanvasPage> {
       model.selected = !model.selected;
       return;
     }
+    if (model.focusNode.hasFocus) _finishHistoryOperation();
     if (!model.editing) {
       FocusManager.instance.primaryFocus?.unfocus();
       _clearTextEditing();
@@ -440,6 +452,7 @@ class _CanvasPageState extends State<CanvasPage> {
         model.editing = false;
       }
     });
+    _finishHistoryOperation();
   }
 
   void _clearSelection() {
@@ -599,6 +612,7 @@ class _CanvasPageState extends State<CanvasPage> {
         child: CodeBlock(
           model: code,
           onMove: (delta) => _moveSelectedChildren(code, delta),
+          onChangeBoundary: _finishHistoryOperation,
         ),
       ),
       final PenStrokeModel pen => PenStroke(
@@ -632,6 +646,7 @@ class _CanvasPageState extends State<CanvasPage> {
       id: model.data.id,
       childSize: model.canvasSize,
     );
+    _editorFocusNode(model)?.addListener(_finishHistoryOperation);
     if (requestFocus) {
       final text = model as TextBlockModel;
       WidgetsBinding.instance.addPostFrameCallback(
@@ -672,6 +687,7 @@ class _CanvasPageState extends State<CanvasPage> {
     );
     _mountElement(model);
     _scheduleDocumentSave();
+    _finishHistoryOperation();
   }
 
   Size _fittedBlockSize(Size preferred, Size minimum) {
@@ -717,12 +733,14 @@ class _CanvasPageState extends State<CanvasPage> {
     );
     _mountElement(model);
     _scheduleDocumentSave();
+    _finishHistoryOperation();
   }
 
   void _addArrow(ArrowModel model) {
     if (!_documentLoaded) return;
     _mountElement(model);
     _scheduleDocumentSave();
+    _finishHistoryOperation();
   }
 
   void _handleArrowPointerDown(
@@ -753,6 +771,7 @@ class _CanvasPageState extends State<CanvasPage> {
     if (select) _dragArrow?.selected = true;
     _dragArrowPointer = null;
     _dragArrow = null;
+    _finishHistoryOperation();
   }
 
   void _handleStrokePointerDown(
@@ -889,6 +908,7 @@ class _CanvasPageState extends State<CanvasPage> {
       _clearTextEditing();
       _setSelection(pasted.toSet());
       _scheduleDocumentSave();
+      _finishHistoryOperation();
     } on Object {
       _showProjectSnackBar('Could not paste canvas elements');
     }
@@ -907,10 +927,13 @@ class _CanvasPageState extends State<CanvasPage> {
         hits.add(model);
       }
     }
-    _removeElements(hits);
+    _removeElements(hits, finishHistory: false);
   }
 
-  void _removeElements(Iterable<CanvasElementModel> models) {
+  void _removeElements(
+    Iterable<CanvasElementModel> models, {
+    bool finishHistory = true,
+  }) {
     if (!_documentLoaded) return;
     final modelsToDispose = models.where(_elements.contains).toList();
     if (modelsToDispose.isEmpty) return;
@@ -928,6 +951,7 @@ class _CanvasPageState extends State<CanvasPage> {
     for (final model in modelsToDispose) {
       if (model case final TextBlockModel text) text.focusNode.unfocus();
       if (model case final CodeBlockModel code) code.focusNode.unfocus();
+      _editorFocusNode(model)?.removeListener(_finishHistoryOperation);
       _canvasController.removeChild(model.data.id);
       _elements.remove(model);
       _selectionKeys.remove(model);
@@ -943,6 +967,7 @@ class _CanvasPageState extends State<CanvasPage> {
       }
     });
     _scheduleDocumentSave();
+    if (finishHistory) _finishHistoryOperation();
   }
 
   void _showSettingsDialog() {
@@ -1060,6 +1085,7 @@ class _CanvasPageState extends State<CanvasPage> {
       }
 
       _replaceLiveModels(project.document);
+      _resetHistory();
     } on Object {
       _documentLoaded = true;
       if (mounted) setState(() {});
@@ -1090,6 +1116,7 @@ class _CanvasPageState extends State<CanvasPage> {
 
     for (final model in oldElements) {
       model.removeListener(_scheduleDocumentSave);
+      _editorFocusNode(model)?.removeListener(_finishHistoryOperation);
     }
     _elements.clear();
     _canvasController.clear();
@@ -1122,6 +1149,7 @@ class _CanvasPageState extends State<CanvasPage> {
     _canvasBackgroundKind = kind;
     _canvasController.background = kind.build(BTheme.of(context).colors);
     _scheduleDocumentSave();
+    _finishHistoryOperation();
   }
 
   bool _handleKeyEvent(KeyEvent event) {
@@ -1131,6 +1159,16 @@ class _CanvasPageState extends State<CanvasPage> {
         ? HardwareKeyboard.instance.isMetaPressed
         : HardwareKeyboard.instance.isControlPressed;
     if (_editingElement) return false;
+    if ((event is KeyDownEvent || event is KeyRepeatEvent) &&
+        _selectionModifierPressed.value &&
+        event.logicalKey == LogicalKeyboardKey.keyZ) {
+      if (HardwareKeyboard.instance.isShiftPressed) {
+        _redo();
+      } else {
+        _undo();
+      }
+      return true;
+    }
     if (event is KeyDownEvent &&
         _selectionModifierPressed.value &&
         _clipboardEvents == null) {
@@ -1193,9 +1231,11 @@ class _CanvasPageState extends State<CanvasPage> {
         }
       }
       _documentLoaded = true;
+      _resetHistory();
       if (mounted) setState(() {});
     } on Object {
       _documentLoaded = true;
+      _resetHistory();
       if (!mounted) return;
       setState(() {});
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -1216,6 +1256,7 @@ class _CanvasPageState extends State<CanvasPage> {
 
   void _scheduleDocumentSave() {
     if (!_documentLoaded) return;
+    _noteHistoryChange();
     _documentDirty = true;
     _saveTimer?.cancel();
     _saveTimer = Timer(
@@ -1265,6 +1306,67 @@ class _CanvasPageState extends State<CanvasPage> {
     }
   }
 
+  String _captureHistory() => jsonEncode(_currentDocument().toJson());
+
+  void _resetHistory() {
+    _undoHistory.clear();
+    _redoHistory.clear();
+    _historyCurrent = _captureHistory();
+    _historyOperationActive = false;
+  }
+
+  void _noteHistoryChange() {
+    if (_historyOperationActive) return;
+    final current = _historyCurrent;
+    if (current == null) return;
+    if (_captureHistory() != current) {
+      _historyOperationActive = true;
+    }
+  }
+
+  void _finishHistoryOperation() {
+    if (!_historyOperationActive || !_documentLoaded) {
+      return;
+    }
+    final previous = _historyCurrent;
+    final current = _captureHistory();
+    _historyOperationActive = false;
+    if (previous == null || previous == current) return;
+    _undoHistory.add(previous);
+    if (_undoHistory.length > _historyLimit) _undoHistory.removeAt(0);
+    _redoHistory.clear();
+    _historyCurrent = current;
+  }
+
+  void _undo() {
+    _finishHistoryOperation();
+    final current = _historyCurrent;
+    if (current == null || _undoHistory.isEmpty) return;
+    _redoHistory.add(current);
+    _restoreHistory(_undoHistory.removeLast());
+  }
+
+  void _redo() {
+    _finishHistoryOperation();
+    final current = _historyCurrent;
+    if (current == null || _redoHistory.isEmpty) return;
+    _undoHistory.add(current);
+    _restoreHistory(_redoHistory.removeLast());
+  }
+
+  void _restoreHistory(String entry) {
+    _historyCurrent = entry;
+    _historyOperationActive = false;
+    _replaceLiveModels(CanvasDocument.fromJson(jsonDecode(entry)));
+    _scheduleDocumentSave();
+  }
+
+  FocusNode? _editorFocusNode(CanvasElementModel model) => switch (model) {
+    final TextBlockModel text => text.focusNode,
+    final CodeBlockModel code => code.focusNode,
+    _ => null,
+  };
+
   @override
   void dispose() {
     _saveTimer?.cancel();
@@ -1274,6 +1376,7 @@ class _CanvasPageState extends State<CanvasPage> {
     }
     unawaited(_saveQueue);
     for (final model in _elements) {
+      _editorFocusNode(model)?.removeListener(_finishHistoryOperation);
       model
         ..removeListener(_scheduleDocumentSave)
         ..dispose();
@@ -1403,6 +1506,8 @@ class _CanvasPageState extends State<CanvasPage> {
                                 _moveSelectedChildren(editing, delta),
                             onRotate: (angle) =>
                                 _rotateTextBlock(editing, angle),
+                            onTransformStart: _finishHistoryOperation,
+                            onTransformEnd: _finishHistoryOperation,
                             rotationCenter: () => _textBlockCenter(editing),
                           ),
                         ),

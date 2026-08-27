@@ -201,7 +201,10 @@ class _WidgetGalleryPageState extends State<WidgetGalleryPage> {
                       note:
                           'The production control reveals font and preset '
                           'color controls to its right.',
-                      child: TextSettings(model: _textModel),
+                      child: TextSettings(
+                        model: _textModel,
+                        onChangeBoundary: () {},
+                      ),
                     ),
                     _GalleryCard(
                       title: 'Code block',
@@ -212,6 +215,7 @@ class _WidgetGalleryPageState extends State<WidgetGalleryPage> {
                         CodeBlock(
                           model: _codeModel,
                           onMove: (_) {},
+                          onChangeBoundary: () {},
                         ),
                       ),
                     ),

@@ -90,11 +90,13 @@ class CodeBlock extends StatelessWidget {
   const CodeBlock({
     required this.model,
     required this.onMove,
+    required this.onChangeBoundary,
     super.key,
   });
 
   final CodeBlockModel model;
   final ValueChanged<Offset> onMove;
+  final VoidCallback onChangeBoundary;
 
   @override
   Widget build(BuildContext context) {
@@ -125,7 +127,11 @@ class CodeBlock extends StatelessWidget {
               children: [
                 Column(
                   children: [
-                    _CodeBlockHeader(model: model, onMove: onMove),
+                    _CodeBlockHeader(
+                      model: model,
+                      onMove: onMove,
+                      onChangeBoundary: onChangeBoundary,
+                    ),
                     Divider(height: 1, color: colors.borderSubtle),
                     Expanded(
                       child: PointerScrollBoundary(
@@ -248,10 +254,15 @@ class _CodeBlockResizeHandle extends StatelessWidget {
 }
 
 class _CodeBlockHeader extends StatelessWidget {
-  const _CodeBlockHeader({required this.model, required this.onMove});
+  const _CodeBlockHeader({
+    required this.model,
+    required this.onMove,
+    required this.onChangeBoundary,
+  });
 
   final CodeBlockModel model;
   final ValueChanged<Offset> onMove;
+  final VoidCallback onChangeBoundary;
 
   @override
   Widget build(BuildContext context) {
@@ -287,7 +298,11 @@ class _CodeBlockHeader extends StatelessWidget {
                       SelectOption(value: language, label: language.label),
                   ],
                   showBorder: false,
-                  onChanged: (language) => model.language = language,
+                  onChanged: (language) {
+                    onChangeBoundary();
+                    model.language = language;
+                    onChangeBoundary();
+                  },
                 ),
               ],
             ),

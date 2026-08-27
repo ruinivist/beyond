@@ -82,6 +82,12 @@ void main() {
       );
 
     await _pumpPage(tester, documentStore, attachments, files);
+    tester.widget<TextBlock>(find.byType(TextBlock)).model.selected = true;
+    await tester.sendKeyEvent(LogicalKeyboardKey.delete);
+    await tester.pump();
+    await _historyShortcut(tester);
+    expect(find.byType(TextBlock), findsOneWidget);
+
     final controller = _canvasController(tester)
       ..scrollBy(const Offset(90, 60))
       ..updateScalebyDelta(0.25);
@@ -109,6 +115,12 @@ void main() {
     expect(
       tester.widget<TextBlock>(find.byType(TextBlock)).model.focusNode.hasFocus,
       isFalse,
+    );
+
+    await _historyShortcut(tester, redo: true);
+    expect(
+      tester.widget<TextBlock>(find.byType(TextBlock)).model.node.markdown,
+      '![new]($_path0)',
     );
 
     documentStore.initial = documentStore.persisted;
@@ -352,6 +364,16 @@ Future<void> _openCanvasSettings(WidgetTester tester) async {
   await tester.pumpAndSettle();
   await tester.tap(find.text('Canvas').last);
   await tester.pumpAndSettle();
+}
+
+Future<void> _historyShortcut(WidgetTester tester, {bool redo = false}) async {
+  await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+  if (redo) await tester.sendKeyDownEvent(LogicalKeyboardKey.shiftLeft);
+  await tester.sendKeyDownEvent(LogicalKeyboardKey.keyZ);
+  await tester.sendKeyUpEvent(LogicalKeyboardKey.keyZ);
+  if (redo) await tester.sendKeyUpEvent(LogicalKeyboardKey.shiftLeft);
+  await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+  await tester.pump();
 }
 
 LazyCanvasController _canvasController(WidgetTester tester) =>
