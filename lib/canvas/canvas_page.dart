@@ -103,7 +103,7 @@ class _CanvasPageState extends State<CanvasPage> {
   String? _lastPastedPayload;
   String? _cutPayload;
   Offset _pasteOffset = Offset.zero;
-  Offset? _canvasPointerPosition;
+  final ValueNotifier<Offset?> _canvasPointerPosition = ValueNotifier(null);
   (String, Offset?)? _pointerReference;
   final _undoHistory = <String>[];
   final _redoHistory = <String>[];
@@ -212,6 +212,7 @@ class _CanvasPageState extends State<CanvasPage> {
 
   void _handleCanvasPointerDown(PointerDownEvent event) {
     if (!_documentLoaded) return;
+    _canvasPointerPosition.value = event.localPosition;
     if (_eraserEnabled && !_spaceHeld) {
       if (_eraserPointer == null &&
           (event.kind != PointerDeviceKind.mouse ||
@@ -275,6 +276,7 @@ class _CanvasPageState extends State<CanvasPage> {
   }
 
   void _handleCanvasPointerMove(PointerMoveEvent event) {
+    _canvasPointerPosition.value = event.localPosition;
     if (_penEnabled) {
       _penTool.onPointerUpdate(event);
       return;
@@ -690,12 +692,12 @@ class _CanvasPageState extends State<CanvasPage> {
   }
 
   void _handleCanvasPointerExit(PointerExitEvent event) {
-    _canvasPointerPosition = null;
+    _canvasPointerPosition.value = null;
     if (_penEnabled) _penTool.onPointerExit(event);
   }
 
   void _handleCanvasPointerHover(PointerHoverEvent event) {
-    _canvasPointerPosition = event.localPosition;
+    _canvasPointerPosition.value = event.localPosition;
     if (_penEnabled && !_spaceHeld) _penTool.onPointerHover(event);
   }
 
@@ -889,7 +891,7 @@ class _CanvasPageState extends State<CanvasPage> {
       _lastPastedPayload = null;
       _pasteOffset = Offset.zero;
       _cutPayload = cut ? payload : null;
-      _pointerReference = (payload, _canvasPointerPosition);
+      _pointerReference = (payload, _canvasPointerPosition.value);
       if (cut) _removeElements(selected);
     } on Object {
       _showProjectSnackBar(
@@ -911,7 +913,7 @@ class _CanvasPageState extends State<CanvasPage> {
       if (elements == null) return;
       if (!mounted || !_documentLoaded) return;
 
-      final pointer = _canvasPointerPosition;
+      final pointer = _canvasPointerPosition.value;
       final placeAtPointer =
           pointer != null && (text, pointer) != _pointerReference;
       final pasted = [
@@ -1424,6 +1426,7 @@ class _CanvasPageState extends State<CanvasPage> {
       ..unregisterPasteEventListener(_handleWebPaste);
     _activeTool.dispose();
     _selectionModifierPressed.dispose();
+    _canvasPointerPosition.dispose();
     _penTool.dispose();
     _arrowTool
       ..removeListener(_handleArrowToolChanged)
@@ -1444,10 +1447,8 @@ class _CanvasPageState extends State<CanvasPage> {
           IgnorePointer(
             ignoring: !_documentLoaded,
             child: MouseRegion(
-              cursor: !_spaceHeld && _penEnabled
+              cursor: !_spaceHeld && (_penEnabled || _eraserEnabled)
                   ? SystemMouseCursors.none
-                  : !_spaceHeld && _eraserEnabled
-                  ? SystemMouseCursors.precise
                   : MouseCursor.defer,
               onExit: _handleCanvasPointerExit,
               child: Listener(
@@ -1486,6 +1487,25 @@ class _CanvasPageState extends State<CanvasPage> {
               child: IgnorePointer(
                 child: Scribble(notifier: _penTool),
               ),
+            ),
+          if (_eraserEnabled && !_spaceHeld)
+            ValueListenableBuilder<Offset?>(
+              valueListenable: _canvasPointerPosition,
+              builder: (context, pointer, child) {
+                if (pointer == null) return const SizedBox.shrink();
+                return Positioned(
+                  key: const ValueKey('eraser-cursor'),
+                  left: pointer.dx - 4,
+                  top: pointer.dy - 9,
+                  child: IgnorePointer(
+                    child: Icon(
+                      LucideIcons.eraser,
+                      color: colors.accent,
+                      size: 20,
+                    ),
+                  ),
+                );
+              },
             ),
           if ((_dragSelectionStart, _dragSelectionEnd) case (
             final start?,
