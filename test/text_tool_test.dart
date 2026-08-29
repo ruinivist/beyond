@@ -103,8 +103,7 @@ void main() {
     await tester.pumpWidget(const BeyondApp());
     await tester.pump();
     await tester.pump();
-    await tester.tap(find.byKey(const ValueKey('toolbar-code')));
-    await tester.pump();
+    await _placeCodeBlock(tester, const Offset(300, 200));
     final code = tester.widget<CodeBlock>(find.byType(CodeBlock)).model
       ..selected = true;
 
@@ -138,8 +137,7 @@ void main() {
     await tester.pumpWidget(const BeyondApp());
     await tester.pump();
     await tester.pump();
-    await tester.tap(find.byKey(const ValueKey('toolbar-code')));
-    await tester.pump();
+    await _placeCodeBlock(tester, const Offset(300, 200));
     final code = tester.widget<CodeBlock>(find.byType(CodeBlock)).model
       ..selected = true;
     code.controller.text = 'native code';
@@ -163,8 +161,7 @@ void main() {
     await tester.pumpWidget(const BeyondApp());
     await tester.pump();
     await tester.pump();
-    await tester.tap(find.byKey(const ValueKey('toolbar-code')));
-    await tester.pump();
+    await _placeCodeBlock(tester, const Offset(300, 200));
     final code = tester.widget<CodeBlock>(find.byType(CodeBlock)).model
       ..selected = true;
 
@@ -892,8 +889,7 @@ Inline $x^2$''';
     expect(model.editing, isTrue);
     expect(find.byType(TextBlockControls), findsOneWidget);
 
-    await tester.tap(find.byKey(const ValueKey('toolbar-code')));
-    await tester.pump();
+    await _placeCodeBlock(tester, const Offset(300, 200));
     await tester.pumpAndSettle();
     expect(model.editing, isFalse);
     expect(find.byType(TextBlockControls), findsNothing);
@@ -1142,6 +1138,13 @@ Future<TextBlockModel> _placeTextBlock(
   await tester.pump();
   await tester.pump();
   return tester.widget<TextBlock>(find.byType(TextBlock).last).model;
+}
+
+Future<void> _placeCodeBlock(WidgetTester tester, Offset position) async {
+  await tester.tap(find.byKey(const ValueKey('toolbar-code')));
+  await tester.pump();
+  await tester.tapAt(position);
+  await tester.pump();
 }
 
 class _FakeUrlLauncher extends UrlLauncherPlatform {

@@ -179,8 +179,7 @@ void main() {
       'saved text',
     );
 
-    await tester.tap(find.byKey(const ValueKey('toolbar-code')));
-    await tester.pump();
+    await _placeCodeBlock(tester, const Offset(120, 100));
     final code = tester.widget<CodeBlock>(find.byType(CodeBlock)).model
       ..language = CodeLanguage.json
       ..controller.text = '{"saved": true}';
@@ -599,8 +598,7 @@ void main() {
       findsOneWidget,
     );
 
-    await tester.tap(find.byKey(const ValueKey('toolbar-code')));
-    await tester.pump();
+    await _placeCodeBlock(tester, const Offset(120, 100));
     await tester.tapAt(
       tester.getCenter(find.byKey(const ValueKey('code-block-header'))),
     );
@@ -624,7 +622,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 100));
   });
 
-  testWidgets('ctrl+A selects code immediately after spawning it', (
+  testWidgets('code places once, returns to select, and focuses editor', (
     tester,
   ) async {
     await tester.pumpWidget(const BeyondApp());
@@ -633,17 +631,18 @@ void main() {
 
     await tester.tap(find.byKey(const ValueKey('toolbar-code')));
     await tester.pump();
-    final code = tester.widget<CodeBlock>(find.byType(CodeBlock)).model;
-    expect(code.focusNode.hasFocus, isFalse);
+    expect(find.byType(CodeBlock), findsNothing);
 
-    await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
-    await tester.sendKeyDownEvent(LogicalKeyboardKey.keyA);
-    await tester.sendKeyUpEvent(LogicalKeyboardKey.keyA);
-    await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+    await tester.tapAt(const Offset(120, 200));
     await tester.pump();
+    final code = tester.widget<CodeBlock>(find.byType(CodeBlock)).model;
+    expect(tester.getTopLeft(find.byType(CodeBlock)), const Offset(120, 200));
+    expect(code.focusNode.hasFocus, isTrue);
 
-    expect(code.selected, isTrue);
-    FocusManager.instance.primaryFocus?.unfocus();
+    await tester.tapAt(const Offset(20, 550));
+    await tester.pump();
+    expect(find.byType(CodeBlock), findsOneWidget);
+    expect(code.focusNode.hasFocus, isFalse);
     await tester.pump(const Duration(milliseconds: 100));
   });
 
@@ -673,7 +672,7 @@ void main() {
     );
     await tester.pump();
     await tester.tap(find.byKey(const ValueKey('toolbar-draw')));
-    await tester.tap(find.byKey(const ValueKey('toolbar-code')));
+    await _placeCodeBlock(tester, const Offset(120, 100));
     await tester.pump(const Duration(milliseconds: 100));
 
     final code = tester.widget<CodeBlock>(find.byType(CodeBlock)).model;
@@ -742,40 +741,13 @@ void main() {
     expect(find.byType(TextBlockControls), findsNothing);
   });
 
-  testWidgets('repeated code blocks cascade down and right', (tester) async {
-    await tester.pumpWidget(const BeyondApp());
-    await tester.pump();
-
-    await tester.tap(find.byKey(const ValueKey('toolbar-code')));
-    await tester.pump();
-    await tester.tap(find.byKey(const ValueKey('toolbar-code')));
-    await tester.pump();
-    await tester.tap(find.byKey(const ValueKey('toolbar-code')));
-    await tester.pump();
-
-    final blocks = find.byType(CodeBlock);
-    expect(blocks, findsNWidgets(3));
-    expect(
-      tester.getTopLeft(blocks.at(1)),
-      tester.getTopLeft(blocks.at(0)) + const Offset(24, 24),
-    );
-    expect(
-      tester.getTopLeft(blocks.at(2)),
-      tester.getTopLeft(blocks.at(1)) + const Offset(24, 24),
-    );
-
-    FocusManager.instance.primaryFocus?.unfocus();
-    await tester.pump(const Duration(milliseconds: 100));
-  });
-
   testWidgets('code blocks resize from the bottom-right handle', (
     tester,
   ) async {
     await tester.pumpWidget(const BeyondApp());
     await tester.pump();
 
-    await tester.tap(find.byKey(const ValueKey('toolbar-code')));
-    await tester.pump();
+    await _placeCodeBlock(tester, const Offset(120, 100));
     await tester.pump(const Duration(milliseconds: 100));
 
     final block = find.byType(CodeBlock);
@@ -802,8 +774,7 @@ void main() {
   testWidgets('code scroll boundary does not pan canvas', (tester) async {
     await tester.pumpWidget(const BeyondApp());
     await tester.pump();
-    await tester.tap(find.byKey(const ValueKey('toolbar-code')));
-    await tester.pump();
+    await _placeCodeBlock(tester, const Offset(120, 100));
 
     final block = find.byType(CodeBlock);
     final model = tester.widget<CodeBlock>(block).model;
@@ -841,8 +812,7 @@ void main() {
     await tester.pumpWidget(const BeyondApp());
     await tester.pump();
 
-    await tester.tap(find.byKey(const ValueKey('toolbar-code')));
-    await tester.pump();
+    await _placeCodeBlock(tester, const Offset(120, 100));
     await tester.pump(const Duration(milliseconds: 100));
 
     final block = find.byType(CodeBlock);
@@ -883,8 +853,7 @@ void main() {
     await tester.tapAt(const Offset(40, 520));
     await tester.pump();
     await tester.pump();
-    await tester.tap(find.byKey(const ValueKey('toolbar-code')));
-    await tester.pump();
+    await _placeCodeBlock(tester, const Offset(120, 100));
     await tester.pump(const Duration(milliseconds: 100));
 
     final text = tester.widget<TextBlock>(find.byType(TextBlock)).model;
@@ -966,7 +935,7 @@ void main() {
     );
     await tester.pump();
     await tester.tap(find.byKey(const ValueKey('toolbar-draw')));
-    await tester.tap(find.byKey(const ValueKey('toolbar-code')));
+    await _placeCodeBlock(tester, const Offset(120, 100));
     await tester.pump(const Duration(milliseconds: 100));
 
     final textFinder = find.byType(TextBlock);
@@ -1026,7 +995,7 @@ void main() {
     await tester.tapAt(const Offset(40, 520));
     await tester.pump();
     await tester.pump();
-    await tester.tap(find.byKey(const ValueKey('toolbar-code')));
+    await _placeCodeBlock(tester, const Offset(120, 100));
     await tester.pump(const Duration(milliseconds: 100));
 
     final text = tester.widget<TextBlock>(find.byType(TextBlock)).model;
@@ -1074,7 +1043,7 @@ void main() {
     await tester.tapAt(const Offset(40, 520));
     await tester.pump();
     await tester.pump();
-    await tester.tap(find.byKey(const ValueKey('toolbar-code')));
+    await _placeCodeBlock(tester, const Offset(120, 100));
     await tester.pump(const Duration(milliseconds: 100));
 
     final textFinder = find.byType(TextBlock);
@@ -1133,7 +1102,7 @@ void main() {
     );
     await tester.pump();
     await tester.tap(find.byKey(const ValueKey('toolbar-draw')));
-    await tester.tap(find.byKey(const ValueKey('toolbar-code')));
+    await _placeCodeBlock(tester, const Offset(120, 100));
     await tester.pump(const Duration(milliseconds: 100));
 
     final texts = tester
@@ -1201,8 +1170,7 @@ void main() {
   testWidgets('right and middle drag pan over block controls', (tester) async {
     await tester.pumpWidget(const BeyondApp());
     await tester.pump();
-    await tester.tap(find.byKey(const ValueKey('toolbar-code')));
-    await tester.pump();
+    await _placeCodeBlock(tester, const Offset(120, 100));
 
     final block = find.byType(CodeBlock);
     final model = tester.widget<CodeBlock>(block).model;
@@ -1412,4 +1380,11 @@ void main() {
     );
     expect(saved.elements.map((element) => element.id), ['pen-safe']);
   });
+}
+
+Future<void> _placeCodeBlock(WidgetTester tester, Offset position) async {
+  await tester.tap(find.byKey(const ValueKey('toolbar-code')));
+  await tester.pump();
+  await tester.tapAt(position);
+  await tester.pump();
 }

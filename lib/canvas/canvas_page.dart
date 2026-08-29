@@ -33,7 +33,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:super_clipboard/super_clipboard.dart';
 import 'package:uuid/uuid.dart';
 
-enum _CanvasTool { select, text, pen, arrow, eraser }
+enum _CanvasTool { select, text, code, pen, arrow, eraser }
 
 class CanvasPage extends StatefulWidget {
   const CanvasPage({
@@ -117,7 +117,13 @@ class _CanvasPageState extends State<CanvasPage> {
 
   bool get _arrowEnabled => _activeTool.value == _CanvasTool.arrow;
 
-  bool get _textPlacementEnabled => _activeTool.value == _CanvasTool.text;
+  ValueChanged<Offset>? get _placementAction => switch (_activeTool.value) {
+    _CanvasTool.text => _addTextBlock,
+    _CanvasTool.code => _addCodeBlock,
+    _ => null,
+  };
+
+  bool get _placementEnabled => _placementAction != null;
 
   bool get _eraserEnabled => _activeTool.value == _CanvasTool.eraser;
 
@@ -180,12 +186,6 @@ class _CanvasPageState extends State<CanvasPage> {
     _canvasController.background = _canvasBackgroundKind.build(colors);
   }
 
-  Offset _viewportCenter() {
-    final viewport = _canvasController.canvasSize;
-    return _canvasController.offset +
-        Offset(viewport.width, viewport.height) / (2 * _canvasController.scale);
-  }
-
   void _toggleTool(_CanvasTool tool) {
     if (!_documentLoaded) return;
     final enabling = _activeTool.value != tool;
@@ -210,6 +210,14 @@ class _CanvasPageState extends State<CanvasPage> {
     _penTool.setStrokeWidth(width);
   }
 
+  bool _tryPlaceActiveTool(Offset position) {
+    final place = _placementAction;
+    if (place == null) return false;
+    setState(() => _activeTool.value = _CanvasTool.select);
+    place(position);
+    return true;
+  }
+
   void _handleCanvasPointerDown(PointerDownEvent event) {
     if (!_documentLoaded) return;
     _canvasPointerPosition.value = event.localPosition;
@@ -230,14 +238,10 @@ class _CanvasPageState extends State<CanvasPage> {
     final onInteractiveChild = _interactiveCanvasPointerIds.remove(
       event.pointer,
     );
-    if (_textPlacementEnabled) {
-      setState(() => _activeTool.value = _CanvasTool.select);
-      _addTextBlock(
+    final position =
         _canvasController.offset +
-            event.localPosition / _canvasController.scale,
-      );
-      return;
-    }
+        event.localPosition / _canvasController.scale;
+    if (_tryPlaceActiveTool(position)) return;
     if (onInteractiveChild) {
       if (!_selectionModifierPressed.value) {
         _selectionBeforeWidgetPointer
@@ -249,11 +253,7 @@ class _CanvasPageState extends State<CanvasPage> {
       return;
     }
     if (_arrowEnabled) {
-      _arrowTool.onPointerDown(
-        event,
-        _canvasController.offset +
-            event.localPosition / _canvasController.scale,
-      );
+      _arrowTool.onPointerDown(event, position);
       return;
     }
     FocusManager.instance.primaryFocus?.unfocus();
@@ -410,7 +410,7 @@ class _CanvasPageState extends State<CanvasPage> {
   ) {
     if (event.buttons != kPrimaryButton ||
         !_documentLoaded ||
-        _textPlacementEnabled ||
+        _placementEnabled ||
         _penEnabled ||
         _eraserEnabled) {
       return;
@@ -431,7 +431,7 @@ class _CanvasPageState extends State<CanvasPage> {
     PointerDownEvent event,
   ) {
     if (event.buttons != kPrimaryButton ||
-        _textPlacementEnabled ||
+        _placementEnabled ||
         _penEnabled ||
         _eraserEnabled) {
       return;
@@ -452,7 +452,7 @@ class _CanvasPageState extends State<CanvasPage> {
 
   void _editTextBlock(TextBlockModel model) {
     if (!_documentLoaded ||
-        _textPlacementEnabled ||
+        _placementEnabled ||
         _penEnabled ||
         _eraserEnabled ||
         !_elements.contains(model)) {
@@ -510,7 +510,7 @@ class _CanvasPageState extends State<CanvasPage> {
 
   void _moveSelectedChildren(CanvasElementModel dragged, Offset screenDelta) {
     if (!_documentLoaded ||
-        _textPlacementEnabled ||
+        _placementEnabled ||
         _penEnabled ||
         _eraserEnabled ||
         _selectionModifierPressed.value ||
@@ -551,7 +551,7 @@ class _CanvasPageState extends State<CanvasPage> {
     Offset screenDelta,
   ) {
     if (!_documentLoaded ||
-        _textPlacementEnabled ||
+        _placementEnabled ||
         _penEnabled ||
         _eraserEnabled) {
       return;
@@ -572,7 +572,7 @@ class _CanvasPageState extends State<CanvasPage> {
 
   void _rotateTextBlock(TextBlockModel model, double angle) {
     if (!_documentLoaded ||
-        _textPlacementEnabled ||
+        _placementEnabled ||
         _penEnabled ||
         _eraserEnabled) {
       return;
@@ -684,9 +684,8 @@ class _CanvasPageState extends State<CanvasPage> {
     );
     _editorFocusNode(model)?.addListener(_finishHistoryOperation);
     if (requestFocus) {
-      final text = model as TextBlockModel;
       WidgetsBinding.instance.addPostFrameCallback(
-        (_) => text.focusNode.requestFocus(),
+        (_) => _editorFocusNode(model)?.requestFocus(),
       );
     }
   }
@@ -701,17 +700,9 @@ class _CanvasPageState extends State<CanvasPage> {
     if (_penEnabled && !_spaceHeld) _penTool.onPointerHover(event);
   }
 
-  void _addCodeBlock() {
+  void _addCodeBlock(Offset position) {
     if (!_documentLoaded) return;
-    _prepareInteractiveBlock();
     final size = _fittedBlockSize(const Size(600, 400), codeBlockMinimumSize);
-    var position = _viewportCenter() - Offset(size.width / 2, size.height / 2);
-    final placementOffset = const Offset(24, 24) / _canvasController.scale;
-    while (_elements.whereType<CodeBlockModel>().any(
-      (block) => block.data.position == position,
-    )) {
-      position += placementOffset;
-    }
     final model = CodeBlockModel(
       CodeElementData(
         id: const Uuid().v4(),
@@ -721,7 +712,7 @@ class _CanvasPageState extends State<CanvasPage> {
         source: '',
       ),
     );
-    _mountElement(model);
+    _mountElement(model, requestFocus: true);
     _scheduleDocumentSave();
     _finishHistoryOperation();
   }
@@ -739,16 +730,6 @@ class _CanvasPageState extends State<CanvasPage> {
         math.min(preferred.height, (viewport.height - 32) / scale),
       ),
     );
-  }
-
-  void _prepareInteractiveBlock() {
-    _clearTextEditing();
-    setState(() {
-      _activeTool.value = _CanvasTool.select;
-      _eraserPointer = null;
-      _spaceHeld = false;
-    });
-    FocusManager.instance.primaryFocus?.unfocus();
   }
 
   void _addStroke(Sketch sketch) {
@@ -785,7 +766,7 @@ class _CanvasPageState extends State<CanvasPage> {
   ) {
     if (event.buttons != kPrimaryButton ||
         !_documentLoaded ||
-        _textPlacementEnabled ||
+        _placementEnabled ||
         _penEnabled ||
         _eraserEnabled ||
         _arrowEnabled ||
@@ -816,7 +797,7 @@ class _CanvasPageState extends State<CanvasPage> {
   ) {
     if (event.buttons != kPrimaryButton ||
         !_documentLoaded ||
-        _textPlacementEnabled ||
+        _placementEnabled ||
         _penEnabled ||
         _eraserEnabled ||
         !_elements.contains(model)) {
@@ -1592,7 +1573,7 @@ class _CanvasPageState extends State<CanvasPage> {
                           key: const ValueKey('toolbar-text'),
                           variant: ButtonVariant.toolbar,
                           size: ButtonSize.toolbar,
-                          selected: _textPlacementEnabled,
+                          selected: _activeTool.value == _CanvasTool.text,
                           onPressed: () => _toggleTool(_CanvasTool.text),
                           child: _toolbarContent(
                             'Text',
@@ -1601,12 +1582,13 @@ class _CanvasPageState extends State<CanvasPage> {
                         ),
                       ),
                       Tooltip(
-                        message: 'Add code block',
+                        message: 'Place code block',
                         child: Button(
                           key: const ValueKey('toolbar-code'),
                           variant: ButtonVariant.toolbar,
                           size: ButtonSize.toolbar,
-                          onPressed: _addCodeBlock,
+                          selected: _activeTool.value == _CanvasTool.code,
+                          onPressed: () => _toggleTool(_CanvasTool.code),
                           child: _toolbarContent(
                             'Code',
                             LucideIcons.codeXml,
