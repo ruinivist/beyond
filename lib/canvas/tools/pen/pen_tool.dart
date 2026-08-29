@@ -199,9 +199,7 @@ class PenTool extends ChangeNotifier {
 
   final ValueChanged<RawPenStroke> onStroke;
   final _points = <PenPointData>[];
-  final _previewPath = Path();
   int? _activePointer;
-  Offset? _tailStart;
   Offset? _pointerPosition;
   Color _color = Colors.black;
   double _strokeWidth = 4;
@@ -249,19 +247,6 @@ class PenTool extends ChangeNotifier {
         (position - _points.last.position).distanceSquared <=
             _minimumPointDistanceSquared) {
       return;
-    }
-    if (_points case [..., final previous]) {
-      final midpoint = (previous.position + position) / 2;
-      _previewPath.quadraticBezierTo(
-        previous.position.dx,
-        previous.position.dy,
-        midpoint.dx,
-        midpoint.dy,
-      );
-      _tailStart = midpoint;
-    } else {
-      _previewPath.moveTo(position.dx, position.dy);
-      _tailStart = position;
     }
     _points.add(PenPointData(position, pressure: _pressure(event)));
   }
@@ -315,8 +300,6 @@ class PenTool extends ChangeNotifier {
     );
     _activePointer = null;
     _points.clear();
-    _previewPath.reset();
-    _tailStart = null;
     final pendingColor = _pendingColor;
     final pendingWidth = _pendingStrokeWidth;
     _pendingColor = null;
@@ -337,16 +320,12 @@ class PenPreviewPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = tool._color
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = tool._strokeWidth
-      ..strokeCap = StrokeCap.round
-      ..strokeJoin = StrokeJoin.round;
-    canvas.drawPath(tool._previewPath, paint);
-    if (tool._tailStart case final start?) {
-      canvas.drawLine(start, tool._pointerPosition!, paint);
-    }
+    canvas.drawPath(
+      createPenPath(tool._points, tool._strokeWidth),
+      Paint()
+        ..color = tool._color
+        ..style = PaintingStyle.fill,
+    );
     if (tool._pointerPosition case final pointer?) {
       canvas.drawCircle(
         pointer,
