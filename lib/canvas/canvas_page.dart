@@ -27,7 +27,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:infinite_lazy_grid/infinite_lazy_grid.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:scribble/scribble.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:super_clipboard/super_clipboard.dart';
 import 'package:uuid/uuid.dart';
 
@@ -55,6 +57,7 @@ class CanvasPage extends StatefulWidget {
 
 class _CanvasPageState extends State<CanvasPage> {
   static const _historyLimit = 50;
+  static const _noIconsPreferenceKey = 'interface.no_icons';
 
   final _canvasController = LazyCanvasController(
     buildCacheExtent: const Offset(600, 400),
@@ -104,8 +107,11 @@ class _CanvasPageState extends State<CanvasPage> {
   (String, Offset?)? _pointerReference;
   final _undoHistory = <String>[];
   final _redoHistory = <String>[];
+  final _preferences = SharedPreferencesAsync();
   String? _historyCurrent;
   var _historyOperationActive = false;
+  var _noIcons = false;
+  var _noIconsChanged = false;
 
   bool get _penEnabled => _activeTool.value == _CanvasTool.pen;
 
@@ -132,7 +138,35 @@ class _CanvasPageState extends State<CanvasPage> {
       ?..registerCopyEventListener(_handleWebCopy)
       ..registerCutEventListener(_handleWebCut)
       ..registerPasteEventListener(_handleWebPaste);
+    unawaited(_restoreNoIcons());
     unawaited(_restoreDocument());
+  }
+
+  Future<void> _restoreNoIcons() async {
+    try {
+      final noIcons =
+          await _preferences.getBool(_noIconsPreferenceKey) ?? false;
+      if (mounted && !_noIconsChanged && noIcons != _noIcons) {
+        setState(() => _noIcons = noIcons);
+      }
+    } on Object {
+      // Keep the icon default when preferences are unavailable.
+    }
+  }
+
+  void _setNoIcons(bool noIcons) {
+    if (noIcons == _noIcons) return;
+    _noIconsChanged = true;
+    setState(() => _noIcons = noIcons);
+    unawaited(_persistNoIcons(noIcons));
+  }
+
+  Future<void> _persistNoIcons(bool noIcons) async {
+    try {
+      await _preferences.setBool(_noIconsPreferenceKey, noIcons);
+    } on Object {
+      // The live setting still works when persistence is unavailable.
+    }
   }
 
   void _handleArrowToolChanged() {
@@ -977,7 +1011,9 @@ class _CanvasPageState extends State<CanvasPage> {
         barrierColor: BTheme.of(context).colors.scrim,
         builder: (_) => SettingsDialog(
           canvasBackgroundKind: _canvasBackgroundKind,
+          noIcons: _noIcons,
           onCanvasBackgroundChanged: _setCanvasBackground,
+          onNoIconsChanged: _setNoIcons,
           onImportCanvas: _importProject,
           onExportCanvas: _exportProject,
         ),
@@ -1533,50 +1569,70 @@ class _CanvasPageState extends State<CanvasPage> {
                       Tooltip(
                         message: 'Place text',
                         child: Button(
+                          key: const ValueKey('toolbar-text'),
                           variant: ButtonVariant.toolbar,
                           size: ButtonSize.toolbar,
                           selected: _textPlacementEnabled,
                           onPressed: () => _toggleTool(_CanvasTool.text),
-                          child: const Text('Text'),
+                          child: _toolbarContent(
+                            'Text',
+                            LucideIcons.type,
+                          ),
                         ),
                       ),
                       Tooltip(
                         message: 'Add code block',
                         child: Button(
+                          key: const ValueKey('toolbar-code'),
                           variant: ButtonVariant.toolbar,
                           size: ButtonSize.toolbar,
                           onPressed: _addCodeBlock,
-                          child: const Text('Code'),
+                          child: _toolbarContent(
+                            'Code',
+                            LucideIcons.codeXml,
+                          ),
                         ),
                       ),
                       Tooltip(
                         message: 'Draw with pen',
                         child: Button(
+                          key: const ValueKey('toolbar-draw'),
                           variant: ButtonVariant.toolbar,
                           size: ButtonSize.toolbar,
                           selected: _penEnabled,
                           onPressed: () => _toggleTool(_CanvasTool.pen),
-                          child: const Text('Draw'),
+                          child: _toolbarContent(
+                            'Draw',
+                            LucideIcons.pencil,
+                          ),
                         ),
                       ),
                       Tooltip(
                         message: 'Erase elements',
                         child: Button(
+                          key: const ValueKey('toolbar-erase'),
                           variant: ButtonVariant.toolbar,
                           size: ButtonSize.toolbar,
                           selected: _eraserEnabled,
                           onPressed: () => _toggleTool(_CanvasTool.eraser),
-                          child: const Text('Erase'),
+                          child: _toolbarContent(
+                            'Erase',
+                            LucideIcons.eraser,
+                          ),
                         ),
                       ),
                       Tooltip(
                         message: 'Draw an arrow',
                         child: Button(
+                          key: const ValueKey('toolbar-arrow'),
                           variant: ButtonVariant.toolbar,
                           size: ButtonSize.toolbar,
                           selected: _arrowEnabled,
                           onPressed: () => _toggleTool(_CanvasTool.arrow),
-                          child: const Text('Arrow'),
+                          child: _toolbarContent(
+                            'Arrow',
+                            LucideIcons.arrowUpRight,
+                          ),
                         ),
                       ),
                     ],
@@ -1606,7 +1662,7 @@ class _CanvasPageState extends State<CanvasPage> {
                         tooltip: 'Settings',
                         onPressed: _showSettingsDialog,
                         style: _toolbarIconButtonStyle(colors, geo),
-                        icon: const Icon(Icons.settings_outlined),
+                        icon: const Icon(LucideIcons.settings),
                       ),
                     ),
                     if (_penEnabled) ...[
@@ -1627,6 +1683,9 @@ class _CanvasPageState extends State<CanvasPage> {
       ),
     );
   }
+
+  Widget _toolbarContent(String label, IconData icon) =>
+      _noIcons ? Text(label) : Icon(icon, size: 20, semanticLabel: label);
 }
 
 class _DrawSettings extends StatelessWidget {

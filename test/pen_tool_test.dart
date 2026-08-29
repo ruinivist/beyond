@@ -23,7 +23,57 @@ import 'package:shared_preferences_web/shared_preferences_web.dart';
 void main() {
   setUp(() async {
     SharedPreferencesAsyncWeb.registerWith(null);
-    await SharedPreferencesAsync().remove(CanvasDocumentStore.key);
+    final preferences = SharedPreferencesAsync();
+    await preferences.remove(CanvasDocumentStore.key);
+    await preferences.remove('interface.no_icons');
+  });
+
+  testWidgets('toolbar icons can be replaced with persistent labels', (
+    tester,
+  ) async {
+    await tester.pumpWidget(const BeyondApp());
+    await tester.pump();
+    await tester.pump();
+
+    const tools = ['text', 'code', 'draw', 'erase', 'arrow'];
+    for (final tool in tools) {
+      expect(
+        find.descendant(
+          of: find.byKey(ValueKey('toolbar-$tool')),
+          matching: find.byType(Icon),
+        ),
+        findsOneWidget,
+      );
+    }
+    expect(find.text('Text'), findsNothing);
+
+    await tester.tap(find.byKey(const ValueKey('settings-button')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Interface'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('no-icons-switch')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Text'), findsOneWidget);
+    expect(
+      await SharedPreferencesAsync().getBool('interface.no_icons'),
+      isTrue,
+    );
+
+    await tester.pumpWidget(const SizedBox());
+    await tester.pump();
+    await tester.pumpWidget(const BeyondApp());
+    await tester.pump();
+    await tester.pump();
+
+    expect(find.text('Text'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('toolbar-text')),
+        matching: find.byType(Icon),
+      ),
+      findsNothing,
+    );
   });
 
   test('positions a screen stroke in canvas coordinates', () {
@@ -117,7 +167,7 @@ void main() {
     await tester.pump();
     await tester.pump();
 
-    await tester.tap(find.text('Text'));
+    await tester.tap(find.byKey(const ValueKey('toolbar-text')));
     await tester.pump();
     await tester.tapAt(const Offset(40, 160));
     await tester.pump();
@@ -129,7 +179,7 @@ void main() {
       'saved text',
     );
 
-    await tester.tap(find.text('Code'));
+    await tester.tap(find.byKey(const ValueKey('toolbar-code')));
     await tester.pump();
     final code = tester.widget<CodeBlock>(find.byType(CodeBlock)).model
       ..language = CodeLanguage.json
@@ -137,7 +187,7 @@ void main() {
     final codePosition = code.data.position;
     await tester.pump();
 
-    await tester.tap(find.text('Draw'));
+    await tester.tap(find.byKey(const ValueKey('toolbar-draw')));
     await tester.pump();
     await tester.dragFrom(
       const Offset(40, 520),
@@ -149,10 +199,10 @@ void main() {
     final penPosition = pen.data.position;
     final penSize = pen.data.size;
     final penPoint = pen.data.sketch.lines.single.points.first;
-    await tester.tap(find.text('Draw'));
+    await tester.tap(find.byKey(const ValueKey('toolbar-draw')));
     await tester.pump();
 
-    await tester.tap(find.text('Arrow'));
+    await tester.tap(find.byKey(const ValueKey('toolbar-arrow')));
     await tester.pump();
     final arrowDrag = await tester.startGesture(
       const Offset(520, 520),
@@ -275,7 +325,7 @@ void main() {
     await tester.pumpWidget(const BeyondApp());
     await tester.pump();
 
-    await tester.tap(find.text('Draw'));
+    await tester.tap(find.byKey(const ValueKey('toolbar-draw')));
     await tester.pump();
     await tester.dragFrom(const Offset(100, 200), const Offset(80, 40));
     await tester.pump();
@@ -394,7 +444,7 @@ void main() {
     await tester.pumpWidget(const BeyondApp());
     await tester.pump();
 
-    await tester.tap(find.text('Draw'));
+    await tester.tap(find.byKey(const ValueKey('toolbar-draw')));
     await tester.pump();
     expect(find.byKey(const ValueKey('draw-settings-panel')), findsOneWidget);
     expect(find.textContaining('px'), findsNothing);
@@ -444,10 +494,10 @@ void main() {
     );
     expect(strokes.last.width, 2.25);
 
-    await tester.tap(find.text('Erase'));
+    await tester.tap(find.byKey(const ValueKey('toolbar-erase')));
     await tester.pump();
     expect(find.byKey(const ValueKey('draw-settings-panel')), findsNothing);
-    await tester.tap(find.text('Draw'));
+    await tester.tap(find.byKey(const ValueKey('toolbar-draw')));
     await tester.pump();
     expect(
       tester
@@ -484,7 +534,7 @@ void main() {
     addTearDown(tester.view.resetDevicePixelRatio);
     await tester.pumpWidget(const BeyondApp());
     await tester.pump();
-    await tester.tap(find.text('Draw'));
+    await tester.tap(find.byKey(const ValueKey('toolbar-draw')));
     await tester.pump();
 
     final toolbar = tester.getRect(
@@ -507,11 +557,11 @@ void main() {
     await tester.pumpWidget(const BeyondApp());
     await tester.pump();
 
-    await tester.tap(find.text('Draw'));
+    await tester.tap(find.byKey(const ValueKey('toolbar-draw')));
     await tester.pump();
     await tester.dragFrom(const Offset(40, 300), const Offset(60, 60));
     await tester.pump();
-    await tester.tap(find.text('Draw'));
+    await tester.tap(find.byKey(const ValueKey('toolbar-draw')));
     await tester.pump();
 
     final strokeFinder = find.byType(PenStroke);
@@ -549,7 +599,7 @@ void main() {
       findsOneWidget,
     );
 
-    await tester.tap(find.text('Code'));
+    await tester.tap(find.byKey(const ValueKey('toolbar-code')));
     await tester.pump();
     await tester.tapAt(
       tester.getCenter(find.byKey(const ValueKey('code-block-header'))),
@@ -581,7 +631,7 @@ void main() {
     await tester.pump();
     await tester.pump();
 
-    await tester.tap(find.text('Code'));
+    await tester.tap(find.byKey(const ValueKey('toolbar-code')));
     await tester.pump();
     final code = tester.widget<CodeBlock>(find.byType(CodeBlock)).model;
     expect(code.focusNode.hasFocus, isFalse);
@@ -604,7 +654,7 @@ void main() {
     await tester.pump();
     await tester.pump();
 
-    await tester.tap(find.text('Text'));
+    await tester.tap(find.byKey(const ValueKey('toolbar-text')));
     await tester.pump();
     await tester.tapAt(const Offset(40, 520));
     await tester.pump();
@@ -615,15 +665,15 @@ void main() {
     canvas.controller.updatePosition(textId, const Offset(10000, 10000));
     await tester.pump();
 
-    await tester.tap(find.text('Draw'));
+    await tester.tap(find.byKey(const ValueKey('toolbar-draw')));
     await tester.pump();
     await tester.dragFrom(
       const Offset(350, 540),
       const Offset(50, 20),
     );
     await tester.pump();
-    await tester.tap(find.text('Draw'));
-    await tester.tap(find.text('Code'));
+    await tester.tap(find.byKey(const ValueKey('toolbar-draw')));
+    await tester.tap(find.byKey(const ValueKey('toolbar-code')));
     await tester.pump(const Duration(milliseconds: 100));
 
     final code = tester.widget<CodeBlock>(find.byType(CodeBlock)).model;
@@ -674,7 +724,7 @@ void main() {
   testWidgets('enabling pen stops text editing', (tester) async {
     await tester.pumpWidget(const BeyondApp());
     await tester.pump();
-    await tester.tap(find.text('Text'));
+    await tester.tap(find.byKey(const ValueKey('toolbar-text')));
     await tester.pump();
     await tester.tapAt(const Offset(120, 200));
     await tester.pump();
@@ -684,7 +734,7 @@ void main() {
     expect(model.editing, isTrue);
     expect(find.byType(TextBlockControls), findsOneWidget);
 
-    await tester.tap(find.text('Draw'));
+    await tester.tap(find.byKey(const ValueKey('toolbar-draw')));
     await tester.pump();
     await tester.pumpAndSettle();
 
@@ -696,11 +746,11 @@ void main() {
     await tester.pumpWidget(const BeyondApp());
     await tester.pump();
 
-    await tester.tap(find.text('Code'));
+    await tester.tap(find.byKey(const ValueKey('toolbar-code')));
     await tester.pump();
-    await tester.tap(find.text('Code'));
+    await tester.tap(find.byKey(const ValueKey('toolbar-code')));
     await tester.pump();
-    await tester.tap(find.text('Code'));
+    await tester.tap(find.byKey(const ValueKey('toolbar-code')));
     await tester.pump();
 
     final blocks = find.byType(CodeBlock);
@@ -724,7 +774,7 @@ void main() {
     await tester.pumpWidget(const BeyondApp());
     await tester.pump();
 
-    await tester.tap(find.text('Code'));
+    await tester.tap(find.byKey(const ValueKey('toolbar-code')));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 100));
 
@@ -752,7 +802,7 @@ void main() {
   testWidgets('code scroll boundary does not pan canvas', (tester) async {
     await tester.pumpWidget(const BeyondApp());
     await tester.pump();
-    await tester.tap(find.text('Code'));
+    await tester.tap(find.byKey(const ValueKey('toolbar-code')));
     await tester.pump();
 
     final block = find.byType(CodeBlock);
@@ -791,7 +841,7 @@ void main() {
     await tester.pumpWidget(const BeyondApp());
     await tester.pump();
 
-    await tester.tap(find.text('Code'));
+    await tester.tap(find.byKey(const ValueKey('toolbar-code')));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 100));
 
@@ -828,12 +878,12 @@ void main() {
     await tester.pumpWidget(const BeyondApp());
     await tester.pump();
 
-    await tester.tap(find.text('Text'));
+    await tester.tap(find.byKey(const ValueKey('toolbar-text')));
     await tester.pump();
     await tester.tapAt(const Offset(40, 520));
     await tester.pump();
     await tester.pump();
-    await tester.tap(find.text('Code'));
+    await tester.tap(find.byKey(const ValueKey('toolbar-code')));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 100));
 
@@ -902,12 +952,12 @@ void main() {
     await tester.pumpWidget(const BeyondApp());
     await tester.pump();
 
-    await tester.tap(find.text('Text'));
+    await tester.tap(find.byKey(const ValueKey('toolbar-text')));
     await tester.pump();
     await tester.tapAt(const Offset(40, 520));
     await tester.pump();
     await tester.pump();
-    await tester.tap(find.text('Draw'));
+    await tester.tap(find.byKey(const ValueKey('toolbar-draw')));
     await tester.pump();
     await tester.dragFrom(
       const Offset(350, 540),
@@ -915,8 +965,8 @@ void main() {
       kind: PointerDeviceKind.mouse,
     );
     await tester.pump();
-    await tester.tap(find.text('Draw'));
-    await tester.tap(find.text('Code'));
+    await tester.tap(find.byKey(const ValueKey('toolbar-draw')));
+    await tester.tap(find.byKey(const ValueKey('toolbar-code')));
     await tester.pump(const Duration(milliseconds: 100));
 
     final textFinder = find.byType(TextBlock);
@@ -971,12 +1021,12 @@ void main() {
     await tester.pumpWidget(const BeyondApp());
     await tester.pump();
 
-    await tester.tap(find.text('Text'));
+    await tester.tap(find.byKey(const ValueKey('toolbar-text')));
     await tester.pump();
     await tester.tapAt(const Offset(40, 520));
     await tester.pump();
     await tester.pump();
-    await tester.tap(find.text('Code'));
+    await tester.tap(find.byKey(const ValueKey('toolbar-code')));
     await tester.pump(const Duration(milliseconds: 100));
 
     final text = tester.widget<TextBlock>(find.byType(TextBlock)).model;
@@ -1019,12 +1069,12 @@ void main() {
     await tester.pumpWidget(const BeyondApp());
     await tester.pump();
 
-    await tester.tap(find.text('Text'));
+    await tester.tap(find.byKey(const ValueKey('toolbar-text')));
     await tester.pump();
     await tester.tapAt(const Offset(40, 520));
     await tester.pump();
     await tester.pump();
-    await tester.tap(find.text('Code'));
+    await tester.tap(find.byKey(const ValueKey('toolbar-code')));
     await tester.pump(const Duration(milliseconds: 100));
 
     final textFinder = find.byType(TextBlock);
@@ -1066,15 +1116,15 @@ void main() {
     await tester.pumpWidget(const BeyondApp());
     await tester.pump();
 
-    await tester.tap(find.text('Text'));
+    await tester.tap(find.byKey(const ValueKey('toolbar-text')));
     await tester.pump();
     await tester.tapAt(const Offset(40, 520));
     await tester.pump();
-    await tester.tap(find.text('Text'));
+    await tester.tap(find.byKey(const ValueKey('toolbar-text')));
     await tester.pump();
     await tester.tapAt(const Offset(500, 520));
     await tester.pump();
-    await tester.tap(find.text('Draw'));
+    await tester.tap(find.byKey(const ValueKey('toolbar-draw')));
     await tester.pump();
     await tester.dragFrom(
       const Offset(350, 540),
@@ -1082,8 +1132,8 @@ void main() {
       kind: PointerDeviceKind.mouse,
     );
     await tester.pump();
-    await tester.tap(find.text('Draw'));
-    await tester.tap(find.text('Code'));
+    await tester.tap(find.byKey(const ValueKey('toolbar-draw')));
+    await tester.tap(find.byKey(const ValueKey('toolbar-code')));
     await tester.pump(const Duration(milliseconds: 100));
 
     final texts = tester
@@ -1151,7 +1201,7 @@ void main() {
   testWidgets('right and middle drag pan over block controls', (tester) async {
     await tester.pumpWidget(const BeyondApp());
     await tester.pump();
-    await tester.tap(find.text('Code'));
+    await tester.tap(find.byKey(const ValueKey('toolbar-code')));
     await tester.pump();
 
     final block = find.byType(CodeBlock);
@@ -1203,7 +1253,7 @@ void main() {
   ) async {
     await tester.pumpWidget(const BeyondApp());
     await tester.pump();
-    await tester.tap(find.text('Draw'));
+    await tester.tap(find.byKey(const ValueKey('toolbar-draw')));
     await tester.pump();
 
     final canvas = tester.widget<LazyCanvas>(find.byType(LazyCanvas));
@@ -1227,7 +1277,7 @@ void main() {
   ) async {
     await tester.pumpWidget(const BeyondApp());
     await tester.pump();
-    await tester.tap(find.text('Draw'));
+    await tester.tap(find.byKey(const ValueKey('toolbar-draw')));
     await tester.pump();
 
     await tester.sendKeyDownEvent(LogicalKeyboardKey.space);
@@ -1317,8 +1367,8 @@ void main() {
     await tester.pump();
     await tester.pump();
 
-    await tester.tap(find.text('Draw'));
-    await tester.tap(find.text('Erase'));
+    await tester.tap(find.byKey(const ValueKey('toolbar-draw')));
+    await tester.tap(find.byKey(const ValueKey('toolbar-erase')));
     await tester.pump();
     final erase = await tester.startGesture(
       const Offset(150, 300),

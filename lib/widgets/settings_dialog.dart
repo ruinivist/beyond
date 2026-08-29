@@ -9,14 +9,18 @@ import 'package:flutter/material.dart';
 class SettingsDialog extends StatefulWidget {
   const SettingsDialog({
     this.canvasBackgroundKind = CanvasBackgroundKind.dotGrid,
+    this.noIcons = false,
     this.onCanvasBackgroundChanged,
+    this.onNoIconsChanged,
     this.onImportCanvas,
     this.onExportCanvas,
     super.key,
   });
 
   final CanvasBackgroundKind canvasBackgroundKind;
+  final bool noIcons;
   final ValueChanged<CanvasBackgroundKind>? onCanvasBackgroundChanged;
+  final ValueChanged<bool>? onNoIconsChanged;
   final Future<bool> Function()? onImportCanvas;
   final Future<void> Function()? onExportCanvas;
 
@@ -24,11 +28,12 @@ class SettingsDialog extends StatefulWidget {
   State<SettingsDialog> createState() => _SettingsDialogState();
 }
 
-enum _SettingsSection { about, canvas }
+enum _SettingsSection { about, canvas, interface }
 
 class _SettingsDialogState extends State<SettingsDialog> {
   _SettingsSection _section = _SettingsSection.canvas;
   late CanvasBackgroundKind _canvasBackgroundKind = widget.canvasBackgroundKind;
+  late bool _noIcons = widget.noIcons;
   var _transferActive = false;
 
   Future<void> _importCanvas() async {
@@ -186,15 +191,21 @@ class _SettingsDialogState extends State<SettingsDialog> {
     final children = [
       _navigationItem(
         context,
-        section: _SettingsSection.about,
-        icon: Icons.info_outline,
-        label: 'About',
+        section: _SettingsSection.interface,
+        icon: Icons.tune,
+        label: 'Interface',
       ),
       _navigationItem(
         context,
         section: _SettingsSection.canvas,
         icon: Icons.grid_view,
         label: 'Canvas',
+      ),
+      _navigationItem(
+        context,
+        section: _SettingsSection.about,
+        icon: Icons.info_outline,
+        label: 'About',
       ),
     ];
 
@@ -278,7 +289,37 @@ class _SettingsDialogState extends State<SettingsDialog> {
     return switch (_section) {
       _SettingsSection.about => _aboutContent(context),
       _SettingsSection.canvas => _canvasContent(context),
+      _SettingsSection.interface => _interfaceContent(context),
     };
+  }
+
+  Widget _interfaceContent(BuildContext context) {
+    final theme = BTheme.of(context);
+    return Padding(
+      padding: const EdgeInsets.only(right: 48),
+      child: MergeSemantics(
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                'No icons',
+                style: theme.typo.body.copyWith(
+                  color: theme.colors.textPrimary,
+                ),
+              ),
+            ),
+            Switch(
+              key: const ValueKey('no-icons-switch'),
+              value: _noIcons,
+              onChanged: (value) {
+                setState(() => _noIcons = value);
+                widget.onNoIconsChanged?.call(value);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   Widget _aboutContent(BuildContext context) {

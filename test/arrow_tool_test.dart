@@ -10,7 +10,9 @@ import 'package:shared_preferences_web/shared_preferences_web.dart';
 void main() {
   setUp(() async {
     SharedPreferencesAsyncWeb.registerWith(null);
-    await SharedPreferencesAsync().remove(CanvasDocumentStore.key);
+    final preferences = SharedPreferencesAsync();
+    await preferences.remove(CanvasDocumentStore.key);
+    await preferences.remove('interface.no_icons');
   });
 
   test('arrow bends continuously toward the visual counterclockwise side', () {
@@ -96,7 +98,7 @@ void main() {
     await tester.pump();
     await tester.pump();
 
-    await tester.tap(find.text('Arrow'));
+    await tester.tap(find.byKey(const ValueKey('toolbar-arrow')));
     await tester.pump();
     final firstDrag = await tester.startGesture(
       const Offset(120, 200),
@@ -123,7 +125,7 @@ void main() {
     await tester.pump();
     expect(find.byType(Arrow), findsNWidgets(2));
 
-    await tester.tap(find.text('Arrow'));
+    await tester.tap(find.byKey(const ValueKey('toolbar-arrow')));
     await tester.pump();
     final arrowFinder = find.byType(Arrow).first;
     final arrowTopLeft = tester.getTopLeft(arrowFinder);

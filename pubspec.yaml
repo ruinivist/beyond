@@ -16,6 +16,7 @@ dependencies:
   google_fonts: ^6.3.3
   infinite_lazy_grid:
     git: https://github.com/ruinivist/infinite_lazy_grid.git
+  lucide_icons_flutter: ^3.1.17
   markdown: ^7.3.1
   path_provider: ^2.1.6
   re_editor: ^0.10.0

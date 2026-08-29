@@ -30,7 +30,9 @@ void main() {
 
   setUp(() async {
     SharedPreferencesAsyncWeb.registerWith(null);
-    await SharedPreferencesAsync().remove(CanvasDocumentStore.key);
+    final preferences = SharedPreferencesAsync();
+    await preferences.remove(CanvasDocumentStore.key);
+    await preferences.remove('interface.no_icons');
     originalLauncher = UrlLauncherPlatform.instance;
     launcher = _FakeUrlLauncher();
     UrlLauncherPlatform.instance = launcher;
@@ -101,12 +103,12 @@ void main() {
     await tester.pumpWidget(const BeyondApp());
     await tester.pump();
     await tester.pump();
-    await tester.tap(find.text('Code'));
+    await tester.tap(find.byKey(const ValueKey('toolbar-code')));
     await tester.pump();
     final code = tester.widget<CodeBlock>(find.byType(CodeBlock)).model
       ..selected = true;
 
-    await tester.tap(find.text('Text'));
+    await tester.tap(find.byKey(const ValueKey('toolbar-text')));
     await tester.pump();
     await tester.tapAt(const Offset(120, 200));
     await tester.pump();
@@ -136,7 +138,7 @@ void main() {
     await tester.pumpWidget(const BeyondApp());
     await tester.pump();
     await tester.pump();
-    await tester.tap(find.text('Code'));
+    await tester.tap(find.byKey(const ValueKey('toolbar-code')));
     await tester.pump();
     final code = tester.widget<CodeBlock>(find.byType(CodeBlock)).model
       ..selected = true;
@@ -161,12 +163,12 @@ void main() {
     await tester.pumpWidget(const BeyondApp());
     await tester.pump();
     await tester.pump();
-    await tester.tap(find.text('Code'));
+    await tester.tap(find.byKey(const ValueKey('toolbar-code')));
     await tester.pump();
     final code = tester.widget<CodeBlock>(find.byType(CodeBlock)).model
       ..selected = true;
 
-    await tester.tap(find.text('Text'));
+    await tester.tap(find.byKey(const ValueKey('toolbar-text')));
     await tester.pump();
     await tester.tapAt(const Offset(120, 200));
     await tester.pump();
@@ -890,7 +892,7 @@ Inline $x^2$''';
     expect(model.editing, isTrue);
     expect(find.byType(TextBlockControls), findsOneWidget);
 
-    await tester.tap(find.text('Code'));
+    await tester.tap(find.byKey(const ValueKey('toolbar-code')));
     await tester.pump();
     await tester.pumpAndSettle();
     expect(model.editing, isFalse);
@@ -1134,7 +1136,7 @@ Future<TextBlockModel> _placeTextBlock(
   WidgetTester tester,
   Offset position,
 ) async {
-  await tester.tap(find.text('Text'));
+  await tester.tap(find.byKey(const ValueKey('toolbar-text')));
   await tester.pump();
   await tester.tapAt(position);
   await tester.pump();
