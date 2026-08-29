@@ -16,7 +16,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:infinite_lazy_grid/infinite_lazy_grid.dart';
-import 'package:scribble/scribble.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:shared_preferences_web/shared_preferences_web.dart';
 
@@ -77,16 +76,16 @@ void main() {
   });
 
   test('positions a screen stroke in canvas coordinates', () {
-    final stroke = positionSketch(
-      const Sketch(
-        lines: [
-          SketchLine(
-            points: [Point(100, 200), Point(200, 300)],
-            color: 0xff000000,
-            width: 5,
-          ),
+    final stroke = positionStroke(
+      (
+        points: const [
+          PenPointData(Offset(100, 200), pressure: 0.5),
+          PenPointData(Offset(200, 300), pressure: 0.5),
         ],
+        color: 0xff000000,
+        width: 5.0,
       ),
+      id: 'pen',
       canvasOffset: const Offset(50, -20),
       canvasScale: 2,
     );
@@ -94,9 +93,83 @@ void main() {
     expect(stroke.position, const Offset(94.5, 74.5));
     expect(stroke.size, const Size(61, 61));
     expect(stroke.hitSlop, 3);
-    expect(stroke.sketch.lines.single.width, 2.5);
-    expect(stroke.sketch.lines.single.points.first.x, 5.5);
-    expect(stroke.sketch.lines.single.points.first.y, 5.5);
+    expect(stroke.width, 2.5);
+    expect(stroke.points.first.position.dx, 5.5);
+    expect(stroke.points.first.position.dy, 5.5);
+  });
+
+  test('pen normalizes pressure and filters non-owner or nearby points', () {
+    final strokes = <RawPenStroke>[];
+    final tool = PenTool(onStroke: strokes.add)
+      ..onPointerDown(
+        const PointerDownEvent(
+          pointer: 1,
+          kind: PointerDeviceKind.stylus,
+          pressure: 0.5,
+          pressureMin: 0.2,
+          pressureMax: 0.8,
+        ),
+      )
+      ..onPointerUpdate(
+        const PointerMoveEvent(pointer: 2, position: Offset(10, 0)),
+      )
+      ..onPointerHover(
+        const PointerHoverEvent(pointer: 2, position: Offset(10, 0)),
+      )
+      ..onPointerUp(
+        const PointerUpEvent(pointer: 2, position: Offset(10, 0)),
+      )
+      ..onPointerUpdate(
+        const PointerMoveEvent(pointer: 1, position: Offset(2, 0)),
+      )
+      ..onPointerUpdate(
+        const PointerMoveEvent(
+          pointer: 1,
+          position: Offset(3, 0),
+          pressure: 0.8,
+          pressureMin: 0.2,
+          pressureMax: 0.8,
+        ),
+      )
+      ..onPointerUp(
+        const PointerUpEvent(
+          pointer: 1,
+          position: Offset(6, 0),
+          pressureMin: 0,
+          pressureMax: 0,
+        ),
+      );
+
+    expect(strokes, hasLength(1));
+    expect(
+      strokes.single.points.map((point) => point.position),
+      const [Offset.zero, Offset(3, 0), Offset(6, 0)],
+    );
+    expect(strokes.single.points.first.pressure, closeTo(0.5, 0.0001));
+    expect(strokes.single.points[1].pressure, closeTo(1, 0.0001));
+    expect(strokes.single.points.last.pressure, 0.5);
+    tool.dispose();
+  });
+
+  test('pen cancel and exit each commit once and clear ownership', () {
+    final strokes = <RawPenStroke>[];
+    final tool = PenTool(onStroke: strokes.add)
+      ..onPointerDown(const PointerDownEvent(pointer: 1))
+      ..onPointerCancel(
+        const PointerCancelEvent(pointer: 1, position: Offset(4, 0)),
+      )
+      ..onPointerCancel(const PointerCancelEvent(pointer: 1))
+      ..onPointerDown(
+        const PointerDownEvent(pointer: 2, position: Offset(10, 0)),
+      )
+      ..onPointerExit(
+        const PointerExitEvent(pointer: 2, position: Offset(14, 0)),
+      )
+      ..onPointerExit(const PointerExitEvent(pointer: 2));
+
+    expect(strokes, hasLength(2));
+    expect(tool.active, isFalse);
+    tool.dispose();
   });
 
   test('positioned pen models keep durable geometry when moved', () {
@@ -106,21 +179,17 @@ void main() {
         position: const Offset(10, 20),
         size: const Size(61, 61),
         hitSlop: 3,
-        sketch: const Sketch(
-          lines: [
-            SketchLine(
-              color: 0xff000000,
-              width: 2.5,
-              points: [Point(5.5, 5.5)],
-            ),
-          ],
-        ),
+        color: 0xff000000,
+        width: 2.5,
+        points: const [
+          PenPointData(Offset(5.5, 5.5), pressure: 0.5),
+        ],
       ),
     )..moveBy(const Offset(8, -4));
 
     expect(model.data.position, const Offset(18, 16));
     expect(model.data.size, const Size(61, 61));
-    expect(model.data.sketch.lines.single.points.single.x, 5.5);
+    expect(model.data.points.single.position.dx, 5.5);
     model.dispose();
   });
 
@@ -197,7 +266,7 @@ void main() {
     final pen = tester.widget<PenStroke>(find.byType(PenStroke)).model;
     final penPosition = pen.data.position;
     final penSize = pen.data.size;
-    final penPoint = pen.data.sketch.lines.single.points.first;
+    final penPoints = pen.data.toJson()['points'];
     await tester.tap(find.byKey(const ValueKey('toolbar-draw')));
     await tester.pump();
 
@@ -252,8 +321,8 @@ void main() {
     expect((document.elements[2] as PenElementData).position, penPosition);
     expect((document.elements[2] as PenElementData).size, penSize);
     expect(
-      (document.elements[2] as PenElementData).sketch.lines.single.points.first,
-      penPoint,
+      (document.elements[2] as PenElementData).toJson()['points'],
+      penPoints,
     );
     expect(
       (document.elements[3] as ArrowElementData).start,
@@ -313,7 +382,7 @@ void main() {
     final restoredPen = tester.widget<PenStroke>(find.byType(PenStroke)).model;
     expect(restoredPen.data.position, penPosition);
     expect(restoredPen.data.size, penSize);
-    expect(restoredPen.data.sketch.lines.single.points.first, penPoint);
+    expect(restoredPen.data.toJson()['points'], penPoints);
     final restoredArrow = tester.widget<Arrow>(find.byType(Arrow)).model;
     expect(restoredArrow.geometry.start, arrowGeometry.start);
     expect(restoredArrow.geometry.control, arrowGeometry.control);
@@ -329,8 +398,8 @@ void main() {
     await tester.dragFrom(const Offset(100, 200), const Offset(80, 40));
     await tester.pump();
 
-    expect(find.byType(ScribbleSketch), findsOneWidget);
-    expect(find.byType(Scribble), findsOneWidget);
+    expect(find.byType(PenStroke), findsOneWidget);
+    expect(find.byKey(const ValueKey('pen-preview')), findsOneWidget);
   });
 
   testWidgets('inactive pen does not draw', (tester) async {
@@ -338,12 +407,12 @@ void main() {
     await tester.pump();
 
     expect(find.byKey(const ValueKey('draw-settings-panel')), findsNothing);
-    expect(find.byType(Scribble), findsNothing);
+    expect(find.byKey(const ValueKey('pen-preview')), findsNothing);
 
     await tester.dragFrom(const Offset(100, 200), const Offset(80, 40));
     await tester.pump();
 
-    expect(find.byType(ScribbleSketch), findsNothing);
+    expect(find.byType(PenStroke), findsNothing);
   });
 
   testWidgets('pen and arrow clicks update order without modifier reorder', (
@@ -357,15 +426,12 @@ void main() {
           position: const Offset(100, 250),
           size: const Size(100, 30),
           hitSlop: 6,
-          sketch: const Sketch(
-            lines: [
-              SketchLine(
-                points: [Point(0, 15), Point(100, 15)],
-                color: 0xff000000,
-                width: 3,
-              ),
-            ],
-          ),
+          color: 0xff000000,
+          width: 3,
+          points: const [
+            PenPointData(Offset(0, 15), pressure: 0.5),
+            PenPointData(Offset(100, 15), pressure: 0.5),
+          ],
         ),
         ArrowElementData(
           id: 'arrow',
@@ -479,7 +545,7 @@ void main() {
 
     final strokes = tester
         .widgetList<PenStroke>(find.byType(PenStroke))
-        .map((stroke) => stroke.model.data.sketch.lines.single)
+        .map((stroke) => stroke.model.data)
         .toList();
     expect(strokes, hasLength(2));
     expect(strokes.first.color, presetColors.first.color.toARGB32());
@@ -1225,7 +1291,6 @@ void main() {
     await tester.pump();
 
     final canvas = tester.widget<LazyCanvas>(find.byType(LazyCanvas));
-    final pen = tester.widget<Scribble>(find.byType(Scribble)).notifier;
     final rightDrag = await tester.startGesture(
       const Offset(300, 500),
       kind: PointerDeviceKind.mouse,
@@ -1237,7 +1302,6 @@ void main() {
 
     expect(canvas.controller.offset, isNot(Offset.zero));
     expect(find.byType(PenStroke), findsNothing);
-    expect(pen.value.pointerPosition, const Point(380, 560));
   });
 
   testWidgets('space temporarily hands dragging back to the canvas', (
@@ -1250,18 +1314,15 @@ void main() {
 
     await tester.sendKeyDownEvent(LogicalKeyboardKey.space);
     await tester.pump();
-    final penInput = find.byWidgetPredicate(
-      (widget) => widget is IgnorePointer && widget.child is Scribble,
-    );
-    expect(tester.widget<IgnorePointer>(penInput).ignoring, isTrue);
+    expect(find.byKey(const ValueKey('pen-preview')), findsOneWidget);
     await tester.dragFrom(const Offset(100, 200), const Offset(80, 40));
     await tester.sendKeyUpEvent(LogicalKeyboardKey.space);
     await tester.pump();
-    expect(find.byType(ScribbleSketch), findsNothing);
+    expect(find.byType(PenStroke), findsNothing);
 
     await tester.dragFrom(const Offset(100, 200), const Offset(80, 40));
     await tester.pump();
-    expect(find.byType(ScribbleSketch), findsOneWidget);
+    expect(find.byType(PenStroke), findsOneWidget);
   });
 
   testWidgets('eraser scrubs every overlapping element and saves', (
@@ -1272,15 +1333,12 @@ void main() {
       position: position,
       size: const Size(100, 100),
       hitSlop: 6,
-      sketch: const Sketch(
-        lines: [
-          SketchLine(
-            points: [Point(0, 50), Point(100, 50)],
-            color: 0xff000000,
-            width: 3,
-          ),
-        ],
-      ),
+      color: 0xff000000,
+      width: 3,
+      points: const [
+        PenPointData(Offset(0, 50), pressure: 0.5),
+        PenPointData(Offset(100, 50), pressure: 0.5),
+      ],
     );
 
     final document = CanvasDocument(

@@ -3,23 +3,57 @@ import 'package:beyond/canvas/canvas_element_model.dart';
 import 'package:beyond/foundation/theme.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import 'package:scribble/scribble.dart';
+import 'package:perfect_freehand/perfect_freehand.dart' as pf;
 
-typedef PositionedSketch = ({
-  Offset position,
-  Size size,
-  Sketch sketch,
-  double hitSlop,
+typedef RawPenStroke = ({
+  List<PenPointData> points,
+  int color,
+  double width,
 });
 
 const _strokeHitSlop = 6.0;
+const _minimumPointDistanceSquared = 4.0;
+
+Path createPenPath(List<PenPointData> points, double width) {
+  final simulatePressure =
+      points.isNotEmpty &&
+      points.every((point) => point.pressure == points.first.pressure);
+  final outline = pf.getStroke(
+    [
+      for (final point in points)
+        pf.PointVector(
+          point.position.dx,
+          point.position.dy,
+          point.pressure,
+        ),
+    ],
+    options: pf.StrokeOptions(
+      size: width * 2,
+      simulatePressure: simulatePressure,
+    ),
+  );
+  if (outline.isEmpty) return Path();
+  if (outline.length == 1) {
+    return Path()..addOval(Rect.fromCircle(center: outline.single, radius: 1));
+  }
+  final path = Path()..moveTo(outline.first.dx, outline.first.dy);
+  for (var index = 1; index < outline.length - 1; index++) {
+    final point = outline[index];
+    final next = outline[index + 1];
+    path.quadraticBezierTo(
+      point.dx,
+      point.dy,
+      (point.dx + next.dx) / 2,
+      (point.dy + next.dy) / 2,
+    );
+  }
+  return path;
+}
 
 class PenStrokeModel extends CanvasElementModel<PenElementData> {
-  PenStrokeModel(super.data);
+  PenStrokeModel(super.data) : path = createPenPath(data.points, data.width);
 
-  Sketch get sketch => data.sketch;
-
-  double get hitSlop => data.hitSlop;
+  final Path path;
 
   @override
   Offset get canvasPosition => data.position;
@@ -63,14 +97,14 @@ class PenStroke extends StatelessWidget {
             child: GestureDetector(
               onPanUpdate: (details) => onMove(details.delta),
               child: CustomPaint(
-                foregroundPainter: _PenStrokePainter(
-                  sketch: model.sketch,
-                  hitSlop: model.hitSlop,
+                painter: _PenStrokePainter(
+                  path: model.path,
+                  points: model.data.points,
+                  color: Color(model.data.color),
+                  width: model.data.width,
+                  hitSlop: model.data.hitSlop,
                   selected: model.selected,
                   accent: accent,
-                ),
-                child: IgnorePointer(
-                  child: ScribbleSketch(sketch: model.sketch),
                 ),
               ),
             ),
@@ -83,58 +117,68 @@ class PenStroke extends StatelessWidget {
 
 class _PenStrokePainter extends CustomPainter {
   const _PenStrokePainter({
-    required this.sketch,
+    required this.path,
+    required this.points,
+    required this.color,
+    required this.width,
     required this.hitSlop,
     required this.selected,
     required this.accent,
   });
 
-  final Sketch sketch;
+  final Path path;
+  final List<PenPointData> points;
+  final Color color;
+  final double width;
   final double hitSlop;
   final bool selected;
   final Color accent;
 
   @override
   void paint(Canvas canvas, Size size) {
-    if (!selected) return;
-    canvas.drawRect(
-      (Offset.zero & size).deflate(1),
+    canvas.drawPath(
+      path,
       Paint()
-        ..color = accent
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 2,
+        ..color = color
+        ..style = PaintingStyle.fill,
     );
+    if (selected) {
+      canvas.drawRect(
+        (Offset.zero & size).deflate(1),
+        Paint()
+          ..color = accent
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 2,
+      );
+    }
   }
 
   @override
   bool hitTest(Offset position) {
-    for (final line in sketch.lines) {
-      final points = line.points;
-      if (points.isEmpty) continue;
-      final radius = line.width + hitSlop;
-      final radiusSquared = radius * radius;
-      if (points.length == 1) {
-        final delta = position - Offset(points.first.x, points.first.y);
-        if (delta.distanceSquared <= radiusSquared) return true;
-        continue;
-      }
-      for (var index = 1; index < points.length; index++) {
-        final start = Offset(points[index - 1].x, points[index - 1].y);
-        final end = Offset(points[index].x, points[index].y);
-        if (_distanceToSegmentSquared(position, start, end) <= radiusSquared) {
-          return true;
-        }
+    final radiusSquared = (width + hitSlop) * (width + hitSlop);
+    if (points.length == 1) {
+      return (position - points.single.position).distanceSquared <=
+          radiusSquared;
+    }
+    for (var index = 1; index < points.length; index++) {
+      if (_distanceToSegmentSquared(
+            position,
+            points[index - 1].position,
+            points[index].position,
+          ) <=
+          radiusSquared) {
+        return true;
       }
     }
     return false;
   }
 
   @override
-  bool shouldRepaint(_PenStrokePainter oldDelegate) {
-    return oldDelegate.sketch != sketch ||
-        oldDelegate.selected != selected ||
-        oldDelegate.accent != accent;
-  }
+  bool shouldRepaint(_PenStrokePainter oldDelegate) =>
+      oldDelegate.path != path ||
+      oldDelegate.color != color ||
+      oldDelegate.selected != selected ||
+      oldDelegate.accent != accent;
 }
 
 double _distanceToSegmentSquared(Offset point, Offset start, Offset end) {
@@ -150,128 +194,212 @@ double _distanceToSegmentSquared(Offset point, Offset start, Offset end) {
   return (point - (start + segment * ratio)).distanceSquared;
 }
 
-class PenTool extends ScribbleNotifier {
+class PenTool extends ChangeNotifier {
   PenTool({required this.onStroke});
 
-  final ValueChanged<Sketch> onStroke;
-  final _activePointerIds = <int>{};
+  final ValueChanged<RawPenStroke> onStroke;
+  final _points = <PenPointData>[];
+  final _previewPath = Path();
+  int? _activePointer;
+  Offset? _tailStart;
+  Offset? _pointerPosition;
+  Color _color = Colors.black;
+  double _strokeWidth = 4;
   Color? _pendingColor;
   double? _pendingStrokeWidth;
 
-  bool _isAllowedPointer(PointerEvent event) =>
-      event.kind != PointerDeviceKind.mouse || event.buttons == kPrimaryButton;
+  bool get active => _activePointer != null;
 
-  @override
   void setColor(Color color) {
-    if (value.activePointerIds.isNotEmpty) {
+    if (active) {
       _pendingColor = color;
-      return;
+    } else {
+      _color = color;
+      notifyListeners();
     }
-    super.setColor(color);
   }
 
-  @override
   void setStrokeWidth(double strokeWidth) {
-    if (value.activePointerIds.isNotEmpty) {
+    if (active) {
       _pendingStrokeWidth = strokeWidth;
+    } else {
+      _strokeWidth = strokeWidth;
+      notifyListeners();
+    }
+  }
+
+  bool _isAllowedPointer(PointerDownEvent event) => switch (event.kind) {
+    PointerDeviceKind.mouse => event.buttons & kPrimaryButton != 0,
+    PointerDeviceKind.touch ||
+    PointerDeviceKind.stylus ||
+    PointerDeviceKind.invertedStylus => true,
+    _ => false,
+  };
+
+  double _pressure(PointerEvent event) {
+    if (event.pressureMin == event.pressureMax) return 0.5;
+    return ((event.pressure - event.pressureMin) /
+            (event.pressureMax - event.pressureMin))
+        .clamp(0.0, 1.0);
+  }
+
+  void _append(PointerEvent event) {
+    final position = event.localPosition;
+    if (_points.isNotEmpty &&
+        (position - _points.last.position).distanceSquared <=
+            _minimumPointDistanceSquared) {
       return;
     }
-    super.setStrokeWidth(strokeWidth);
+    if (_points case [..., final previous]) {
+      final midpoint = (previous.position + position) / 2;
+      _previewPath.quadraticBezierTo(
+        previous.position.dx,
+        previous.position.dy,
+        midpoint.dx,
+        midpoint.dy,
+      );
+      _tailStart = midpoint;
+    } else {
+      _previewPath.moveTo(position.dx, position.dy);
+      _tailStart = position;
+    }
+    _points.add(PenPointData(position, pressure: _pressure(event)));
   }
 
-  void _commit() {
-    final sketch = currentSketch;
-    if (sketch.lines.isEmpty) return;
-    onStroke(sketch);
-    clear();
+  void onPointerDown(PointerDownEvent event) {
+    if (active || !_isAllowedPointer(event)) return;
+    _activePointer = event.pointer;
+    _pointerPosition = event.localPosition;
+    _append(event);
+    notifyListeners();
   }
 
-  void _applyPendingSettings() {
-    if (value.activePointerIds.isNotEmpty) return;
-    final color = _pendingColor;
-    final strokeWidth = _pendingStrokeWidth;
+  void onPointerUpdate(PointerMoveEvent event) {
+    if (active && event.pointer != _activePointer) return;
+    _pointerPosition = event.localPosition;
+    if (!active) {
+      notifyListeners();
+      return;
+    }
+    _append(event);
+    notifyListeners();
+  }
+
+  void onPointerHover(PointerHoverEvent event) {
+    if (active && event.pointer != _activePointer) return;
+    _pointerPosition = event.localPosition;
+    notifyListeners();
+  }
+
+  void onPointerUp(PointerUpEvent event) => _finish(event);
+
+  void onPointerCancel(PointerCancelEvent event) => _finish(event);
+
+  void onPointerExit(PointerExitEvent event) {
+    if (!active) {
+      _pointerPosition = null;
+      notifyListeners();
+      return;
+    }
+    _finish(event);
+  }
+
+  void _finish(PointerEvent event) {
+    if (event.pointer != _activePointer) return;
+    _pointerPosition = event is PointerExitEvent ? null : event.localPosition;
+    _append(event);
+    final stroke = (
+      points: List<PenPointData>.of(_points),
+      color: _color.toARGB32(),
+      width: _strokeWidth,
+    );
+    _activePointer = null;
+    _points.clear();
+    _previewPath.reset();
+    _tailStart = null;
+    final pendingColor = _pendingColor;
+    final pendingWidth = _pendingStrokeWidth;
     _pendingColor = null;
     _pendingStrokeWidth = null;
-    if (color != null) super.setColor(color);
-    if (strokeWidth != null) super.setStrokeWidth(strokeWidth);
-  }
-
-  @override
-  void onPointerUp(PointerUpEvent event) {
-    if (!_activePointerIds.remove(event.pointer)) return;
-    super.onPointerUp(event);
-    _commit();
-    _applyPendingSettings();
-  }
-
-  @override
-  void onPointerCancel(PointerCancelEvent event) {
-    if (!_activePointerIds.remove(event.pointer)) return;
-    super.onPointerCancel(event);
-    _commit();
-    _applyPendingSettings();
-  }
-
-  @override
-  void onPointerExit(PointerExitEvent event) {
-    if (!_activePointerIds.remove(event.pointer)) return;
-    super.onPointerExit(event);
-    _commit();
-    _applyPendingSettings();
-  }
-
-  @override
-  void onPointerDown(PointerDownEvent event) {
-    if (!_isAllowedPointer(event)) return;
-    _activePointerIds.add(event.pointer);
-    super.onPointerDown(event);
-  }
-
-  @override
-  void onPointerUpdate(PointerMoveEvent event) {
-    if (_activePointerIds.isEmpty ||
-        _activePointerIds.contains(event.pointer)) {
-      super.onPointerUpdate(event);
-    }
+    onStroke(stroke);
+    if (pendingColor != null) _color = pendingColor;
+    if (pendingWidth != null) _strokeWidth = pendingWidth;
+    notifyListeners();
   }
 }
 
-PositionedSketch positionSketch(
-  Sketch sketch, {
+class PenPreviewPainter extends CustomPainter {
+  PenPreviewPainter({required this.tool, required this.color})
+    : super(repaint: tool);
+
+  final PenTool tool;
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = tool._color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = tool._strokeWidth
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round;
+    canvas.drawPath(tool._previewPath, paint);
+    if (tool._tailStart case final start?) {
+      canvas.drawLine(start, tool._pointerPosition!, paint);
+    }
+    if (tool._pointerPosition case final pointer?) {
+      canvas.drawCircle(
+        pointer,
+        tool._strokeWidth / 2,
+        Paint()
+          ..color = color
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(PenPreviewPainter oldDelegate) => false;
+}
+
+PenElementData positionStroke(
+  RawPenStroke stroke, {
+  required String id,
   required Offset canvasOffset,
   required double canvasScale,
 }) {
-  final points = sketch.lines.expand((line) => line.points);
-  final minX = points.map((point) => point.x).reduce((a, b) => a < b ? a : b);
-  final minY = points.map((point) => point.y).reduce((a, b) => a < b ? a : b);
-  final maxX = points.map((point) => point.x).reduce((a, b) => a > b ? a : b);
-  final maxY = points.map((point) => point.y).reduce((a, b) => a > b ? a : b);
-  final padding =
-      sketch.lines.map((line) => line.width).reduce((a, b) => a > b ? a : b) +
-      _strokeHitSlop;
+  final positions = stroke.points.map((point) => point.position);
+  final minX = positions
+      .map((point) => point.dx)
+      .reduce((a, b) => a < b ? a : b);
+  final minY = positions
+      .map((point) => point.dy)
+      .reduce((a, b) => a < b ? a : b);
+  final maxX = positions
+      .map((point) => point.dx)
+      .reduce((a, b) => a > b ? a : b);
+  final maxY = positions
+      .map((point) => point.dy)
+      .reduce((a, b) => a > b ? a : b);
+  final padding = stroke.width + _strokeHitSlop;
   final screenOrigin = Offset(minX - padding, minY - padding);
-  final position = screenOrigin / canvasScale + canvasOffset;
 
-  return (
-    position: position,
+  return PenElementData(
+    id: id,
+    position: screenOrigin / canvasScale + canvasOffset,
     hitSlop: _strokeHitSlop / canvasScale,
     size:
         Size(maxX - minX + padding * 2, maxY - minY + padding * 2) /
         canvasScale,
-    sketch: Sketch(
-      lines: [
-        for (final line in sketch.lines)
-          line.copyWith(
-            width: line.width / canvasScale,
-            points: [
-              for (final point in line.points)
-                point.copyWith(
-                  x: (point.x - screenOrigin.dx) / canvasScale,
-                  y: (point.y - screenOrigin.dy) / canvasScale,
-                ),
-            ],
-          ),
-      ],
-    ),
+    points: [
+      for (final point in stroke.points)
+        PenPointData(
+          (point.position - screenOrigin) / canvasScale,
+          pressure: point.pressure,
+        ),
+    ],
+    color: stroke.color,
+    width: stroke.width / canvasScale,
   );
 }

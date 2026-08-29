@@ -19,9 +19,9 @@ dependencies:
   lucide_icons_flutter: ^3.1.17
   markdown: ^7.3.1
   path_provider: ^2.1.6
+  perfect_freehand: ^2.5.2+1
   re_editor: ^0.10.0
   re_highlight: ^0.0.3
-  scribble: ^0.10.0+1
   scroll_animator: 0.3.0
   shared_preferences: ^2.5.5
   super_clipboard: ^0.9.1

@@ -8,9 +8,11 @@ import 'package:beyond/theme/starless_light.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:scribble/scribble.dart';
+import 'package:shared_preferences_web/shared_preferences_web.dart';
 
 void main() {
+  setUp(() => SharedPreferencesAsyncWeb.registerWith(null));
+
   testWidgets('undo and redo restore and persist canvas operations', (
     tester,
   ) async {
@@ -155,18 +157,12 @@ CanvasDocument _penDocument(int count) => CanvasDocument(
         ),
         size: const Size(40, 40),
         hitSlop: 6,
-        sketch: const Sketch(
-          lines: [
-            SketchLine(
-              color: 0xff000000,
-              width: 4,
-              points: [
-                Point(4, 4, pressure: 1),
-                Point(36, 36, pressure: 1),
-              ],
-            ),
-          ],
-        ),
+        color: 0xff000000,
+        width: 4,
+        points: const [
+          PenPointData(Offset(4, 4), pressure: 1),
+          PenPointData(Offset(36, 36), pressure: 1),
+        ],
       ),
   ],
 );

@@ -28,7 +28,6 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:infinite_lazy_grid/infinite_lazy_grid.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
-import 'package:scribble/scribble.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:super_clipboard/super_clipboard.dart';
 import 'package:uuid/uuid.dart';
@@ -732,20 +731,14 @@ class _CanvasPageState extends State<CanvasPage> {
     );
   }
 
-  void _addStroke(Sketch sketch) {
+  void _addStroke(RawPenStroke rawStroke) {
     if (!_documentLoaded) return;
-    final stroke = positionSketch(
-      sketch,
-      canvasOffset: _canvasController.offset,
-      canvasScale: _canvasController.scale,
-    );
     final model = PenStrokeModel(
-      PenElementData(
+      positionStroke(
+        rawStroke,
         id: const Uuid().v4(),
-        position: stroke.position,
-        size: stroke.size,
-        hitSlop: stroke.hitSlop,
-        sketch: stroke.sketch,
+        canvasOffset: _canvasController.offset,
+        canvasScale: _canvasController.scale,
       ),
     );
     _mountElement(model);
@@ -1466,7 +1459,13 @@ class _CanvasPageState extends State<CanvasPage> {
           if (_penEnabled)
             Positioned.fill(
               child: IgnorePointer(
-                child: Scribble(notifier: _penTool),
+                child: CustomPaint(
+                  key: const ValueKey('pen-preview'),
+                  painter: PenPreviewPainter(
+                    tool: _penTool,
+                    color: colors.accent,
+                  ),
+                ),
               ),
             ),
           if (_eraserEnabled && !_spaceHeld)

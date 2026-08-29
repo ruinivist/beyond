@@ -8,7 +8,6 @@ import 'package:beyond/canvas/canvas_project.dart';
 import 'package:beyond/canvas/tools/code_block/code_language.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:scribble/scribble.dart';
 
 void main() {
   test('mixed projects round-trip with deterministic attachments', () async {
@@ -88,7 +87,7 @@ attachments/00000000-0000-4000-8000-000000000000.png
 
     final wrongVersion = _validProjectJson()
       ..['document'] = {
-        'version': 2,
+        'version': 1,
         'background': 'dotGrid',
         'elements': <Object?>[],
       };
@@ -175,15 +174,9 @@ CanvasDocument _document({required String markdown}) => CanvasDocument(
       position: Offset.zero,
       size: const Size(10, 10),
       hitSlop: 0,
-      sketch: const Sketch(
-        lines: [
-          SketchLine(
-            color: 0xff000000,
-            width: 1,
-            points: [Point(0, 0, pressure: 0)],
-          ),
-        ],
-      ),
+      color: 0xff000000,
+      width: 1,
+      points: const [PenPointData(Offset.zero, pressure: 0)],
     ),
     ArrowElementData(
       id: 'arrow-1',

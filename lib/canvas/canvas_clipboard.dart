@@ -7,7 +7,7 @@ final _formatMarker = RegExp(
   r'"format"\s*:\s*"beyond-canvas-clipboard"',
 );
 
-const canvasClipboardVersion = 1;
+const canvasClipboardVersion = 2;
 
 String encodeCanvasClipboard(Iterable<CanvasElementData> elements) =>
     jsonEncode(<String, Object>{

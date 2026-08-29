@@ -18,9 +18,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:infinite_lazy_grid/infinite_lazy_grid.dart';
-import 'package:scribble/scribble.dart';
+import 'package:shared_preferences_web/shared_preferences_web.dart';
 
 void main() {
+  setUp(() => SharedPreferencesAsyncWeb.registerWith(null));
+
   testWidgets('exports the current durable project', (tester) async {
     final document = _document(markdown: '![image]($_path0)');
     final documentStore = _FakeDocumentStore(document);
@@ -410,15 +412,9 @@ CanvasDocument _document({
       position: Offset.zero,
       size: const Size(10, 10),
       hitSlop: 0,
-      sketch: const Sketch(
-        lines: [
-          SketchLine(
-            color: 0xff000000,
-            width: 1,
-            points: [Point(0, 0, pressure: 0)],
-          ),
-        ],
-      ),
+      color: 0xff000000,
+      width: 1,
+      points: const [PenPointData(Offset.zero, pressure: 0)],
     ),
     ArrowElementData(
       id: 'arrow$idSuffix',

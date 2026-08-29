@@ -15,9 +15,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:infinite_lazy_grid/infinite_lazy_grid.dart';
-import 'package:scribble/scribble.dart';
+import 'package:shared_preferences_web/shared_preferences_web.dart';
 
 void main() {
+  setUp(() => SharedPreferencesAsyncWeb.registerWith(null));
+
   test(
     'clipboard payload round-trips and rejects recognized malformed data',
     () {
@@ -237,7 +239,9 @@ void _expectShifted(
       expect(result.language, source.language);
     case (final PenElementData source, final PenElementData result):
       expect(result.position, source.position + delta);
-      expect(result.toJson()['lines'], source.toJson()['lines']);
+      expect(result.toJson()['points'], source.toJson()['points']);
+      expect(result.color, source.color);
+      expect(result.width, source.width);
     case (final ArrowElementData source, final ArrowElementData result):
       expect(result.start, source.start + delta);
       expect(result.control, source.control + delta);
@@ -274,15 +278,9 @@ final _document = CanvasDocument(
       position: const Offset(70, 80),
       size: const Size(10, 10),
       hitSlop: 0,
-      sketch: const Sketch(
-        lines: [
-          SketchLine(
-            color: 0xff000000,
-            width: 1,
-            points: [Point(0, 0, pressure: 0)],
-          ),
-        ],
-      ),
+      color: 0xff000000,
+      width: 1,
+      points: const [PenPointData(Offset.zero, pressure: 0)],
     ),
     ArrowElementData(
       id: 'arrow',

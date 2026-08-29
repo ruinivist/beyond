@@ -6,7 +6,6 @@ import 'package:beyond/canvas/canvas_document.dart';
 import 'package:beyond/canvas/tools/code_block/code_language.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:scribble/scribble.dart';
 
 void main() {
   test('canvas documents round-trip mixed element data', () {
@@ -39,15 +38,11 @@ void main() {
           position: const Offset(-40, 30),
           size: const Size(180, 90),
           hitSlop: 6,
-          sketch: const Sketch(
-            lines: [
-              SketchLine(
-                color: 0xff000000,
-                width: 3,
-                points: [Point(6, 6, pressure: 0.4)],
-              ),
-            ],
-          ),
+          color: 0xff000000,
+          width: 3,
+          points: const [
+            PenPointData(Offset(6, 6), pressure: 0.4),
+          ],
         ),
         CodeElementData(
           id: 'code-1',
@@ -89,7 +84,7 @@ void main() {
     final pen = elements[2] as PenElementData;
     expect(pen.size, const Size(180, 90));
     expect(pen.hitSlop, 6);
-    expect(pen.sketch.lines.single.points.single.pressure, 0.4);
+    expect(pen.points.single.pressure, 0.4);
 
     final code = elements[3] as CodeElementData;
     expect(code.position, const Offset(100, 200));
@@ -105,14 +100,14 @@ void main() {
     final snapshot = document.copy();
     expect(snapshot.elements, isNot(same(document.elements)));
     expect(
-      (snapshot.elements[2] as PenElementData).sketch.lines,
-      isNot(same((document.elements[2] as PenElementData).sketch.lines)),
+      (snapshot.elements[2] as PenElementData).points,
+      isNot(same((document.elements[2] as PenElementData).points)),
     );
   });
 
   test('unknown document versions are rejected', () {
     expect(
-      () => CanvasDocument.fromJson(_document(version: 2)),
+      () => CanvasDocument.fromJson(_document(version: 1)),
       throwsA(isA<FormatException>()),
     );
   });
@@ -274,7 +269,7 @@ void main() {
     final pen = _encodedPen();
     expect(
       () => CanvasDocument.fromJson(
-        _document(elements: [pen..['lines'] = <Object?>[]]),
+        _document(elements: [pen..['points'] = <Object?>[]]),
       ),
       throwsA(isA<FormatException>()),
     );
@@ -347,14 +342,10 @@ Map<String, Object?> _encodedPen({String id = 'pen-1'}) => {
   'position': {'x': 0.0, 'y': 0.0},
   'size': {'width': 10.0, 'height': 10.0},
   'hitSlop': 0.0,
-  'lines': [
-    {
-      'color': 0,
-      'width': 1.0,
-      'points': [
-        {'x': 0.0, 'y': 0.0, 'pressure': 0.0},
-      ],
-    },
+  'color': 0,
+  'width': 1.0,
+  'points': [
+    {'x': 0.0, 'y': 0.0, 'pressure': 0.0},
   ],
 };
 

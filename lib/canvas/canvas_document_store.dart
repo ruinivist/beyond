@@ -4,7 +4,7 @@ import 'package:beyond/canvas/canvas_document.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class CanvasDocumentStore {
-  static const key = 'beyond.canvas.document.v2';
+  static const key = 'beyond.canvas.document.v3';
 
   late final SharedPreferencesAsync _preferences = SharedPreferencesAsync();
 
