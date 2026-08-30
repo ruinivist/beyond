@@ -8,6 +8,7 @@ import 'package:beyond/canvas/tools/code_block/code_block.dart';
 import 'package:beyond/canvas/tools/code_block/code_language.dart';
 import 'package:beyond/canvas/tools/pen/pen_tool.dart';
 import 'package:beyond/canvas/tools/text/text_block.dart';
+import 'package:beyond/foundation/button.dart';
 import 'package:beyond/foundation/select.dart';
 import 'package:beyond/main.dart';
 import 'package:beyond/utils/preset_colors.dart';
@@ -73,6 +74,68 @@ void main() {
       ),
       findsNothing,
     );
+  });
+
+  testWidgets('keyboard shortcuts toggle tools and escape disables them', (
+    tester,
+  ) async {
+    await tester.pumpWidget(const BeyondApp());
+    await tester.pump();
+    await tester.pump();
+
+    const shortcuts = [
+      (LogicalKeyboardKey.keyT, 'text'),
+      (LogicalKeyboardKey.keyC, 'code'),
+      (LogicalKeyboardKey.keyP, 'draw'),
+      (LogicalKeyboardKey.keyE, 'erase'),
+      (LogicalKeyboardKey.keyA, 'arrow'),
+    ];
+    for (final (key, name) in shortcuts) {
+      final button = find.byKey(ValueKey('toolbar-$name'));
+      await tester.sendKeyEvent(key);
+      await tester.pump();
+      expect(tester.widget<Button>(button).selected, isTrue);
+
+      await tester.sendKeyEvent(key);
+      await tester.pump();
+      expect(tester.widget<Button>(button).selected, isFalse);
+    }
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.keyP);
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await tester.pump();
+    expect(
+      tester
+          .widget<Button>(find.byKey(const ValueKey('toolbar-draw')))
+          .selected,
+      isFalse,
+    );
+
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+    await tester.sendKeyEvent(LogicalKeyboardKey.keyP);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+    await tester.pump();
+    expect(
+      tester
+          .widget<Button>(find.byKey(const ValueKey('toolbar-draw')))
+          .selected,
+      isFalse,
+    );
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.keyT);
+    await tester.tapAt(const Offset(100, 160));
+    await tester.pump();
+    await tester.pump();
+    expect(find.byKey(const ValueKey('text-markdown-editor')), findsOneWidget);
+    await tester.sendKeyEvent(LogicalKeyboardKey.keyP);
+    await tester.pump();
+    expect(
+      tester
+          .widget<Button>(find.byKey(const ValueKey('toolbar-draw')))
+          .selected,
+      isFalse,
+    );
+    FocusManager.instance.primaryFocus?.unfocus();
   });
 
   test('positions a screen stroke in canvas coordinates', () {

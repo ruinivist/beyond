@@ -1212,6 +1212,29 @@ class _CanvasPageState extends State<CanvasPage> {
       _selectAll();
       return true;
     }
+    if (event is KeyDownEvent &&
+        ModalRoute.of(context)?.isCurrent != false &&
+        !HardwareKeyboard.instance.isControlPressed &&
+        !HardwareKeyboard.instance.isMetaPressed &&
+        !HardwareKeyboard.instance.isAltPressed &&
+        !HardwareKeyboard.instance.isShiftPressed) {
+      if (event.logicalKey == LogicalKeyboardKey.escape) {
+        _toggleTool(_activeTool.value);
+        return true;
+      }
+      final tool = switch (event.logicalKey) {
+        LogicalKeyboardKey.keyT => _CanvasTool.text,
+        LogicalKeyboardKey.keyC => _CanvasTool.code,
+        LogicalKeyboardKey.keyP => _CanvasTool.pen,
+        LogicalKeyboardKey.keyE => _CanvasTool.eraser,
+        LogicalKeyboardKey.keyA => _CanvasTool.arrow,
+        _ => null,
+      };
+      if (tool != null) {
+        _toggleTool(tool);
+        return true;
+      }
+    }
     final deletionKey =
         event.logicalKey == LogicalKeyboardKey.delete ||
         (Theme.of(context).platform == TargetPlatform.macOS &&
