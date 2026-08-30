@@ -180,7 +180,6 @@ class TextBlock extends StatelessWidget {
               : _TextMarkdownPreview(
                   source: model.node.markdown,
                   style: model.style,
-                  rotation: model.node.rotation,
                   scrollController: model.node.height == null
                       ? null
                       : model.scrollController,
@@ -459,6 +458,7 @@ class _TextMarkdownEditorState extends State<_TextMarkdownEditor> {
           contentPadding: const EdgeInsets.all(12),
           hintText: 'Type something',
           hintStyle: code.copyWith(color: colors.textMuted),
+          floatingLabelBehavior: FloatingLabelBehavior.never,
         ),
         style: code.copyWith(color: colors.textPrimary),
       ),
@@ -499,11 +499,10 @@ Future<Uint8List?> _readClipboardFile(
   return result.future;
 }
 
-class _TextMarkdownPreview extends StatelessWidget {
+class _TextMarkdownPreview extends StatefulWidget {
   const _TextMarkdownPreview({
     required this.source,
     required this.style,
-    required this.rotation,
     required this.scrollController,
     required this.onEdit,
     required this.onMove,
@@ -512,22 +511,28 @@ class _TextMarkdownPreview extends StatelessWidget {
 
   final String source;
   final TextNodeStyle style;
-  final double rotation;
   final ScrollController? scrollController;
   final VoidCallback onEdit;
   final ValueChanged<Offset> onMove;
   final AttachmentStore attachmentStore;
 
   @override
+  State<_TextMarkdownPreview> createState() => _TextMarkdownPreviewState();
+}
+
+class _TextMarkdownPreviewState extends State<_TextMarkdownPreview> {
+  Offset? _dragPosition;
+
+  @override
   Widget build(BuildContext context) {
-    final content = source.isEmpty
+    final content = widget.source.isEmpty
         ? _EmptyTextMarkdownPreview(
             key: const ValueKey('text-markdown-preview'),
-            style: style,
+            style: widget.style,
           )
         : MarkdownBody(
             key: const ValueKey('text-markdown-preview'),
-            data: source,
+            data: widget.source,
             blockSyntaxes: [LatexBlockSyntax()],
             inlineSyntaxes: [
               _TextImageSyntax(),
@@ -535,38 +540,35 @@ class _TextMarkdownPreview extends StatelessWidget {
             ],
             builders: {
               'latex': LatexElementBuilder(
-                textStyle: _fontStyle(style),
+                textStyle: _fontStyle(widget.style),
               ),
             },
-            styleSheet: _styleSheet(context, style),
+            styleSheet: _styleSheet(context, widget.style),
             imageBuilder: (uri, title, alt) =>
-                _buildImage(uri, alt, attachmentStore),
+                _buildImage(uri, alt, widget.attachmentStore),
             onTapLink: (_, href, _) => _openLink(context, href),
           );
     return GestureDetector(
       key: const ValueKey('text-markdown-preview-surface'),
       behavior: HitTestBehavior.opaque,
       dragStartBehavior: DragStartBehavior.down,
-      onTap: onEdit,
-      onPanUpdate: (details) =>
-          onMove(_localToScreenDelta(details.delta, rotation)),
-      child: scrollController == null
+      onTap: widget.onEdit,
+      onPanStart: (details) => _dragPosition = details.globalPosition,
+      onPanUpdate: (details) {
+        final position = details.globalPosition;
+        widget.onMove(position - _dragPosition!);
+        _dragPosition = position;
+      },
+      onPanEnd: (_) => _dragPosition = null,
+      onPanCancel: () => _dragPosition = null,
+      child: widget.scrollController == null
           ? content
           : SingleChildScrollView(
-              controller: scrollController,
+              controller: widget.scrollController,
               child: content,
             ),
     );
   }
-}
-
-Offset _localToScreenDelta(Offset delta, double rotation) {
-  final cosine = math.cos(rotation);
-  final sine = math.sin(rotation);
-  return Offset(
-    delta.dx * cosine - delta.dy * sine,
-    delta.dx * sine + delta.dy * cosine,
-  );
 }
 
 class _EmptyTextMarkdownPreview extends StatelessWidget {

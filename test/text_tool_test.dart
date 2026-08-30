@@ -218,9 +218,15 @@ void main() {
     expect(find.byKey(const ValueKey('text-markdown-preview')), findsNothing);
   });
 
-  testWidgets('text blocks move from their unfocused preview', (tester) async {
+  testWidgets('text blocks move from their unfocused preview when zoomed', (
+    tester,
+  ) async {
     await _addTextBlock(tester, const Offset(120, 200));
     await tester.tapAt(const Offset(400, 300));
+    await tester.pump();
+
+    final canvas = tester.widget<LazyCanvas>(find.byType(LazyCanvas));
+    canvas.controller.updateScalebyDelta(1, focalPoint: Offset.zero);
     await tester.pump();
 
     final block = find.byType(TextBlock);
@@ -237,7 +243,8 @@ void main() {
     await gesture.moveBy(delta);
     await tester.pump();
 
-    expect(model.node.position, originalPosition + delta);
+    expect(canvas.controller.scale, 2);
+    expect(model.node.position, originalPosition + delta / 2);
     expect(model.editing, isFalse);
     expect(model.focusNode.hasFocus, isFalse);
     expect(find.byKey(const ValueKey('text-markdown-preview')), findsOneWidget);
