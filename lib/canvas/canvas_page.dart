@@ -59,6 +59,7 @@ class _CanvasPageState extends State<CanvasPage> {
   static const _noIconsPreferenceKey = 'interface.no_icons';
 
   final _canvasController = LazyCanvasController(
+    buildExtentMultiplier: 3.4,
     useIdsFromArgs: true,
   );
   CanvasBackgroundKind _canvasBackgroundKind = CanvasBackgroundKind.dotGrid;
