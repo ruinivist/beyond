@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:beyond/canvas/canvas_document.dart';
 import 'package:beyond/canvas/canvas_element_model.dart';
 import 'package:beyond/foundation/control_surface.dart';
+import 'package:beyond/foundation/resize_handle.dart';
 import 'package:beyond/foundation/theme.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
@@ -271,45 +272,23 @@ class _MediaImage extends StatelessWidget {
               Positioned(
                 right: 0,
                 bottom: 0,
-                child: _MediaResizeHandle(onResize: onResize),
+                child: ResizeHandle(
+                  key: const ValueKey('media-resize-handle'),
+                  semanticLabel: 'Resize media',
+                  gestures: {
+                    ImmediateMultiDragGestureRecognizer:
+                        GestureRecognizerFactoryWithHandlers<
+                          ImmediateMultiDragGestureRecognizer
+                        >(
+                          ImmediateMultiDragGestureRecognizer.new,
+                          (recognizer) {
+                            recognizer.onStart = (_) => _MediaDrag(onResize);
+                          },
+                        ),
+                  },
+                ),
               ),
           ],
-        ),
-      ),
-    );
-  }
-}
-
-class _MediaResizeHandle extends StatelessWidget {
-  const _MediaResizeHandle({required this.onResize});
-
-  final ValueChanged<Offset> onResize;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = BTheme.of(context).colors;
-    return MouseRegion(
-      cursor: SystemMouseCursors.resizeDownRight,
-      child: RawGestureDetector(
-        key: const ValueKey('media-resize-handle'),
-        behavior: HitTestBehavior.opaque,
-        gestures: {
-          ImmediateMultiDragGestureRecognizer:
-              GestureRecognizerFactoryWithHandlers<
-                ImmediateMultiDragGestureRecognizer
-              >(ImmediateMultiDragGestureRecognizer.new, (recognizer) {
-                recognizer.onStart = (_) => _MediaDrag(onResize);
-              }),
-        },
-        child: ControlSurface(
-          child: SizedBox.square(
-            dimension: 28,
-            child: Icon(
-              Icons.open_in_full,
-              size: 16,
-              color: colors.textMuted,
-            ),
-          ),
         ),
       ),
     );

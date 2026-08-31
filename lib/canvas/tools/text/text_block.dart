@@ -9,6 +9,7 @@ import 'package:beyond/canvas/canvas_document.dart';
 import 'package:beyond/canvas/canvas_element_model.dart';
 import 'package:beyond/foundation/control_surface.dart';
 import 'package:beyond/foundation/pointer_scroll_boundary.dart';
+import 'package:beyond/foundation/resize_handle.dart';
 import 'package:beyond/foundation/select.dart';
 import 'package:beyond/foundation/theme.dart';
 import 'package:beyond/utils/preset_colors.dart';
@@ -289,34 +290,16 @@ class TextBlock extends StatelessWidget {
                                 switchOutCurve: Curves.easeOutCubic,
                                 transitionBuilder: _textResizeHandleTransition,
                                 child: model.editing
-                                    ? MouseRegion(
-                                        cursor:
-                                            SystemMouseCursors.resizeDownRight,
-                                        child: TextFieldTapRegion(
-                                          child: ControlSurface(
-                                            child: Semantics(
-                                              button: true,
-                                              label: 'Resize text block',
-                                              child: RawGestureDetector(
-                                                key: const ValueKey(
-                                                  'text-block-resize-handle',
-                                                ),
-                                                behavior:
-                                                    HitTestBehavior.opaque,
-                                                gestures: {
-                                                  resizeRecognizer:
-                                                      resizeGestureFactory,
-                                                },
-                                                child: Center(
-                                                  child: Icon(
-                                                    Icons.open_in_full,
-                                                    size: 16,
-                                                    color: colors.textMuted,
-                                                  ),
-                                                ),
-                                              ),
-                                            ),
+                                    ? TextFieldTapRegion(
+                                        child: ResizeHandle(
+                                          key: const ValueKey(
+                                            'text-block-resize-handle',
                                           ),
+                                          semanticLabel: 'Resize text block',
+                                          gestures: {
+                                            resizeRecognizer:
+                                                resizeGestureFactory,
+                                          },
                                         ),
                                       )
                                     : const SizedBox(

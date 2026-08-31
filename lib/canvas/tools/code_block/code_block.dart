@@ -4,6 +4,7 @@ import 'package:beyond/canvas/canvas_document.dart';
 import 'package:beyond/canvas/canvas_element_model.dart';
 import 'package:beyond/canvas/tools/code_block/code_language.dart';
 import 'package:beyond/foundation/pointer_scroll_boundary.dart';
+import 'package:beyond/foundation/resize_handle.dart';
 import 'package:beyond/foundation/select.dart';
 import 'package:beyond/foundation/theme.dart';
 import 'package:flutter/gestures.dart';
@@ -192,59 +193,33 @@ class CodeBlock extends StatelessWidget {
                 Positioned(
                   right: 0,
                   bottom: 0,
-                  child: _CodeBlockResizeHandle(model: model),
+                  child: ResizeHandle(
+                    key: const ValueKey('code-block-resize-handle'),
+                    semanticLabel: 'Resize code block',
+                    background: false,
+                    gestures: {
+                      ScaleGestureRecognizer:
+                          GestureRecognizerFactoryWithHandlers<
+                            ScaleGestureRecognizer
+                          >(
+                            () => ScaleGestureRecognizer(
+                              allowedButtonsFilter: (buttons) =>
+                                  buttons == kPrimaryButton,
+                            ),
+                            (recognizer) {
+                              recognizer.onUpdate = (details) {
+                                model.size = Size(
+                                  model.size.width + details.focalPointDelta.dx,
+                                  model.size.height +
+                                      details.focalPointDelta.dy,
+                                );
+                              };
+                            },
+                          ),
+                    },
+                  ),
                 ),
               ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _CodeBlockResizeHandle extends StatelessWidget {
-  const _CodeBlockResizeHandle({required this.model});
-
-  final CodeBlockModel model;
-
-  @override
-  Widget build(BuildContext context) {
-    final color = BTheme.of(context).colors.textMuted;
-    return MouseRegion(
-      cursor: SystemMouseCursors.resizeDownRight,
-      child: Semantics(
-        button: true,
-        label: 'Resize code block',
-        child: RawGestureDetector(
-          key: const ValueKey('code-block-resize-handle'),
-          behavior: HitTestBehavior.opaque,
-          gestures: {
-            ScaleGestureRecognizer:
-                GestureRecognizerFactoryWithHandlers<ScaleGestureRecognizer>(
-                  () => ScaleGestureRecognizer(
-                    allowedButtonsFilter: (buttons) =>
-                        buttons == kPrimaryButton,
-                  ),
-                  (recognizer) {
-                    recognizer.onUpdate = (details) {
-                      model.size = Size(
-                        model.size.width + details.focalPointDelta.dx,
-                        model.size.height + details.focalPointDelta.dy,
-                      );
-                    };
-                  },
-                ),
-          },
-          child: SizedBox(
-            width: 28,
-            height: 28,
-            child: Align(
-              alignment: Alignment.bottomRight,
-              child: Padding(
-                padding: const EdgeInsets.all(4),
-                child: Icon(Icons.open_in_full, size: 16, color: color),
-              ),
             ),
           ),
         ),
