@@ -51,6 +51,12 @@ void main() {
           language: CodeLanguage.dart,
           source: 'void main() {}',
         ),
+        MediaElementData(
+          id: 'media-1',
+          position: const Offset(220, -80),
+          width: 400,
+          url: 'https://example.com/image.png',
+        ),
       ],
     );
 
@@ -65,11 +71,13 @@ void main() {
       'text-1',
       'pen-1',
       'code-1',
+      'media-1',
     ]);
     expect(elements[0], isA<ArrowElementData>());
     expect(elements[1], isA<TextElementData>());
     expect(elements[2], isA<PenElementData>());
     expect(elements[3], isA<CodeElementData>());
+    expect(elements[4], isA<MediaElementData>());
 
     final node = elements[1] as TextElementData;
     expect(node.position, const Offset(-120, 200));
@@ -91,6 +99,11 @@ void main() {
     expect(code.size, const Size(600, 400));
     expect(code.language, CodeLanguage.dart);
     expect(code.source, 'void main() {}');
+
+    final media = elements[4] as MediaElementData;
+    expect(media.position, const Offset(220, -80));
+    expect(media.width, 400);
+    expect(media.url, 'https://example.com/image.png');
 
     final arrow = elements[0] as ArrowElementData;
     expect(arrow.start, const Offset(10, 20));
@@ -280,6 +293,23 @@ void main() {
         _document(
           elements: [
             arrow..['end'] = {'x': 1.0, 'y': 1.0},
+          ],
+        ),
+      ),
+      throwsA(isA<FormatException>()),
+    );
+
+    expect(
+      () => CanvasDocument.fromJson(
+        _document(
+          elements: [
+            {
+              'id': 'media',
+              'type': 'media',
+              'position': {'x': 0.0, 'y': 0.0},
+              'width': mediaNodeMinimumWidth - 1,
+              'url': '',
+            },
           ],
         ),
       ),

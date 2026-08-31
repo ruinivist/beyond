@@ -13,6 +13,7 @@ import 'package:beyond/canvas/canvas_project_files.dart';
 import 'package:beyond/canvas/tools/arrow/arrow_tool.dart';
 import 'package:beyond/canvas/tools/code_block/code_block.dart';
 import 'package:beyond/canvas/tools/code_block/code_language.dart';
+import 'package:beyond/canvas/tools/media/media_node.dart';
 import 'package:beyond/canvas/tools/pen/pen_tool.dart';
 import 'package:beyond/canvas/tools/text/text_block.dart';
 import 'package:beyond/foundation/button.dart';
@@ -32,7 +33,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:super_clipboard/super_clipboard.dart';
 import 'package:uuid/uuid.dart';
 
-enum _CanvasTool { select, text, code, pen, arrow, eraser }
+enum _CanvasTool { select, text, code, media, pen, arrow, eraser }
 
 class CanvasPage extends StatefulWidget {
   const CanvasPage({
@@ -119,6 +120,7 @@ class _CanvasPageState extends State<CanvasPage> {
   ValueChanged<Offset>? get _placementAction => switch (_activeTool.value) {
     _CanvasTool.text => _addTextBlock,
     _CanvasTool.code => _addCodeBlock,
+    _CanvasTool.media => _addMedia,
     _ => null,
   };
 
@@ -188,7 +190,10 @@ class _CanvasPageState extends State<CanvasPage> {
   void _toggleTool(_CanvasTool tool) {
     if (!_documentLoaded) return;
     final enabling = _activeTool.value != tool;
-    if (enabling) _clearTextEditing();
+    if (enabling) {
+      _clearTextEditing();
+      _clearActiveMedia();
+    }
     setState(() {
       _activeTool.value = enabling ? tool : _CanvasTool.select;
       _eraserPointer = null;
@@ -449,6 +454,27 @@ class _CanvasPageState extends State<CanvasPage> {
     _bringElementToFront(model);
   }
 
+  void _handleMediaPointerDown(
+    MediaModel model,
+    PointerDownEvent event,
+  ) {
+    if (event.buttons != kPrimaryButton ||
+        !_documentLoaded ||
+        _activeTool.value != _CanvasTool.select ||
+        !_elements.contains(model)) {
+      return;
+    }
+    _interactiveCanvasPointerIds.add(event.pointer);
+    if (_selectionModifierPressed.value) {
+      model.selected = !model.selected;
+      return;
+    }
+    FocusManager.instance.primaryFocus?.unfocus();
+    _clearTextEditing();
+    model.active = true;
+    _bringElementToFront(model);
+  }
+
   void _editTextBlock(TextBlockModel model) {
     if (!_documentLoaded ||
         _placementEnabled ||
@@ -488,6 +514,12 @@ class _CanvasPageState extends State<CanvasPage> {
       }
     });
     _finishHistoryOperation();
+  }
+
+  void _clearActiveMedia() {
+    for (final model in _elements.whereType<MediaModel>()) {
+      model.active = false;
+    }
   }
 
   void _clearSelection() {
@@ -569,6 +601,15 @@ class _CanvasPageState extends State<CanvasPage> {
     );
   }
 
+  void _resizeMedia(MediaModel model, Offset screenDelta) {
+    if (!_documentLoaded ||
+        _activeTool.value != _CanvasTool.select ||
+        !_elements.contains(model)) {
+      return;
+    }
+    model.resizeBy(screenDelta / _canvasController.scale);
+  }
+
   void _rotateTextBlock(TextBlockModel model, double angle) {
     if (!_documentLoaded ||
         _placementEnabled ||
@@ -609,10 +650,26 @@ class _CanvasPageState extends State<CanvasPage> {
     _scheduleDocumentSave();
   }
 
+  void _addMedia(Offset position) {
+    if (!_documentLoaded) return;
+    final model = MediaModel(
+      MediaElementData(
+        id: const Uuid().v4(),
+        position: position,
+        width: mediaNodeDefaultWidth,
+        url: '',
+      ),
+    );
+    _mountElement(model, requestFocus: true);
+    _scheduleDocumentSave();
+    _finishHistoryOperation();
+  }
+
   CanvasElementModel _createElementModel(CanvasElementData data) {
     return switch (data) {
       final TextElementData data => TextBlockModel(data),
       final CodeElementData data => CodeBlockModel(data),
+      final MediaElementData data => MediaModel(data),
       final PenElementData data => PenStrokeModel(data),
       final ArrowElementData data => ArrowModel(data),
     };
@@ -648,6 +705,17 @@ class _CanvasPageState extends State<CanvasPage> {
           model: code,
           onMove: (delta) => _moveSelectedChildren(code, delta),
           onChangeBoundary: _finishHistoryOperation,
+        ),
+      ),
+      final MediaModel media => _SelectionPointerRegion(
+        key: _selectionKey(media),
+        activeTool: _activeTool,
+        modifierPressed: _selectionModifierPressed,
+        onPointerDown: (event) => _handleMediaPointerDown(media, event),
+        child: MediaNode(
+          model: media,
+          onMove: (delta) => _moveSelectedChildren(media, delta),
+          onResize: (delta) => _resizeMedia(media, delta),
         ),
       ),
       final PenStrokeModel pen => PenStroke(
@@ -824,6 +892,9 @@ class _CanvasPageState extends State<CanvasPage> {
         ) ||
         _elements.whereType<CodeBlockModel>().any(
           (model) => model.focusNode.hasFocus,
+        ) ||
+        _elements.whereType<MediaModel>().any(
+          (model) => model.focusNode.hasFocus,
         );
   }
 
@@ -961,6 +1032,7 @@ class _CanvasPageState extends State<CanvasPage> {
     for (final model in modelsToDispose) {
       if (model case final TextBlockModel text) text.focusNode.unfocus();
       if (model case final CodeBlockModel code) code.focusNode.unfocus();
+      if (model case final MediaModel media) media.focusNode.unfocus();
       _editorFocusNode(model)?.removeListener(_finishHistoryOperation);
       _canvasController.removeChild(model.data.id);
       _elements.remove(model);
@@ -1225,6 +1297,7 @@ class _CanvasPageState extends State<CanvasPage> {
       final tool = switch (event.logicalKey) {
         LogicalKeyboardKey.keyT => _CanvasTool.text,
         LogicalKeyboardKey.keyC => _CanvasTool.code,
+        LogicalKeyboardKey.keyM => _CanvasTool.media,
         LogicalKeyboardKey.keyP => _CanvasTool.pen,
         LogicalKeyboardKey.keyE => _CanvasTool.eraser,
         LogicalKeyboardKey.keyA => _CanvasTool.arrow,
@@ -1399,6 +1472,7 @@ class _CanvasPageState extends State<CanvasPage> {
   FocusNode? _editorFocusNode(CanvasElementModel model) => switch (model) {
     final TextBlockModel text => text.focusNode,
     final CodeBlockModel code => code.focusNode,
+    final MediaModel media => media.focusNode,
     _ => null,
   };
 
@@ -1614,6 +1688,20 @@ class _CanvasPageState extends State<CanvasPage> {
                           child: _toolbarContent(
                             'Code',
                             LucideIcons.codeXml,
+                          ),
+                        ),
+                      ),
+                      Tooltip(
+                        message: 'Place media',
+                        child: Button(
+                          key: const ValueKey('toolbar-media'),
+                          variant: ButtonVariant.toolbar,
+                          size: ButtonSize.toolbar,
+                          selected: _activeTool.value == _CanvasTool.media,
+                          onPressed: () => _toggleTool(_CanvasTool.media),
+                          child: _toolbarContent(
+                            'Media',
+                            LucideIcons.image,
                           ),
                         ),
                       ),

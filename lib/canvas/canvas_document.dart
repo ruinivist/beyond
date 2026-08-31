@@ -15,6 +15,8 @@ const textNodeFontFamilies = <String>{
 };
 
 const codeBlockMinimumSize = Size(280, 240);
+const mediaNodeDefaultWidth = 400.0;
+const mediaNodeMinimumWidth = 120.0;
 const arrowMinimumLength = 4.0;
 
 final _canonicalColor = RegExp(r'^#[0-9A-F]{6}$');
@@ -85,6 +87,7 @@ sealed class CanvasElementData {
         'style',
         'language',
         'source',
+        'url',
         'hitSlop',
         'color',
         'width',
@@ -101,6 +104,7 @@ sealed class CanvasElementData {
     return switch (type) {
       'text' => TextElementData.fromJson(value),
       'code' => CodeElementData.fromJson(value),
+      'media' => MediaElementData.fromJson(value),
       'pen' => PenElementData.fromJson(value),
       'arrow' => ArrowElementData.fromJson(value),
       _ => throw FormatException('Unknown canvas element type: $type'),
@@ -114,6 +118,62 @@ sealed class CanvasElementData {
   Map<String, Object> toJson();
 
   CanvasElementData copy({String? id});
+}
+
+class MediaElementData extends CanvasElementData {
+  MediaElementData({
+    required String id,
+    required this.position,
+    required this.width,
+    required this.url,
+  }) : super(id);
+
+  factory MediaElementData.fromJson(Object? json) {
+    final value = _jsonObject(
+      json,
+      'media element',
+      allowedKeys: const {'id', 'type', 'position', 'width', 'url'},
+    );
+    final id = _requiredString(value, 'id', nonEmpty: true);
+    if (value['type'] != 'media') {
+      throw const FormatException('element.type must be media');
+    }
+    final width = _finiteNumber(value['width'], 'element.width');
+    if (width < mediaNodeMinimumWidth) {
+      throw const FormatException('element.width is below the minimum');
+    }
+
+    return MediaElementData(
+      id: id,
+      position: _offsetFromJson(value['position'], 'element.position'),
+      width: width,
+      url: _requiredString(value, 'url'),
+    );
+  }
+
+  @override
+  String get type => 'media';
+
+  Offset position;
+  double width;
+  String url;
+
+  @override
+  Map<String, Object> toJson() => <String, Object>{
+    'id': id,
+    'type': type,
+    'position': _offsetToJson(position),
+    'width': width,
+    'url': url,
+  };
+
+  @override
+  MediaElementData copy({String? id}) => MediaElementData(
+    id: id ?? this.id,
+    position: position,
+    width: width,
+    url: url,
+  );
 }
 
 class TextNodeStyle {
