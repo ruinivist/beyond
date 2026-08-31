@@ -31,6 +31,11 @@ void main() {
     expect(model.hasImage, isFalse);
     expect(find.byKey(const ValueKey('media-url-field')), findsOneWidget);
     expect(model.focusNode.hasFocus, isTrue);
+    final field = tester.widget<TextField>(
+      find.byKey(const ValueKey('media-url-field')),
+    );
+    expect(field.minLines, 1);
+    expect(field.maxLines, 3);
 
     await tester.enterText(
       find.byKey(const ValueKey('media-url-field')),
@@ -84,7 +89,7 @@ void main() {
     expect(find.byKey(const ValueKey('media-url-field')), findsNothing);
 
     await tester.tap(find.byKey(const ValueKey('media-image')));
-    await tester.pump();
+    await tester.pumpAndSettle();
     expect(model.active, isTrue);
     expect(model.selected, isFalse);
     expect(find.byKey(const ValueKey('media-url-field')), findsOneWidget);
@@ -92,7 +97,7 @@ void main() {
     expect(
       tester.getTopLeft(find.byKey(const ValueKey('media-url-panel'))).dy -
           tester.getBottomLeft(find.byKey(const ValueKey('media-image'))).dy,
-      16,
+      8,
     );
 
     await tester.drag(
@@ -102,6 +107,10 @@ void main() {
     await tester.pump();
     expect(model.data.width, closeTo(500, 0.01));
     expect(model.canvasSize.height, closeTo(250, 0.01));
+    expect(
+      tester.getSize(find.byKey(const ValueKey('media-url-panel'))).width,
+      closeTo(model.data.width, 0.01),
+    );
 
     final position = model.data.position;
     await tester.drag(
@@ -118,6 +127,8 @@ void main() {
     await clickAway.up();
     await tester.pump();
     expect(model.active, isFalse);
+    expect(find.byKey(const ValueKey('media-url-field')), findsOneWidget);
+    await tester.pump(const Duration(milliseconds: 200));
     expect(find.byKey(const ValueKey('media-url-field')), findsNothing);
 
     await tester.pump(const Duration(milliseconds: 320));

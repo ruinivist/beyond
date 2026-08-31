@@ -8,7 +8,8 @@ import 'package:beyond/foundation/theme.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
-const mediaUrlPanelSize = Size(400, 96);
+const mediaUrlPanelMinimumWidth = 280.0;
+const _mediaUrlPanelCanvasHeight = 96.0;
 
 class MediaModel extends CanvasElementModel<MediaElementData> {
   MediaModel(MediaElementData data) : super(data) {
@@ -29,6 +30,10 @@ class MediaModel extends CanvasElementModel<MediaElementData> {
 
   bool get hasImage => _image != null && _aspectRatio != null;
 
+  double get urlPanelWidth => hasImage
+      ? math.max(mediaUrlPanelMinimumWidth, data.width)
+      : mediaUrlPanelMinimumWidth;
+
   bool get active => _active;
 
   set active(bool value) {
@@ -44,7 +49,7 @@ class MediaModel extends CanvasElementModel<MediaElementData> {
   @override
   Size get canvasSize => hasImage
       ? Size(data.width, data.width / _aspectRatio!)
-      : mediaUrlPanelSize;
+      : Size(urlPanelWidth, _mediaUrlPanelCanvasHeight);
 
   @override
   void moveBy(Offset delta) {
@@ -172,26 +177,37 @@ class _MediaNodeState extends State<MediaNode> {
           label: model.hasImage ? 'Image media' : 'Image URL',
           child: OverlayPortal(
             controller: _portalController,
-            overlayChildBuilder: (context) => model.active
-                ? Positioned(
-                    width: mediaUrlPanelSize.width,
-                    height: mediaUrlPanelSize.height,
-                    child: CompositedTransformFollower(
-                      link: model.layerLink,
-                      showWhenUnlinked: false,
-                      targetAnchor: Alignment.bottomCenter,
-                      followerAnchor: Alignment.topCenter,
-                      offset: const Offset(0, 16),
-                      child: TapRegion(
-                        groupId: model,
-                        child: _MediaUrlPanel(
-                          key: _panelKey,
-                          model: model,
-                        ),
-                      ),
-                    ),
-                  )
-                : const SizedBox.shrink(),
+            overlayChildBuilder: (context) => Positioned(
+              width: model.urlPanelWidth,
+              child: CompositedTransformFollower(
+                link: model.layerLink,
+                showWhenUnlinked: false,
+                targetAnchor: Alignment.bottomCenter,
+                followerAnchor: Alignment.topCenter,
+                offset: const Offset(0, 8),
+                child: IgnorePointer(
+                  ignoring: !model.active,
+                  child: AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 260),
+                    reverseDuration: const Duration(milliseconds: 180),
+                    switchInCurve: Curves.easeOutCubic,
+                    switchOutCurve: Curves.easeOutCubic,
+                    transitionBuilder: _mediaUrlPanelTransition,
+                    child: model.active
+                        ? TapRegion(
+                            groupId: model,
+                            child: _MediaUrlPanel(
+                              key: _panelKey,
+                              model: model,
+                            ),
+                          )
+                        : const SizedBox(
+                            key: ValueKey('media-url-panel-hidden'),
+                          ),
+                  ),
+                ),
+              ),
+            ),
             child: model.hasImage
                 ? TapRegion(
                     groupId: model,
@@ -216,6 +232,18 @@ class _MediaNodeState extends State<MediaNode> {
     );
   }
 }
+
+Widget _mediaUrlPanelTransition(
+  Widget child,
+  Animation<double> animation,
+) => FadeTransition(
+  opacity: animation,
+  child: ScaleTransition(
+    scale: Tween<double>(begin: 0.94, end: 1).animate(animation),
+    alignment: Alignment.topCenter,
+    child: child,
+  ),
+);
 
 class _MediaImage extends StatelessWidget {
   const _MediaImage({
@@ -305,9 +333,9 @@ class _MediaUrlPanel extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = BTheme.of(context);
     final colors = theme.colors;
-    return SizedBox.fromSize(
+    return SizedBox(
       key: const ValueKey('media-url-panel'),
-      size: mediaUrlPanelSize,
+      width: model.urlPanelWidth,
       child: ControlSurface(
         selected: model.selected,
         child: Stack(
@@ -318,8 +346,8 @@ class _MediaUrlPanel extends StatelessWidget {
                 key: const ValueKey('media-url-field'),
                 controller: model.controller,
                 focusNode: model.focusNode,
-                expands: true,
-                maxLines: null,
+                minLines: 1,
+                maxLines: 3,
                 keyboardType: TextInputType.url,
                 cursorColor: colors.accent,
                 style: theme.typo.body.copyWith(color: colors.textPrimary),
