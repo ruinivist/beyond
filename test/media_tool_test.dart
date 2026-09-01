@@ -1,5 +1,7 @@
+import 'dart:convert';
 import 'dart:ui' as ui;
 
+import 'package:beyond/canvas/attachment_store.dart';
 import 'package:beyond/canvas/canvas_background.dart';
 import 'package:beyond/canvas/canvas_document.dart';
 import 'package:beyond/canvas/canvas_document_store.dart';
@@ -30,6 +32,7 @@ void main() {
     expect(model.data.width, mediaNodeDefaultWidth);
     expect(model.hasImage, isFalse);
     expect(find.byKey(const ValueKey('media-url-field')), findsOneWidget);
+    expect(find.byKey(const ValueKey('media-device-picker')), findsOneWidget);
     expect(model.focusNode.hasFocus, isTrue);
     final field = tester.widget<TextField>(
       find.byKey(const ValueKey('media-url-field')),
@@ -63,6 +66,35 @@ void main() {
     await tester.pump();
     await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
     expect(model.selected, isTrue);
+  });
+
+  testWidgets('device images are stored and rendered from memory', (
+    tester,
+  ) async {
+    final attachments = _MemoryAttachmentStore();
+    await _pumpCanvas(
+      tester,
+      _DocumentStore(_document()),
+      attachmentStore: attachments,
+    );
+
+    await tester.tap(find.byKey(const ValueKey('toolbar-media')));
+    await tester.pump();
+    await tester.tapAt(const Offset(120, 180));
+    await tester.pump();
+    await tester.pump();
+
+    final model = tester.widget<MediaNode>(find.byType(MediaNode)).model;
+    final bytes = _pngBytes;
+    await tester.runAsync(() => model.setDeviceImage(bytes, 'PNG'));
+    await tester.pumpAndSettle();
+
+    expect(model.data.url, matches(attachmentPathPattern));
+    expect(attachments.files, {model.data.url: bytes});
+    expect(model.image, isA<MemoryImage>());
+    expect(model.canvasSize, const Size.square(400));
+    expect(find.byKey(const ValueKey('media-image')), findsOneWidget);
+    expect(model.active, isTrue);
   });
 
   testWidgets('loaded media activates, moves, and resizes to its ratio', (
@@ -100,11 +132,16 @@ void main() {
       8,
     );
 
-    await tester.drag(
-      find.byKey(const ValueKey('media-resize-handle')),
-      const Offset(100, 50),
+    final resize = await tester.startGesture(
+      tester.getCenter(find.byKey(const ValueKey('media-resize-handle'))),
+      kind: PointerDeviceKind.mouse,
     );
-    await tester.pump();
+    for (var i = 0; i < 10; i++) {
+      await resize.moveBy(const Offset(10, 5));
+      await tester.pump();
+    }
+    await resize.up();
+    expect(tester.takeException(), isNull);
     expect(model.data.width, closeTo(500, 0.01));
     expect(model.canvasSize.height, closeTo(250, 0.01));
     expect(
@@ -141,12 +178,16 @@ void main() {
 
 Future<void> _pumpCanvas(
   WidgetTester tester,
-  CanvasDocumentStore store,
-) async {
+  CanvasDocumentStore store, {
+  AttachmentStore? attachmentStore,
+}) async {
   await tester.pumpWidget(
     MaterialApp(
       theme: starlessLightThemeData,
-      home: CanvasPage(documentStore: store),
+      home: CanvasPage(
+        documentStore: store,
+        attachmentStore: attachmentStore,
+      ),
     ),
   );
   await tester.pump();
@@ -168,6 +209,15 @@ Future<void> _cacheImage(String url) async {
   );
 }
 
+final _pngBytes = Uint8List.fromList(
+  base64Decode(
+    [
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8A',
+      'AQUBAScY42YAAAAASUVORK5CYII=',
+    ].join(),
+  ),
+);
+
 CanvasDocument _document([MediaElementData? media]) => CanvasDocument(
   background: CanvasBackgroundKind.plain,
   elements: [?media],
@@ -185,5 +235,20 @@ class _DocumentStore extends CanvasDocumentStore {
   @override
   Future<void> save(CanvasDocument document) async {
     persisted = document.copy();
+  }
+}
+
+class _MemoryAttachmentStore implements AttachmentStore {
+  final files = <String, Uint8List>{};
+
+  @override
+  Future<Uint8List> read(String path) async => files[path]!;
+
+  @override
+  Future<Uint8List?> readIfExists(String path) async => files[path];
+
+  @override
+  Future<void> write(String path, Uint8List bytes) async {
+    files[path] = bytes;
   }
 }

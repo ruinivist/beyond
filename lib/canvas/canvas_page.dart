@@ -659,6 +659,7 @@ class _CanvasPageState extends State<CanvasPage> {
         width: mediaNodeDefaultWidth,
         url: '',
       ),
+      _attachmentStore,
     );
     _mountElement(model, requestFocus: true);
     _scheduleDocumentSave();
@@ -669,7 +670,7 @@ class _CanvasPageState extends State<CanvasPage> {
     return switch (data) {
       final TextElementData data => TextBlockModel(data),
       final CodeElementData data => CodeBlockModel(data),
-      final MediaElementData data => MediaModel(data),
+      final MediaElementData data => MediaModel(data, _attachmentStore),
       final PenElementData data => PenStrokeModel(data),
       final ArrowElementData data => ArrowModel(data),
     };

@@ -30,6 +30,9 @@ Set<String> canvasAttachmentPaths(CanvasDocument document) {
       for (final node in md.Document().parse(markdown)) {
         _collectAttachmentPaths(node, paths);
       }
+    } else if (element case MediaElementData(:final url)) {
+      final path = url.trim();
+      if (attachmentPathPattern.hasMatch(path)) paths.add(path);
     }
   }
   return paths;

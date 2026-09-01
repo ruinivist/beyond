@@ -1,32 +1,51 @@
+import 'dart:async';
 import 'dart:math' as math;
+import 'dart:typed_data';
+import 'dart:ui' as ui;
 
+import 'package:beyond/canvas/attachment_store.dart';
 import 'package:beyond/canvas/canvas_document.dart';
 import 'package:beyond/canvas/canvas_element_model.dart';
 import 'package:beyond/foundation/control_surface.dart';
 import 'package:beyond/foundation/resize_handle.dart';
 import 'package:beyond/foundation/theme.dart';
+import 'package:file_selector/file_selector.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:uuid/uuid.dart';
 
 const mediaUrlPanelMinimumWidth = 280.0;
 const _mediaUrlPanelCanvasHeight = 96.0;
+const _imageTypes = XTypeGroup(
+  label: 'images',
+  extensions: ['png', 'jpg', 'jpeg', 'gif', 'webp'],
+  mimeTypes: ['image/png', 'image/jpeg', 'image/gif', 'image/webp'],
+  uniformTypeIdentifiers: [
+    'public.png',
+    'public.jpeg',
+    'com.compuserve.gif',
+    'org.webmproject.webp',
+  ],
+);
 
 class MediaModel extends CanvasElementModel<MediaElementData> {
-  MediaModel(MediaElementData data) : super(data) {
+  MediaModel(MediaElementData data, this.attachmentStore) : super(data) {
     controller = TextEditingController(text: data.url)..addListener(_syncUrl);
     _loadImage();
   }
 
+  final AttachmentStore attachmentStore;
   late final TextEditingController controller;
   final focusNode = FocusNode();
-  final layerLink = LayerLink();
-  NetworkImage? _image;
+  ImageProvider<Object>? _image;
   ImageStream? _imageStream;
   ImageStreamListener? _imageListener;
+  Object? _attachmentLoad;
   double? _aspectRatio;
   var _active = false;
 
-  NetworkImage? get image => _image;
+  ImageProvider<Object>? get image => _image;
 
   bool get hasImage => _image != null && _aspectRatio != null;
 
@@ -71,6 +90,30 @@ class MediaModel extends CanvasElementModel<MediaElementData> {
     notifyListeners();
   }
 
+  Future<void> setDeviceImage(Uint8List bytes, String extension) async {
+    final normalizedExtension = extension.toLowerCase() == 'jpeg'
+        ? 'jpg'
+        : extension.toLowerCase();
+    if (!const {'png', 'jpg', 'gif', 'webp'}.contains(normalizedExtension)) {
+      throw const FormatException('Unsupported image type');
+    }
+    if (bytes.length > attachmentMaximumBytes) {
+      throw const FormatException('Image exceeds 10 MiB');
+    }
+
+    final path = 'attachments/${const Uuid().v4()}.$normalizedExtension';
+    final ratio = await _imageAspectRatio(bytes);
+    await attachmentStore.write(path, bytes);
+
+    data.url = path;
+    controller.text = path;
+    _detachImage();
+    _image = MemoryImage(bytes);
+    _aspectRatio = ratio;
+    _active = true;
+    notifyListeners();
+  }
+
   void _syncUrl() {
     if (data.url == controller.text) return;
     data.url = controller.text;
@@ -82,6 +125,12 @@ class MediaModel extends CanvasElementModel<MediaElementData> {
   void _loadImage() {
     _detachImage();
     final source = data.url.trim();
+    if (attachmentPathPattern.hasMatch(source)) {
+      final load = Object();
+      _attachmentLoad = load;
+      unawaited(_loadAttachment(source, load));
+      return;
+    }
     final uri = Uri.tryParse(source);
     if (uri == null ||
         uri.scheme != 'https' ||
@@ -91,7 +140,22 @@ class MediaModel extends CanvasElementModel<MediaElementData> {
       return;
     }
 
-    final image = NetworkImage(source);
+    _attachImage(NetworkImage(source));
+  }
+
+  Future<void> _loadAttachment(String path, Object load) async {
+    try {
+      final bytes = await attachmentStore.read(path);
+      if (_attachmentLoad != load) return;
+      _attachImage(MemoryImage(bytes));
+    } on Object {
+      if (_attachmentLoad != load) return;
+      _active = false;
+      notifyListeners();
+    }
+  }
+
+  void _attachImage(ImageProvider<Object> image) {
     final stream = image.resolve(ImageConfiguration.empty);
     final listener = ImageStreamListener(
       (info, _) {
@@ -121,6 +185,7 @@ class MediaModel extends CanvasElementModel<MediaElementData> {
     if (stream != null && listener != null) stream.removeListener(listener);
     _imageStream = null;
     _imageListener = null;
+    _attachmentLoad = null;
     _image = null;
     _aspectRatio = null;
   }
@@ -164,6 +229,27 @@ class _MediaNodeState extends State<MediaNode> {
     });
   }
 
+  Future<void> _pickImage() async {
+    try {
+      final file = await openFile(acceptedTypeGroups: const [_imageTypes]);
+      if (file == null) return;
+      final separator = file.name.lastIndexOf('.');
+      if (separator < 0) throw const FormatException('Missing image type');
+      if (await file.length() > attachmentMaximumBytes) {
+        throw const FormatException('Image exceeds 10 MiB');
+      }
+      await widget.model.setDeviceImage(
+        await file.readAsBytes(),
+        file.name.substring(separator + 1),
+      );
+    } on Object {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Could not open image')));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
@@ -175,56 +261,65 @@ class _MediaNodeState extends State<MediaNode> {
           image: model.hasImage,
           selected: model.selected,
           label: model.hasImage ? 'Image media' : 'Image URL',
-          child: OverlayPortal(
+          child: OverlayPortal.overlayChildLayoutBuilder(
             controller: _portalController,
-            overlayChildBuilder: (context) => Positioned(
-              width: model.urlPanelWidth,
-              child: CompositedTransformFollower(
-                link: model.layerLink,
-                showWhenUnlinked: false,
-                targetAnchor: Alignment.bottomCenter,
-                followerAnchor: Alignment.topCenter,
-                offset: const Offset(0, 8),
-                child: IgnorePointer(
-                  ignoring: !model.active,
-                  child: AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 260),
-                    reverseDuration: const Duration(milliseconds: 180),
-                    switchInCurve: Curves.easeOutCubic,
-                    switchOutCurve: Curves.easeOutCubic,
-                    transitionBuilder: _mediaUrlPanelTransition,
-                    child: model.active
-                        ? TapRegion(
-                            groupId: model,
-                            child: _MediaUrlPanel(
-                              key: _panelKey,
-                              model: model,
-                            ),
-                          )
-                        : const SizedBox(
-                            key: ValueKey('media-url-panel-hidden'),
-                          ),
+            overlayChildBuilder: (context, layout) {
+              final panelWidth = model.urlPanelWidth;
+              return Positioned(
+                left: 0,
+                top: 0,
+                child: Transform(
+                  transform: layout.childPaintTransform,
+                  alignment: Alignment.topLeft,
+                  child: Transform.translate(
+                    offset: Offset(
+                      (layout.childSize.width - panelWidth) / 2,
+                      layout.childSize.height + 8,
+                    ),
+                    child: SizedBox(
+                      width: panelWidth,
+                      child: IgnorePointer(
+                        ignoring: !model.active,
+                        child: AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 260),
+                          reverseDuration: const Duration(milliseconds: 180),
+                          switchInCurve: Curves.easeOutCubic,
+                          switchOutCurve: Curves.easeOutCubic,
+                          transitionBuilder: _mediaUrlPanelTransition,
+                          child: model.active
+                              ? TapRegion(
+                                  groupId: model,
+                                  child: _MediaUrlPanel(
+                                    key: _panelKey,
+                                    model: model,
+                                    onPickImage: _pickImage,
+                                  ),
+                                )
+                              : const SizedBox(
+                                  key: ValueKey('media-url-panel-hidden'),
+                                ),
+                        ),
+                      ),
+                    ),
                   ),
                 ),
-              ),
-            ),
+              );
+            },
             child: model.hasImage
                 ? TapRegion(
                     groupId: model,
                     onTapOutside: (_) => model.active = false,
-                    child: CompositedTransformTarget(
-                      link: model.layerLink,
-                      child: _MediaImage(
-                        model: model,
-                        onMove: widget.onMove,
-                        onResize: widget.onResize,
-                      ),
+                    child: _MediaImage(
+                      model: model,
+                      onMove: widget.onMove,
+                      onResize: widget.onResize,
                     ),
                   )
                 : _MediaUrlPanel(
                     key: _panelKey,
                     model: model,
                     onMove: widget.onMove,
+                    onPickImage: _pickImage,
                   ),
           ),
         );
@@ -324,9 +419,15 @@ class _MediaImage extends StatelessWidget {
 }
 
 class _MediaUrlPanel extends StatelessWidget {
-  const _MediaUrlPanel({required this.model, this.onMove, super.key});
+  const _MediaUrlPanel({
+    required this.model,
+    required this.onPickImage,
+    this.onMove,
+    super.key,
+  });
 
   final MediaModel model;
+  final VoidCallback onPickImage;
   final ValueChanged<Offset>? onMove;
 
   @override
@@ -356,6 +457,12 @@ class _MediaUrlPanel extends StatelessWidget {
                   filled: true,
                   fillColor: colors.surface,
                   contentPadding: const EdgeInsets.all(10),
+                  suffixIcon: IconButton(
+                    key: const ValueKey('media-device-picker'),
+                    tooltip: 'Choose image from device',
+                    onPressed: onPickImage,
+                    icon: const Icon(LucideIcons.imageUp, size: 20),
+                  ),
                   enabledBorder: OutlineInputBorder(
                     borderRadius: theme.geo.radiusSmall,
                     borderSide: BorderSide(color: colors.borderSubtle),
@@ -406,4 +513,19 @@ class _MediaDrag extends Drag {
 
   @override
   void update(DragUpdateDetails details) => onUpdate(details.delta);
+}
+
+Future<double> _imageAspectRatio(Uint8List bytes) async {
+  ui.Codec? codec;
+  ui.FrameInfo? frame;
+  try {
+    codec = await ui.instantiateImageCodec(bytes);
+    frame = await codec.getNextFrame();
+    return frame.image.width / frame.image.height;
+  } catch (error) {
+    throw FormatException('Invalid encoded image: $error');
+  } finally {
+    frame?.image.dispose();
+    codec?.dispose();
+  }
 }

@@ -16,29 +16,31 @@ void main() {
 ![first](attachments/00000000-0000-4000-8000-000000000000.png)
 ![second](attachments/00000001-0000-4000-8000-000000000000.png)
 ''',
-    );
+    )..elements.add(_media(_path(2)));
     final first = _pngBytes;
     final second = Uint8List.fromList(_pngBytes);
+    final third = Uint8List.fromList(_pngBytes);
     final store = _MemoryAttachmentStore({
       _path(0): first,
       _path(1): second,
+      _path(2): third,
     });
 
     final encoded = await encodeCanvasProject(document, store);
     final root = jsonDecode(utf8.decode(encoded)) as Map<String, dynamic>;
     final attachmentMap = root['attachments'] as Map<String, dynamic>;
-    expect(attachmentMap.keys, [_path(0), _path(1)]);
+    expect(attachmentMap.keys, [_path(0), _path(1), _path(2)]);
 
     final project = await decodeCanvasProject(encoded);
     expect(project.document.toJson(), document.toJson());
     expect(project.attachments[_path(0)], first);
     expect(project.attachments[_path(1)], second);
+    expect(project.attachments[_path(2)], third);
   });
 
   test('local image discovery uses the Markdown AST', () {
-    final paths = canvasAttachmentPaths(
-      _document(
-        markdown: '''
+    final document = _document(
+      markdown: '''
 attachments/00000000-0000-4000-8000-000000000000.png
 
 ```markdown
@@ -51,10 +53,10 @@ attachments/00000000-0000-4000-8000-000000000000.png
 ![invalid](attachments/not-a-uuid.png)
 ![broken](attachments/00000001-0000-4000-8000-000000000000.png
 ''',
-      ),
-    );
+    )..elements.add(_media(_path(1)));
+    final paths = canvasAttachmentPaths(document);
 
-    expect(paths, {_path(0)});
+    expect(paths, {_path(0), _path(1)});
   });
 
   test('repeated references are read and encoded once', () async {
@@ -185,6 +187,13 @@ CanvasDocument _document({required String markdown}) => CanvasDocument(
       end: const Offset(4, 0),
     ),
   ],
+);
+
+MediaElementData _media(String url) => MediaElementData(
+  id: 'media-1',
+  position: const Offset(20, 30),
+  width: 400,
+  url: url,
 );
 
 Map<String, Object?> _validProjectJson() => {
