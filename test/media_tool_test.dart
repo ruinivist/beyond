@@ -7,7 +7,7 @@ import 'package:beyond/canvas/canvas_document.dart';
 import 'package:beyond/canvas/canvas_document_store.dart';
 import 'package:beyond/canvas/canvas_page.dart';
 import 'package:beyond/canvas/tools/media/media_node.dart';
-import 'package:beyond/theme/starless_light.dart';
+import 'package:beyond/theme/starless.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';

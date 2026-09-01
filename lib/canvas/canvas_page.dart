@@ -20,6 +20,7 @@ import 'package:beyond/foundation/button.dart';
 import 'package:beyond/foundation/control_surface.dart';
 import 'package:beyond/foundation/discrete_slider.dart';
 import 'package:beyond/foundation/theme.dart';
+import 'package:beyond/theme/starless.dart';
 import 'package:beyond/utils/preset_colors.dart';
 import 'package:beyond/widgets/settings_dialog.dart';
 import 'package:flutter/foundation.dart';
@@ -37,16 +38,20 @@ enum _CanvasTool { select, text, code, media, pen, arrow, eraser }
 
 class CanvasPage extends StatefulWidget {
   const CanvasPage({
+    this.appTheme = AppTheme.starlessLight,
     this.attachmentStore,
     this.documentStore,
+    this.onAppThemeChanged,
     this.projectFiles,
     this.readClipboardText,
     this.writeClipboardText,
     super.key,
   });
 
+  final AppTheme appTheme;
   final AttachmentStore? attachmentStore;
   final CanvasDocumentStore? documentStore;
+  final ValueChanged<AppTheme>? onAppThemeChanged;
   final CanvasProjectFiles? projectFiles;
   final Future<String?> Function()? readClipboardText;
   final Future<void> Function(String text)? writeClipboardText;
@@ -92,7 +97,7 @@ class _CanvasPageState extends State<CanvasPage> {
   var _projectTransferActive = false;
   late final PenTool _penTool;
   late final ArrowTool _arrowTool;
-  Color _penColor = presetColors.first.color;
+  Color? _customPenColor;
   double _penWidth = 4;
   final ValueNotifier<_CanvasTool> _activeTool = ValueNotifier(
     _CanvasTool.select,
@@ -113,6 +118,9 @@ class _CanvasPageState extends State<CanvasPage> {
   var _noIcons = false;
   var _noIconsChanged = false;
 
+  Color get _penColor =>
+      _customPenColor ?? BTheme.of(context).colors.textPrimary;
+
   bool get _penEnabled => _activeTool.value == _CanvasTool.pen;
 
   bool get _arrowEnabled => _activeTool.value == _CanvasTool.arrow;
@@ -131,9 +139,7 @@ class _CanvasPageState extends State<CanvasPage> {
   @override
   void initState() {
     super.initState();
-    _penTool = PenTool(onStroke: _addStroke)
-      ..setColor(_penColor)
-      ..setStrokeWidth(_penWidth);
+    _penTool = PenTool(onStroke: _addStroke)..setStrokeWidth(_penWidth);
     _arrowTool = ArrowTool(onArrow: _addArrow)
       ..addListener(_handleArrowToolChanged);
     HardwareKeyboard.instance.addHandler(_handleKeyEvent);
@@ -185,6 +191,7 @@ class _CanvasPageState extends State<CanvasPage> {
     super.didChangeDependencies();
     final colors = BTheme.of(context).colors;
     _canvasController.background = _canvasBackgroundKind.build(colors);
+    if (_customPenColor == null) _penTool.setColor(colors.textPrimary);
   }
 
   void _toggleTool(_CanvasTool tool) {
@@ -205,7 +212,7 @@ class _CanvasPageState extends State<CanvasPage> {
   }
 
   void _setPenColor(Color color) {
-    setState(() => _penColor = color);
+    setState(() => _customPenColor = color);
     _penTool.setColor(color);
   }
 
@@ -637,10 +644,10 @@ class _CanvasPageState extends State<CanvasPage> {
       width: textNodeDefaultWidth,
       height: null,
       markdown: '',
-      style: const TextNodeStyle(
+      style: TextNodeStyle(
         fontFamily: 'Source Serif 4',
         fontSize: textNodeDefaultFontSize,
-        color: '#201C1A',
+        color: colorToHex(BTheme.of(context).colors.textPrimary),
       ),
     );
     final model = TextBlockModel(node);
@@ -1059,8 +1066,10 @@ class _CanvasPageState extends State<CanvasPage> {
         context: context,
         barrierColor: BTheme.of(context).colors.scrim,
         builder: (_) => SettingsDialog(
+          appTheme: widget.appTheme,
           canvasBackgroundKind: _canvasBackgroundKind,
           noIcons: _noIcons,
+          onAppThemeChanged: widget.onAppThemeChanged,
           onCanvasBackgroundChanged: _setCanvasBackground,
           onNoIconsChanged: _setNoIcons,
           onImportCanvas: _importProject,

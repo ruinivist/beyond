@@ -9,7 +9,7 @@ import 'package:beyond/canvas/tools/code_block/code_block.dart';
 import 'package:beyond/canvas/tools/text/text_block.dart';
 import 'package:beyond/foundation/select.dart';
 import 'package:beyond/main.dart';
-import 'package:beyond/theme/starless_light.dart';
+import 'package:beyond/theme/starless.dart';
 import 'package:beyond/utils/preset_colors.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';

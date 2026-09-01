@@ -1,6 +1,6 @@
 import 'package:beyond/foundation/button.dart';
 import 'package:beyond/foundation/theme.dart';
-import 'package:beyond/theme/starless_light.dart';
+import 'package:beyond/theme/starless.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 

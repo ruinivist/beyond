@@ -4,12 +4,15 @@ import 'package:beyond/canvas/canvas_background.dart';
 import 'package:beyond/foundation/button.dart';
 import 'package:beyond/foundation/select.dart';
 import 'package:beyond/foundation/theme.dart';
+import 'package:beyond/theme/starless.dart';
 import 'package:flutter/material.dart';
 
 class SettingsDialog extends StatefulWidget {
   const SettingsDialog({
+    this.appTheme = AppTheme.starlessLight,
     this.canvasBackgroundKind = CanvasBackgroundKind.dotGrid,
     this.noIcons = false,
+    this.onAppThemeChanged,
     this.onCanvasBackgroundChanged,
     this.onNoIconsChanged,
     this.onImportCanvas,
@@ -17,8 +20,10 @@ class SettingsDialog extends StatefulWidget {
     super.key,
   });
 
+  final AppTheme appTheme;
   final CanvasBackgroundKind canvasBackgroundKind;
   final bool noIcons;
+  final ValueChanged<AppTheme>? onAppThemeChanged;
   final ValueChanged<CanvasBackgroundKind>? onCanvasBackgroundChanged;
   final ValueChanged<bool>? onNoIconsChanged;
   final Future<bool> Function()? onImportCanvas;
@@ -32,6 +37,7 @@ enum _SettingsSection { about, canvas, interface }
 
 class _SettingsDialogState extends State<SettingsDialog> {
   _SettingsSection _section = _SettingsSection.canvas;
+  late AppTheme _appTheme = widget.appTheme;
   late CanvasBackgroundKind _canvasBackgroundKind = widget.canvasBackgroundKind;
   late bool _noIcons = widget.noIcons;
   var _transferActive = false;
@@ -297,27 +303,53 @@ class _SettingsDialogState extends State<SettingsDialog> {
     final theme = BTheme.of(context);
     return Padding(
       padding: const EdgeInsets.only(right: 48),
-      child: MergeSemantics(
-        child: Row(
-          children: [
-            Expanded(
-              child: Text(
-                'No icons',
-                style: theme.typo.body.copyWith(
-                  color: theme.colors.textPrimary,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Theme',
+            style: theme.typo.label.copyWith(color: theme.colors.textPrimary),
+          ),
+          const SizedBox(height: 10),
+          Select<AppTheme>(
+            key: const ValueKey('theme-select'),
+            value: _appTheme,
+            options: [
+              for (final appTheme in AppTheme.values)
+                SelectOption(value: appTheme, label: appTheme.label),
+            ],
+            showBorder: false,
+            onChanged: widget.onAppThemeChanged == null
+                ? null
+                : (appTheme) {
+                    setState(() => _appTheme = appTheme);
+                    widget.onAppThemeChanged!(appTheme);
+                  },
+          ),
+          const SizedBox(height: 20),
+          MergeSemantics(
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    'No icons',
+                    style: theme.typo.body.copyWith(
+                      color: theme.colors.textPrimary,
+                    ),
+                  ),
                 ),
-              ),
+                Switch(
+                  key: const ValueKey('no-icons-switch'),
+                  value: _noIcons,
+                  onChanged: (value) {
+                    setState(() => _noIcons = value);
+                    widget.onNoIconsChanged?.call(value);
+                  },
+                ),
+              ],
             ),
-            Switch(
-              key: const ValueKey('no-icons-switch'),
-              value: _noIcons,
-              onChanged: (value) {
-                setState(() => _noIcons = value);
-                widget.onNoIconsChanged?.call(value);
-              },
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

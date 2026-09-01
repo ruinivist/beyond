@@ -10,7 +10,7 @@ import 'package:beyond/foundation/button.dart';
 import 'package:beyond/foundation/discrete_slider.dart';
 import 'package:beyond/foundation/select.dart';
 import 'package:beyond/foundation/theme.dart';
-import 'package:beyond/theme/starless_light.dart';
+import 'package:beyond/theme/starless.dart';
 import 'package:beyond/widgets/settings_dialog.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
