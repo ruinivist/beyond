@@ -15,6 +15,7 @@ import 'package:beyond/canvas/tools/code_block/code_block.dart';
 import 'package:beyond/canvas/tools/code_block/code_language.dart';
 import 'package:beyond/canvas/tools/media/media_node.dart';
 import 'package:beyond/canvas/tools/pen/pen_tool.dart';
+import 'package:beyond/canvas/tools/shape/shape_tool.dart';
 import 'package:beyond/canvas/tools/text/text_block.dart';
 import 'package:beyond/foundation/button.dart';
 import 'package:beyond/foundation/control_surface.dart';
@@ -34,7 +35,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:super_clipboard/super_clipboard.dart';
 import 'package:uuid/uuid.dart';
 
-enum _CanvasTool { select, text, code, media, pen, arrow, eraser }
+enum _CanvasTool { select, text, code, media, shape, pen, arrow, eraser }
 
 class CanvasPage extends StatefulWidget {
   const CanvasPage({
@@ -89,6 +90,8 @@ class _CanvasPageState extends State<CanvasPage> {
   Offset? _dragSelectionEnd;
   int? _dragArrowPointer;
   ArrowModel? _dragArrow;
+  int? _dragShapePointer;
+  ShapeModel? _dragShape;
   var _toggleDragSelection = false;
   Timer? _saveTimer;
   Future<void> _saveQueue = Future<void>.value();
@@ -97,6 +100,7 @@ class _CanvasPageState extends State<CanvasPage> {
   var _projectTransferActive = false;
   late final PenTool _penTool;
   late final ArrowTool _arrowTool;
+  late final ShapeTool _shapeTool;
   Color? _customPenColor;
   double _penWidth = 4;
   final ValueNotifier<_CanvasTool> _activeTool = ValueNotifier(
@@ -125,6 +129,8 @@ class _CanvasPageState extends State<CanvasPage> {
 
   bool get _arrowEnabled => _activeTool.value == _CanvasTool.arrow;
 
+  bool get _shapeEnabled => _activeTool.value == _CanvasTool.shape;
+
   ValueChanged<Offset>? get _placementAction => switch (_activeTool.value) {
     _CanvasTool.text => _addTextBlock,
     _CanvasTool.code => _addCodeBlock,
@@ -141,7 +147,9 @@ class _CanvasPageState extends State<CanvasPage> {
     super.initState();
     _penTool = PenTool(onStroke: _addStroke)..setStrokeWidth(_penWidth);
     _arrowTool = ArrowTool(onArrow: _addArrow)
-      ..addListener(_handleArrowToolChanged);
+      ..addListener(_handleDrawingToolChanged);
+    _shapeTool = ShapeTool(onShape: _addShape)
+      ..addListener(_handleDrawingToolChanged);
     HardwareKeyboard.instance.addHandler(_handleKeyEvent);
     _clipboardEvents =
         widget.readClipboardText == null && widget.writeClipboardText == null
@@ -182,7 +190,7 @@ class _CanvasPageState extends State<CanvasPage> {
     }
   }
 
-  void _handleArrowToolChanged() {
+  void _handleDrawingToolChanged() {
     if (mounted) setState(() {});
   }
 
@@ -200,6 +208,7 @@ class _CanvasPageState extends State<CanvasPage> {
     if (enabling) {
       _clearTextEditing();
       _clearActiveMedia();
+      _clearActiveShapes();
     }
     setState(() {
       _activeTool.value = enabling ? tool : _CanvasTool.select;
@@ -219,6 +228,13 @@ class _CanvasPageState extends State<CanvasPage> {
   void _setPenWidth(double width) {
     setState(() => _penWidth = width);
     _penTool.setStrokeWidth(width);
+  }
+
+  void _setShapeKind(ShapeKind kind) {
+    _shapeTool.setKind(kind);
+    if (_activeTool.value != _CanvasTool.shape) {
+      _toggleTool(_CanvasTool.shape);
+    }
   }
 
   bool _tryPlaceActiveTool(Offset position) {
@@ -267,8 +283,13 @@ class _CanvasPageState extends State<CanvasPage> {
       _arrowTool.onPointerDown(event, position);
       return;
     }
+    if (_shapeEnabled) {
+      _shapeTool.onPointerDown(event, position);
+      return;
+    }
     FocusManager.instance.primaryFocus?.unfocus();
     _clearTextEditing();
+    _clearActiveShapes();
     _selectionBeforeDrag
       ..clear()
       ..addAll(_selectedModels());
@@ -304,6 +325,14 @@ class _CanvasPageState extends State<CanvasPage> {
       );
       return;
     }
+    if (_shapeTool.ownsPointer(event.pointer)) {
+      _shapeTool.onPointerMove(
+        event,
+        _canvasController.offset +
+            event.localPosition / _canvasController.scale,
+      );
+      return;
+    }
     if (event.pointer == _dragArrowPointer) {
       final arrow = _dragArrow;
       if (arrow != null) _moveSelectedChildren(arrow, event.delta);
@@ -332,6 +361,18 @@ class _CanvasPageState extends State<CanvasPage> {
       );
       return;
     }
+    if (_shapeTool.ownsPointer(event.pointer)) {
+      _shapeTool.onPointerUp(
+        event,
+        _canvasController.offset +
+            event.localPosition / _canvasController.scale,
+      );
+      return;
+    }
+    if (event.pointer == _dragShapePointer) {
+      _finishShapeDrag(select: true);
+      return;
+    }
     if (event.pointer == _dragArrowPointer) {
       _finishArrowDrag(select: true);
       return;
@@ -354,6 +395,14 @@ class _CanvasPageState extends State<CanvasPage> {
     _finishWidgetPointer(event.pointer);
     if (_arrowTool.ownsPointer(event.pointer)) {
       _arrowTool.onPointerCancel(event);
+      return;
+    }
+    if (_shapeTool.ownsPointer(event.pointer)) {
+      _shapeTool.onPointerCancel(event);
+      return;
+    }
+    if (event.pointer == _dragShapePointer) {
+      _finishShapeDrag();
       return;
     }
     if (event.pointer == _dragArrowPointer) {
@@ -434,6 +483,7 @@ class _CanvasPageState extends State<CanvasPage> {
     }
     if (model.focusNode.hasFocus) _finishHistoryOperation();
     _clearTextEditing();
+    _clearActiveShapes();
     _bringElementToFront(model);
   }
 
@@ -458,6 +508,7 @@ class _CanvasPageState extends State<CanvasPage> {
       FocusManager.instance.primaryFocus?.unfocus();
       _clearTextEditing();
     }
+    _clearActiveShapes();
     _bringElementToFront(model);
   }
 
@@ -478,8 +529,45 @@ class _CanvasPageState extends State<CanvasPage> {
     }
     FocusManager.instance.primaryFocus?.unfocus();
     _clearTextEditing();
+    _clearActiveShapes();
     model.active = true;
     _bringElementToFront(model);
+  }
+
+  void _handleShapePointerDown(
+    ShapeModel model,
+    PointerDownEvent event,
+  ) {
+    if (event.buttons != kPrimaryButton ||
+        !_documentLoaded ||
+        _activeTool.value != _CanvasTool.select ||
+        !_elements.contains(model)) {
+      return;
+    }
+    _interactiveCanvasPointerIds.add(event.pointer);
+    if (_selectionModifierPressed.value) {
+      model.selected = !model.selected;
+      return;
+    }
+    FocusManager.instance.primaryFocus?.unfocus();
+    _clearTextEditing();
+    _clearActiveMedia();
+    _clearActiveShapes();
+    model.active = true;
+    _dragShapePointer = event.pointer;
+    _dragShape = model;
+    _bringElementToFront(model);
+  }
+
+  void _finishShapeDrag({bool select = false}) {
+    final shape = _dragShape;
+    if (shape != null && _elements.contains(shape)) {
+      if (select) shape.selected = true;
+      shape.active = false;
+    }
+    _dragShapePointer = null;
+    _dragShape = null;
+    _finishHistoryOperation();
   }
 
   void _editTextBlock(TextBlockModel model) {
@@ -525,6 +613,12 @@ class _CanvasPageState extends State<CanvasPage> {
 
   void _clearActiveMedia() {
     for (final model in _elements.whereType<MediaModel>()) {
+      model.active = false;
+    }
+  }
+
+  void _clearActiveShapes() {
+    for (final model in _elements.whereType<ShapeModel>()) {
       model.active = false;
     }
   }
@@ -617,6 +711,18 @@ class _CanvasPageState extends State<CanvasPage> {
     model.resizeBy(screenDelta / _canvasController.scale);
   }
 
+  void _resizeShape(ShapeModel model, Offset screenDelta) {
+    if (!_documentLoaded ||
+        _activeTool.value != _CanvasTool.select ||
+        !_elements.contains(model)) {
+      return;
+    }
+    if (_selectionBeforeWidgetPointer.contains(model)) {
+      _setSelection(_selectionBeforeWidgetPointer);
+    }
+    model.resizeBy(screenDelta / _canvasController.scale);
+  }
+
   void _rotateTextBlock(TextBlockModel model, double angle) {
     if (!_documentLoaded ||
         _placementEnabled ||
@@ -678,6 +784,7 @@ class _CanvasPageState extends State<CanvasPage> {
       final TextElementData data => TextBlockModel(data),
       final CodeElementData data => CodeBlockModel(data),
       final MediaElementData data => MediaModel(data, _attachmentStore),
+      final ShapeElementData data => ShapeModel(data),
       final PenElementData data => PenStrokeModel(data),
       final ArrowElementData data => ArrowModel(data),
     };
@@ -724,6 +831,17 @@ class _CanvasPageState extends State<CanvasPage> {
           model: media,
           onMove: (delta) => _moveSelectedChildren(media, delta),
           onResize: (delta) => _resizeMedia(media, delta),
+        ),
+      ),
+      final ShapeModel shape => _SelectionPointerRegion(
+        key: _selectionKey(shape),
+        activeTool: _activeTool,
+        modifierPressed: _selectionModifierPressed,
+        onPointerDown: (event) => _handleShapePointerDown(shape, event),
+        child: Shape(
+          model: shape,
+          onMove: (delta) => _moveSelectedChildren(shape, delta),
+          onResize: (delta) => _resizeShape(shape, delta),
         ),
       ),
       final PenStrokeModel pen => PenStroke(
@@ -829,6 +947,13 @@ class _CanvasPageState extends State<CanvasPage> {
     _finishHistoryOperation();
   }
 
+  void _addShape(ShapeModel model) {
+    if (!_documentLoaded) return;
+    _mountElement(model);
+    _scheduleDocumentSave();
+    _finishHistoryOperation();
+  }
+
   void _handleArrowPointerDown(
     ArrowModel model,
     PointerDownEvent event,
@@ -849,6 +974,7 @@ class _CanvasPageState extends State<CanvasPage> {
     }
     _bringElementToFront(model);
     _clearTextEditing();
+    _clearActiveShapes();
     _dragArrowPointer = event.pointer;
     _dragArrow = model;
   }
@@ -878,6 +1004,7 @@ class _CanvasPageState extends State<CanvasPage> {
       return;
     }
     _bringElementToFront(model);
+    _clearActiveShapes();
   }
 
   void _selectAll() {
@@ -1051,6 +1178,7 @@ class _CanvasPageState extends State<CanvasPage> {
     }
     if (_selectionBeforeWidgetPointer.isEmpty) _widgetPointer = null;
     if (modelsToDispose.contains(_dragArrow)) _finishArrowDrag();
+    if (modelsToDispose.contains(_dragShape)) _finishShapeDrag();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       for (final model in modelsToDispose) {
         model.dispose();
@@ -1192,6 +1320,7 @@ class _CanvasPageState extends State<CanvasPage> {
     _clearTextEditing();
     FocusManager.instance.primaryFocus?.unfocus();
     _arrowTool.cancel();
+    _shapeTool.cancel();
     _activeTool.value = _CanvasTool.select;
     _eraserPointer = null;
     _spaceHeld = false;
@@ -1205,6 +1334,8 @@ class _CanvasPageState extends State<CanvasPage> {
     _dragSelectionEnd = null;
     _dragArrowPointer = null;
     _dragArrow = null;
+    _dragShapePointer = null;
+    _dragShape = null;
     _editingTextBlock = null;
     _editingChromeModel = null;
 
@@ -1308,6 +1439,7 @@ class _CanvasPageState extends State<CanvasPage> {
         LogicalKeyboardKey.keyT => _CanvasTool.text,
         LogicalKeyboardKey.keyC => _CanvasTool.code,
         LogicalKeyboardKey.keyM => _CanvasTool.media,
+        LogicalKeyboardKey.keyS => _CanvasTool.shape,
         LogicalKeyboardKey.keyP => _CanvasTool.pen,
         LogicalKeyboardKey.keyE => _CanvasTool.eraser,
         LogicalKeyboardKey.keyA => _CanvasTool.arrow,
@@ -1510,7 +1642,10 @@ class _CanvasPageState extends State<CanvasPage> {
     _canvasPointerPosition.dispose();
     _penTool.dispose();
     _arrowTool
-      ..removeListener(_handleArrowToolChanged)
+      ..removeListener(_handleDrawingToolChanged)
+      ..dispose();
+    _shapeTool
+      ..removeListener(_handleDrawingToolChanged)
       ..dispose();
     _canvasController.dispose();
     super.dispose();
@@ -1556,6 +1691,20 @@ class _CanvasPageState extends State<CanvasPage> {
                   key: const ValueKey('arrow-preview'),
                   painter: ArrowPreviewPainter(
                     geometry: preview.geometry,
+                    canvasOffset: _canvasController.offset,
+                    canvasScale: _canvasController.scale,
+                    color: colors.accent,
+                  ),
+                ),
+              ),
+            ),
+          if (_shapeTool.preview case final preview?)
+            Positioned.fill(
+              child: IgnorePointer(
+                child: CustomPaint(
+                  key: const ValueKey('shape-preview'),
+                  painter: ShapePreviewPainter(
+                    preview: preview,
                     canvasOffset: _canvasController.offset,
                     canvasScale: _canvasController.scale,
                     color: colors.accent,
@@ -1668,96 +1817,106 @@ class _CanvasPageState extends State<CanvasPage> {
               alignment: Alignment.topCenter,
               child: Padding(
                 padding: const EdgeInsets.only(top: 12),
-                child: ControlSurface(
-                  key: const ValueKey('toolbar-surface'),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Tooltip(
-                        message: 'Place text',
-                        child: Button(
-                          key: const ValueKey('toolbar-text'),
-                          variant: ButtonVariant.toolbar,
-                          size: ButtonSize.toolbar,
-                          selected: _activeTool.value == _CanvasTool.text,
-                          onPressed: () => _toggleTool(_CanvasTool.text),
-                          child: _toolbarContent(
-                            'Text',
-                            LucideIcons.type,
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: ControlSurface(
+                    key: const ValueKey('toolbar-surface'),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Tooltip(
+                          message: 'Place text',
+                          child: Button(
+                            key: const ValueKey('toolbar-text'),
+                            variant: ButtonVariant.toolbar,
+                            size: ButtonSize.toolbar,
+                            selected: _activeTool.value == _CanvasTool.text,
+                            onPressed: () => _toggleTool(_CanvasTool.text),
+                            child: _toolbarContent(
+                              'Text',
+                              LucideIcons.type,
+                            ),
                           ),
                         ),
-                      ),
-                      Tooltip(
-                        message: 'Place code block',
-                        child: Button(
-                          key: const ValueKey('toolbar-code'),
-                          variant: ButtonVariant.toolbar,
-                          size: ButtonSize.toolbar,
-                          selected: _activeTool.value == _CanvasTool.code,
-                          onPressed: () => _toggleTool(_CanvasTool.code),
-                          child: _toolbarContent(
-                            'Code',
-                            LucideIcons.codeXml,
+                        Tooltip(
+                          message: 'Place code block',
+                          child: Button(
+                            key: const ValueKey('toolbar-code'),
+                            variant: ButtonVariant.toolbar,
+                            size: ButtonSize.toolbar,
+                            selected: _activeTool.value == _CanvasTool.code,
+                            onPressed: () => _toggleTool(_CanvasTool.code),
+                            child: _toolbarContent(
+                              'Code',
+                              LucideIcons.codeXml,
+                            ),
                           ),
                         ),
-                      ),
-                      Tooltip(
-                        message: 'Place media',
-                        child: Button(
-                          key: const ValueKey('toolbar-media'),
-                          variant: ButtonVariant.toolbar,
-                          size: ButtonSize.toolbar,
-                          selected: _activeTool.value == _CanvasTool.media,
-                          onPressed: () => _toggleTool(_CanvasTool.media),
-                          child: _toolbarContent(
-                            'Media',
-                            LucideIcons.image,
+                        Tooltip(
+                          message: 'Place media',
+                          child: Button(
+                            key: const ValueKey('toolbar-media'),
+                            variant: ButtonVariant.toolbar,
+                            size: ButtonSize.toolbar,
+                            selected: _activeTool.value == _CanvasTool.media,
+                            onPressed: () => _toggleTool(_CanvasTool.media),
+                            child: _toolbarContent(
+                              'Media',
+                              LucideIcons.image,
+                            ),
                           ),
                         ),
-                      ),
-                      Tooltip(
-                        message: 'Draw with pen',
-                        child: Button(
-                          key: const ValueKey('toolbar-draw'),
-                          variant: ButtonVariant.toolbar,
-                          size: ButtonSize.toolbar,
-                          selected: _penEnabled,
-                          onPressed: () => _toggleTool(_CanvasTool.pen),
-                          child: _toolbarContent(
-                            'Draw',
-                            LucideIcons.pencil,
+                        _ShapeToolbarButton(
+                          kind: _shapeTool.kind,
+                          active: _shapeEnabled,
+                          noIcons: _noIcons,
+                          onToggle: () => _toggleTool(_CanvasTool.shape),
+                          onKindChanged: _setShapeKind,
+                        ),
+                        Tooltip(
+                          message: 'Draw with pen',
+                          child: Button(
+                            key: const ValueKey('toolbar-draw'),
+                            variant: ButtonVariant.toolbar,
+                            size: ButtonSize.toolbar,
+                            selected: _penEnabled,
+                            onPressed: () => _toggleTool(_CanvasTool.pen),
+                            child: _toolbarContent(
+                              'Draw',
+                              LucideIcons.pencil,
+                            ),
                           ),
                         ),
-                      ),
-                      Tooltip(
-                        message: 'Erase elements',
-                        child: Button(
-                          key: const ValueKey('toolbar-erase'),
-                          variant: ButtonVariant.toolbar,
-                          size: ButtonSize.toolbar,
-                          selected: _eraserEnabled,
-                          onPressed: () => _toggleTool(_CanvasTool.eraser),
-                          child: _toolbarContent(
-                            'Erase',
-                            LucideIcons.eraser,
+                        Tooltip(
+                          message: 'Erase elements',
+                          child: Button(
+                            key: const ValueKey('toolbar-erase'),
+                            variant: ButtonVariant.toolbar,
+                            size: ButtonSize.toolbar,
+                            selected: _eraserEnabled,
+                            onPressed: () => _toggleTool(_CanvasTool.eraser),
+                            child: _toolbarContent(
+                              'Erase',
+                              LucideIcons.eraser,
+                            ),
                           ),
                         ),
-                      ),
-                      Tooltip(
-                        message: 'Draw an arrow',
-                        child: Button(
-                          key: const ValueKey('toolbar-arrow'),
-                          variant: ButtonVariant.toolbar,
-                          size: ButtonSize.toolbar,
-                          selected: _arrowEnabled,
-                          onPressed: () => _toggleTool(_CanvasTool.arrow),
-                          child: _toolbarContent(
-                            'Arrow',
-                            LucideIcons.arrowUpRight,
+                        Tooltip(
+                          message: 'Draw an arrow',
+                          child: Button(
+                            key: const ValueKey('toolbar-arrow'),
+                            variant: ButtonVariant.toolbar,
+                            size: ButtonSize.toolbar,
+                            selected: _arrowEnabled,
+                            onPressed: () => _toggleTool(_CanvasTool.arrow),
+                            child: _toolbarContent(
+                              'Arrow',
+                              LucideIcons.arrowUpRight,
+                            ),
                           ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -1809,6 +1968,96 @@ class _CanvasPageState extends State<CanvasPage> {
   Widget _toolbarContent(String label, IconData icon) =>
       _noIcons ? Text(label) : Icon(icon, size: 20, semanticLabel: label);
 }
+
+class _ShapeToolbarButton extends StatelessWidget {
+  const _ShapeToolbarButton({
+    required this.kind,
+    required this.active,
+    required this.noIcons,
+    required this.onToggle,
+    required this.onKindChanged,
+  });
+
+  final ShapeKind kind;
+  final bool active;
+  final bool noIcons;
+  final VoidCallback onToggle;
+  final ValueChanged<ShapeKind> onKindChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = BTheme.of(context);
+    return MenuAnchor(
+      menuChildren: [
+        for (final option in ShapeKind.values)
+          MenuItemButton(
+            key: ValueKey('toolbar-shape-${option.name}'),
+            onPressed: () => onKindChanged(option),
+            leadingIcon: Icon(_shapeIcon(option), size: 18),
+            trailingIcon: option == kind
+                ? const Icon(LucideIcons.check, size: 16)
+                : null,
+            child: Text(_shapeLabel(option)),
+          ),
+      ],
+      builder: (context, controller, child) => Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Tooltip(
+            message: 'Draw ${_shapeLabel(kind).toLowerCase()}',
+            child: Button(
+              key: const ValueKey('toolbar-shape'),
+              variant: ButtonVariant.toolbar,
+              size: ButtonSize.toolbar,
+              selected: active,
+              onPressed: onToggle,
+              child: noIcons
+                  ? Text(_shapeShortLabel(kind))
+                  : Icon(
+                      _shapeIcon(kind),
+                      size: 20,
+                      semanticLabel: _shapeLabel(kind),
+                    ),
+            ),
+          ),
+          IconButton(
+            key: const ValueKey('toolbar-shape-menu'),
+            tooltip: 'Choose shape',
+            onPressed: () =>
+                controller.isOpen ? controller.close() : controller.open(),
+            style:
+                _toolbarIconButtonStyle(
+                  theme.colors,
+                  theme.geo,
+                ).copyWith(
+                  fixedSize: const WidgetStatePropertyAll(Size(32, 48)),
+                  padding: const WidgetStatePropertyAll(EdgeInsets.zero),
+                ),
+            icon: const Icon(LucideIcons.chevronDown, size: 16),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+IconData _shapeIcon(ShapeKind kind) => switch (kind) {
+  ShapeKind.roundedRectangle => LucideIcons.squareRoundCorner,
+  ShapeKind.ellipse => LucideIcons.circle,
+  ShapeKind.diamond => LucideIcons.diamond,
+};
+
+String _shapeLabel(ShapeKind kind) => switch (kind) {
+  ShapeKind.roundedRectangle => 'Rounded rectangle',
+  ShapeKind.ellipse => 'Ellipse',
+  ShapeKind.diamond => 'Diamond',
+};
+
+String _shapeShortLabel(ShapeKind kind) => switch (kind) {
+  ShapeKind.roundedRectangle => 'Rect',
+  ShapeKind.ellipse => 'Ellipse',
+  ShapeKind.diamond => 'Diamond',
+};
 
 class _DrawSettings extends StatelessWidget {
   const _DrawSettings({

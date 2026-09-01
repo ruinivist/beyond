@@ -57,6 +57,12 @@ void main() {
           width: 400,
           url: 'https://example.com/image.png',
         ),
+        ShapeElementData(
+          id: 'shape-1',
+          kind: ShapeKind.ellipse,
+          position: const Offset(300, 120),
+          size: const Size(180, 100),
+        ),
       ],
     );
 
@@ -72,12 +78,14 @@ void main() {
       'pen-1',
       'code-1',
       'media-1',
+      'shape-1',
     ]);
     expect(elements[0], isA<ArrowElementData>());
     expect(elements[1], isA<TextElementData>());
     expect(elements[2], isA<PenElementData>());
     expect(elements[3], isA<CodeElementData>());
     expect(elements[4], isA<MediaElementData>());
+    expect(elements[5], isA<ShapeElementData>());
 
     final node = elements[1] as TextElementData;
     expect(node.position, const Offset(-120, 200));
@@ -105,6 +113,11 @@ void main() {
     expect(media.width, 400);
     expect(media.url, 'https://example.com/image.png');
 
+    final shape = elements[5] as ShapeElementData;
+    expect(shape.kind, ShapeKind.ellipse);
+    expect(shape.position, const Offset(300, 120));
+    expect(shape.size, const Size(180, 100));
+
     final arrow = elements[0] as ArrowElementData;
     expect(arrow.start, const Offset(10, 20));
     expect(arrow.control, const Offset(40, 5));
@@ -121,6 +134,30 @@ void main() {
   test('unknown document versions are rejected', () {
     expect(
       () => CanvasDocument.fromJson(_document(version: 1)),
+      throwsA(isA<FormatException>()),
+    );
+  });
+
+  test('shape kinds and minimum dimensions are validated', () {
+    Map<String, Object?> shape({Object kind = 'diamond', double width = 32}) =>
+        {
+          'id': 'shape',
+          'type': 'shape',
+          'kind': kind,
+          'position': {'x': 0.0, 'y': 0.0},
+          'size': {'width': width, 'height': 32.0},
+        };
+
+    expect(
+      () => CanvasDocument.fromJson(
+        _document(elements: [shape(kind: 'triangle')]),
+      ),
+      throwsA(isA<FormatException>()),
+    );
+    expect(
+      () => CanvasDocument.fromJson(
+        _document(elements: [shape(width: 31)]),
+      ),
       throwsA(isA<FormatException>()),
     );
   });

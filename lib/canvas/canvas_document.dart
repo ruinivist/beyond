@@ -18,6 +18,9 @@ const codeBlockMinimumSize = Size(280, 240);
 const mediaNodeDefaultWidth = 400.0;
 const mediaNodeMinimumWidth = 120.0;
 const arrowMinimumLength = 4.0;
+const shapeMinimumSize = Size.square(32);
+
+enum ShapeKind { roundedRectangle, ellipse, diamond }
 
 final _canonicalColor = RegExp(r'^#[0-9A-F]{6}$');
 
@@ -88,6 +91,7 @@ sealed class CanvasElementData {
         'language',
         'source',
         'url',
+        'kind',
         'hitSlop',
         'color',
         'width',
@@ -105,6 +109,7 @@ sealed class CanvasElementData {
       'text' => TextElementData.fromJson(value),
       'code' => CodeElementData.fromJson(value),
       'media' => MediaElementData.fromJson(value),
+      'shape' => ShapeElementData.fromJson(value),
       'pen' => PenElementData.fromJson(value),
       'arrow' => ArrowElementData.fromJson(value),
       _ => throw FormatException('Unknown canvas element type: $type'),
@@ -118,6 +123,68 @@ sealed class CanvasElementData {
   Map<String, Object> toJson();
 
   CanvasElementData copy({String? id});
+}
+
+class ShapeElementData extends CanvasElementData {
+  ShapeElementData({
+    required String id,
+    required this.kind,
+    required this.position,
+    required this.size,
+  }) : super(id);
+
+  factory ShapeElementData.fromJson(Object? json) {
+    final value = _jsonObject(
+      json,
+      'shape element',
+      allowedKeys: const {'id', 'type', 'kind', 'position', 'size'},
+    );
+    final id = _requiredString(value, 'id', nonEmpty: true);
+    if (value['type'] != 'shape') {
+      throw const FormatException('element.type must be shape');
+    }
+    final kind = switch (value['kind']) {
+      'roundedRectangle' => ShapeKind.roundedRectangle,
+      'ellipse' => ShapeKind.ellipse,
+      'diamond' => ShapeKind.diamond,
+      _ => throw FormatException('Unknown shape kind: ${value['kind']}'),
+    };
+    final size = _sizeFromJson(value['size'], 'element.size');
+    if (size.width < shapeMinimumSize.width ||
+        size.height < shapeMinimumSize.height) {
+      throw const FormatException('element.size is below the shape minimum');
+    }
+    return ShapeElementData(
+      id: id,
+      kind: kind,
+      position: _offsetFromJson(value['position'], 'element.position'),
+      size: size,
+    );
+  }
+
+  @override
+  String get type => 'shape';
+
+  ShapeKind kind;
+  Offset position;
+  Size size;
+
+  @override
+  Map<String, Object> toJson() => <String, Object>{
+    'id': id,
+    'type': type,
+    'kind': kind.name,
+    'position': _offsetToJson(position),
+    'size': _sizeToJson(size),
+  };
+
+  @override
+  ShapeElementData copy({String? id}) => ShapeElementData(
+    id: id ?? this.id,
+    kind: kind,
+    position: position,
+    size: size,
+  );
 }
 
 class MediaElementData extends CanvasElementData {

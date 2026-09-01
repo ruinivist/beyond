@@ -35,7 +35,7 @@ void main() {
     await tester.pump();
     await tester.pump();
 
-    const tools = ['text', 'code', 'draw', 'erase', 'arrow'];
+    const tools = ['text', 'code', 'shape', 'draw', 'erase', 'arrow'];
     for (final tool in tools) {
       expect(
         find.descendant(
@@ -55,6 +55,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Text'), findsOneWidget);
+    expect(find.text('Rect'), findsOneWidget);
     expect(
       await SharedPreferencesAsync().getBool('interface.no_icons'),
       isTrue,
@@ -67,6 +68,7 @@ void main() {
     await tester.pump();
 
     expect(find.text('Text'), findsOneWidget);
+    expect(find.text('Rect'), findsOneWidget);
     expect(
       find.descendant(
         of: find.byKey(const ValueKey('toolbar-text')),
@@ -86,6 +88,7 @@ void main() {
     const shortcuts = [
       (LogicalKeyboardKey.keyT, 'text'),
       (LogicalKeyboardKey.keyC, 'code'),
+      (LogicalKeyboardKey.keyS, 'shape'),
       (LogicalKeyboardKey.keyP, 'draw'),
       (LogicalKeyboardKey.keyE, 'erase'),
       (LogicalKeyboardKey.keyA, 'arrow'),

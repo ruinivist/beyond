@@ -46,6 +46,22 @@ void main() {
     },
   );
 
+  test('clipboard preserves shape geometry', () {
+    final shape = ShapeElementData(
+      id: 'shape',
+      kind: ShapeKind.diamond,
+      position: const Offset(30, 40),
+      size: const Size(120, 80),
+    );
+
+    final restored =
+        decodeCanvasClipboard(
+              encodeCanvasClipboard([shape]),
+            )!.single
+            as ShapeElementData;
+    expect(restored.toJson(), shape.toJson());
+  });
+
   testWidgets('copies, pastes, cuts, restores, and persists mixed elements', (
     tester,
   ) async {
