@@ -5,6 +5,7 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:beyond/canvas/attachment_store.dart';
+import 'package:beyond/canvas/canvas_clipboard.dart';
 import 'package:beyond/canvas/canvas_document.dart';
 import 'package:beyond/canvas/canvas_element_model.dart';
 import 'package:beyond/foundation/control_surface.dart';
@@ -398,20 +399,15 @@ class _TextMarkdownEditorState extends State<_TextMarkdownEditor> {
 
   Future<void> _paste(Future<ClipboardReader> readerFuture) async {
     try {
-      final reader = await readerFuture;
-      final formats = reader.getFormats(_pastedImageFormats.keys.toList());
-      if (formats.isNotEmpty) {
-        final format = formats.first as FileFormat;
-        final bytes = await _readClipboardFile(reader, format);
-        if (bytes == null) throw StateError('Could not read clipboard image');
+      final clipboard = await readCanvasClipboard(await readerFuture);
+      if (clipboard.image case final image?) {
         await widget.model.insertPastedImage(
-          bytes,
-          _pastedImageFormats[format]!,
+          image.bytes,
+          image.extension,
           widget.attachmentStore,
         );
-      } else if (reader.canProvide(Formats.plainText)) {
-        final text = await reader.readValue(Formats.plainText);
-        if (text != null) widget.model.insertPastedText(text);
+      } else if (clipboard.text case final text?) {
+        widget.model.insertPastedText(text);
       }
     } on Object {
       if (!mounted) return;
@@ -447,39 +443,6 @@ class _TextMarkdownEditorState extends State<_TextMarkdownEditor> {
       ),
     );
   }
-}
-
-const Map<FileFormat, String> _pastedImageFormats = <FileFormat, String>{
-  Formats.png: 'png',
-  Formats.jpeg: 'jpg',
-  Formats.gif: 'gif',
-  Formats.webp: 'webp',
-};
-
-Future<Uint8List?> _readClipboardFile(
-  ClipboardReader reader,
-  FileFormat format,
-) {
-  final result = Completer<Uint8List?>();
-  final progress = reader.getFile(
-    format,
-    (file) async {
-      try {
-        if ((file.fileSize ?? 0) > attachmentMaximumBytes) {
-          throw const FormatException('Image exceeds 10 MiB');
-        }
-        final bytes = await file.readAll();
-        if (!result.isCompleted) result.complete(bytes);
-      } on Object catch (error, stackTrace) {
-        if (!result.isCompleted) result.completeError(error, stackTrace);
-      }
-    },
-    onError: (error) {
-      if (!result.isCompleted) result.completeError(error);
-    },
-  );
-  if (progress == null) result.complete(null);
-  return result.future;
 }
 
 class _TextMarkdownPreview extends StatefulWidget {

@@ -1,3 +1,6 @@
+import 'dart:convert';
+
+import 'package:beyond/canvas/attachment_store.dart';
 import 'package:beyond/canvas/canvas_background.dart';
 import 'package:beyond/canvas/canvas_clipboard.dart';
 import 'package:beyond/canvas/canvas_document.dart';
@@ -7,6 +10,7 @@ import 'package:beyond/canvas/canvas_page.dart';
 import 'package:beyond/canvas/tools/arrow/arrow_tool.dart';
 import 'package:beyond/canvas/tools/code_block/code_block.dart';
 import 'package:beyond/canvas/tools/code_block/code_language.dart';
+import 'package:beyond/canvas/tools/media/media_node.dart';
 import 'package:beyond/canvas/tools/pen/pen_tool.dart';
 import 'package:beyond/canvas/tools/text/text_block.dart';
 import 'package:beyond/theme/starless.dart';
@@ -73,7 +77,7 @@ void main() {
         theme: starlessLightThemeData,
         home: CanvasPage(
           documentStore: store,
-          readClipboardText: () async => clipboard,
+          readClipboard: () async => (text: clipboard, image: null),
           writeClipboardText: (text) async {
             if (failWrite) throw StateError('write failed');
             clipboard = text;
@@ -83,7 +87,6 @@ void main() {
     );
     await tester.pump();
     await tester.pump();
-
     for (final model in _models(tester)) {
       model.selected = true;
     }
@@ -196,6 +199,58 @@ void main() {
     expect(_selectedBounds(tester).center, targetOnCanvas);
     await mouse.removePointer();
   });
+
+  testWidgets('routes image clipboard content to media', (
+    tester,
+  ) async {
+    final attachments = _MemoryAttachmentStore();
+    CanvasClipboardSnapshot clipboard = (
+      text: ' https://example.com/image.png ',
+      image: null,
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: starlessLightThemeData,
+        home: CanvasPage(
+          documentStore: _DocumentStore(_emptyDocument),
+          attachmentStore: attachments,
+          readClipboard: () async => clipboard,
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.pump();
+
+    await _shortcut(tester, LogicalKeyboardKey.keyV);
+    await tester.pump();
+    expect(
+      tester.widget<MediaNode>(find.byType(MediaNode)).model.data.url,
+      'https://example.com/image.png',
+    );
+
+    clipboard = (text: 'ordinary text', image: null);
+    await _shortcut(tester, LogicalKeyboardKey.keyV);
+    expect(find.byType(MediaNode), findsOneWidget);
+
+    clipboard = (
+      text: 'https://example.com/ignored.png',
+      image: (bytes: _pngBytes, extension: 'png'),
+    );
+    await tester.runAsync(
+      () async {
+        await _shortcut(tester, LogicalKeyboardKey.keyV);
+        await Future<void>.delayed(const Duration(milliseconds: 100));
+      },
+    );
+    await tester.pumpAndSettle();
+
+    final pasted = tester
+        .widgetList<MediaNode>(find.byType(MediaNode))
+        .last
+        .model;
+    expect(pasted.data.url, matches(attachmentPathPattern));
+    expect(attachments.files[pasted.data.url], _pngBytes);
+  });
 }
 
 Future<void> _shortcut(WidgetTester tester, LogicalKeyboardKey key) async {
@@ -307,6 +362,20 @@ final _document = CanvasDocument(
   ],
 );
 
+const _emptyDocument = CanvasDocument(
+  background: CanvasBackgroundKind.plain,
+  elements: [],
+);
+
+final _pngBytes = Uint8List.fromList(
+  base64Decode(
+    [
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8A',
+      'AQUBAScY42YAAAAASUVORK5CYII=',
+    ].join(),
+  ),
+);
+
 class _DocumentStore extends CanvasDocumentStore {
   _DocumentStore(this.initial);
 
@@ -319,5 +388,20 @@ class _DocumentStore extends CanvasDocumentStore {
   @override
   Future<void> save(CanvasDocument document) async {
     persisted = document.copy();
+  }
+}
+
+class _MemoryAttachmentStore implements AttachmentStore {
+  final files = <String, Uint8List>{};
+
+  @override
+  Future<Uint8List> read(String path) async => files[path]!;
+
+  @override
+  Future<Uint8List?> readIfExists(String path) async => files[path];
+
+  @override
+  Future<void> write(String path, Uint8List bytes) async {
+    files[path] = bytes;
   }
 }

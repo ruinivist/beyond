@@ -44,7 +44,7 @@ class CanvasPage extends StatefulWidget {
     this.documentStore,
     this.onAppThemeChanged,
     this.projectFiles,
-    this.readClipboardText,
+    this.readClipboard,
     this.writeClipboardText,
     super.key,
   });
@@ -54,7 +54,7 @@ class CanvasPage extends StatefulWidget {
   final CanvasDocumentStore? documentStore;
   final ValueChanged<AppTheme>? onAppThemeChanged;
   final CanvasProjectFiles? projectFiles;
-  final Future<String?> Function()? readClipboardText;
+  final Future<CanvasClipboardSnapshot> Function()? readClipboard;
   final Future<void> Function(String text)? writeClipboardText;
 
   @override
@@ -152,7 +152,7 @@ class _CanvasPageState extends State<CanvasPage> {
       ..addListener(_handleDrawingToolChanged);
     HardwareKeyboard.instance.addHandler(_handleKeyEvent);
     _clipboardEvents =
-        widget.readClipboardText == null && widget.writeClipboardText == null
+        widget.readClipboard == null && widget.writeClipboardText == null
         ? ClipboardEvents.instance
         : null;
     _clipboardEvents
@@ -761,15 +761,7 @@ class _CanvasPageState extends State<CanvasPage> {
 
   void _addMedia(Offset position) {
     if (!_documentLoaded) return;
-    final model = MediaModel(
-      MediaElementData(
-        id: const Uuid().v4(),
-        position: position,
-        width: mediaNodeDefaultWidth,
-        url: '',
-      ),
-      _attachmentStore,
-    );
+    final model = _newMediaModel('')..data.position = position;
     _mountElement(model, requestFocus: true);
     _scheduleDocumentSave();
     _finishHistoryOperation();
@@ -1080,18 +1072,31 @@ class _CanvasPageState extends State<CanvasPage> {
 
   Future<void> _pasteSelection(Future<ClipboardReader>? readerFuture) async {
     try {
-      final read = widget.readClipboardText;
-      final text = read != null
-          ? await read()
-          : await (await readerFuture!).readValue(Formats.plainText);
-      if (text == null) return;
-      final elements = decodeCanvasClipboard(text);
-      if (elements == null) return;
+      final read = widget.readClipboard;
+      late final CanvasClipboardSnapshot clipboard;
+      try {
+        clipboard = read != null
+            ? await read()
+            : await readCanvasClipboard(await readerFuture!);
+      } on FormatException {
+        return;
+      }
+      final text = clipboard.text;
+      final elements = text == null ? null : decodeCanvasClipboard(text);
+      if (elements == null) {
+        if (clipboard.image case final image?) {
+          await _pasteImage(image);
+        } else if (text?.trim() case final url? when isSupportedMediaUrl(url)) {
+          _pasteMediaUrl(url);
+        }
+        return;
+      }
       if (!mounted || !_documentLoaded) return;
+      final payload = text!;
 
       final pointer = _canvasPointerPosition.value;
       final placeAtPointer =
-          pointer != null && (text, pointer) != _pointerReference;
+          pointer != null && (payload, pointer) != _pointerReference;
       final pasted = [
         for (final element in elements)
           _createElementModel(element.copy(id: const Uuid().v4())),
@@ -1104,15 +1109,15 @@ class _CanvasPageState extends State<CanvasPage> {
             _canvasController.offset +
             pointer / _canvasController.scale -
             bounds.center;
-      } else if (_lastPastedPayload != text) {
-        _pasteOffset = text == _cutPayload
+      } else if (_lastPastedPayload != payload) {
+        _pasteOffset = payload == _cutPayload
             ? Offset.zero
             : const Offset(24, 24) / _canvasController.scale;
       } else {
         _pasteOffset += const Offset(24, 24) / _canvasController.scale;
       }
-      _lastPastedPayload = text;
-      _pointerReference = (text, pointer);
+      _lastPastedPayload = payload;
+      _pointerReference = (payload, pointer);
       for (final model in pasted) {
         model.moveBy(_pasteOffset);
         _mountElement(model);
@@ -1124,6 +1129,58 @@ class _CanvasPageState extends State<CanvasPage> {
     } on Object {
       _showProjectSnackBar('Could not paste canvas elements');
     }
+  }
+
+  Future<void> _pasteImage(ClipboardImage image) async {
+    final model = _newMediaModel('');
+    try {
+      await model.setDeviceImage(image.bytes, image.extension);
+    } on FormatException {
+      model.dispose();
+      return;
+    } on Object {
+      model.dispose();
+      rethrow;
+    }
+    if (!mounted || !_documentLoaded) {
+      model.dispose();
+      return;
+    }
+    _placePastedMedia(model);
+  }
+
+  void _pasteMediaUrl(String url) {
+    if (!mounted || !_documentLoaded) return;
+    _placePastedMedia(_newMediaModel(url));
+  }
+
+  MediaModel _newMediaModel(String url) => MediaModel(
+    MediaElementData(
+      id: const Uuid().v4(),
+      position: Offset.zero,
+      width: mediaNodeDefaultWidth,
+      url: url,
+    ),
+    _attachmentStore,
+  );
+
+  void _placePastedMedia(MediaModel model) {
+    final screenPosition =
+        _canvasPointerPosition.value ??
+        _canvasController.canvasSize.center(Offset.zero);
+    final center =
+        _canvasController.offset + screenPosition / _canvasController.scale;
+    model
+      ..data.position = center - model.canvasSize.center(Offset.zero)
+      ..active = false;
+    _clearTextEditing();
+    _clearActiveMedia();
+    _clearActiveShapes();
+    _clearSelection();
+    model.selected = true;
+    _mountElement(model);
+    _scheduleDocumentSave();
+    _finishHistoryOperation();
   }
 
   void _eraseAt(Offset globalPosition) {
@@ -1405,7 +1462,7 @@ class _CanvasPageState extends State<CanvasPage> {
         return true;
       }
       if (event.logicalKey == LogicalKeyboardKey.keyV) {
-        final read = widget.readClipboardText;
+        final read = widget.readClipboard;
         final clipboard = SystemClipboard.instance;
         if (read == null && clipboard == null) {
           _showProjectSnackBar('Could not paste canvas elements');

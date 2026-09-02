@@ -29,6 +29,15 @@ const _imageTypes = XTypeGroup(
   ],
 );
 
+bool isSupportedMediaUrl(String source) {
+  final uri = Uri.tryParse(source);
+  return uri != null &&
+      uri.scheme == 'https' &&
+      uri.host.isNotEmpty &&
+      !uri.host.contains('%') &&
+      !RegExp(r'\s').hasMatch(source);
+}
+
 class MediaModel extends CanvasElementModel<MediaElementData> {
   MediaModel(MediaElementData data, this.attachmentStore) : super(data) {
     controller = TextEditingController(text: data.url)..addListener(_syncUrl);
@@ -131,14 +140,7 @@ class MediaModel extends CanvasElementModel<MediaElementData> {
       unawaited(_loadAttachment(source, load));
       return;
     }
-    final uri = Uri.tryParse(source);
-    if (uri == null ||
-        uri.scheme != 'https' ||
-        uri.host.isEmpty ||
-        uri.host.contains('%') ||
-        RegExp(r'\s').hasMatch(source)) {
-      return;
-    }
+    if (!isSupportedMediaUrl(source)) return;
 
     _attachImage(NetworkImage(source));
   }
