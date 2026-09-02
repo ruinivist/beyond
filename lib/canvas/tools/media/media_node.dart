@@ -15,8 +15,8 @@ import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:uuid/uuid.dart';
 
-const mediaUrlPanelMinimumWidth = 280.0;
-const _mediaUrlPanelCanvasHeight = 96.0;
+const mediaUrlPanelMinimumWidth = 480.0;
+const _mediaUrlPanelCanvasHeight = 48.0;
 const _imageTypes = XTypeGroup(
   label: 'images',
   extensions: ['png', 'jpg', 'jpeg', 'gif', 'webp'],
@@ -441,36 +441,25 @@ class _MediaUrlPanel extends StatelessWidget {
         selected: model.selected,
         child: Stack(
           children: [
-            Padding(
-              padding: const EdgeInsets.all(8),
-              child: TextField(
-                key: const ValueKey('media-url-field'),
-                controller: model.controller,
-                focusNode: model.focusNode,
-                minLines: 1,
-                maxLines: 3,
-                keyboardType: TextInputType.url,
-                cursorColor: colors.accent,
-                style: theme.typo.body.copyWith(color: colors.textPrimary),
-                decoration: InputDecoration(
-                  hintText: 'Image URL',
-                  filled: true,
-                  fillColor: colors.surface,
-                  contentPadding: const EdgeInsets.all(10),
-                  suffixIcon: IconButton(
-                    key: const ValueKey('media-device-picker'),
-                    tooltip: 'Choose image from device',
-                    onPressed: onPickImage,
-                    icon: const Icon(LucideIcons.imageUp, size: 20),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: theme.geo.radiusSmall,
-                    borderSide: BorderSide(color: colors.borderSubtle),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: theme.geo.radiusSmall,
-                    borderSide: BorderSide(color: colors.focusRing),
-                  ),
+            TextField(
+              key: const ValueKey('media-url-field'),
+              controller: model.controller,
+              focusNode: model.focusNode,
+              minLines: 1,
+              maxLines: 3,
+              textAlignVertical: TextAlignVertical.center,
+              keyboardType: TextInputType.url,
+              cursorColor: colors.accent,
+              style: theme.typo.body.copyWith(color: colors.textPrimary),
+              decoration: InputDecoration(
+                hintText: 'Image URL',
+                border: InputBorder.none,
+                contentPadding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+                suffixIcon: IconButton(
+                  key: const ValueKey('media-device-picker'),
+                  tooltip: 'Choose image from device',
+                  onPressed: onPickImage,
+                  icon: const Icon(LucideIcons.imageUp, size: 20),
                 ),
               ),
             ),
