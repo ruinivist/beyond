@@ -13,6 +13,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:infinite_lazy_grid/infinite_lazy_grid.dart';
 import 'package:shared_preferences_web/shared_preferences_web.dart';
 
 void main() {
@@ -131,6 +132,24 @@ void main() {
           tester.getBottomLeft(find.byKey(const ValueKey('media-image'))).dy,
       8,
     );
+
+    final canvas = tester.widget<LazyCanvas>(find.byType(LazyCanvas));
+    canvas.controller.updateScalebyDelta(1, focalPoint: Offset.zero);
+    await tester.pump();
+    final imageRect = Rect.fromPoints(
+      tester.getTopLeft(find.byKey(const ValueKey('media-image'))),
+      tester.getBottomRight(find.byKey(const ValueKey('media-image'))),
+    );
+    final panelRect = Rect.fromPoints(
+      tester.getTopLeft(find.byKey(const ValueKey('media-url-panel'))),
+      tester.getBottomRight(find.byKey(const ValueKey('media-url-panel'))),
+    );
+    expect(panelRect.width, model.urlPanelWidth * canvas.controller.scale);
+    expect(panelRect.center.dx, imageRect.center.dx);
+    expect(panelRect.top - imageRect.bottom, 8 * canvas.controller.scale);
+
+    canvas.controller.updateScalebyDelta(-1, focalPoint: Offset.zero);
+    await tester.pump();
 
     final resize = await tester.startGesture(
       tester.getCenter(find.byKey(const ValueKey('media-resize-handle'))),
