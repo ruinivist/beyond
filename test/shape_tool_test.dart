@@ -141,6 +141,17 @@ void main() {
     await tester.pump();
     final toolbar = find.byKey(const ValueKey('toolbar-shape'));
     expect(tester.widget<Button>(toolbar).selected, isTrue);
+    expect(find.byKey(const ValueKey('shape-settings-panel')), findsOneWidget);
+    expect(
+      tester
+          .widget<Button>(
+            find.byKey(
+              const ValueKey('shape-option-roundedRectangle'),
+            ),
+          )
+          .selected,
+      isTrue,
+    );
 
     final firstDrag = await tester.startGesture(
       const Offset(100, 180),
@@ -157,12 +168,14 @@ void main() {
       ShapeKind.roundedRectangle,
     );
 
-    await tester.tap(find.byKey(const ValueKey('toolbar-shape-menu')));
-    await tester.pumpAndSettle();
     await tester.tap(
-      find.byKey(const ValueKey('toolbar-shape-diamond')),
+      find.byKey(const ValueKey('shape-option-diamond')),
     );
-    await tester.pumpAndSettle();
+    await tester.pump();
+    expect(
+      (tester.widget<Button>(toolbar).child! as Icon).semanticLabel,
+      'Rect',
+    );
 
     final secondDrag = await tester.startGesture(
       const Offset(320, 180),
@@ -176,7 +189,41 @@ void main() {
       tester.widget<Shape>(find.byType(Shape).last).model.data.kind,
       ShapeKind.diamond,
     );
+    expect(
+      tester.widget<Shape>(find.byType(Shape).first).model.data.kind,
+      ShapeKind.roundedRectangle,
+    );
     expect(tester.widget<Button>(toolbar).selected, isTrue);
+
+    await tester.tap(find.byKey(const ValueKey('toolbar-erase')));
+    await tester.pump();
+    expect(find.byKey(const ValueKey('shape-settings-panel')), findsNothing);
+
+    await tester.tap(toolbar);
+    await tester.pump();
+    expect(find.byKey(const ValueKey('shape-settings-panel')), findsOneWidget);
+    expect(
+      tester
+          .widget<Button>(
+            find.byKey(
+              const ValueKey('shape-option-roundedRectangle'),
+            ),
+          )
+          .selected,
+      isTrue,
+    );
+    final thirdDrag = await tester.startGesture(
+      const Offset(500, 180),
+      kind: PointerDeviceKind.mouse,
+    );
+    await thirdDrag.moveTo(const Offset(620, 260));
+    await thirdDrag.up();
+    await tester.pump();
+    expect(find.byType(Shape), findsNWidgets(3));
+    expect(
+      tester.widget<Shape>(find.byType(Shape).last).model.data.kind,
+      ShapeKind.roundedRectangle,
+    );
 
     await tester.sendKeyEvent(LogicalKeyboardKey.escape);
     await tester.pump();

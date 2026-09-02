@@ -205,6 +205,9 @@ class _CanvasPageState extends State<CanvasPage> {
   void _toggleTool(_CanvasTool tool) {
     if (!_documentLoaded) return;
     final enabling = _activeTool.value != tool;
+    if (enabling && tool == _CanvasTool.shape) {
+      _shapeTool.setKind(ShapeKind.roundedRectangle);
+    }
     if (enabling) {
       _clearTextEditing();
       _clearActiveMedia();
@@ -228,13 +231,6 @@ class _CanvasPageState extends State<CanvasPage> {
   void _setPenWidth(double width) {
     setState(() => _penWidth = width);
     _penTool.setStrokeWidth(width);
-  }
-
-  void _setShapeKind(ShapeKind kind) {
-    _shapeTool.setKind(kind);
-    if (_activeTool.value != _CanvasTool.shape) {
-      _toggleTool(_CanvasTool.shape);
-    }
   }
 
   bool _tryPlaceActiveTool(Offset position) {
@@ -1866,12 +1862,19 @@ class _CanvasPageState extends State<CanvasPage> {
                             ),
                           ),
                         ),
-                        _ShapeToolbarButton(
-                          kind: _shapeTool.kind,
-                          active: _shapeEnabled,
-                          noIcons: _noIcons,
-                          onToggle: () => _toggleTool(_CanvasTool.shape),
-                          onKindChanged: _setShapeKind,
+                        Tooltip(
+                          message: 'Draw rounded rectangle',
+                          child: Button(
+                            key: const ValueKey('toolbar-shape'),
+                            variant: ButtonVariant.toolbar,
+                            size: ButtonSize.toolbar,
+                            selected: _shapeEnabled,
+                            onPressed: () => _toggleTool(_CanvasTool.shape),
+                            child: _toolbarContent(
+                              'Rect',
+                              LucideIcons.squareRoundCorner,
+                            ),
+                          ),
                         ),
                         Tooltip(
                           message: 'Draw with pen',
@@ -1954,6 +1957,12 @@ class _CanvasPageState extends State<CanvasPage> {
                         onColorChanged: _setPenColor,
                         onWidthChanged: _setPenWidth,
                       ),
+                    ] else if (_shapeEnabled) ...[
+                      const SizedBox(height: 8),
+                      _ShapeSettings(
+                        kind: _shapeTool.kind,
+                        onKindChanged: _shapeTool.setKind,
+                      ),
                     ],
                   ],
                 ),
@@ -1969,73 +1978,50 @@ class _CanvasPageState extends State<CanvasPage> {
       _noIcons ? Text(label) : Icon(icon, size: 20, semanticLabel: label);
 }
 
-class _ShapeToolbarButton extends StatelessWidget {
-  const _ShapeToolbarButton({
+class _ShapeSettings extends StatelessWidget {
+  const _ShapeSettings({
     required this.kind,
-    required this.active,
-    required this.noIcons,
-    required this.onToggle,
     required this.onKindChanged,
   });
 
   final ShapeKind kind;
-  final bool active;
-  final bool noIcons;
-  final VoidCallback onToggle;
   final ValueChanged<ShapeKind> onKindChanged;
 
   @override
   Widget build(BuildContext context) {
     final theme = BTheme.of(context);
-    return MenuAnchor(
-      menuChildren: [
-        for (final option in ShapeKind.values)
-          MenuItemButton(
-            key: ValueKey('toolbar-shape-${option.name}'),
-            onPressed: () => onKindChanged(option),
-            leadingIcon: Icon(_shapeIcon(option), size: 18),
-            trailingIcon: option == kind
-                ? const Icon(LucideIcons.check, size: 16)
-                : null,
-            child: Text(_shapeLabel(option)),
-          ),
-      ],
-      builder: (context, controller, child) => Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Tooltip(
-            message: 'Draw ${_shapeLabel(kind).toLowerCase()}',
-            child: Button(
-              key: const ValueKey('toolbar-shape'),
-              variant: ButtonVariant.toolbar,
-              size: ButtonSize.toolbar,
-              selected: active,
-              onPressed: onToggle,
-              child: noIcons
-                  ? Text(_shapeShortLabel(kind))
-                  : Icon(
-                      _shapeIcon(kind),
-                      size: 20,
-                      semanticLabel: _shapeLabel(kind),
+    return ControlSurface(
+      key: const ValueKey('shape-settings-panel'),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('Shape', style: theme.typo.label),
+            const SizedBox(height: 6),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                for (final option in ShapeKind.values)
+                  Tooltip(
+                    message: _shapeLabel(option),
+                    child: Button(
+                      key: ValueKey('shape-option-${option.name}'),
+                      variant: ButtonVariant.toolbar,
+                      size: ButtonSize.icon,
+                      selected: option == kind,
+                      onPressed: () => onKindChanged(option),
+                      child: Icon(
+                        _shapeIcon(option),
+                        semanticLabel: _shapeLabel(option),
+                      ),
                     ),
+                  ),
+              ],
             ),
-          ),
-          IconButton(
-            key: const ValueKey('toolbar-shape-menu'),
-            tooltip: 'Choose shape',
-            onPressed: () =>
-                controller.isOpen ? controller.close() : controller.open(),
-            style:
-                _toolbarIconButtonStyle(
-                  theme.colors,
-                  theme.geo,
-                ).copyWith(
-                  fixedSize: const WidgetStatePropertyAll(Size(32, 48)),
-                  padding: const WidgetStatePropertyAll(EdgeInsets.zero),
-                ),
-            icon: const Icon(LucideIcons.chevronDown, size: 16),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -2049,12 +2035,6 @@ IconData _shapeIcon(ShapeKind kind) => switch (kind) {
 
 String _shapeLabel(ShapeKind kind) => switch (kind) {
   ShapeKind.roundedRectangle => 'Rounded rectangle',
-  ShapeKind.ellipse => 'Ellipse',
-  ShapeKind.diamond => 'Diamond',
-};
-
-String _shapeShortLabel(ShapeKind kind) => switch (kind) {
-  ShapeKind.roundedRectangle => 'Rect',
   ShapeKind.ellipse => 'Ellipse',
   ShapeKind.diamond => 'Diamond',
 };
