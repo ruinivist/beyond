@@ -15,7 +15,7 @@ const textNodeFontFamilies = <String>{
 };
 
 const codeBlockMinimumSize = Size(280, 240);
-const mediaNodeDefaultWidth = 400.0;
+const mediaNodeDefaultWidth = 480.0;
 const mediaNodeMinimumWidth = 120.0;
 const arrowMinimumLength = 4.0;
 const shapeMinimumSize = Size.square(32);

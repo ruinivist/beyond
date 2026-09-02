@@ -93,7 +93,7 @@ void main() {
     expect(model.data.url, matches(attachmentPathPattern));
     expect(attachments.files, {model.data.url: bytes});
     expect(model.image, isA<MemoryImage>());
-    expect(model.canvasSize, const Size.square(400));
+    expect(model.canvasSize, const Size.square(mediaNodeDefaultWidth));
     expect(find.byKey(const ValueKey('media-image')), findsOneWidget);
     expect(model.active, isTrue);
   });
