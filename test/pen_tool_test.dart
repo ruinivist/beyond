@@ -771,10 +771,12 @@ void main() {
     expect(tester.getTopLeft(find.byType(CodeBlock)), const Offset(120, 200));
     expect(code.focusNode.hasFocus, isTrue);
 
-    await tester.tapAt(const Offset(20, 550));
+    code.selected = true;
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
     await tester.pump();
     expect(find.byType(CodeBlock), findsOneWidget);
     expect(code.focusNode.hasFocus, isFalse);
+    expect(code.selected, isFalse);
     await tester.pump(const Duration(milliseconds: 100));
   });
 

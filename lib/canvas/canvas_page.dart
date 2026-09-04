@@ -283,9 +283,7 @@ class _CanvasPageState extends State<CanvasPage> {
       _shapeTool.onPointerDown(event, position);
       return;
     }
-    FocusManager.instance.primaryFocus?.unfocus();
-    _clearTextEditing();
-    _clearActiveShapes();
+    _clearElementEditing();
     _selectionBeforeDrag
       ..clear()
       ..addAll(_selectedModels());
@@ -605,6 +603,13 @@ class _CanvasPageState extends State<CanvasPage> {
       }
     });
     _finishHistoryOperation();
+  }
+
+  void _clearElementEditing() {
+    FocusManager.instance.primaryFocus?.unfocus();
+    _clearTextEditing();
+    _clearActiveMedia();
+    _clearActiveShapes();
   }
 
   void _clearActiveMedia() {
@@ -1436,6 +1441,22 @@ class _CanvasPageState extends State<CanvasPage> {
         Theme.of(context).platform == TargetPlatform.macOS
         ? HardwareKeyboard.instance.isMetaPressed
         : HardwareKeyboard.instance.isControlPressed;
+    final unmodifiedKeyDown =
+        event is KeyDownEvent &&
+        ModalRoute.of(context)?.isCurrent != false &&
+        !HardwareKeyboard.instance.isControlPressed &&
+        !HardwareKeyboard.instance.isMetaPressed &&
+        !HardwareKeyboard.instance.isAltPressed &&
+        !HardwareKeyboard.instance.isShiftPressed;
+    if (unmodifiedKeyDown && event.logicalKey == LogicalKeyboardKey.escape) {
+      if (_editingElement) {
+        _clearElementEditing();
+        _clearSelection();
+      } else {
+        _toggleTool(_activeTool.value);
+      }
+      return true;
+    }
     if (_editingElement) return false;
     if ((event is KeyDownEvent || event is KeyRepeatEvent) &&
         _selectionModifierPressed.value &&
@@ -1478,16 +1499,7 @@ class _CanvasPageState extends State<CanvasPage> {
       _selectAll();
       return true;
     }
-    if (event is KeyDownEvent &&
-        ModalRoute.of(context)?.isCurrent != false &&
-        !HardwareKeyboard.instance.isControlPressed &&
-        !HardwareKeyboard.instance.isMetaPressed &&
-        !HardwareKeyboard.instance.isAltPressed &&
-        !HardwareKeyboard.instance.isShiftPressed) {
-      if (event.logicalKey == LogicalKeyboardKey.escape) {
-        _toggleTool(_activeTool.value);
-        return true;
-      }
+    if (unmodifiedKeyDown) {
       final tool = switch (event.logicalKey) {
         LogicalKeyboardKey.keyT => _CanvasTool.text,
         LogicalKeyboardKey.keyC => _CanvasTool.code,

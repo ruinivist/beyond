@@ -69,6 +69,40 @@ void main() {
     expect(model.selected, isTrue);
   });
 
+  testWidgets('escape dismisses a focused media editor', (tester) async {
+    const url = 'https://example.com/image.png';
+    await _cacheImage(url);
+    await _pumpCanvas(
+      tester,
+      _DocumentStore(
+        _document(
+          MediaElementData(
+            id: 'media',
+            position: const Offset(120, 150),
+            width: 400,
+            url: url,
+          ),
+        ),
+      ),
+    );
+
+    final model = tester.widget<MediaNode>(find.byType(MediaNode)).model;
+    await tester.tap(find.byKey(const ValueKey('media-image')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('media-url-field')));
+    await tester.pump();
+    model.selected = true;
+    expect(model.focusNode.hasFocus, isTrue);
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await tester.pump();
+    expect(model.focusNode.hasFocus, isFalse);
+    expect(model.active, isFalse);
+    expect(model.selected, isFalse);
+    await tester.pump(const Duration(milliseconds: 200));
+    expect(find.byKey(const ValueKey('media-url-field')), findsNothing);
+  });
+
   testWidgets('device images are stored and rendered from memory', (
     tester,
   ) async {

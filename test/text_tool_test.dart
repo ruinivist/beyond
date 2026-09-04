@@ -75,9 +75,12 @@ void main() {
       findsOneWidget,
     );
 
-    await tester.tapAt(const Offset(400, 300));
+    model.selected = true;
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
     await tester.pump();
 
+    expect(model.focusNode.hasFocus, isFalse);
+    expect(model.selected, isFalse);
     expect(find.byType(TextField), findsNothing);
     expect(find.byKey(const ValueKey('text-markdown-preview')), findsOneWidget);
     expect(
