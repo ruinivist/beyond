@@ -22,8 +22,9 @@ void main() {
     expect(select.options.map((option) => option.label), [
       'Starless Light',
       'Starless Dark',
+      'Classic Dark',
     ]);
-    select.onChanged!(AppTheme.starlessDark);
+    select.onChanged!(AppTheme.classicDark);
     await tester.pumpAndSettle();
 
     expect(
@@ -32,7 +33,7 @@ void main() {
             find.byKey(const ValueKey('theme-select')),
           )
           .value,
-      AppTheme.starlessDark,
+      AppTheme.classicDark,
     );
     expect(
       Theme.of(tester.element(find.byType(SettingsDialog))).brightness,

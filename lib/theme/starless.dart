@@ -50,6 +50,29 @@ const _starlessDarkColors = BColors(
   scrim: Color(0xa6000000),
 );
 
+const _classicDarkColors = BColors(
+  canvasBackground: Color(0xff0d1117),
+  canvasGrid: Color(0xff30363d),
+  surface: Color(0xff161b22),
+  surfaceRaised: Color(0xff21262d),
+  surfaceSubtle: Color(0xff1c2128),
+  surfaceHover: Color(0xff292e36),
+  surfacePressed: Color(0xff30363d),
+  textPrimary: Color(0xffe6edf3),
+  textSecondary: Color(0xffb1bac4),
+  textMuted: Color(0xff7d8590),
+  border: Color(0xff30363d),
+  borderSubtle: Color(0xff21262d),
+  accent: Color(0xff2f81f7),
+  accentHover: Color(0xff58a6ff),
+  accentPressed: Color(0xff1f6feb),
+  accentSoft: Color(0xff13233a),
+  accentSubtle: Color(0xff1b3354),
+  focusRing: Color(0xff58a6ff),
+  shadow: Color(0x99000000),
+  scrim: Color(0xb3000000),
+);
+
 const _starlessGeo = BGeo(
   radiusSmall: BorderRadius.all(Radius.circular(4)),
   radiusMedium: BorderRadius.all(Radius.circular(8)),
@@ -119,16 +142,19 @@ Future<void> loadFonts() async {
 
 enum AppTheme {
   starlessLight,
-  starlessDark;
+  starlessDark,
+  classicDark;
 
   String get label => switch (this) {
     AppTheme.starlessLight => 'Starless Light',
     AppTheme.starlessDark => 'Starless Dark',
+    AppTheme.classicDark => 'Classic Dark',
   };
 
   ThemeData get themeData => switch (this) {
     AppTheme.starlessLight => starlessLightThemeData,
     AppTheme.starlessDark => starlessDarkThemeData,
+    AppTheme.classicDark => classicDarkThemeData,
   };
 }
 
@@ -141,6 +167,12 @@ final ThemeData starlessLightThemeData = _starlessThemeData(
 final ThemeData starlessDarkThemeData = _starlessThemeData(
   brightness: Brightness.dark,
   colors: _starlessDarkColors,
+  syntaxTheme: atomOneDarkTheme,
+);
+
+final ThemeData classicDarkThemeData = _starlessThemeData(
+  brightness: Brightness.dark,
+  colors: _classicDarkColors,
   syntaxTheme: atomOneDarkTheme,
 );
 
