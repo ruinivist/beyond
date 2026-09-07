@@ -15,7 +15,11 @@ void main() {
 
   test('shape tool normalizes drags and rejects undersized shapes', () {
     final shapes = <ShapeModel>[];
-    final tool = ShapeTool(onShape: shapes.add)..setKind(ShapeKind.diamond);
+    final tool = ShapeTool(onShape: shapes.add)
+      ..setKind(ShapeKind.hexagon)
+      ..setStrokeColor(const Color(0xffdc3f3f))
+      ..setFillColor(const Color(0xff2f6fde))
+      ..setStrokeWidth(3);
     final pointer = TestPointer(1, PointerDeviceKind.mouse);
 
     tool
@@ -31,9 +35,12 @@ void main() {
     tool.onPointerUp(pointer.up(), const Offset(40, 20));
 
     expect(shapes, hasLength(1));
-    expect(shapes.single.data.kind, ShapeKind.diamond);
+    expect(shapes.single.data.kind, ShapeKind.hexagon);
     expect(shapes.single.data.position, const Offset(40, 20));
     expect(shapes.single.data.size, const Size(140, 120));
+    expect(shapes.single.data.strokeColor, 0xffdc3f3f);
+    expect(shapes.single.data.fillColor, 0xff2f6fde);
+    expect(shapes.single.data.strokeWidth, 3);
     expect(tool.preview, isNull);
 
     final tiny = TestPointer(2, PointerDeviceKind.mouse);
@@ -58,6 +65,9 @@ void main() {
         kind: ShapeKind.ellipse,
         position: Offset.zero,
         size: const Size(200, 100),
+        strokeColor: 0xff655a53,
+        fillColor: null,
+        strokeWidth: 2,
       ),
     );
     var backgroundTaps = 0;
@@ -171,6 +181,12 @@ void main() {
     await tester.tap(
       find.byKey(const ValueKey('shape-option-diamond')),
     );
+    await tester.tap(
+      find.byKey(const ValueKey('shape-outline-gray')),
+    );
+    await tester.tap(
+      find.byKey(const ValueKey('shape-fill-red')),
+    );
     await tester.pump();
     expect(
       (tester.widget<Button>(toolbar).child! as Icon).semanticLabel,
@@ -210,6 +226,14 @@ void main() {
             ),
           )
           .selected,
+      isFalse,
+    );
+    expect(
+      tester
+          .widget<Button>(
+            find.byKey(const ValueKey('shape-option-diamond')),
+          )
+          .selected,
       isTrue,
     );
     final thirdDrag = await tester.startGesture(
@@ -222,7 +246,7 @@ void main() {
     expect(find.byType(Shape), findsNWidgets(3));
     expect(
       tester.widget<Shape>(find.byType(Shape).last).model.data.kind,
-      ShapeKind.roundedRectangle,
+      ShapeKind.diamond,
     );
 
     await tester.sendKeyEvent(LogicalKeyboardKey.escape);

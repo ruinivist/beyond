@@ -62,6 +62,9 @@ void main() {
           kind: ShapeKind.ellipse,
           position: const Offset(300, 120),
           size: const Size(180, 100),
+          strokeColor: 0xff2f6fde,
+          fillColor: 0xffffc936,
+          strokeWidth: 3,
         ),
       ],
     );
@@ -117,6 +120,9 @@ void main() {
     expect(shape.kind, ShapeKind.ellipse);
     expect(shape.position, const Offset(300, 120));
     expect(shape.size, const Size(180, 100));
+    expect(shape.strokeColor, 0xff2f6fde);
+    expect(shape.fillColor, 0xffffc936);
+    expect(shape.strokeWidth, 3);
 
     final arrow = elements[0] as ArrowElementData;
     expect(arrow.start, const Offset(10, 20));
@@ -139,24 +145,42 @@ void main() {
   });
 
   test('shape kinds and minimum dimensions are validated', () {
-    Map<String, Object?> shape({Object kind = 'diamond', double width = 32}) =>
-        {
-          'id': 'shape',
-          'type': 'shape',
-          'kind': kind,
-          'position': {'x': 0.0, 'y': 0.0},
-          'size': {'width': width, 'height': 32.0},
-        };
+    Map<String, Object?> shape({
+      Object kind = 'diamond',
+      double width = 32,
+      Object strokeColor = 0xff000000,
+      Object strokeWidth = 2.0,
+    }) => {
+      'id': 'shape',
+      'type': 'shape',
+      'kind': kind,
+      'position': {'x': 0.0, 'y': 0.0},
+      'size': {'width': width, 'height': 32.0},
+      'strokeColor': strokeColor,
+      'strokeWidth': strokeWidth,
+    };
 
     expect(
       () => CanvasDocument.fromJson(
-        _document(elements: [shape(kind: 'triangle')]),
+        _document(elements: [shape(kind: 'star')]),
       ),
       throwsA(isA<FormatException>()),
     );
     expect(
       () => CanvasDocument.fromJson(
         _document(elements: [shape(width: 31)]),
+      ),
+      throwsA(isA<FormatException>()),
+    );
+    expect(
+      () => CanvasDocument.fromJson(
+        _document(elements: [shape(strokeColor: -1)]),
+      ),
+      throwsA(isA<FormatException>()),
+    );
+    expect(
+      () => CanvasDocument.fromJson(
+        _document(elements: [shape(strokeWidth: 0)]),
       ),
       throwsA(isA<FormatException>()),
     );

@@ -37,6 +37,15 @@ import 'package:uuid/uuid.dart';
 
 enum _CanvasTool { select, text, code, media, shape, pen, arrow, eraser }
 
+final List<({String label, Color color})> _toolColorSwatches = presetColors
+    .where(
+      (swatch) => switch (swatch.label) {
+        'Black' || 'Gray' || 'Red' => true,
+        _ => false,
+      },
+    )
+    .toList(growable: false);
+
 class CanvasPage extends StatefulWidget {
   const CanvasPage({
     this.appTheme = AppTheme.starlessLight,
@@ -102,6 +111,7 @@ class _CanvasPageState extends State<CanvasPage> {
   late final ArrowTool _arrowTool;
   late final ShapeTool _shapeTool;
   Color? _customPenColor;
+  Color? _customShapeStrokeColor;
   double _penWidth = 4;
   final ValueNotifier<_CanvasTool> _activeTool = ValueNotifier(
     _CanvasTool.select,
@@ -200,14 +210,14 @@ class _CanvasPageState extends State<CanvasPage> {
     final colors = BTheme.of(context).colors;
     _canvasController.background = _canvasBackgroundKind.build(colors);
     if (_customPenColor == null) _penTool.setColor(colors.textPrimary);
+    if (_customShapeStrokeColor == null) {
+      _shapeTool.setStrokeColor(colors.textSecondary);
+    }
   }
 
   void _toggleTool(_CanvasTool tool) {
     if (!_documentLoaded) return;
     final enabling = _activeTool.value != tool;
-    if (enabling && tool == _CanvasTool.shape) {
-      _shapeTool.setKind(ShapeKind.roundedRectangle);
-    }
     if (enabling) {
       _clearTextEditing();
       _clearActiveMedia();
@@ -231,6 +241,11 @@ class _CanvasPageState extends State<CanvasPage> {
   void _setPenWidth(double width) {
     setState(() => _penWidth = width);
     _penTool.setStrokeWidth(width);
+  }
+
+  void _setShapeStrokeColor(Color color) {
+    _customShapeStrokeColor = color;
+    _shapeTool.setStrokeColor(color);
   }
 
   bool _tryPlaceActiveTool(Offset position) {
@@ -1772,7 +1787,6 @@ class _CanvasPageState extends State<CanvasPage> {
                     preview: preview,
                     canvasOffset: _canvasController.offset,
                     canvasScale: _canvasController.scale,
-                    color: colors.accent,
                   ),
                 ),
               ),
@@ -2029,8 +2043,8 @@ class _CanvasPageState extends State<CanvasPage> {
                     ] else if (_shapeEnabled) ...[
                       const SizedBox(height: 8),
                       _ShapeSettings(
-                        kind: _shapeTool.kind,
-                        onKindChanged: _shapeTool.setKind,
+                        tool: _shapeTool,
+                        onStrokeColorChanged: _setShapeStrokeColor,
                       ),
                     ],
                   ],
@@ -2049,47 +2063,75 @@ class _CanvasPageState extends State<CanvasPage> {
 
 class _ShapeSettings extends StatelessWidget {
   const _ShapeSettings({
-    required this.kind,
-    required this.onKindChanged,
+    required this.tool,
+    required this.onStrokeColorChanged,
   });
 
-  final ShapeKind kind;
-  final ValueChanged<ShapeKind> onKindChanged;
+  final ShapeTool tool;
+  final ValueChanged<Color> onStrokeColorChanged;
 
   @override
   Widget build(BuildContext context) {
     final theme = BTheme.of(context);
     return ControlSurface(
       key: const ValueKey('shape-settings-panel'),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text('Shape', style: theme.typo.label),
-            const SizedBox(height: 6),
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                for (final option in ShapeKind.values)
-                  Tooltip(
-                    message: _shapeLabel(option),
-                    child: Button(
-                      key: ValueKey('shape-option-${option.name}'),
-                      variant: ButtonVariant.toolbar,
-                      size: ButtonSize.icon,
-                      selected: option == kind,
-                      onPressed: () => onKindChanged(option),
-                      child: Icon(
-                        _shapeIcon(option),
-                        semanticLabel: _shapeLabel(option),
+      child: SizedBox(
+        width: 160,
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('Shape', style: theme.typo.label),
+              const SizedBox(height: 6),
+              SizedBox(
+                width: 120,
+                child: Wrap(
+                  children: [
+                    for (final option in ShapeKind.values)
+                      Tooltip(
+                        message: option.label,
+                        child: Button(
+                          key: ValueKey('shape-option-${option.name}'),
+                          variant: ButtonVariant.toolbar,
+                          size: ButtonSize.icon,
+                          selected: option == tool.kind,
+                          onPressed: () => tool.setKind(option),
+                          child: Icon(
+                            _shapeIcon(option),
+                            semanticLabel: option.label,
+                          ),
+                        ),
                       ),
-                    ),
-                  ),
-              ],
-            ),
-          ],
+                  ],
+                ),
+              ),
+              const SizedBox(height: 10),
+              Text('Outline', style: theme.typo.label),
+              const SizedBox(height: 6),
+              _ColorSwatches(
+                selectedColor: tool.strokeColor,
+                keyPrefix: 'shape-outline',
+                onColorChanged: (color) => onStrokeColorChanged(color!),
+              ),
+              const SizedBox(height: 10),
+              Text('Fill', style: theme.typo.label),
+              const SizedBox(height: 6),
+              _ColorSwatches(
+                selectedColor: tool.fillColor,
+                keyPrefix: 'shape-fill',
+                allowNone: true,
+                onColorChanged: tool.setFillColor,
+              ),
+              const SizedBox(height: 10),
+              Text('Width', style: theme.typo.label),
+              DiscreteSlider(
+                value: tool.strokeWidth,
+                onChanged: tool.setStrokeWidth,
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -2097,15 +2139,12 @@ class _ShapeSettings extends StatelessWidget {
 }
 
 IconData _shapeIcon(ShapeKind kind) => switch (kind) {
+  ShapeKind.rectangle => LucideIcons.square,
   ShapeKind.roundedRectangle => LucideIcons.squareRoundCorner,
   ShapeKind.ellipse => LucideIcons.circle,
   ShapeKind.diamond => LucideIcons.diamond,
-};
-
-String _shapeLabel(ShapeKind kind) => switch (kind) {
-  ShapeKind.roundedRectangle => 'Rounded rectangle',
-  ShapeKind.ellipse => 'Ellipse',
-  ShapeKind.diamond => 'Diamond',
+  ShapeKind.triangle => LucideIcons.triangle,
+  ShapeKind.hexagon => LucideIcons.hexagon,
 };
 
 class _DrawSettings extends StatelessWidget {
@@ -2124,17 +2163,6 @@ class _DrawSettings extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = BTheme.of(context);
-    final colors = theme.colors;
-    final swatches = presetColors.where(
-      (swatch) => const {
-        'Black',
-        'Gray',
-        'Red',
-        'Orange',
-        'Green',
-        'Blue',
-      }.contains(swatch.label),
-    );
     return ControlSurface(
       key: const ValueKey('draw-settings-panel'),
       child: SizedBox(
@@ -2147,42 +2175,10 @@ class _DrawSettings extends StatelessWidget {
             children: [
               Text('Color', style: theme.typo.label),
               const SizedBox(height: 6),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  for (final swatch in swatches)
-                    Tooltip(
-                      message: swatch.label,
-                      child: Semantics(
-                        button: true,
-                        selected: color == swatch.color,
-                        label: swatch.label,
-                        child: InkWell(
-                          key: ValueKey(
-                            'draw-color-${swatch.label.toLowerCase()}',
-                          ),
-                          customBorder: const CircleBorder(),
-                          onTap: () => onColorChanged(swatch.color),
-                          child: Padding(
-                            padding: const EdgeInsets.all(5),
-                            child: DecoratedBox(
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: swatch.color,
-                                border: Border.all(
-                                  color: color == swatch.color
-                                      ? colors.focusRing
-                                      : colors.borderSubtle,
-                                  width: color == swatch.color ? 2 : 1,
-                                ),
-                              ),
-                              child: const SizedBox.square(dimension: 22),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                ],
+              _ColorSwatches(
+                selectedColor: color,
+                keyPrefix: 'draw-color',
+                onColorChanged: (color) => onColorChanged(color!),
               ),
               const SizedBox(height: 10),
               Text('Width', style: theme.typo.label),
@@ -2194,6 +2190,71 @@ class _DrawSettings extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _ColorSwatches extends StatelessWidget {
+  const _ColorSwatches({
+    required this.selectedColor,
+    required this.keyPrefix,
+    required this.onColorChanged,
+    this.allowNone = false,
+  });
+
+  final Color? selectedColor;
+  final String keyPrefix;
+  final ValueChanged<Color?> onColorChanged;
+  final bool allowNone;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = BTheme.of(context).colors;
+    return Wrap(
+      children: [
+        if (allowNone)
+          Tooltip(
+            message: 'No fill',
+            child: Button(
+              key: ValueKey('$keyPrefix-none'),
+              variant: ButtonVariant.toolbar,
+              size: ButtonSize.icon,
+              selected: selectedColor == null,
+              onPressed: () => onColorChanged(null),
+              child: const Icon(LucideIcons.ban, semanticLabel: 'No fill'),
+            ),
+          ),
+        for (final swatch in _toolColorSwatches)
+          Tooltip(
+            message: swatch.label,
+            child: Semantics(
+              button: true,
+              selected: selectedColor == swatch.color,
+              label: swatch.label,
+              child: InkWell(
+                key: ValueKey('$keyPrefix-${swatch.label.toLowerCase()}'),
+                customBorder: const CircleBorder(),
+                onTap: () => onColorChanged(swatch.color),
+                child: Padding(
+                  padding: const EdgeInsets.all(5),
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: swatch.color,
+                      border: Border.all(
+                        color: selectedColor == swatch.color
+                            ? colors.focusRing
+                            : colors.borderSubtle,
+                        width: selectedColor == swatch.color ? 2 : 1,
+                      ),
+                    ),
+                    child: const SizedBox.square(dimension: 22),
+                  ),
+                ),
+              ),
+            ),
+          ),
+      ],
     );
   }
 }

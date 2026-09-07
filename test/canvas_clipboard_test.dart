@@ -56,6 +56,9 @@ void main() {
       kind: ShapeKind.diamond,
       position: const Offset(30, 40),
       size: const Size(120, 80),
+      strokeColor: 0xffdc3f3f,
+      fillColor: 0xffffc936,
+      strokeWidth: 4,
     );
 
     final restored =

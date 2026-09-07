@@ -20,7 +20,14 @@ const mediaNodeMinimumWidth = 120.0;
 const arrowMinimumLength = 4.0;
 const shapeMinimumSize = Size.square(32);
 
-enum ShapeKind { roundedRectangle, ellipse, diamond }
+enum ShapeKind {
+  rectangle,
+  roundedRectangle,
+  ellipse,
+  diamond,
+  triangle,
+  hexagon,
+}
 
 final _canonicalColor = RegExp(r'^#[0-9A-F]{6}$');
 
@@ -92,6 +99,9 @@ sealed class CanvasElementData {
         'source',
         'url',
         'kind',
+        'strokeColor',
+        'fillColor',
+        'strokeWidth',
         'hitSlop',
         'color',
         'width',
@@ -131,22 +141,37 @@ class ShapeElementData extends CanvasElementData {
     required this.kind,
     required this.position,
     required this.size,
+    required this.strokeColor,
+    required this.fillColor,
+    required this.strokeWidth,
   }) : super(id);
 
   factory ShapeElementData.fromJson(Object? json) {
     final value = _jsonObject(
       json,
       'shape element',
-      allowedKeys: const {'id', 'type', 'kind', 'position', 'size'},
+      allowedKeys: const {
+        'id',
+        'type',
+        'kind',
+        'position',
+        'size',
+        'strokeColor',
+        'fillColor',
+        'strokeWidth',
+      },
     );
     final id = _requiredString(value, 'id', nonEmpty: true);
     if (value['type'] != 'shape') {
       throw const FormatException('element.type must be shape');
     }
     final kind = switch (value['kind']) {
+      'rectangle' => ShapeKind.rectangle,
       'roundedRectangle' => ShapeKind.roundedRectangle,
       'ellipse' => ShapeKind.ellipse,
       'diamond' => ShapeKind.diamond,
+      'triangle' => ShapeKind.triangle,
+      'hexagon' => ShapeKind.hexagon,
       _ => throw FormatException('Unknown shape kind: ${value['kind']}'),
     };
     final size = _sizeFromJson(value['size'], 'element.size');
@@ -159,6 +184,14 @@ class ShapeElementData extends CanvasElementData {
       kind: kind,
       position: _offsetFromJson(value['position'], 'element.position'),
       size: size,
+      strokeColor: _argbColor(value['strokeColor'], 'element.strokeColor'),
+      fillColor: value.containsKey('fillColor')
+          ? _argbColor(value['fillColor'], 'element.fillColor')
+          : null,
+      strokeWidth: _positiveNumber(
+        value['strokeWidth'],
+        'element.strokeWidth',
+      ),
     );
   }
 
@@ -168,6 +201,9 @@ class ShapeElementData extends CanvasElementData {
   ShapeKind kind;
   Offset position;
   Size size;
+  int strokeColor;
+  int? fillColor;
+  double strokeWidth;
 
   @override
   Map<String, Object> toJson() => <String, Object>{
@@ -176,6 +212,9 @@ class ShapeElementData extends CanvasElementData {
     'kind': kind.name,
     'position': _offsetToJson(position),
     'size': _sizeToJson(size),
+    'strokeColor': strokeColor,
+    'fillColor': ?fillColor,
+    'strokeWidth': strokeWidth,
   };
 
   @override
@@ -184,6 +223,9 @@ class ShapeElementData extends CanvasElementData {
     kind: kind,
     position: position,
     size: size,
+    strokeColor: strokeColor,
+    fillColor: fillColor,
+    strokeWidth: strokeWidth,
   );
 }
 
@@ -507,14 +549,8 @@ class PenElementData extends CanvasElementData {
       throw const FormatException('element.hitSlop must be non-negative');
     }
 
-    final color = value['color'];
-    if (color is! int || color < 0 || color > 0xffffffff) {
-      throw const FormatException('element.color must be an ARGB integer');
-    }
-    final width = _finiteNumber(value['width'], 'element.width');
-    if (width <= 0) {
-      throw const FormatException('element.width must be positive');
-    }
+    final color = _argbColor(value['color'], 'element.color');
+    final width = _positiveNumber(value['width'], 'element.width');
     final encodedPoints = value['points'];
     if (encodedPoints is! List || encodedPoints.isEmpty) {
       throw const FormatException('element.points must not be empty');
@@ -700,6 +736,19 @@ double _finiteNumber(Object? value, String field) {
     throw FormatException('$field must be a finite number');
   }
   return result;
+}
+
+double _positiveNumber(Object? value, String field) {
+  final result = _finiteNumber(value, field);
+  if (result <= 0) throw FormatException('$field must be positive');
+  return result;
+}
+
+int _argbColor(Object? value, String field) {
+  if (value is! int || value < 0 || value > 0xffffffff) {
+    throw FormatException('$field must be an ARGB integer');
+  }
+  return value;
 }
 
 Offset _offsetFromJson(Object? value, String field) {
