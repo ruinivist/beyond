@@ -21,6 +21,7 @@ import 'package:beyond/foundation/button.dart';
 import 'package:beyond/foundation/control_surface.dart';
 import 'package:beyond/foundation/discrete_slider.dart';
 import 'package:beyond/foundation/theme.dart';
+import 'package:beyond/foundation/tool_options.dart';
 import 'package:beyond/theme/starless.dart';
 import 'package:beyond/utils/preset_colors.dart';
 import 'package:beyond/widgets/settings_dialog.dart';
@@ -2034,21 +2035,23 @@ class _CanvasPageState extends State<CanvasPage> {
                         icon: const Icon(LucideIcons.settings),
                       ),
                     ),
-                    if (_penEnabled) ...[
-                      const SizedBox(height: 8),
-                      _DrawSettings(
-                        color: _penColor,
-                        width: _penWidth,
-                        onColorChanged: _setPenColor,
-                        onWidthChanged: _setPenWidth,
-                      ),
-                    ] else if (_shapeEnabled) ...[
-                      const SizedBox(height: 8),
-                      _ShapeSettings(
-                        tool: _shapeTool,
-                        onStrokeColorChanged: _setShapeStrokeColor,
-                      ),
-                    ],
+                    ToolOptions(
+                      child: _penEnabled
+                          ? _DrawSettings(
+                              key: const ValueKey('draw-settings-panel'),
+                              color: _penColor,
+                              width: _penWidth,
+                              onColorChanged: _setPenColor,
+                              onWidthChanged: _setPenWidth,
+                            )
+                          : _shapeEnabled
+                          ? _ShapeSettings(
+                              key: const ValueKey('shape-settings-panel'),
+                              tool: _shapeTool,
+                              onStrokeColorChanged: _setShapeStrokeColor,
+                            )
+                          : null,
+                    ),
                   ],
                 ),
               ),
@@ -2067,6 +2070,7 @@ class _ShapeSettings extends StatelessWidget {
   const _ShapeSettings({
     required this.tool,
     required this.onStrokeColorChanged,
+    super.key,
   });
 
   final ShapeTool tool;
@@ -2075,66 +2079,60 @@ class _ShapeSettings extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = BTheme.of(context);
-    return ControlSurface(
-      key: const ValueKey('shape-settings-panel'),
-      child: SizedBox(
-        width: 160,
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text('Shape', style: theme.typo.label),
-              const SizedBox(height: 6),
-              SizedBox(
-                width: 120,
-                child: Wrap(
-                  children: [
-                    for (final option in ShapeKind.values)
-                      Tooltip(
-                        message: option.label,
-                        child: Button(
-                          key: ValueKey('shape-option-${option.name}'),
-                          variant: ButtonVariant.toolbar,
-                          size: ButtonSize.icon,
-                          selected: option == tool.kind,
-                          onPressed: () => tool.setKind(option),
-                          child: Icon(
-                            _shapeIcon(option),
-                            semanticLabel: option.label,
-                          ),
-                        ),
+    return SizedBox(
+      width: 160,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text('Shape', style: theme.typo.label),
+          const SizedBox(height: 6),
+          SizedBox(
+            width: 120,
+            child: Wrap(
+              children: [
+                for (final option in ShapeKind.values)
+                  Tooltip(
+                    message: option.label,
+                    child: Button(
+                      key: ValueKey('shape-option-${option.name}'),
+                      variant: ButtonVariant.toolbar,
+                      size: ButtonSize.icon,
+                      selected: option == tool.kind,
+                      onPressed: () => tool.setKind(option),
+                      child: Icon(
+                        _shapeIcon(option),
+                        semanticLabel: option.label,
                       ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 10),
-              Text('Outline', style: theme.typo.label),
-              const SizedBox(height: 6),
-              _ColorSwatches(
-                selectedColor: tool.strokeColor,
-                keyPrefix: 'shape-outline',
-                onColorChanged: (color) => onStrokeColorChanged(color!),
-              ),
-              const SizedBox(height: 10),
-              Text('Fill', style: theme.typo.label),
-              const SizedBox(height: 6),
-              _ColorSwatches(
-                selectedColor: tool.fillColor,
-                keyPrefix: 'shape-fill',
-                allowNone: true,
-                onColorChanged: tool.setFillColor,
-              ),
-              const SizedBox(height: 10),
-              Text('Width', style: theme.typo.label),
-              DiscreteSlider(
-                value: tool.strokeWidth,
-                onChanged: tool.setStrokeWidth,
-              ),
-            ],
+                    ),
+                  ),
+              ],
+            ),
           ),
-        ),
+          const SizedBox(height: 10),
+          Text('Outline', style: theme.typo.label),
+          const SizedBox(height: 6),
+          _ColorSwatches(
+            selectedColor: tool.strokeColor,
+            keyPrefix: 'shape-outline',
+            onColorChanged: (color) => onStrokeColorChanged(color!),
+          ),
+          const SizedBox(height: 10),
+          Text('Fill', style: theme.typo.label),
+          const SizedBox(height: 6),
+          _ColorSwatches(
+            selectedColor: tool.fillColor,
+            keyPrefix: 'shape-fill',
+            allowNone: true,
+            onColorChanged: tool.setFillColor,
+          ),
+          const SizedBox(height: 10),
+          Text('Width', style: theme.typo.label),
+          DiscreteSlider(
+            value: tool.strokeWidth,
+            onChanged: tool.setStrokeWidth,
+          ),
+        ],
       ),
     );
   }
@@ -2155,6 +2153,7 @@ class _DrawSettings extends StatelessWidget {
     required this.width,
     required this.onColorChanged,
     required this.onWidthChanged,
+    super.key,
   });
 
   final Color color;
@@ -2165,32 +2164,26 @@ class _DrawSettings extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = BTheme.of(context);
-    return ControlSurface(
-      key: const ValueKey('draw-settings-panel'),
-      child: SizedBox(
-        width: 248,
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text('Color', style: theme.typo.label),
-              const SizedBox(height: 6),
-              _ColorSwatches(
-                selectedColor: color,
-                keyPrefix: 'draw-color',
-                onColorChanged: (color) => onColorChanged(color!),
-              ),
-              const SizedBox(height: 10),
-              Text('Width', style: theme.typo.label),
-              DiscreteSlider(
-                value: width,
-                onChanged: onWidthChanged,
-              ),
-            ],
+    return SizedBox(
+      width: 248,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text('Color', style: theme.typo.label),
+          const SizedBox(height: 6),
+          _ColorSwatches(
+            selectedColor: color,
+            keyPrefix: 'draw-color',
+            onColorChanged: (color) => onColorChanged(color!),
           ),
-        ),
+          const SizedBox(height: 10),
+          Text('Width', style: theme.typo.label),
+          DiscreteSlider(
+            value: width,
+            onChanged: onWidthChanged,
+          ),
+        ],
       ),
     );
   }

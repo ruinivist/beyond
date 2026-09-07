@@ -576,7 +576,7 @@ void main() {
     await tester.pump();
 
     await tester.tap(find.byKey(const ValueKey('toolbar-draw')));
-    await tester.pump();
+    await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('draw-settings-panel')), findsOneWidget);
     expect(find.textContaining('px'), findsNothing);
     expect(
@@ -626,10 +626,10 @@ void main() {
     expect(strokes.last.width, 2.25);
 
     await tester.tap(find.byKey(const ValueKey('toolbar-erase')));
-    await tester.pump();
+    await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('draw-settings-panel')), findsNothing);
     await tester.tap(find.byKey(const ValueKey('toolbar-draw')));
-    await tester.pump();
+    await tester.pumpAndSettle();
     expect(
       tester
           .widget<Slider>(find.byKey(const ValueKey('discrete-slider')))
