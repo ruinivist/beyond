@@ -950,6 +950,7 @@ class _CanvasPageState extends State<CanvasPage> {
 
   void _addArrow(ArrowModel model) {
     if (!_documentLoaded) return;
+    if (_arrowEnabled) setState(() => _activeTool.value = _CanvasTool.select);
     _mountElement(model);
     _scheduleDocumentSave();
     _finishHistoryOperation();
@@ -957,6 +958,7 @@ class _CanvasPageState extends State<CanvasPage> {
 
   void _addShape(ShapeModel model) {
     if (!_documentLoaded) return;
+    if (_shapeEnabled) setState(() => _activeTool.value = _CanvasTool.select);
     _mountElement(model);
     _scheduleDocumentSave();
     _finishHistoryOperation();

@@ -1,5 +1,6 @@
 import 'package:beyond/canvas/canvas_document_store.dart';
 import 'package:beyond/canvas/tools/arrow/arrow_tool.dart';
+import 'package:beyond/foundation/button.dart';
 import 'package:beyond/main.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
@@ -91,7 +92,7 @@ void main() {
     committed.single.dispose();
   });
 
-  testWidgets('arrows stay active, select by click and marquee, and move', (
+  testWidgets('arrows place once, select by click and marquee, and move', (
     tester,
   ) async {
     await tester.pumpWidget(const BeyondApp());
@@ -115,6 +116,8 @@ void main() {
     final first = tester.widget<Arrow>(find.byType(Arrow)).model;
     expect(first.start, const Offset(120, 200));
     expect(first.end, const Offset(300, 260));
+    final toolbar = find.byKey(const ValueKey('toolbar-arrow'));
+    expect(tester.widget<Button>(toolbar).selected, isFalse);
 
     final secondDrag = await tester.startGesture(
       const Offset(420, 200),
@@ -123,10 +126,8 @@ void main() {
     await secondDrag.moveTo(const Offset(560, 260));
     await secondDrag.up();
     await tester.pump();
-    expect(find.byType(Arrow), findsNWidgets(2));
+    expect(find.byType(Arrow), findsOneWidget);
 
-    await tester.tap(find.byKey(const ValueKey('toolbar-arrow')));
-    await tester.pump();
     final arrowFinder = find.byType(Arrow).first;
     final arrowTopLeft = tester.getTopLeft(arrowFinder);
     final startPoint =

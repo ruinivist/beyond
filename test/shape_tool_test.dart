@@ -135,7 +135,7 @@ void main() {
     model.dispose();
   });
 
-  testWidgets('toolbar draws repeatedly, selects, moves, and resizes shapes', (
+  testWidgets('toolbar places one shape, then selects, moves, and resizes', (
     tester,
   ) async {
     await tester.pumpWidget(
@@ -177,21 +177,8 @@ void main() {
       tester.widget<Shape>(find.byType(Shape)).model.data.kind,
       ShapeKind.roundedRectangle,
     );
-
-    await tester.tap(
-      find.byKey(const ValueKey('shape-option-diamond')),
-    );
-    await tester.tap(
-      find.byKey(const ValueKey('shape-outline-gray')),
-    );
-    await tester.tap(
-      find.byKey(const ValueKey('shape-fill-red')),
-    );
-    await tester.pump();
-    expect(
-      (tester.widget<Button>(toolbar).child! as Icon).semanticLabel,
-      'Rect',
-    );
+    expect(tester.widget<Button>(toolbar).selected, isFalse);
+    expect(find.byKey(const ValueKey('shape-settings-panel')), findsNothing);
 
     final secondDrag = await tester.startGesture(
       const Offset(320, 180),
@@ -200,20 +187,7 @@ void main() {
     await secondDrag.moveTo(const Offset(440, 260));
     await secondDrag.up();
     await tester.pump();
-    expect(find.byType(Shape), findsNWidgets(2));
-    expect(
-      tester.widget<Shape>(find.byType(Shape).last).model.data.kind,
-      ShapeKind.diamond,
-    );
-    expect(
-      tester.widget<Shape>(find.byType(Shape).first).model.data.kind,
-      ShapeKind.roundedRectangle,
-    );
-    expect(tester.widget<Button>(toolbar).selected, isTrue);
-
-    await tester.tap(find.byKey(const ValueKey('toolbar-erase')));
-    await tester.pump();
-    expect(find.byKey(const ValueKey('shape-settings-panel')), findsNothing);
+    expect(find.byType(Shape), findsOneWidget);
 
     await tester.tap(toolbar);
     await tester.pump();
@@ -226,14 +200,6 @@ void main() {
             ),
           )
           .selected,
-      isFalse,
-    );
-    expect(
-      tester
-          .widget<Button>(
-            find.byKey(const ValueKey('shape-option-diamond')),
-          )
-          .selected,
       isTrue,
     );
     final thirdDrag = await tester.startGesture(
@@ -243,14 +209,11 @@ void main() {
     await thirdDrag.moveTo(const Offset(620, 260));
     await thirdDrag.up();
     await tester.pump();
-    expect(find.byType(Shape), findsNWidgets(3));
+    expect(find.byType(Shape), findsNWidgets(2));
     expect(
       tester.widget<Shape>(find.byType(Shape).last).model.data.kind,
-      ShapeKind.diamond,
+      ShapeKind.roundedRectangle,
     );
-
-    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
-    await tester.pump();
     expect(tester.widget<Button>(toolbar).selected, isFalse);
 
     final first = tester.widget<Shape>(find.byType(Shape).first).model;
