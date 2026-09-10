@@ -19,7 +19,6 @@ dependencies:
   json_annotation: ^4.12.0
   lucide_icons_flutter: ^3.1.17
   markdown: ^7.3.1
-  path_provider: ^2.1.6
   perfect_freehand: ^2.5.2+1
   re_editor: ^0.10.0
   re_highlight: ^0.0.3

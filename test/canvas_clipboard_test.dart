@@ -3,7 +3,7 @@
 
 import 'dart:convert';
 
-import 'package:beyond/canvas/attachment_store.dart';
+import 'package:beyond/canvas/attachments/store.dart';
 import 'package:beyond/canvas/canvas_background.dart';
 import 'package:beyond/canvas/canvas_clipboard.dart';
 import 'package:beyond/canvas/canvas_document.dart';

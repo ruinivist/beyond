@@ -1,7 +1,7 @@
 // Verifies attachment storage behavior and text-image integration.
 // Exercises attachment implementations through editor-facing contracts.
 
-import 'package:beyond/canvas/attachment_store.dart';
+import 'package:beyond/canvas/attachments/store.dart';
 import 'package:beyond/canvas/canvas_document.dart';
 import 'package:beyond/canvas/tools/text/text_block.dart';
 import 'package:flutter/foundation.dart';

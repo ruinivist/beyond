@@ -3,7 +3,7 @@
 
 import 'dart:async';
 
-import 'package:beyond/canvas/attachment_store.dart';
+import 'package:beyond/canvas/attachments/store.dart';
 import 'package:beyond/canvas/canvas_document.dart';
 import 'package:beyond/canvas/canvas_page.dart';
 import 'package:beyond/canvas/tools/code_block/code_block.dart';

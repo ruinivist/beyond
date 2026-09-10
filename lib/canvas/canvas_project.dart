@@ -5,7 +5,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 import 'dart:ui';
 
-import 'package:beyond/canvas/attachment_store.dart';
+import 'package:beyond/canvas/attachments/store.dart';
 import 'package:beyond/canvas/canvas_document.dart';
 import 'package:markdown/markdown.dart' as md;
 

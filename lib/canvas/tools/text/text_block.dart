@@ -6,7 +6,7 @@
 import 'dart:async';
 import 'dart:math' as math;
 
-import 'package:beyond/canvas/attachment_store.dart';
+import 'package:beyond/canvas/attachments/store.dart';
 import 'package:beyond/canvas/canvas_clipboard.dart';
 import 'package:beyond/canvas/canvas_document.dart';
 import 'package:beyond/canvas/canvas_element_model.dart';

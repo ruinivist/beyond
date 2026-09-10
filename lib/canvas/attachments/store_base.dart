@@ -10,7 +10,7 @@ const int attachmentMaximumBytes = 10 * 1024 * 1024;
 // ---------- Storage contract ----------
 
 /// Defines persistence operations for editor-owned attachment bytes.
-/// Implemented by the native and browser attachment stores.
+/// Implemented by the browser attachment store.
 abstract interface class AttachmentStore {
   Future<void> write(String path, Uint8List bytes);
 

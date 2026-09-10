@@ -4,7 +4,7 @@
 import 'dart:js_interop';
 import 'dart:typed_data';
 
-import 'package:beyond/canvas/attachment_store_base.dart';
+import 'package:beyond/canvas/attachments/store_base.dart';
 import 'package:web/web.dart';
 
 // ---------- Browser storage ----------
