@@ -1,3 +1,6 @@
+// Provides media import, storage, sizing, rendering, and interaction.
+// Used by the canvas media tool and persisted media elements.
+
 import 'dart:async';
 import 'dart:math' as math;
 import 'dart:typed_data';
@@ -15,6 +18,8 @@ import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:uuid/uuid.dart';
 
+// ---------- Limits and formats ----------
+
 const mediaUrlPanelMinimumWidth = 480.0;
 const _mediaUrlPanelCanvasHeight = 48.0;
 const _imageTypes = XTypeGroup(
@@ -29,6 +34,8 @@ const _imageTypes = XTypeGroup(
   ],
 );
 
+// ---------- Validation ----------
+
 bool isSupportedMediaUrl(String source) {
   final uri = Uri.tryParse(source);
   return uri != null &&
@@ -38,7 +45,13 @@ bool isSupportedMediaUrl(String source) {
       !RegExp(r'\s').hasMatch(source);
 }
 
+// ---------- Models ----------
+
+/// Owns media loading state and synchronizes it with persisted element data.
+/// Used by media rendering, editing, resizing, and attachment storage.
 class MediaModel extends CanvasElementModel<MediaElementData> {
+  // ---------- Construction ----------
+
   MediaModel(MediaElementData data, this.attachmentStore) : super(data) {
     controller = TextEditingController(text: data.url)..addListener(_syncUrl);
     _loadImage();
@@ -53,6 +66,8 @@ class MediaModel extends CanvasElementModel<MediaElementData> {
   Object? _attachmentLoad;
   double? _aspectRatio;
   var _active = false;
+
+  // ---------- State and geometry ----------
 
   ImageProvider<Object>? get image => _image;
 
@@ -99,6 +114,8 @@ class MediaModel extends CanvasElementModel<MediaElementData> {
     notifyListeners();
   }
 
+  // ---------- Image updates ----------
+
   Future<void> setDeviceImage(Uint8List bytes, String extension) async {
     final normalizedExtension = extension.toLowerCase() == 'jpeg'
         ? 'jpg'
@@ -122,6 +139,8 @@ class MediaModel extends CanvasElementModel<MediaElementData> {
     _active = true;
     notifyListeners();
   }
+
+  // ---------- Private helpers ----------
 
   void _syncUrl() {
     if (data.url == controller.text) return;
@@ -192,6 +211,8 @@ class MediaModel extends CanvasElementModel<MediaElementData> {
     _aspectRatio = null;
   }
 
+  // ---------- Lifecycle ----------
+
   @override
   void dispose() {
     _detachImage();
@@ -203,6 +224,10 @@ class MediaModel extends CanvasElementModel<MediaElementData> {
   }
 }
 
+// ---------- Media node ----------
+
+/// Renders a media element or its URL entry panel.
+/// Used by the canvas element stack for persisted media models.
 class MediaNode extends StatefulWidget {
   const MediaNode({
     required this.model,
@@ -220,8 +245,12 @@ class MediaNode extends StatefulWidget {
 }
 
 class _MediaNodeState extends State<MediaNode> {
+  // ---------- State ----------
+
   final _portalController = OverlayPortalController();
   final Key _panelKey = GlobalKey();
+
+  // ---------- Lifecycle and actions ----------
 
   @override
   void initState() {
@@ -251,6 +280,8 @@ class _MediaNodeState extends State<MediaNode> {
       ).showSnackBar(const SnackBar(content: Text('Could not open image')));
     }
   }
+
+  // ---------- Rendering ----------
 
   @override
   Widget build(BuildContext context) {
@@ -329,6 +360,8 @@ class _MediaNodeState extends State<MediaNode> {
     );
   }
 }
+
+// ---------- Supporting widgets ----------
 
 Widget _mediaUrlPanelTransition(
   Widget child,
@@ -496,6 +529,8 @@ class _MediaUrlPanel extends StatelessWidget {
     );
   }
 }
+
+// ---------- Gestures and image decoding ----------
 
 class _MediaDrag extends Drag {
   _MediaDrag(this.onUpdate);

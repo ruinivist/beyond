@@ -1,5 +1,10 @@
+// Provides Beyond's semantic button variants and sizing behavior.
+// Used throughout editor toolbars, dialogs, and controls.
+
 import 'package:beyond/foundation/theme.dart';
 import 'package:flutter/material.dart';
+
+// ---------- Types ----------
 
 enum ButtonVariant {
   primary,
@@ -13,7 +18,13 @@ enum ButtonVariant {
 
 enum ButtonSize { small, medium, large, toolbar, icon }
 
+// ---------- Widgets ----------
+
+/// Renders a semantic Beyond button from a variant and size.
+/// Used as the shared button primitive across editor surfaces.
 class Button extends StatelessWidget {
+  // ---------- Construction ----------
+
   const Button({
     required this.onPressed,
     this.child,
@@ -41,6 +52,8 @@ class Button extends StatelessWidget {
   final bool? selected;
   final FocusNode? focusNode;
   final bool autofocus;
+
+  // ---------- Size resolution ----------
 
   double get _height => switch (size) {
     ButtonSize.small => 32,
@@ -82,6 +95,8 @@ class Button extends StatelessWidget {
     ButtonSize.icon => 0,
   };
 
+  // ---------- Color resolution ----------
+
   Color _foreground(BColors colors) => switch (variant) {
     ButtonVariant.primary => colors.surface,
     ButtonVariant.outline ||
@@ -122,6 +137,8 @@ class Button extends StatelessWidget {
     ButtonVariant.link => Colors.transparent,
     ButtonVariant.toolbar => colors.surfacePressed,
   };
+
+  // ---------- Composition ----------
 
   ButtonStyle _style(
     BColors colors,
@@ -208,6 +225,8 @@ class Button extends StatelessWidget {
       ],
     );
   }
+
+  // ---------- Rendering ----------
 
   @override
   Widget build(BuildContext context) {

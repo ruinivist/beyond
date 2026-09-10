@@ -1,3 +1,6 @@
+// Encodes canvas elements and reads compatible clipboard content.
+// Used by the editor's copy, cut, paste, and image insertion flows.
+
 import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
@@ -6,12 +9,16 @@ import 'package:beyond/canvas/attachment_store.dart';
 import 'package:beyond/canvas/canvas_document.dart';
 import 'package:super_clipboard/super_clipboard.dart';
 
+// ---------- Clipboard format ----------
+
 const _format = 'beyond-canvas-clipboard';
 final _formatMarker = RegExp(
   r'"format"\s*:\s*"beyond-canvas-clipboard"',
 );
 
 const canvasClipboardVersion = 2;
+
+// ---------- Types ----------
 
 typedef ClipboardImage = ({Uint8List bytes, String extension});
 typedef CanvasClipboardSnapshot = ({String? text, ClipboardImage? image});
@@ -23,6 +30,10 @@ const _imageFormats = <FileFormat, String>{
   Formats.webp: 'webp',
 };
 
+// ---------- Clipboard reading ----------
+
+/// Reads preferred image bytes and plain text from a clipboard snapshot.
+/// Used by canvas paste handling before interpreting internal payloads.
 Future<CanvasClipboardSnapshot> readCanvasClipboard(
   ClipboardReader reader,
 ) async {
@@ -40,6 +51,8 @@ Future<CanvasClipboardSnapshot> readCanvasClipboard(
       : null;
   return (text: text, image: image);
 }
+
+// ---------- Element serialization ----------
 
 String encodeCanvasClipboard(Iterable<CanvasElementData> elements) =>
     jsonEncode(<String, Object>{
@@ -74,6 +87,8 @@ List<CanvasElementData>? decodeCanvasClipboard(String text) {
   }
   return elements;
 }
+
+// ---------- Private helpers ----------
 
 Future<Uint8List?> _readClipboardFile(
   ClipboardReader reader,

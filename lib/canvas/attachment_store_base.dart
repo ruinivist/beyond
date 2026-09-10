@@ -1,7 +1,16 @@
+// Defines attachment storage operations and shared path handling.
+// Used by platform stores, media nodes, and project transfer flows.
+
 import 'dart:typed_data';
+
+// ---------- Limits ----------
 
 const int attachmentMaximumBytes = 10 * 1024 * 1024;
 
+// ---------- Storage contract ----------
+
+/// Defines persistence operations for editor-owned attachment bytes.
+/// Implemented by the native and browser attachment stores.
 abstract interface class AttachmentStore {
   Future<void> write(String path, Uint8List bytes);
 
@@ -9,6 +18,8 @@ abstract interface class AttachmentStore {
 
   Future<Uint8List?> readIfExists(String path);
 }
+
+// ---------- Path validation ----------
 
 final attachmentPathPattern = RegExp(
   r'^attachments/[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\.(?:png|jpg|gif|webp)$',

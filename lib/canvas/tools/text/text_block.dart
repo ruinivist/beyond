@@ -1,3 +1,5 @@
+// Provides rich text editing, Markdown preview, styling, and interaction.
+// Used by the canvas text tool and persisted text elements.
 // The deeply nested toolbar configuration stays inline with its widgets.
 // ignore_for_file: lines_longer_than_80_chars
 
@@ -27,13 +29,21 @@ import 'package:super_clipboard/super_clipboard.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:uuid/uuid.dart';
 
+// ---------- Font options ----------
+
 const textFontOptions = <SelectOption<String>>[
   SelectOption(value: 'Source Serif 4', label: 'Source Serif 4'),
   SelectOption(value: 'Inter', label: 'Inter'),
   SelectOption(value: 'Roboto Mono', label: 'Roboto Mono'),
 ];
 
+// ---------- Models ----------
+
+/// Owns text editor state and synchronizes it with persisted element data.
+/// Used by text editing, preview, transformation, and persistence flows.
 class TextBlockModel extends CanvasElementModel<TextElementData> {
+  // ---------- Construction ----------
+
   TextBlockModel(TextElementData data) : super(data) {
     controller = TextEditingController(text: data.markdown);
     controller.addListener(_syncMarkdown);
@@ -48,6 +58,8 @@ class TextBlockModel extends CanvasElementModel<TextElementData> {
   final layerLink = LayerLink();
   bool _editing = false;
   bool _resizing = false;
+
+  // ---------- State and geometry ----------
 
   @override
   Offset get canvasPosition => data.position;
@@ -105,6 +117,8 @@ class TextBlockModel extends CanvasElementModel<TextElementData> {
     notifyListeners();
   }
 
+  // ---------- Clipboard insertion ----------
+
   Future<void> insertPastedImage(
     Uint8List bytes,
     String extension,
@@ -132,6 +146,8 @@ class TextBlockModel extends CanvasElementModel<TextElementData> {
     );
   }
 
+  // ---------- Synchronization and lifecycle ----------
+
   void _syncMarkdown() {
     if (node.markdown == controller.text) return;
     node.markdown = controller.text;
@@ -149,6 +165,10 @@ class TextBlockModel extends CanvasElementModel<TextElementData> {
   }
 }
 
+// ---------- Text block ----------
+
+/// Renders editable or preview text with movement and transform controls.
+/// Used by the canvas element stack for persisted text models.
 class TextBlock extends StatelessWidget {
   const TextBlock({
     required this.model,
@@ -324,6 +344,8 @@ class TextBlock extends StatelessWidget {
     );
   }
 }
+
+// ---------- Editor and preview ----------
 
 class _TextBlockScrollBehavior extends MaterialScrollBehavior {
   const _TextBlockScrollBehavior();
@@ -543,6 +565,8 @@ class _EmptyTextMarkdownPreview extends StatelessWidget {
   }
 }
 
+// ---------- Markdown styling ----------
+
 MarkdownStyleSheet _styleSheet(
   BuildContext context,
   TextNodeStyle style,
@@ -625,6 +649,10 @@ Color colorFromHex(String value) {
   return Color(int.parse('FF${value.substring(1)}', radix: 16));
 }
 
+// ---------- Controls ----------
+
+/// Renders movement, resizing, and rotation controls around a text block.
+/// Used by selected text elements in the canvas overlay.
 class TextBlockControls extends StatelessWidget {
   const TextBlockControls({
     required this.model,
@@ -754,6 +782,8 @@ class TextBlockControls extends StatelessWidget {
   }
 }
 
+/// Renders font, size, color, and alignment settings for a text block.
+/// Used by the canvas tool options while a text element is selected.
 class TextSettings extends StatefulWidget {
   const TextSettings({
     required this.model,
@@ -1012,6 +1042,8 @@ class _TextSettingsState extends State<TextSettings> {
   }
 }
 
+// ---------- Markdown media and links ----------
+
 bool _sameStyle(TextNodeStyle first, TextNodeStyle second) {
   return first.fontFamily == second.fontFamily &&
       first.fontSize == second.fontSize &&
@@ -1114,6 +1146,8 @@ Future<void> _openLink(BuildContext context, String? href) async {
     context,
   ).showSnackBar(const SnackBar(content: Text('Could not open link')));
 }
+
+// ---------- Gestures ----------
 
 class _TextBlockDrag extends Drag {
   _TextBlockDrag(this.onMove, this.onEnd);

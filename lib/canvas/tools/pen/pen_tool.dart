@@ -1,9 +1,14 @@
+// Provides freehand stroke sampling, geometry, rendering, and editing state.
+// Used by the canvas pen tool and persisted pen elements.
+
 import 'package:beyond/canvas/canvas_document.dart';
 import 'package:beyond/canvas/canvas_element_model.dart';
 import 'package:beyond/foundation/theme.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:perfect_freehand/perfect_freehand.dart' as pf;
+
+// ---------- Types and geometry ----------
 
 typedef RawPenStroke = ({
   List<PenPointData> points,
@@ -50,6 +55,10 @@ Path createPenPath(List<PenPointData> points, double width) {
   return path;
 }
 
+// ---------- Models ----------
+
+/// Adapts persisted pen data to a rendered path and canvas movement.
+/// Used by selection, hit testing, and stroke rendering.
 class PenStrokeModel extends CanvasElementModel<PenElementData> {
   PenStrokeModel(super.data) : path = createPenPath(data.points, data.width);
 
@@ -69,6 +78,10 @@ class PenStrokeModel extends CanvasElementModel<PenElementData> {
   }
 }
 
+// ---------- Rendering ----------
+
+/// Renders and handles movement for a persisted freehand stroke.
+/// Used by the canvas element stack.
 class PenStroke extends StatelessWidget {
   const PenStroke({
     required this.model,
@@ -114,6 +127,8 @@ class PenStroke extends StatelessWidget {
     );
   }
 }
+
+// ---------- Hit testing ----------
 
 class _PenStrokePainter extends CustomPainter {
   const _PenStrokePainter({
@@ -194,7 +209,13 @@ double _distanceToSegmentSquared(Offset point, Offset start, Offset end) {
   return (point - (start + segment * ratio)).distanceSquared;
 }
 
+// ---------- Tool state ----------
+
+/// Samples pointer input and current options for a freehand stroke.
+/// Used by the canvas page to produce positioned pen element data.
 class PenTool extends ChangeNotifier {
+  // ---------- Construction ----------
+
   PenTool({required this.onStroke});
 
   final ValueChanged<RawPenStroke> onStroke;
@@ -205,6 +226,8 @@ class PenTool extends ChangeNotifier {
   double _strokeWidth = 4;
   Color? _pendingColor;
   double? _pendingStrokeWidth;
+
+  // ---------- Options ----------
 
   bool get active => _activePointer != null;
 
@@ -225,6 +248,8 @@ class PenTool extends ChangeNotifier {
       notifyListeners();
     }
   }
+
+  // ---------- Pointer events ----------
 
   bool _isAllowedPointer(PointerDownEvent event) => switch (event.kind) {
     PointerDeviceKind.mouse => event.buttons & kPrimaryButton != 0,
@@ -289,6 +314,8 @@ class PenTool extends ChangeNotifier {
     _finish(event);
   }
 
+  // ---------- Private helpers ----------
+
   void _finish(PointerEvent event) {
     if (event.pointer != _activePointer) return;
     _pointerPosition = event is PointerExitEvent ? null : event.localPosition;
@@ -310,6 +337,8 @@ class PenTool extends ChangeNotifier {
     notifyListeners();
   }
 }
+
+// ---------- Preview ----------
 
 class PenPreviewPainter extends CustomPainter {
   PenPreviewPainter({required this.tool, required this.color})
@@ -341,6 +370,8 @@ class PenPreviewPainter extends CustomPainter {
   @override
   bool shouldRepaint(PenPreviewPainter oldDelegate) => false;
 }
+
+// ---------- Persistence geometry ----------
 
 PenElementData positionStroke(
   RawPenStroke stroke, {

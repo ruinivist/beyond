@@ -1,14 +1,25 @@
+// Defines project file picking and saving through the host platform.
+// Used by canvas import and export actions.
+
 import 'dart:typed_data';
 
 import 'package:file_selector/file_selector.dart';
 
+// ---------- File contract ----------
+
+/// Defines host file operations for portable canvas projects.
+/// Used by the canvas page and implemented with the platform file selector.
 abstract interface class CanvasProjectFiles {
   Future<Uint8List?> open();
 
   Future<bool> save(Uint8List bytes);
 }
 
+// ---------- Platform selection ----------
+
 CanvasProjectFiles createCanvasProjectFiles() => _PlatformCanvasProjectFiles();
+
+// ---------- Platform implementation ----------
 
 final class _PlatformCanvasProjectFiles implements CanvasProjectFiles {
   @override

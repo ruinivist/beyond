@@ -1,3 +1,6 @@
+// Verifies text editing, Markdown preview, styling, and interaction.
+// Exercises text blocks through model and canvas widget flows.
+
 import 'dart:convert';
 import 'dart:math' as math;
 
@@ -23,6 +26,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:shared_preferences_web/shared_preferences_web.dart';
 import 'package:url_launcher_platform_interface/link.dart';
 import 'package:url_launcher_platform_interface/url_launcher_platform_interface.dart';
+
+// ---------- Tests ----------
 
 void main() {
   late UrlLauncherPlatform originalLauncher;
@@ -1114,6 +1119,8 @@ Inline $x^2$''';
   });
 }
 
+// ---------- Test helpers ----------
+
 Future<void> _addTextBlock(
   WidgetTester tester,
   Offset position, {
@@ -1156,6 +1163,8 @@ Future<void> _placeCodeBlock(WidgetTester tester, Offset position) async {
   await tester.tapAt(position);
   await tester.pump();
 }
+
+// ---------- Test doubles ----------
 
 class _FakeUrlLauncher extends UrlLauncherPlatform {
   final launched = <String>[];

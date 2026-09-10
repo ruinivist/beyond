@@ -1,3 +1,6 @@
+// Defines supported code languages and their editor highlighting modes.
+// Used by code blocks, serialization, and language selection controls.
+
 import 'package:flutter/painting.dart';
 import 'package:re_editor/re_editor.dart';
 import 'package:re_highlight/languages/bash.dart';
@@ -23,7 +26,13 @@ import 'package:re_highlight/languages/xml.dart';
 import 'package:re_highlight/languages/yaml.dart';
 import 'package:re_highlight/re_highlight.dart';
 
+// ---------- Languages ----------
+
+/// Maps selectable language labels to editor highlighting modes.
+/// Used by code block controls, rendering, and document serialization.
 enum CodeLanguage {
+  // ---------- Values ----------
+
   python('Python'),
   typescript('TypeScript'),
   javascript('JavaScript'),
@@ -49,7 +58,11 @@ enum CodeLanguage {
 
   const CodeLanguage(this.label);
 
+  // ---------- State ----------
+
   final String label;
+
+  // ---------- Highlighting ----------
 
   Mode? get mode => switch (this) {
     python => langPython,

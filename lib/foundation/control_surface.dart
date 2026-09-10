@@ -1,7 +1,14 @@
+// Provides a themed raised surface for grouped controls.
+// Used by floating editor controls and tool option panels.
+
 import 'package:beyond/foundation/theme.dart';
 import 'package:flutter/material.dart';
 
+// ---------- Widgets ----------
+
 class ControlSurface extends StatelessWidget {
+  // ---------- Construction ----------
+
   const ControlSurface({
     required this.child,
     this.selected = false,
@@ -10,6 +17,8 @@ class ControlSurface extends StatelessWidget {
 
   final Widget child;
   final bool selected;
+
+  // ---------- Rendering ----------
 
   @override
   Widget build(BuildContext context) {

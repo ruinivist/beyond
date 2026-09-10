@@ -1,3 +1,6 @@
+// Verifies media creation, loading, resizing, and persistence behavior.
+// Exercises the media tool through model and canvas widget flows.
+
 import 'dart:convert';
 import 'dart:ui' as ui;
 
@@ -15,6 +18,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:infinite_lazy_grid/infinite_lazy_grid.dart';
 import 'package:shared_preferences_web/shared_preferences_web.dart';
+
+// ---------- Tests ----------
 
 void main() {
   setUp(() => SharedPreferencesAsyncWeb.registerWith(null));
@@ -229,6 +234,8 @@ void main() {
   });
 }
 
+// ---------- Test helpers ----------
+
 Future<void> _pumpCanvas(
   WidgetTester tester,
   CanvasDocumentStore store, {
@@ -262,6 +269,8 @@ Future<void> _cacheImage(String url) async {
   );
 }
 
+// ---------- Fixtures ----------
+
 final _pngBytes = Uint8List.fromList(
   base64Decode(
     [
@@ -275,6 +284,8 @@ CanvasDocument _document([MediaElementData? media]) => CanvasDocument(
   background: CanvasBackgroundKind.plain,
   elements: [?media],
 );
+
+// ---------- Test doubles ----------
 
 class _DocumentStore extends CanvasDocumentStore {
   _DocumentStore(this.initial);

@@ -1,3 +1,6 @@
+// Boots the Beyond application and owns its root theme state.
+// Used as the Flutter entry point for the canvas editor.
+
 import 'package:beyond/canvas/attachment_store.dart';
 import 'package:beyond/canvas/canvas_document_store.dart';
 import 'package:beyond/canvas/canvas_page.dart';
@@ -7,6 +10,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+// ---------- Application bootstrap ----------
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   if (kIsWeb) await BrowserContextMenu.disableContextMenu();
@@ -15,6 +20,10 @@ Future<void> main() async {
   runApp(const BeyondApp());
 }
 
+// ---------- Root application ----------
+
+/// Hosts the canvas editor and the currently selected application theme.
+/// Used as the root widget created by the application bootstrap.
 class BeyondApp extends StatefulWidget {
   const BeyondApp({
     this.attachmentStore,
@@ -32,7 +41,11 @@ class BeyondApp extends StatefulWidget {
 }
 
 class _BeyondAppState extends State<BeyondApp> {
+  // ---------- State ----------
+
   AppTheme _theme = AppTheme.starlessLight;
+
+  // ---------- Rendering ----------
 
   @override
   Widget build(BuildContext context) {

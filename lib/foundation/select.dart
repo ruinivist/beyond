@@ -1,9 +1,16 @@
+// Provides themed select and searchable-select controls with overlay menus.
+// Used by settings and canvas element option panels.
+
 import 'dart:math' as math;
 
 import 'package:beyond/foundation/theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+// ---------- Models ----------
+
+/// Describes one value, label, and enabled state in a select menu.
+/// Used by both standard and searchable select controls.
 @immutable
 class SelectOption<T> {
   const SelectOption({
@@ -17,10 +24,14 @@ class SelectOption<T> {
   final bool enabled;
 }
 
+// ---------- Geometry ----------
+
 const _selectMinimumWidth = 160.0;
 const _selectTriggerHeight = 36.0;
 const _selectTriggerHorizontalPadding = 16.0;
 const _selectTriggerIconSize = 16.0;
+
+// ---------- Shared rendering ----------
 
 double _selectPreferredWidth<T>(
   BuildContext context,
@@ -242,7 +253,13 @@ Widget _buildSelectOption<T>({
   );
 }
 
+// ---------- Select ----------
+
+/// Provides a keyboard-accessible anchored menu for a fixed option list.
+/// Used by editor settings with compact enumerated choices.
 class Select<T> extends StatefulWidget {
+  // ---------- Construction ----------
+
   const Select({
     required this.value,
     required this.options,
@@ -261,6 +278,8 @@ class Select<T> extends StatefulWidget {
 }
 
 class _SelectState<T> extends State<Select<T>> {
+  // ---------- State ----------
+
   final _menuController = MenuController();
   final GlobalKey _triggerKey = GlobalKey();
   final _triggerFocusNode = FocusNode();
@@ -278,6 +297,8 @@ class _SelectState<T> extends State<Select<T>> {
         ? renderBox.size.width
         : _preferredWidth;
   }
+
+  // ---------- Lifecycle ----------
 
   @override
   void initState() {
@@ -315,6 +336,8 @@ class _SelectState<T> extends State<Select<T>> {
     super.dispose();
   }
 
+  // ---------- Selection ----------
+
   SelectOption<T>? get _selectedOption {
     for (final option in widget.options) {
       if (option.value == widget.value) return option;
@@ -334,6 +357,8 @@ class _SelectState<T> extends State<Select<T>> {
       if (index >= 0) _optionFocusNodes[index].requestFocus();
     });
   }
+
+  // ---------- Rendering ----------
 
   @override
   Widget build(BuildContext context) {
@@ -377,7 +402,13 @@ class _SelectState<T> extends State<Select<T>> {
   }
 }
 
+// ---------- Searchable select ----------
+
+/// Provides a searchable anchored menu with preferred values.
+/// Used by editor settings with long option lists such as font families.
 class SearchableSelect<T> extends StatefulWidget {
+  // ---------- Construction ----------
+
   const SearchableSelect({
     required this.value,
     required this.options,
@@ -400,6 +431,8 @@ class SearchableSelect<T> extends StatefulWidget {
 }
 
 class _SearchableSelectState<T> extends State<SearchableSelect<T>> {
+  // ---------- State ----------
+
   final _menuController = MenuController();
   final GlobalKey _triggerKey = GlobalKey();
   final _triggerFocusNode = FocusNode();
@@ -419,6 +452,8 @@ class _SearchableSelectState<T> extends State<SearchableSelect<T>> {
         ? renderBox.size.width
         : _preferredWidth;
   }
+
+  // ---------- Lifecycle ----------
 
   @override
   void initState() {
@@ -443,6 +478,8 @@ class _SearchableSelectState<T> extends State<SearchableSelect<T>> {
     _triggerFocusNode.dispose();
     super.dispose();
   }
+
+  // ---------- Search and selection ----------
 
   void _handleSearchChanged() {
     if (mounted) setState(() {});
@@ -502,6 +539,8 @@ class _SearchableSelectState<T> extends State<SearchableSelect<T>> {
     }
     return null;
   }
+
+  // ---------- Rendering ----------
 
   @override
   Widget build(BuildContext context) {

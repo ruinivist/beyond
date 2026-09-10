@@ -1,7 +1,16 @@
+// Defines the semantic color, typography, geometry, and theme contracts.
+// Used by reusable foundation widgets and concrete application themes.
+
 import 'package:flutter/material.dart';
 
+// ---------- Semantic tokens ----------
+
+/// Holds semantic colors shared by Beyond components.
+/// Supplied by concrete app themes and consumed through [BTheme].
 @immutable
 class BColors {
+  // ---------- Construction ----------
+
   const BColors({
     required this.canvasBackground,
     required this.canvasGrid,
@@ -46,6 +55,8 @@ class BColors {
   final Color shadow;
   final Color scrim;
 
+  // ---------- Interpolation ----------
+
   BColors lerp(BColors? other, double t) {
     if (other == null) return this;
     return BColors(
@@ -77,8 +88,12 @@ class BColors {
   }
 }
 
+/// Holds semantic typography roles shared by Beyond components.
+/// Supplied by concrete app themes and consumed through [BTheme].
 @immutable
 class BTypo {
+  // ---------- Construction ----------
+
   const BTypo({
     required this.display,
     required this.heading,
@@ -95,6 +110,8 @@ class BTypo {
   final TextStyle label;
   final TextStyle code;
 
+  // ---------- Interpolation ----------
+
   BTypo lerp(BTypo? other, double t) {
     if (other == null) return this;
     return BTypo(
@@ -108,8 +125,12 @@ class BTypo {
   }
 }
 
+/// Holds reusable geometry and elevation values for Beyond components.
+/// Supplied by concrete app themes and consumed through [BTheme].
 @immutable
 class BGeo {
+  // ---------- Construction ----------
+
   const BGeo({
     required this.radiusSmall,
     required this.radiusMedium,
@@ -126,6 +147,8 @@ class BGeo {
   final double elevationMedium;
   final double elevationHigh;
 
+  // ---------- Interpolation ----------
+
   BGeo lerp(BGeo? other, double t) {
     if (other == null) return this;
     return BGeo(
@@ -140,8 +163,12 @@ class BGeo {
   }
 }
 
+/// Registers Beyond's semantic tokens as a Material theme extension.
+/// Read by foundation and editor widgets from their build context.
 @immutable
 class BTheme extends ThemeExtension<BTheme> {
+  // ---------- Construction ----------
+
   const BTheme({
     required this.colors,
     required this.typo,
@@ -154,6 +181,8 @@ class BTheme extends ThemeExtension<BTheme> {
   final BGeo geo;
   final Map<String, TextStyle> syntaxTheme;
 
+  // ---------- Lookup ----------
+
   static BTheme of(BuildContext context) {
     final theme = Theme.of(context).extension<BTheme>();
     if (theme == null) {
@@ -163,6 +192,8 @@ class BTheme extends ThemeExtension<BTheme> {
     }
     return theme;
   }
+
+  // ---------- Theme extension ----------
 
   @override
   BTheme copyWith({

@@ -1,3 +1,6 @@
+// Provides the application settings dialog and its local editing state.
+// Used by the canvas shell to configure appearance and transfer projects.
+
 import 'dart:math' as math;
 
 import 'package:beyond/canvas/canvas_background.dart';
@@ -7,7 +10,13 @@ import 'package:beyond/foundation/theme.dart';
 import 'package:beyond/theme/starless.dart';
 import 'package:flutter/material.dart';
 
+// ---------- Dialog ----------
+
+/// Presents application, canvas, and project transfer settings.
+/// Opened from the canvas workspace settings action.
 class SettingsDialog extends StatefulWidget {
+  // ---------- Construction ----------
+
   const SettingsDialog({
     this.appTheme = AppTheme.starlessLight,
     this.canvasBackgroundKind = CanvasBackgroundKind.dotGrid,
@@ -33,14 +42,20 @@ class SettingsDialog extends StatefulWidget {
   State<SettingsDialog> createState() => _SettingsDialogState();
 }
 
+// ---------- Sections ----------
+
 enum _SettingsSection { about, canvas, interface }
 
 class _SettingsDialogState extends State<SettingsDialog> {
+  // ---------- State ----------
+
   _SettingsSection _section = _SettingsSection.canvas;
   late AppTheme _appTheme = widget.appTheme;
   late CanvasBackgroundKind _canvasBackgroundKind = widget.canvasBackgroundKind;
   late bool _noIcons = widget.noIcons;
   var _transferActive = false;
+
+  // ---------- Transfer actions ----------
 
   Future<void> _importCanvas() async {
     final callback = widget.onImportCanvas;
@@ -66,6 +81,8 @@ class _SettingsDialogState extends State<SettingsDialog> {
       if (mounted) setState(() => _transferActive = false);
     }
   }
+
+  // ---------- Rendering ----------
 
   @override
   Widget build(BuildContext context) {
@@ -189,6 +206,8 @@ class _SettingsDialogState extends State<SettingsDialog> {
     );
   }
 
+  // ---------- Navigation ----------
+
   Widget _navigation(
     BuildContext context, {
     required EdgeInsets padding,
@@ -273,6 +292,8 @@ class _SettingsDialogState extends State<SettingsDialog> {
       ),
     );
   }
+
+  // ---------- Section content ----------
 
   Widget _divider(BTheme theme) {
     return SizedBox(

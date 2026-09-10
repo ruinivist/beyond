@@ -1,8 +1,13 @@
+// Defines Beyond's concrete themes, typography, colors, and shared geometry.
+// Used by the app shell and themed editor widgets.
+
 import 'package:beyond/foundation/theme.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:re_highlight/styles/atom-one-dark.dart';
 import 'package:re_highlight/styles/atom-one-light.dart';
+
+// ---------- Palette and geometry ----------
 
 const _starlessLightColors = BColors(
   canvasBackground: Color(0xfffbf9f7),
@@ -84,6 +89,8 @@ const _starlessGeo = BGeo(
 
 var _useMonoFallback = false;
 
+// ---------- Typography ----------
+
 BTypo _starlessTypo(BColors colors) => BTypo(
   display: GoogleFonts.sourceSerif4(
     textStyle: const TextStyle(
@@ -127,6 +134,8 @@ BTypo _starlessTypo(BColors colors) => BTypo(
         ),
 );
 
+/// Loads runtime font families and enables a safe monospace fallback.
+/// Called during application bootstrap before the root widget is mounted.
 Future<void> loadFonts() async {
   try {
     await GoogleFonts.pendingFonts([
@@ -140,6 +149,10 @@ Future<void> loadFonts() async {
   }
 }
 
+// ---------- Theme selection ----------
+
+/// Identifies the concrete visual themes available to the application.
+/// Used by the app shell and interface settings.
 enum AppTheme {
   starlessLight,
   starlessDark,
@@ -158,6 +171,8 @@ enum AppTheme {
   };
 }
 
+// ---------- Theme instances ----------
+
 final ThemeData starlessLightThemeData = _starlessThemeData(
   brightness: Brightness.light,
   colors: _starlessLightColors,
@@ -175,6 +190,8 @@ final ThemeData classicDarkThemeData = _starlessThemeData(
   colors: _classicDarkColors,
   syntaxTheme: atomOneDarkTheme,
 );
+
+// ---------- Theme construction ----------
 
 ThemeData _starlessThemeData({
   required Brightness brightness,

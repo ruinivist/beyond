@@ -1,8 +1,13 @@
+// Verifies discrete slider input, stepping, and disabled behavior.
+// Exercises the reusable slider under keyboard and pointer interaction.
+
 import 'package:beyond/foundation/discrete_slider.dart';
 import 'package:beyond/theme/starless.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+
+// ---------- Tests ----------
 
 void main() {
   testWidgets('discrete slider disables input without a change callback', (

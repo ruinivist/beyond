@@ -1,3 +1,6 @@
+// Verifies shape creation, editing, rendering, and toolbar behavior.
+// Exercises the shape tool through model and canvas widget flows.
+
 import 'package:beyond/canvas/canvas_document.dart';
 import 'package:beyond/canvas/canvas_document_store.dart';
 import 'package:beyond/canvas/canvas_page.dart';
@@ -9,6 +12,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences_web/shared_preferences_web.dart';
+
+// ---------- Tests ----------
 
 void main() {
   setUp(() => SharedPreferencesAsyncWeb.registerWith(null));
@@ -247,6 +252,8 @@ void main() {
     expect(first.data.size, originalSize + const Offset(40, 30));
   });
 }
+
+// ---------- Test doubles ----------
 
 class _DocumentStore extends CanvasDocumentStore {
   @override

@@ -1,3 +1,6 @@
+// Verifies project import and export behavior from the canvas UI.
+// Exercises file transfer, validation, and attachment replacement flows.
+
 import 'dart:async';
 import 'dart:convert';
 
@@ -19,6 +22,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:infinite_lazy_grid/infinite_lazy_grid.dart';
 import 'package:shared_preferences_web/shared_preferences_web.dart';
+
+// ---------- Tests ----------
 
 void main() {
   setUp(() => SharedPreferencesAsyncWeb.registerWith(null));
@@ -344,6 +349,8 @@ void main() {
   });
 }
 
+// ---------- Test helpers ----------
+
 Future<void> _pumpPage(
   WidgetTester tester,
   _FakeDocumentStore documentStore,
@@ -380,6 +387,8 @@ Future<void> _historyShortcut(WidgetTester tester, {bool redo = false}) async {
 
 LazyCanvasController _canvasController(WidgetTester tester) =>
     tester.widget<LazyCanvas>(find.byType(LazyCanvas)).controller;
+
+// ---------- Fixtures ----------
 
 CanvasDocument _document({
   required String markdown,
@@ -435,6 +444,8 @@ final _oldBytes = Uint8List.fromList(
 final _newBytes = Uint8List.fromList(
   base64Decode('R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw=='),
 );
+
+// ---------- Test doubles ----------
 
 class _FakeDocumentStore extends CanvasDocumentStore {
   _FakeDocumentStore(this.initial);

@@ -1,9 +1,14 @@
+// Verifies select overlays, keyboard interaction, and searchable choices.
+// Exercises the reusable select controls under Beyond themes.
+
 import 'package:beyond/foundation/select.dart';
 import 'package:beyond/foundation/theme.dart';
 import 'package:beyond/theme/starless.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+
+// ---------- Tests ----------
 
 void main() {
   testWidgets('select opens, navigates, selects, and dismisses', (

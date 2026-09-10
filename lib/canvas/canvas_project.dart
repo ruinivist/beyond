@@ -1,3 +1,6 @@
+// Validates, encodes, and decodes portable canvas project archives.
+// Used by the editor's import and export flows.
+
 import 'dart:convert';
 import 'dart:typed_data';
 import 'dart:ui';
@@ -6,9 +9,13 @@ import 'package:beyond/canvas/attachment_store.dart';
 import 'package:beyond/canvas/canvas_document.dart';
 import 'package:markdown/markdown.dart' as md;
 
+// ---------- Limits ----------
+
 const int canvasProjectMaximumBytes = 140 * 1024 * 1024;
 const int _maximumEncodedAttachmentLength =
     ((attachmentMaximumBytes + 2) ~/ 3) * 4;
+
+// ---------- Validation ----------
 
 void validateCanvasProjectSize(int length) {
   if (length > canvasProjectMaximumBytes) {
@@ -16,12 +23,18 @@ void validateCanvasProjectSize(int length) {
   }
 }
 
+// ---------- Models ----------
+
+/// Holds a decoded canvas document and all referenced attachment bytes.
+/// Returned by project import for replacement of editor persistence.
 final class CanvasProject {
   const CanvasProject({required this.document, required this.attachments});
 
   final CanvasDocument document;
   final Map<String, Uint8List> attachments;
 }
+
+// ---------- Attachment discovery ----------
 
 Set<String> canvasAttachmentPaths(CanvasDocument document) {
   final paths = <String>{};
@@ -38,6 +51,10 @@ Set<String> canvasAttachmentPaths(CanvasDocument document) {
   return paths;
 }
 
+// ---------- Encoding and decoding ----------
+
+/// Encodes a document and its referenced attachments as a portable project.
+/// Used by the canvas export flow before saving to the host file system.
 Future<Uint8List> encodeCanvasProject(
   CanvasDocument document,
   AttachmentStore store,
@@ -66,6 +83,8 @@ Future<Uint8List> encodeCanvasProject(
   return bytes;
 }
 
+/// Validates and decodes a portable project and all embedded attachments.
+/// Used by the canvas import flow before replacing editor state.
 Future<CanvasProject> decodeCanvasProject(Uint8List bytes) async {
   validateCanvasProjectSize(bytes.length);
 
@@ -126,6 +145,8 @@ Future<CanvasProject> decodeCanvasProject(Uint8List bytes) async {
 
   return CanvasProject(document: document, attachments: attachments);
 }
+
+// ---------- Private helpers ----------
 
 void _collectAttachmentPaths(md.Node node, Set<String> paths) {
   if (node is! md.Element) return;

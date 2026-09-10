@@ -1,10 +1,17 @@
+// Implements attachment persistence with the native file system.
+// Selected by the attachment store facade on non-web platforms.
+
 import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:beyond/canvas/attachment_store_base.dart';
 import 'package:path_provider/path_provider.dart';
 
+// ---------- Native storage ----------
+
 class PlatformAttachmentStore implements AttachmentStore {
+  // ---------- Public API ----------
+
   @override
   Future<void> write(String path, Uint8List bytes) async {
     final file = await _file(path);
@@ -22,6 +29,8 @@ class PlatformAttachmentStore implements AttachmentStore {
     if (!file.existsSync()) return null;
     return file.readAsBytes();
   }
+
+  // ---------- Private helpers ----------
 
   Future<File> _file(String path) async {
     final fileName = attachmentFileName(path);

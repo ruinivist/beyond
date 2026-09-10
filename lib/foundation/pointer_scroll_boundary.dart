@@ -1,10 +1,19 @@
+// Provides a boundary that consumes pointer scrolling without blocking drags.
+// Used around nested scrollable editors on the infinite canvas.
+
 import 'package:flutter/gestures.dart';
 import 'package:flutter/widgets.dart';
 
+// ---------- Widgets ----------
+
 class PointerScrollBoundary extends StatelessWidget {
+  // ---------- Construction ----------
+
   const PointerScrollBoundary({required this.child, super.key});
 
   final Widget child;
+
+  // ---------- Rendering ----------
 
   @override
   Widget build(BuildContext context) {

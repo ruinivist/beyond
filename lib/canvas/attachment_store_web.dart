@@ -1,10 +1,17 @@
+// Implements attachment persistence with browser local storage.
+// Selected by the attachment store facade for the web editor.
+
 import 'dart:js_interop';
 import 'dart:typed_data';
 
 import 'package:beyond/canvas/attachment_store_base.dart';
 import 'package:web/web.dart';
 
+// ---------- Browser storage ----------
+
 class PlatformAttachmentStore implements AttachmentStore {
+  // ---------- Public API ----------
+
   @override
   Future<void> write(String path, Uint8List bytes) async {
     final file = await _file(path, create: true);
@@ -32,6 +39,8 @@ class PlatformAttachmentStore implements AttachmentStore {
       rethrow;
     }
   }
+
+  // ---------- Private helpers ----------
 
   Future<FileSystemFileHandle> _file(
     String path, {

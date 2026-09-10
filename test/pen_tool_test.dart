@@ -1,3 +1,6 @@
+// Verifies freehand path geometry, drawing, selection, and persistence.
+// Exercises the pen tool through model and canvas widget flows.
+
 import 'dart:convert';
 
 import 'package:beyond/canvas/canvas_background.dart';
@@ -19,6 +22,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:infinite_lazy_grid/infinite_lazy_grid.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:shared_preferences_web/shared_preferences_web.dart';
+
+// ---------- Tests ----------
 
 void main() {
   setUp(() async {
@@ -1507,6 +1512,8 @@ void main() {
     expect(saved.elements.map((element) => element.id), ['pen-safe']);
   });
 }
+
+// ---------- Test helpers ----------
 
 Future<void> _placeCodeBlock(WidgetTester tester, Offset position) async {
   await tester.tap(find.byKey(const ValueKey('toolbar-code')));

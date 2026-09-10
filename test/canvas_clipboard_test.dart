@@ -1,3 +1,6 @@
+// Verifies canvas clipboard encoding, decoding, and paste behavior.
+// Exercises serialized elements and external clipboard content in the editor.
+
 import 'dart:convert';
 
 import 'package:beyond/canvas/attachment_store.dart';
@@ -20,6 +23,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:infinite_lazy_grid/infinite_lazy_grid.dart';
 import 'package:shared_preferences_web/shared_preferences_web.dart';
+
+// ---------- Tests ----------
 
 void main() {
   setUp(() => SharedPreferencesAsyncWeb.registerWith(null));
@@ -256,6 +261,8 @@ void main() {
   });
 }
 
+// ---------- Test helpers ----------
+
 Future<void> _shortcut(WidgetTester tester, LogicalKeyboardKey key) async {
   await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
   await tester.sendKeyDownEvent(key);
@@ -325,6 +332,8 @@ void _expectShifted(
   }
 }
 
+// ---------- Fixtures ----------
+
 final _document = CanvasDocument(
   background: CanvasBackgroundKind.plain,
   elements: [
@@ -378,6 +387,8 @@ final _pngBytes = Uint8List.fromList(
     ].join(),
   ),
 );
+
+// ---------- Test doubles ----------
 
 class _DocumentStore extends CanvasDocumentStore {
   _DocumentStore(this.initial);

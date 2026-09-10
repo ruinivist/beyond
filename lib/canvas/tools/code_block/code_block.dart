@@ -1,3 +1,6 @@
+// Provides editable, resizable, syntax-highlighted code blocks.
+// Used by the canvas code tool and element renderer.
+
 import 'dart:math' as math;
 
 import 'package:beyond/canvas/canvas_document.dart';
@@ -12,7 +15,13 @@ import 'package:flutter/material.dart';
 import 'package:re_editor/re_editor.dart';
 import 'package:scroll_animator/scroll_animator.dart';
 
+// ---------- Models ----------
+
+/// Owns code editor controllers and keeps them synchronized with element data.
+/// Used by code block rendering and canvas persistence.
 class CodeBlockModel extends CanvasElementModel<CodeElementData> {
+  // ---------- Construction ----------
+
   CodeBlockModel(CodeElementData data) : super(data) {
     controller.text = data.source;
     controller.addListener(_syncSource);
@@ -30,6 +39,9 @@ class CodeBlockModel extends CanvasElementModel<CodeElementData> {
       animationFactory: const ChromiumEaseInOut(),
     ),
   );
+
+  // ---------- Geometry and language ----------
+
   @override
   Offset get canvasPosition => data.position;
 
@@ -60,11 +72,15 @@ class CodeBlockModel extends CanvasElementModel<CodeElementData> {
     notifyListeners();
   }
 
+  // ---------- Synchronization ----------
+
   void _syncSource() {
     if (data.source == controller.text) return;
     data.source = controller.text;
     notifyListeners();
   }
+
+  // ---------- Lifecycle ----------
 
   @override
   void dispose() {
@@ -80,6 +96,8 @@ class CodeBlockModel extends CanvasElementModel<CodeElementData> {
   }
 }
 
+// ---------- Geometry ----------
+
 Size _clampSize(Size size) {
   return Size(
     math.max(codeBlockMinimumSize.width, size.width),
@@ -87,6 +105,10 @@ Size _clampSize(Size size) {
   );
 }
 
+// ---------- Rendering ----------
+
+/// Renders an editable code surface with language selection and resizing.
+/// Used by the canvas element stack.
 class CodeBlock extends StatelessWidget {
   const CodeBlock({
     required this.model,
@@ -228,6 +250,8 @@ class CodeBlock extends StatelessWidget {
   }
 }
 
+// ---------- Supporting widgets ----------
+
 class _CodeBlockHeader extends StatelessWidget {
   const _CodeBlockHeader({
     required this.model,
@@ -287,6 +311,8 @@ class _CodeBlockHeader extends StatelessWidget {
     );
   }
 }
+
+// ---------- Gestures ----------
 
 class _CodeBlockDrag extends Drag {
   _CodeBlockDrag(this.onMove);

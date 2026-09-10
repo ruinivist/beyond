@@ -1,8 +1,13 @@
+// Verifies semantic button behavior, states, and accessibility.
+// Exercises the reusable button under Beyond themes.
+
 import 'package:beyond/foundation/button.dart';
 import 'package:beyond/foundation/theme.dart';
 import 'package:beyond/theme/starless.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+
+// ---------- Tests ----------
 
 void main() {
   testWidgets('button uses BTheme defaults', (tester) async {

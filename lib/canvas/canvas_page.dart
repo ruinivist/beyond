@@ -1,3 +1,6 @@
+// Provides the infinite canvas editor and coordinates tools and persistence.
+// Used as the application's primary workspace screen.
+
 import 'dart:async';
 import 'dart:convert';
 import 'dart:math' as math;
@@ -36,6 +39,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:super_clipboard/super_clipboard.dart';
 import 'package:uuid/uuid.dart';
 
+// ---------- Tools and presets ----------
+
 enum _CanvasTool { select, text, code, media, shape, pen, arrow, eraser }
 
 final List<({String label, Color color})> _toolColorSwatches = presetColors
@@ -47,7 +52,13 @@ final List<({String label, Color color})> _toolColorSwatches = presetColors
     )
     .toList(growable: false);
 
+// ---------- Canvas workspace ----------
+
+/// Coordinates the infinite canvas, element tools, persistence, and transfer.
+/// Used as the application's primary interactive workspace.
 class CanvasPage extends StatefulWidget {
+  // ---------- Construction ----------
+
   const CanvasPage({
     this.appTheme = AppTheme.starlessLight,
     this.attachmentStore,
@@ -72,8 +83,12 @@ class CanvasPage extends StatefulWidget {
 }
 
 class _CanvasPageState extends State<CanvasPage> {
+  // ---------- Constants ----------
+
   static const _historyLimit = 50;
   static const _noIconsPreferenceKey = 'interface.no_icons';
+
+  // ---------- State ----------
 
   final _canvasController = LazyCanvasController(
     buildExtentMultiplier: 3.4,
@@ -153,6 +168,8 @@ class _CanvasPageState extends State<CanvasPage> {
 
   bool get _eraserEnabled => _activeTool.value == _CanvasTool.eraser;
 
+  // ---------- Lifecycle and preferences ----------
+
   @override
   void initState() {
     super.initState();
@@ -216,6 +233,8 @@ class _CanvasPageState extends State<CanvasPage> {
     }
   }
 
+  // ---------- Tool selection ----------
+
   void _toggleTool(_CanvasTool tool) {
     if (!_documentLoaded) return;
     final enabling = _activeTool.value != tool;
@@ -248,6 +267,8 @@ class _CanvasPageState extends State<CanvasPage> {
     _customShapeStrokeColor = color;
     _shapeTool.setStrokeColor(color);
   }
+
+  // ---------- Canvas pointer events ----------
 
   bool _tryPlaceActiveTool(Offset position) {
     final place = _placementAction;
@@ -425,6 +446,8 @@ class _CanvasPageState extends State<CanvasPage> {
     }
     _finishDragSelection();
   }
+
+  // ---------- Selection ----------
 
   void _updateDragSelection(Offset end) {
     final start = _dragSelectionStart;
@@ -654,6 +677,8 @@ class _CanvasPageState extends State<CanvasPage> {
     ..._elements.where((model) => model.selected),
   };
 
+  // ---------- Element transforms ----------
+
   GlobalKey _selectionKey(Object model) =>
       _selectionKeys.putIfAbsent(model, GlobalKey.new);
 
@@ -758,6 +783,8 @@ class _CanvasPageState extends State<CanvasPage> {
     if (renderObject is! RenderBox) return Offset.zero;
     return renderObject.localToGlobal(renderObject.size.center(Offset.zero));
   }
+
+  // ---------- Element creation ----------
 
   void _addTextBlock(Offset position) {
     if (!_documentLoaded) return;
@@ -892,6 +919,8 @@ class _CanvasPageState extends State<CanvasPage> {
     }
   }
 
+  // ---------- Drawing tools ----------
+
   void _handleCanvasPointerExit(PointerExitEvent event) {
     _canvasPointerPosition.value = null;
     if (_penEnabled) _penTool.onPointerExit(event);
@@ -1018,6 +1047,8 @@ class _CanvasPageState extends State<CanvasPage> {
     _clearActiveShapes();
   }
 
+  // ---------- Editing commands ----------
+
   void _selectAll() {
     if (!_documentLoaded) return;
     for (final model in _elements) {
@@ -1028,6 +1059,8 @@ class _CanvasPageState extends State<CanvasPage> {
   void _deleteSelected() {
     _removeElements(_elements.where((model) => model.selected));
   }
+
+  // ---------- Clipboard ----------
 
   bool get _editingElement {
     final focusContext = FocusManager.instance.primaryFocus?.context;
@@ -1206,6 +1239,8 @@ class _CanvasPageState extends State<CanvasPage> {
     _finishHistoryOperation();
   }
 
+  // ---------- Erasing ----------
+
   void _eraseAt(Offset globalPosition) {
     final hits = <CanvasElementModel>[];
     for (final model in _elements) {
@@ -1263,6 +1298,8 @@ class _CanvasPageState extends State<CanvasPage> {
     _scheduleDocumentSave();
     if (finishHistory) _finishHistoryOperation();
   }
+
+  // ---------- Settings and project transfer ----------
 
   void _showSettingsDialog() {
     unawaited(
@@ -1453,6 +1490,8 @@ class _CanvasPageState extends State<CanvasPage> {
     _finishHistoryOperation();
   }
 
+  // ---------- Keyboard commands ----------
+
   bool _handleKeyEvent(KeyEvent event) {
     if (!_documentLoaded) return false;
     _selectionModifierPressed.value =
@@ -1550,6 +1589,8 @@ class _CanvasPageState extends State<CanvasPage> {
     return true;
   }
 
+  // ---------- Document persistence ----------
+
   Future<void> _restoreDocument() async {
     try {
       final document = await _documentStore.load();
@@ -1639,6 +1680,8 @@ class _CanvasPageState extends State<CanvasPage> {
     }
   }
 
+  // ---------- History ----------
+
   String _captureHistory() => jsonEncode(_currentDocument().toJson());
 
   void _resetHistory() {
@@ -1694,6 +1737,8 @@ class _CanvasPageState extends State<CanvasPage> {
     _scheduleDocumentSave();
   }
 
+  // ---------- Lifecycle ----------
+
   FocusNode? _editorFocusNode(CanvasElementModel model) => switch (model) {
     final TextBlockModel text => text.focusNode,
     final CodeBlockModel code => code.focusNode,
@@ -1733,6 +1778,8 @@ class _CanvasPageState extends State<CanvasPage> {
     _canvasController.dispose();
     super.dispose();
   }
+
+  // ---------- Rendering ----------
 
   @override
   Widget build(BuildContext context) {
@@ -2066,6 +2113,8 @@ class _CanvasPageState extends State<CanvasPage> {
       _noIcons ? Text(label) : Icon(icon, size: 20, semanticLabel: label);
 }
 
+// ---------- Tool settings ----------
+
 class _ShapeSettings extends StatelessWidget {
   const _ShapeSettings({
     required this.tool,
@@ -2253,6 +2302,8 @@ class _ColorSwatches extends StatelessWidget {
     );
   }
 }
+
+// ---------- Selection chrome ----------
 
 class _SelectionPointerRegion extends StatelessWidget {
   const _SelectionPointerRegion({

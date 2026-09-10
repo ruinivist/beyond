@@ -1,8 +1,15 @@
+// Provides the themed drag handle shown on resizable canvas elements.
+// Used by text, code, media, and shape element controls.
+
 import 'package:beyond/foundation/control_surface.dart';
 import 'package:beyond/foundation/theme.dart';
 import 'package:flutter/material.dart';
 
+// ---------- Widgets ----------
+
 class ResizeHandle extends StatelessWidget {
+  // ---------- Construction ----------
+
   const ResizeHandle({
     required this.semanticLabel,
     required this.gestures,
@@ -13,6 +20,8 @@ class ResizeHandle extends StatelessWidget {
   final String semanticLabel;
   final Map<Type, GestureRecognizerFactory> gestures;
   final bool background;
+
+  // ---------- Rendering ----------
 
   @override
   Widget build(BuildContext context) {

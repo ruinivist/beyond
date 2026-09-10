@@ -1,3 +1,6 @@
+// Verifies settings navigation, editing, and project transfer actions.
+// Exercises the settings dialog under responsive widget layouts.
+
 import 'dart:async';
 
 import 'package:beyond/foundation/button.dart';
@@ -7,6 +10,8 @@ import 'package:beyond/theme/starless.dart';
 import 'package:beyond/widgets/settings_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+
+// ---------- Tests ----------
 
 void main() {
   testWidgets('theme selection updates the open app', (tester) async {
@@ -124,6 +129,8 @@ void main() {
   });
 }
 
+// ---------- Test host ----------
+
 class _ThemeHost extends StatefulWidget {
   const _ThemeHost();
 
@@ -159,6 +166,8 @@ class _ThemeHostState extends State<_ThemeHost> {
 
 Button _button(WidgetTester tester, String key) =>
     tester.widget<Button>(find.byKey(ValueKey(key)));
+
+// ---------- Test helpers ----------
 
 Future<void> _openCanvasSettings(
   WidgetTester tester, {

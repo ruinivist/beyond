@@ -1,7 +1,12 @@
+// Defines the persisted canvas document schema, element data, and validation.
+// Used by the editor, storage, clipboard, and project import/export flows.
+
 import 'dart:ui';
 
 import 'package:beyond/canvas/canvas_background.dart';
 import 'package:beyond/canvas/tools/code_block/code_language.dart';
+
+// ---------- Constants ----------
 
 const textNodeDefaultWidth = 280.0;
 const textNodeMinimumWidth = 160.0;
@@ -20,6 +25,10 @@ const mediaNodeMinimumWidth = 120.0;
 const arrowMinimumLength = 4.0;
 const shapeMinimumSize = Size.square(32);
 
+// ---------- Types ----------
+
+/// Identifies the geometry rendered by a shape element.
+/// Used by shape tools, models, and document serialization.
 enum ShapeKind {
   rectangle,
   roundedRectangle,
@@ -29,9 +38,17 @@ enum ShapeKind {
   hexagon,
 }
 
+// ---------- Validation ----------
+
 final _canonicalColor = RegExp(r'^#[0-9A-F]{6}$');
 
+// ---------- Document models ----------
+
+/// Holds the background and ordered elements of a persisted canvas.
+/// Used as the shared document value across editing, storage, and transfer.
 class CanvasDocument {
+  // ---------- Construction ----------
+
   const CanvasDocument({required this.background, required this.elements});
 
   factory CanvasDocument.fromJson(Object? json) {
@@ -63,10 +80,16 @@ class CanvasDocument {
     return CanvasDocument(background: background, elements: elements);
   }
 
+  // ---------- Constants ----------
+
   static const version = 2;
+
+  // ---------- State ----------
 
   final CanvasBackgroundKind background;
   final List<CanvasElementData> elements;
+
+  // ---------- Serialization ----------
 
   Map<String, Object> toJson() => <String, Object>{
     'version': version,
@@ -74,13 +97,19 @@ class CanvasDocument {
     'elements': elements.map((element) => element.toJson()).toList(),
   };
 
+  // ---------- Copying ----------
+
   CanvasDocument copy() => CanvasDocument(
     background: background,
     elements: elements.map((element) => element.copy()).toList(),
   );
 }
 
+/// Defines the shared identity and serialization contract for canvas elements.
+/// Used by document parsing and every concrete editor element model.
 sealed class CanvasElementData {
+  // ---------- Construction ----------
+
   const CanvasElementData(this.id);
 
   factory CanvasElementData.fromJson(Object? json) {
@@ -126,7 +155,11 @@ sealed class CanvasElementData {
     };
   }
 
+  // ---------- State ----------
+
   final String id;
+
+  // ---------- Interface ----------
 
   String get type;
 
@@ -135,7 +168,11 @@ sealed class CanvasElementData {
   CanvasElementData copy({String? id});
 }
 
+/// Stores the editable geometry and appearance of a shape element.
+/// Used by the shape tool and its canvas model.
 class ShapeElementData extends CanvasElementData {
+  // ---------- Construction ----------
+
   ShapeElementData({
     required String id,
     required this.kind,
@@ -195,8 +232,7 @@ class ShapeElementData extends CanvasElementData {
     );
   }
 
-  @override
-  String get type => 'shape';
+  // ---------- State ----------
 
   ShapeKind kind;
   Offset position;
@@ -204,6 +240,13 @@ class ShapeElementData extends CanvasElementData {
   int strokeColor;
   int? fillColor;
   double strokeWidth;
+
+  // ---------- Identity ----------
+
+  @override
+  String get type => 'shape';
+
+  // ---------- Serialization ----------
 
   @override
   Map<String, Object> toJson() => <String, Object>{
@@ -217,6 +260,8 @@ class ShapeElementData extends CanvasElementData {
     'strokeWidth': strokeWidth,
   };
 
+  // ---------- Copying ----------
+
   @override
   ShapeElementData copy({String? id}) => ShapeElementData(
     id: id ?? this.id,
@@ -229,7 +274,11 @@ class ShapeElementData extends CanvasElementData {
   );
 }
 
+/// Stores the position, width, and source URL of a media element.
+/// Used by media nodes and document attachment handling.
 class MediaElementData extends CanvasElementData {
+  // ---------- Construction ----------
+
   MediaElementData({
     required String id,
     required this.position,
@@ -260,12 +309,18 @@ class MediaElementData extends CanvasElementData {
     );
   }
 
-  @override
-  String get type => 'media';
+  // ---------- State ----------
 
   Offset position;
   double width;
   String url;
+
+  // ---------- Identity ----------
+
+  @override
+  String get type => 'media';
+
+  // ---------- Serialization ----------
 
   @override
   Map<String, Object> toJson() => <String, Object>{
@@ -276,6 +331,8 @@ class MediaElementData extends CanvasElementData {
     'url': url,
   };
 
+  // ---------- Copying ----------
+
   @override
   MediaElementData copy({String? id}) => MediaElementData(
     id: id ?? this.id,
@@ -285,7 +342,11 @@ class MediaElementData extends CanvasElementData {
   );
 }
 
+/// Stores the font and color settings applied to a text element.
+/// Used by text element data and the text editor model.
 class TextNodeStyle {
+  // ---------- Construction ----------
+
   const TextNodeStyle({
     required this.fontFamily,
     required this.fontSize,
@@ -320,9 +381,13 @@ class TextNodeStyle {
     );
   }
 
+  // ---------- State ----------
+
   final String fontFamily;
   final double fontSize;
   final String color;
+
+  // ---------- Copying ----------
 
   TextNodeStyle copyWith({
     String? fontFamily,
@@ -338,6 +403,8 @@ class TextNodeStyle {
 
   TextNodeStyle copy() => copyWith();
 
+  // ---------- Serialization ----------
+
   Map<String, Object> toJson() => <String, Object>{
     'fontFamily': fontFamily,
     'fontSize': fontSize,
@@ -345,7 +412,11 @@ class TextNodeStyle {
   };
 }
 
+/// Stores editable text content, layout, rotation, and styling.
+/// Used by text blocks and document serialization.
 class TextElementData extends CanvasElementData {
+  // ---------- Construction ----------
+
   TextElementData({
     required String id,
     required this.position,
@@ -400,8 +471,7 @@ class TextElementData extends CanvasElementData {
     );
   }
 
-  @override
-  String get type => 'text';
+  // ---------- State ----------
 
   Offset position;
   double width;
@@ -409,6 +479,13 @@ class TextElementData extends CanvasElementData {
   String markdown;
   TextNodeStyle style;
   double rotation;
+
+  // ---------- Identity ----------
+
+  @override
+  String get type => 'text';
+
+  // ---------- Serialization ----------
 
   @override
   Map<String, Object> toJson() => <String, Object>{
@@ -420,6 +497,8 @@ class TextElementData extends CanvasElementData {
     'markdown': markdown,
     'style': style.toJson(),
   };
+
+  // ---------- Copying ----------
 
   @override
   TextElementData copy({String? id}) => TextElementData(
@@ -433,7 +512,11 @@ class TextElementData extends CanvasElementData {
   );
 }
 
+/// Stores source code, language, position, and size for a code block.
+/// Used by code block models and document serialization.
 class CodeElementData extends CanvasElementData {
+  // ---------- Construction ----------
+
   CodeElementData({
     required String id,
     required this.position,
@@ -479,13 +562,19 @@ class CodeElementData extends CanvasElementData {
     );
   }
 
-  @override
-  String get type => 'code';
+  // ---------- State ----------
 
   Offset position;
   Size size;
   CodeLanguage language;
   String source;
+
+  // ---------- Identity ----------
+
+  @override
+  String get type => 'code';
+
+  // ---------- Serialization ----------
 
   @override
   Map<String, Object> toJson() => <String, Object>{
@@ -497,6 +586,8 @@ class CodeElementData extends CanvasElementData {
     'source': source,
   };
 
+  // ---------- Copying ----------
+
   @override
   CodeElementData copy({String? id}) => CodeElementData(
     id: id ?? this.id,
@@ -507,14 +598,24 @@ class CodeElementData extends CanvasElementData {
   );
 }
 
+/// Stores a sampled pen position and its input pressure.
+/// Used by pen strokes during rendering and serialization.
 final class PenPointData {
+  // ---------- Construction ----------
+
   const PenPointData(this.position, {required this.pressure});
+
+  // ---------- State ----------
 
   final Offset position;
   final double pressure;
 }
 
+/// Stores the sampled path and appearance of a freehand pen stroke.
+/// Used by pen stroke models and document serialization.
 class PenElementData extends CanvasElementData {
+  // ---------- Construction ----------
+
   PenElementData({
     required String id,
     required this.position,
@@ -593,8 +694,7 @@ class PenElementData extends CanvasElementData {
     );
   }
 
-  @override
-  String get type => 'pen';
+  // ---------- State ----------
 
   Offset position;
   Size size;
@@ -602,6 +702,13 @@ class PenElementData extends CanvasElementData {
   List<PenPointData> points;
   int color;
   double width;
+
+  // ---------- Identity ----------
+
+  @override
+  String get type => 'pen';
+
+  // ---------- Serialization ----------
 
   @override
   Map<String, Object> toJson() => <String, Object>{
@@ -622,6 +729,8 @@ class PenElementData extends CanvasElementData {
     ],
   };
 
+  // ---------- Copying ----------
+
   @override
   PenElementData copy({String? id}) => PenElementData(
     id: id ?? this.id,
@@ -634,7 +743,11 @@ class PenElementData extends CanvasElementData {
   );
 }
 
+/// Stores the control points that define a curved arrow.
+/// Used by arrow models and document serialization.
 class ArrowElementData extends CanvasElementData {
+  // ---------- Construction ----------
+
   ArrowElementData({
     required String id,
     required this.start,
@@ -667,12 +780,18 @@ class ArrowElementData extends CanvasElementData {
     );
   }
 
-  @override
-  String get type => 'arrow';
+  // ---------- State ----------
 
   Offset start;
   Offset control;
   Offset end;
+
+  // ---------- Identity ----------
+
+  @override
+  String get type => 'arrow';
+
+  // ---------- Serialization ----------
 
   @override
   Map<String, Object> toJson() => <String, Object>{
@@ -683,6 +802,8 @@ class ArrowElementData extends CanvasElementData {
     'end': _offsetToJson(end),
   };
 
+  // ---------- Copying ----------
+
   @override
   ArrowElementData copy({String? id}) => ArrowElementData(
     id: id ?? this.id,
@@ -692,6 +813,10 @@ class ArrowElementData extends CanvasElementData {
   );
 }
 
+// ---------- JSON object validation ----------
+
+/// Validates a decoded JSON object and rejects unknown keys.
+/// Used by document and element deserializers at their input boundaries.
 Map<String, Object?> _jsonObject(
   Object? value,
   String field, {
@@ -714,6 +839,8 @@ Map<String, Object?> _jsonObject(
   }
   return result;
 }
+
+// ---------- Scalar validation ----------
 
 String _requiredString(
   Map<String, Object?> value,
@@ -750,6 +877,8 @@ int _argbColor(Object? value, String field) {
   }
   return value;
 }
+
+// ---------- Geometry serialization ----------
 
 Offset _offsetFromJson(Object? value, String field) {
   final object = _jsonObject(value, field, allowedKeys: const {'x', 'y'});
@@ -798,6 +927,8 @@ Map<String, Object> _sizeToJson(Size size) => <String, Object>{
   'width': size.width,
   'height': size.height,
 };
+
+// ---------- Enum serialization ----------
 
 CodeLanguage _languageFromJson(Object? value) {
   if (value is! String) {

@@ -1,3 +1,6 @@
+// Verifies undo and redo behavior for canvas mutations.
+// Exercises editor history through persisted element changes.
+
 import 'package:beyond/canvas/canvas_background.dart';
 import 'package:beyond/canvas/canvas_document.dart';
 import 'package:beyond/canvas/canvas_document_store.dart';
@@ -9,6 +12,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences_web/shared_preferences_web.dart';
+
+// ---------- Tests ----------
 
 void main() {
   setUp(() => SharedPreferencesAsyncWeb.registerWith(null));
@@ -111,6 +116,8 @@ void main() {
   });
 }
 
+// ---------- Test helpers ----------
+
 Future<void> _pumpCanvas(
   WidgetTester tester,
   CanvasDocumentStore store,
@@ -142,6 +149,8 @@ Future<void> _waitForSave(WidgetTester tester) async {
 
 PenStrokeModel _stroke(WidgetTester tester) =>
     tester.widget<PenStroke>(find.byType(PenStroke)).model;
+
+// ---------- Fixtures ----------
 
 CanvasDocument _document() => _penDocument(1);
 
@@ -184,6 +193,8 @@ CanvasDocument _textDocument() => CanvasDocument(
     ),
   ],
 );
+
+// ---------- Test doubles ----------
 
 class _DocumentStore extends CanvasDocumentStore {
   _DocumentStore(this.initial);

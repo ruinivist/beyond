@@ -1,3 +1,6 @@
+// Provides arrow geometry, editing state, rendering, and hit testing.
+// Used by the canvas arrow creation and selection flows.
+
 import 'package:beyond/canvas/canvas_document.dart';
 import 'package:beyond/canvas/canvas_element_model.dart';
 import 'package:beyond/foundation/theme.dart';
@@ -5,11 +8,15 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
 
+// ---------- Geometry ----------
+
 const _arrowStrokeWidth = 2.0;
 const _arrowHeadLength = 12.0;
 const _arrowHeadHalfWidth = 5.0;
 const _arrowHitSlop = 8.0;
 
+/// Calculates the curve, arrowhead, and interaction bounds of an arrow.
+/// Used by arrow models, painters, and previews.
 class ArrowGeometry {
   const ArrowGeometry({
     required this.start,
@@ -61,6 +68,10 @@ class ArrowGeometry {
   );
 }
 
+// ---------- Models ----------
+
+/// Adapts persisted arrow points to canvas geometry and movement.
+/// Used by the canvas selection and arrow rendering flows.
 class ArrowModel extends CanvasElementModel<ArrowElementData> {
   ArrowModel(super.data);
 
@@ -99,6 +110,8 @@ class ArrowModel extends CanvasElementModel<ArrowElementData> {
   }
 }
 
+/// Describes an in-progress arrow before it becomes a persisted model.
+/// Produced by [ArrowTool] and consumed by the canvas preview painter.
 class ArrowPreview {
   const ArrowPreview({required this.id, required this.geometry});
 
@@ -106,7 +119,13 @@ class ArrowPreview {
   final ArrowGeometry geometry;
 }
 
+// ---------- Tool state ----------
+
+/// Tracks pointer input while creating arrows on the canvas.
+/// Used by the canvas page to produce [ArrowModel] instances.
 class ArrowTool extends ChangeNotifier {
+  // ---------- Construction ----------
+
   ArrowTool({required this.onArrow});
 
   final ValueChanged<ArrowModel> onArrow;
@@ -115,6 +134,8 @@ class ArrowTool extends ChangeNotifier {
   String? _id;
   Offset? _start;
   Offset? _end;
+
+  // ---------- Public API ----------
 
   bool get isDrawing => _pointer != null;
 
@@ -173,6 +194,8 @@ class ArrowTool extends ChangeNotifier {
     _clearPreview();
   }
 
+  // ---------- Private helpers ----------
+
   ArrowModel? _newArrow(String id, Offset start, Offset end) {
     if ((end - start).distance < arrowMinimumLength) return null;
     return ArrowModel(
@@ -194,6 +217,8 @@ class ArrowTool extends ChangeNotifier {
   }
 }
 
+// ---------- Rendering ----------
+
 Offset arrowControlPoint({
   required Offset start,
   required Offset end,
@@ -208,6 +233,8 @@ Offset arrowControlPoint({
   return start + vector * 0.5 + normal * bendLength;
 }
 
+/// Renders and exposes semantics for a persisted arrow model.
+/// Used by the canvas element stack.
 class Arrow extends StatelessWidget {
   const Arrow({required this.model, super.key});
 
@@ -238,6 +265,8 @@ class Arrow extends StatelessWidget {
     );
   }
 }
+
+// ---------- Painters ----------
 
 class ArrowPreviewPainter extends CustomPainter {
   const ArrowPreviewPainter({
@@ -344,6 +373,8 @@ class _ArrowPainter extends CustomPainter {
         oldDelegate.color != color;
   }
 }
+
+// ---------- Hit testing ----------
 
 double _distanceToSegmentSquared(Offset point, Offset start, Offset end) {
   final segment = end - start;

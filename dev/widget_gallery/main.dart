@@ -1,3 +1,6 @@
+// Provides a development gallery for Beyond's reusable widgets and themes.
+// Used manually to inspect component states outside the canvas editor.
+
 import 'dart:async';
 
 import 'package:beyond/canvas/attachment_store.dart';
@@ -18,12 +21,16 @@ import 'package:flutter/services.dart';
 import 'package:re_editor/re_editor.dart';
 import 'package:scroll_animator/scroll_animator.dart';
 
+// ---------- Gallery bootstrap ----------
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   if (kIsWeb) await BrowserContextMenu.disableContextMenu();
   await loadFonts();
   runApp(const WidgetGalleryApp());
 }
+
+// ---------- Application ----------
 
 class WidgetGalleryApp extends StatelessWidget {
   const WidgetGalleryApp({super.key});
@@ -39,6 +46,10 @@ class WidgetGalleryApp extends StatelessWidget {
   }
 }
 
+// ---------- Gallery page ----------
+
+/// Displays reusable components, semantic tokens, and interaction states.
+/// Used by developers for manual visual inspection during component work.
 class WidgetGalleryPage extends StatefulWidget {
   const WidgetGalleryPage({super.key});
 
@@ -47,6 +58,8 @@ class WidgetGalleryPage extends StatefulWidget {
 }
 
 class _WidgetGalleryPageState extends State<WidgetGalleryPage> {
+  // ---------- State ----------
+
   final AttachmentStore _attachmentStore = createAttachmentStore();
   final _scrollController = AnimatedScrollController(
     animationFactory: const ChromiumEaseInOut(),
@@ -82,6 +95,8 @@ class _WidgetGalleryPageState extends State<WidgetGalleryPage> {
   var _chip = 0;
   var _segment = 0;
 
+  // ---------- Lifecycle ----------
+
   @override
   void initState() {
     super.initState();
@@ -100,6 +115,8 @@ class _WidgetGalleryPageState extends State<WidgetGalleryPage> {
     _codeModel.dispose();
     super.dispose();
   }
+
+  // ---------- Rendering ----------
 
   @override
   Widget build(BuildContext context) {
@@ -686,6 +703,8 @@ class _WidgetGalleryPageState extends State<WidgetGalleryPage> {
     );
   }
 
+  // ---------- Preview helpers ----------
+
   Widget _colorSwatches(BColors colors) {
     final swatches = [
       ('Canvas', colors.canvasBackground),
@@ -863,6 +882,8 @@ class _WidgetGalleryPageState extends State<WidgetGalleryPage> {
     );
   }
 
+  // ---------- Dialog actions ----------
+
   InputDecoration _inputDecoration(
     BTheme theme, {
     required String label,
@@ -921,6 +942,8 @@ class _WidgetGalleryPageState extends State<WidgetGalleryPage> {
     );
   }
 }
+
+// ---------- Supporting widgets ----------
 
 class _GalleryCard extends StatelessWidget {
   const _GalleryCard({

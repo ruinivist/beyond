@@ -1,3 +1,6 @@
+// Verifies arrow creation, editing, rendering, and toolbar behavior.
+// Exercises the arrow tool through model and canvas widget flows.
+
 import 'package:beyond/canvas/canvas_document_store.dart';
 import 'package:beyond/canvas/tools/arrow/arrow_tool.dart';
 import 'package:beyond/foundation/button.dart';
@@ -7,6 +10,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:shared_preferences_web/shared_preferences_web.dart';
+
+// ---------- Tests ----------
 
 void main() {
   setUp(() async {

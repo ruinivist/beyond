@@ -1,5 +1,10 @@
+// Provides the themed discrete slider used for bounded numeric choices.
+// Used by canvas tool settings that edit stepped values.
+
 import 'package:beyond/foundation/theme.dart';
 import 'package:flutter/material.dart';
+
+// ---------- Geometry ----------
 
 const _minimum = 0.25;
 const _maximum = 5.0;
@@ -7,7 +12,13 @@ const _divisions = 19;
 const _trackHeight = 4.0;
 const _thumbDiameter = 16.0;
 
+// ---------- Widgets ----------
+
+/// Renders the fixed-range slider used for stepped editing values.
+/// Used by tool settings that expose values from 0.25 through 5.0.
 class DiscreteSlider extends StatelessWidget {
+  // ---------- Construction ----------
+
   const DiscreteSlider({
     required this.value,
     required this.onChanged,
@@ -23,6 +34,8 @@ class DiscreteSlider extends StatelessWidget {
   final ValueChanged<double>? onChanged;
   final FocusNode? focusNode;
   final bool autofocus;
+
+  // ---------- Rendering ----------
 
   @override
   Widget build(BuildContext context) {
@@ -81,6 +94,8 @@ class DiscreteSlider extends StatelessWidget {
     );
   }
 }
+
+// ---------- Slider shapes ----------
 
 class _DiscreteSliderThumbShape extends SliderComponentShape {
   const _DiscreteSliderThumbShape(this.colors);

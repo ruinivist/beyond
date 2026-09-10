@@ -1,4 +1,9 @@
+// Provides the named color presets offered by editing controls.
+// Used by text and drawing tool settings.
+
 import 'package:flutter/material.dart';
+
+// ---------- Presets ----------
 
 const presetColors = <({String label, Color color})>[
   (label: 'Black', color: Color(0xff201c1a)),

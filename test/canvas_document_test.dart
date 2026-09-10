@@ -1,3 +1,6 @@
+// Verifies canvas document serialization and boundary validation.
+// Exercises every persisted element model and malformed input path.
+
 import 'dart:convert';
 import 'dart:math' as math;
 
@@ -6,6 +9,8 @@ import 'package:beyond/canvas/canvas_document.dart';
 import 'package:beyond/canvas/tools/code_block/code_language.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+
+// ---------- Tests ----------
 
 void main() {
   test('canvas documents round-trip mixed element data', () {
@@ -378,6 +383,8 @@ void main() {
     );
   });
 }
+
+// ---------- Fixtures ----------
 
 Map<String, Object?> _document({
   int version = CanvasDocument.version,

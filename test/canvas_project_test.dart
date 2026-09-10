@@ -1,3 +1,6 @@
+// Verifies portable canvas project archive encoding and validation.
+// Exercises document and attachment transfer at the project boundary.
+
 import 'dart:convert';
 import 'dart:typed_data';
 
@@ -8,6 +11,8 @@ import 'package:beyond/canvas/canvas_project.dart';
 import 'package:beyond/canvas/tools/code_block/code_language.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+
+// ---------- Tests ----------
 
 void main() {
   test('mixed projects round-trip with deterministic attachments', () async {
@@ -146,6 +151,8 @@ attachments/00000000-0000-4000-8000-000000000000.png
   });
 }
 
+// ---------- Test helpers ----------
+
 Future<CanvasProject> _decodeJson(Map<String, Object?> value) =>
     decodeCanvasProject(Uint8List.fromList(utf8.encode(jsonEncode(value))));
 
@@ -205,6 +212,8 @@ Map<String, Object?> _validProjectJson() => {
 String _path(int index) =>
     'attachments/0000000$index-0000-4000-8000-000000000000.png';
 
+// ---------- Fixtures ----------
+
 final _pngBytes = Uint8List.fromList(
   base64Decode(
     [
@@ -213,6 +222,8 @@ final _pngBytes = Uint8List.fromList(
     ].join(),
   ),
 );
+
+// ---------- Test doubles ----------
 
 class _MemoryAttachmentStore implements AttachmentStore {
   _MemoryAttachmentStore([Map<String, Uint8List>? initial])

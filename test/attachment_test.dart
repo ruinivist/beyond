@@ -1,9 +1,14 @@
+// Verifies attachment storage behavior and text-image integration.
+// Exercises attachment implementations through editor-facing contracts.
+
 import 'package:beyond/canvas/attachment_store.dart';
 import 'package:beyond/canvas/canvas_document.dart';
 import 'package:beyond/canvas/tools/text/text_block.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+
+// ---------- Tests ----------
 
 void main() {
   test(
@@ -123,6 +128,8 @@ TextBlockModel _model(String markdown) => TextBlockModel(
     ),
   ),
 );
+
+// ---------- Test doubles ----------
 
 class _MemoryAttachmentStore implements AttachmentStore {
   _MemoryAttachmentStore({this.failWrites = false});

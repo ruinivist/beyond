@@ -1,3 +1,6 @@
+// Provides shape geometry, creation state, rendering, and interaction.
+// Used by the canvas shape tool and persisted shape elements.
+
 import 'dart:math' as math;
 
 import 'package:beyond/canvas/canvas_document.dart';
@@ -7,6 +10,8 @@ import 'package:beyond/foundation/theme.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
+
+// ---------- Geometry ----------
 
 Path shapePath(ShapeKind kind, Rect rect) => switch (kind) {
   ShapeKind.rectangle => Path()..addRect(rect),
@@ -42,6 +47,8 @@ Path shapePath(ShapeKind kind, Rect rect) => switch (kind) {
       ..close(),
 };
 
+// ---------- Labels ----------
+
 extension ShapeKindLabel on ShapeKind {
   String get label => switch (this) {
     ShapeKind.rectangle => 'Rectangle',
@@ -53,6 +60,10 @@ extension ShapeKindLabel on ShapeKind {
   };
 }
 
+// ---------- Models ----------
+
+/// Adapts persisted shape data to selectable and resizable canvas geometry.
+/// Used by the canvas selection and shape rendering flows.
 class ShapeModel extends CanvasElementModel<ShapeElementData> {
   ShapeModel(super.data);
 
@@ -90,6 +101,8 @@ class ShapeModel extends CanvasElementModel<ShapeElementData> {
   }
 }
 
+/// Describes an in-progress shape before it becomes a persisted model.
+/// Produced by [ShapeTool] and consumed by the canvas preview painter.
 class ShapePreview {
   const ShapePreview({
     required this.kind,
@@ -106,7 +119,13 @@ class ShapePreview {
   final double strokeWidth;
 }
 
+// ---------- Tool state ----------
+
+/// Tracks shape options and pointer input while creating shapes.
+/// Used by the canvas page to produce [ShapeModel] instances.
 class ShapeTool extends ChangeNotifier {
+  // ---------- Construction ----------
+
   ShapeTool({required this.onShape});
 
   final ValueChanged<ShapeModel> onShape;
@@ -118,6 +137,8 @@ class ShapeTool extends ChangeNotifier {
   int? _pointer;
   Offset? _start;
   Offset? _end;
+
+  // ---------- Options and preview ----------
 
   ShapeKind get kind => _kind;
   Color get strokeColor => _strokeColor;
@@ -160,6 +181,8 @@ class ShapeTool extends ChangeNotifier {
     _strokeWidth = width;
     notifyListeners();
   }
+
+  // ---------- Pointer events ----------
 
   bool ownsPointer(int pointer) => _pointer == pointer;
 
@@ -210,6 +233,8 @@ class ShapeTool extends ChangeNotifier {
     if (_pointer != null) _clearPreview();
   }
 
+  // ---------- Private helpers ----------
+
   void _clearPreview() {
     _pointer = null;
     _start = null;
@@ -218,6 +243,10 @@ class ShapeTool extends ChangeNotifier {
   }
 }
 
+// ---------- Rendering ----------
+
+/// Renders and handles movement and resizing for a persisted shape.
+/// Used by the canvas element stack.
 class Shape extends StatelessWidget {
   const Shape({
     required this.model,
@@ -302,6 +331,8 @@ class Shape extends StatelessWidget {
   }
 }
 
+// ---------- Painters ----------
+
 class ShapePreviewPainter extends CustomPainter {
   const ShapePreviewPainter({
     required this.preview,
@@ -380,6 +411,8 @@ class _ShapePainter extends CustomPainter {
       oldDelegate.fillColor != fillColor ||
       oldDelegate.strokeWidth != strokeWidth;
 }
+
+// ---------- Gestures ----------
 
 class _ShapeDrag extends Drag {
   _ShapeDrag(this.onUpdate);
