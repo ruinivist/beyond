@@ -89,7 +89,7 @@ class _SettingsDialogState extends State<SettingsDialog> {
     final theme = BTheme.of(context);
     final colors = theme.colors;
     final viewport = MediaQuery.sizeOf(context);
-    final width = math.min(840, math.max(0, viewport.width - 32)).toDouble();
+    final width = math.min(800, math.max(0, viewport.width - 32)).toDouble();
     final height = math.min(540, math.max(0, viewport.height - 32)).toDouble();
 
     return Dialog(
@@ -156,7 +156,7 @@ class _SettingsDialogState extends State<SettingsDialog> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         SizedBox(
-          width: 152,
+          width: 180,
           child: _navigation(
             context,
             padding: const EdgeInsets.all(16),
