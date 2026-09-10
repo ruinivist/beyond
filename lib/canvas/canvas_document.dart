@@ -8,7 +8,7 @@ import 'package:beyond/canvas/tools/code_block/code_language.dart';
 import 'package:json_annotation/json_annotation.dart';
 
 part 'canvas_document.g.dart';
-part '../helpers/json_serialisation.dart';
+part '../utils/json_serialisation.dart';
 
 // ---------- Constants ----------
 
