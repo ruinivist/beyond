@@ -1,0 +1,353 @@
+// GENERATED CODE - DO NOT MODIFY BY HAND
+
+part of 'canvas_document.dart';
+
+// **************************************************************************
+// JsonSerializableGenerator
+// **************************************************************************
+
+CanvasDocument _$CanvasDocumentFromJson(Map<String, dynamic> json) =>
+    $checkedCreate('CanvasDocument', json, ($checkedConvert) {
+      $checkKeys(
+        json,
+        allowedKeys: const ['version', 'background', 'elements'],
+      );
+      final val = CanvasDocument._json(
+        schemaVersion: $checkedConvert('version', (v) => _jsonInt(v)),
+        background: $checkedConvert(
+          'background',
+          (v) => $enumDecode(_$CanvasBackgroundKindEnumMap, v),
+        ),
+        elements: $checkedConvert(
+          'elements',
+          (v) => (v as List<dynamic>).map(CanvasElementData.fromJson).toList(),
+        ),
+      );
+      return val;
+    }, fieldKeyMap: const {'schemaVersion': 'version'});
+
+Map<String, dynamic> _$CanvasDocumentToJson(CanvasDocument instance) =>
+    <String, dynamic>{
+      'version': instance.schemaVersion,
+      'background': _$CanvasBackgroundKindEnumMap[instance.background]!,
+      'elements': instance.elements.map((e) => e.toJson()).toList(),
+    };
+
+const _$CanvasBackgroundKindEnumMap = {
+  CanvasBackgroundKind.dotGrid: 'dotGrid',
+  CanvasBackgroundKind.plain: 'plain',
+};
+
+ShapeElementData _$ShapeElementDataFromJson(
+  Map<String, dynamic> json,
+) => $checkedCreate('ShapeElementData', json, ($checkedConvert) {
+  $checkKeys(
+    json,
+    allowedKeys: const [
+      'id',
+      'type',
+      'kind',
+      'position',
+      'size',
+      'strokeColor',
+      'fillColor',
+      'strokeWidth',
+    ],
+  );
+  final val = ShapeElementData._json(
+    id: $checkedConvert('id', (v) => v as String),
+    type: $checkedConvert('type', (v) => v as String),
+    kind: $checkedConvert('kind', (v) => $enumDecode(_$ShapeKindEnumMap, v)),
+    position: $checkedConvert(
+      'position',
+      (v) => const _OffsetConverter().fromJson(v as Map<String, dynamic>),
+    ),
+    size: $checkedConvert(
+      'size',
+      (v) => const _SizeConverter().fromJson(v as Map<String, dynamic>),
+    ),
+    strokeColor: $checkedConvert('strokeColor', (v) => _jsonInt(v)),
+    fillColor: $checkedConvert('fillColor', (v) => _nullableJsonInt(v)),
+    strokeWidth: $checkedConvert('strokeWidth', (v) => (v as num).toDouble()),
+  );
+  return val;
+});
+
+Map<String, dynamic> _$ShapeElementDataToJson(ShapeElementData instance) =>
+    <String, dynamic>{
+      'id': instance.id,
+      'type': instance.type,
+      'kind': _$ShapeKindEnumMap[instance.kind]!,
+      'position': const _OffsetConverter().toJson(instance.position),
+      'size': const _SizeConverter().toJson(instance.size),
+      'strokeColor': instance.strokeColor,
+      'fillColor': ?instance.fillColor,
+      'strokeWidth': instance.strokeWidth,
+    };
+
+const _$ShapeKindEnumMap = {
+  ShapeKind.rectangle: 'rectangle',
+  ShapeKind.roundedRectangle: 'roundedRectangle',
+  ShapeKind.ellipse: 'ellipse',
+  ShapeKind.diamond: 'diamond',
+  ShapeKind.triangle: 'triangle',
+  ShapeKind.hexagon: 'hexagon',
+};
+
+MediaElementData _$MediaElementDataFromJson(Map<String, dynamic> json) =>
+    $checkedCreate('MediaElementData', json, ($checkedConvert) {
+      $checkKeys(
+        json,
+        allowedKeys: const ['id', 'type', 'position', 'width', 'url'],
+      );
+      final val = MediaElementData._json(
+        id: $checkedConvert('id', (v) => v as String),
+        type: $checkedConvert('type', (v) => v as String),
+        position: $checkedConvert(
+          'position',
+          (v) => const _OffsetConverter().fromJson(v as Map<String, dynamic>),
+        ),
+        width: $checkedConvert('width', (v) => (v as num).toDouble()),
+        url: $checkedConvert('url', (v) => v as String),
+      );
+      return val;
+    });
+
+Map<String, dynamic> _$MediaElementDataToJson(MediaElementData instance) =>
+    <String, dynamic>{
+      'id': instance.id,
+      'type': instance.type,
+      'position': const _OffsetConverter().toJson(instance.position),
+      'width': instance.width,
+      'url': instance.url,
+    };
+
+TextNodeStyle _$TextNodeStyleFromJson(Map<String, dynamic> json) =>
+    $checkedCreate('TextNodeStyle', json, ($checkedConvert) {
+      $checkKeys(json, allowedKeys: const ['fontFamily', 'fontSize', 'color']);
+      final val = TextNodeStyle._json(
+        fontFamily: $checkedConvert('fontFamily', (v) => v as String),
+        fontSize: $checkedConvert('fontSize', (v) => (v as num).toDouble()),
+        color: $checkedConvert('color', (v) => v as String),
+      );
+      return val;
+    });
+
+Map<String, dynamic> _$TextNodeStyleToJson(TextNodeStyle instance) =>
+    <String, dynamic>{
+      'fontFamily': instance.fontFamily,
+      'fontSize': instance.fontSize,
+      'color': instance.color,
+    };
+
+TextElementData _$TextElementDataFromJson(Map<String, dynamic> json) =>
+    $checkedCreate('TextElementData', json, ($checkedConvert) {
+      $checkKeys(
+        json,
+        allowedKeys: const [
+          'id',
+          'type',
+          'position',
+          'size',
+          'markdown',
+          'style',
+          'rotation',
+        ],
+      );
+      final val = TextElementData._json(
+        id: $checkedConvert('id', (v) => v as String),
+        type: $checkedConvert('type', (v) => v as String),
+        position: $checkedConvert(
+          'position',
+          (v) => const _OffsetConverter().fromJson(v as Map<String, dynamic>),
+        ),
+        textSize: $checkedConvert(
+          'size',
+          (v) => _textSizeFromJson(v as Map<String, dynamic>),
+        ),
+        markdown: $checkedConvert('markdown', (v) => v as String),
+        style: $checkedConvert('style', (v) => TextNodeStyle.fromJson(v)),
+        rotation: $checkedConvert('rotation', (v) => (v as num).toDouble()),
+      );
+      return val;
+    }, fieldKeyMap: const {'textSize': 'size'});
+
+Map<String, dynamic> _$TextElementDataToJson(TextElementData instance) =>
+    <String, dynamic>{
+      'id': instance.id,
+      'type': instance.type,
+      'position': const _OffsetConverter().toJson(instance.position),
+      'size': _textSizeToJson(instance.textSize),
+      'markdown': instance.markdown,
+      'style': instance.style.toJson(),
+      'rotation': instance.rotation,
+    };
+
+CodeElementData _$CodeElementDataFromJson(Map<String, dynamic> json) =>
+    $checkedCreate('CodeElementData', json, ($checkedConvert) {
+      $checkKeys(
+        json,
+        allowedKeys: const [
+          'id',
+          'type',
+          'position',
+          'size',
+          'language',
+          'source',
+        ],
+      );
+      final val = CodeElementData._json(
+        id: $checkedConvert('id', (v) => v as String),
+        type: $checkedConvert('type', (v) => v as String),
+        position: $checkedConvert(
+          'position',
+          (v) => const _OffsetConverter().fromJson(v as Map<String, dynamic>),
+        ),
+        size: $checkedConvert(
+          'size',
+          (v) => const _SizeConverter().fromJson(v as Map<String, dynamic>),
+        ),
+        language: $checkedConvert(
+          'language',
+          (v) => $enumDecode(_$CodeLanguageEnumMap, v),
+        ),
+        source: $checkedConvert('source', (v) => v as String),
+      );
+      return val;
+    });
+
+Map<String, dynamic> _$CodeElementDataToJson(CodeElementData instance) =>
+    <String, dynamic>{
+      'id': instance.id,
+      'type': instance.type,
+      'position': const _OffsetConverter().toJson(instance.position),
+      'size': const _SizeConverter().toJson(instance.size),
+      'language': _$CodeLanguageEnumMap[instance.language]!,
+      'source': instance.source,
+    };
+
+const _$CodeLanguageEnumMap = {
+  CodeLanguage.python: 'python',
+  CodeLanguage.typescript: 'typescript',
+  CodeLanguage.javascript: 'javascript',
+  CodeLanguage.java: 'java',
+  CodeLanguage.csharp: 'csharp',
+  CodeLanguage.cpp: 'cpp',
+  CodeLanguage.c: 'c',
+  CodeLanguage.go: 'go',
+  CodeLanguage.rust: 'rust',
+  CodeLanguage.sql: 'sql',
+  CodeLanguage.bash: 'bash',
+  CodeLanguage.kotlin: 'kotlin',
+  CodeLanguage.swift: 'swift',
+  CodeLanguage.php: 'php',
+  CodeLanguage.ruby: 'ruby',
+  CodeLanguage.dart: 'dart',
+  CodeLanguage.html: 'html',
+  CodeLanguage.css: 'css',
+  CodeLanguage.json: 'json',
+  CodeLanguage.yaml: 'yaml',
+  CodeLanguage.markdown: 'markdown',
+  CodeLanguage.plainText: 'plainText',
+};
+
+PenPointData _$PenPointDataFromJson(Map<String, dynamic> json) =>
+    $checkedCreate('PenPointData', json, ($checkedConvert) {
+      $checkKeys(json, allowedKeys: const ['pressure', 'x', 'y']);
+      final val = PenPointData._json(
+        x: $checkedConvert('x', (v) => (v as num).toDouble()),
+        y: $checkedConvert('y', (v) => (v as num).toDouble()),
+        pressure: $checkedConvert('pressure', (v) => (v as num).toDouble()),
+      );
+      return val;
+    });
+
+Map<String, dynamic> _$PenPointDataToJson(PenPointData instance) =>
+    <String, dynamic>{
+      'pressure': instance.pressure,
+      'x': instance.x,
+      'y': instance.y,
+    };
+
+PenElementData _$PenElementDataFromJson(Map<String, dynamic> json) =>
+    $checkedCreate('PenElementData', json, ($checkedConvert) {
+      $checkKeys(
+        json,
+        allowedKeys: const [
+          'id',
+          'type',
+          'position',
+          'size',
+          'hitSlop',
+          'points',
+          'color',
+          'width',
+        ],
+      );
+      final val = PenElementData._json(
+        id: $checkedConvert('id', (v) => v as String),
+        type: $checkedConvert('type', (v) => v as String),
+        position: $checkedConvert(
+          'position',
+          (v) => const _OffsetConverter().fromJson(v as Map<String, dynamic>),
+        ),
+        size: $checkedConvert(
+          'size',
+          (v) => const _SizeConverter().fromJson(v as Map<String, dynamic>),
+        ),
+        hitSlop: $checkedConvert('hitSlop', (v) => (v as num).toDouble()),
+        points: $checkedConvert(
+          'points',
+          (v) => (v as List<dynamic>).map(PenPointData.fromJson).toList(),
+        ),
+        color: $checkedConvert('color', (v) => _jsonInt(v)),
+        width: $checkedConvert('width', (v) => (v as num).toDouble()),
+      );
+      return val;
+    });
+
+Map<String, dynamic> _$PenElementDataToJson(PenElementData instance) =>
+    <String, dynamic>{
+      'id': instance.id,
+      'type': instance.type,
+      'position': const _OffsetConverter().toJson(instance.position),
+      'size': const _SizeConverter().toJson(instance.size),
+      'hitSlop': instance.hitSlop,
+      'points': instance.points.map((e) => e.toJson()).toList(),
+      'color': instance.color,
+      'width': instance.width,
+    };
+
+ArrowElementData _$ArrowElementDataFromJson(Map<String, dynamic> json) =>
+    $checkedCreate('ArrowElementData', json, ($checkedConvert) {
+      $checkKeys(
+        json,
+        allowedKeys: const ['id', 'type', 'start', 'control', 'end'],
+      );
+      final val = ArrowElementData._json(
+        id: $checkedConvert('id', (v) => v as String),
+        type: $checkedConvert('type', (v) => v as String),
+        start: $checkedConvert(
+          'start',
+          (v) => const _OffsetConverter().fromJson(v as Map<String, dynamic>),
+        ),
+        control: $checkedConvert(
+          'control',
+          (v) => const _OffsetConverter().fromJson(v as Map<String, dynamic>),
+        ),
+        end: $checkedConvert(
+          'end',
+          (v) => const _OffsetConverter().fromJson(v as Map<String, dynamic>),
+        ),
+      );
+      return val;
+    });
+
+Map<String, dynamic> _$ArrowElementDataToJson(ArrowElementData instance) =>
+    <String, dynamic>{
+      'id': instance.id,
+      'type': instance.type,
+      'start': const _OffsetConverter().toJson(instance.start),
+      'control': const _OffsetConverter().toJson(instance.control),
+      'end': const _OffsetConverter().toJson(instance.end),
+    };

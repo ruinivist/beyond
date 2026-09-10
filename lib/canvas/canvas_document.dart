@@ -5,6 +5,10 @@ import 'dart:ui';
 
 import 'package:beyond/canvas/canvas_background.dart';
 import 'package:beyond/canvas/tools/code_block/code_language.dart';
+import 'package:json_annotation/json_annotation.dart';
+
+part 'canvas_document.g.dart';
+part '../helpers/json_serialisation.dart';
 
 // ---------- Constants ----------
 
@@ -46,38 +50,31 @@ final _canonicalColor = RegExp(r'^#[0-9A-F]{6}$');
 
 /// Holds the background and ordered elements of a persisted canvas.
 /// Used as the shared document value across editing, storage, and transfer.
+@_strictJson
 class CanvasDocument {
   // ---------- Construction ----------
 
-  const CanvasDocument({required this.background, required this.elements});
+  const CanvasDocument({required this.background, required this.elements})
+    : schemaVersion = version;
+
+  const CanvasDocument._json({
+    required this.schemaVersion,
+    required this.background,
+    required this.elements,
+  });
 
   factory CanvasDocument.fromJson(Object? json) {
-    final value = _jsonObject(
-      json,
-      'document',
-      allowedKeys: const {'version', 'background', 'elements'},
-    );
-    if (value['version'] is! int || value['version'] != version) {
+    final document = _decode(json, 'document', _$CanvasDocumentFromJson);
+    if (document.schemaVersion != version) {
       throw const FormatException('document.version must be 2');
     }
-
-    final background = _backgroundFromJson(value['background']);
-    final encodedElements = value['elements'];
-    if (encodedElements is! List) {
-      throw const FormatException('document.elements must be a list');
-    }
-
-    final elements = <CanvasElementData>[];
     final ids = <String>{};
-    for (final encodedElement in encodedElements) {
-      final element = CanvasElementData.fromJson(encodedElement);
+    for (final element in document.elements) {
       if (!ids.add(element.id)) {
         throw FormatException('Duplicate canvas element id: ${element.id}');
       }
-      elements.add(element);
     }
-
-    return CanvasDocument(background: background, elements: elements);
+    return document;
   }
 
   // ---------- Constants ----------
@@ -86,16 +83,14 @@ class CanvasDocument {
 
   // ---------- State ----------
 
+  @JsonKey(name: 'version', fromJson: _jsonInt)
+  final int schemaVersion;
   final CanvasBackgroundKind background;
   final List<CanvasElementData> elements;
 
   // ---------- Serialization ----------
 
-  Map<String, Object> toJson() => <String, Object>{
-    'version': version,
-    'background': background.name,
-    'elements': elements.map((element) => element.toJson()).toList(),
-  };
+  Map<String, Object?> toJson() => _$CanvasDocumentToJson(this);
 
   // ---------- Copying ----------
 
@@ -110,66 +105,48 @@ class CanvasDocument {
 sealed class CanvasElementData {
   // ---------- Construction ----------
 
-  const CanvasElementData(this.id);
+  CanvasElementData(this.id, this.type);
 
   factory CanvasElementData.fromJson(Object? json) {
-    final value = _jsonObject(
-      json,
-      'element',
-      allowedKeys: const {
-        'id',
-        'type',
-        'position',
-        'size',
-        'rotation',
-        'markdown',
-        'style',
-        'language',
-        'source',
-        'url',
-        'kind',
-        'strokeColor',
-        'fillColor',
-        'strokeWidth',
-        'hitSlop',
-        'color',
-        'width',
-        'points',
-        'start',
-        'control',
-        'end',
-      },
-    );
-    final type = value['type'];
-    if (type is! String) {
-      throw const FormatException('element.type must be a string');
-    }
-    return switch (type) {
+    final value = _jsonMap(json, 'element');
+    return switch (value['type']) {
       'text' => TextElementData.fromJson(value),
       'code' => CodeElementData.fromJson(value),
       'media' => MediaElementData.fromJson(value),
       'shape' => ShapeElementData.fromJson(value),
       'pen' => PenElementData.fromJson(value),
       'arrow' => ArrowElementData.fromJson(value),
-      _ => throw FormatException('Unknown canvas element type: $type'),
+      final type when type is String => throw FormatException(
+        'Unknown canvas element type: $type',
+      ),
+      _ => throw const FormatException('element.type must be a string'),
     };
   }
 
   // ---------- State ----------
 
   final String id;
+  final String type;
 
   // ---------- Interface ----------
 
-  String get type;
-
-  Map<String, Object> toJson();
+  Map<String, Object?> toJson();
 
   CanvasElementData copy({String? id});
+
+  // ---------- Validation ----------
+
+  void validateType(String expected) {
+    if (id.isEmpty) throw const FormatException('element.id must not be empty');
+    if (type != expected) {
+      throw FormatException('element.type must be $expected');
+    }
+  }
 }
 
 /// Stores the editable geometry and appearance of a shape element.
 /// Used by the shape tool and its canvas model.
+@_strictJson
 class ShapeElementData extends CanvasElementData {
   // ---------- Construction ----------
 
@@ -181,84 +158,51 @@ class ShapeElementData extends CanvasElementData {
     required this.strokeColor,
     required this.fillColor,
     required this.strokeWidth,
-  }) : super(id);
+  }) : super(id, 'shape');
+
+  ShapeElementData._json({
+    required String id,
+    required String type,
+    required this.kind,
+    required this.position,
+    required this.size,
+    required this.strokeColor,
+    required this.fillColor,
+    required this.strokeWidth,
+  }) : super(id, type);
 
   factory ShapeElementData.fromJson(Object? json) {
-    final value = _jsonObject(
-      json,
-      'shape element',
-      allowedKeys: const {
-        'id',
-        'type',
-        'kind',
-        'position',
-        'size',
-        'strokeColor',
-        'fillColor',
-        'strokeWidth',
-      },
-    );
-    final id = _requiredString(value, 'id', nonEmpty: true);
-    if (value['type'] != 'shape') {
-      throw const FormatException('element.type must be shape');
-    }
-    final kind = switch (value['kind']) {
-      'rectangle' => ShapeKind.rectangle,
-      'roundedRectangle' => ShapeKind.roundedRectangle,
-      'ellipse' => ShapeKind.ellipse,
-      'diamond' => ShapeKind.diamond,
-      'triangle' => ShapeKind.triangle,
-      'hexagon' => ShapeKind.hexagon,
-      _ => throw FormatException('Unknown shape kind: ${value['kind']}'),
-    };
-    final size = _sizeFromJson(value['size'], 'element.size');
-    if (size.width < shapeMinimumSize.width ||
-        size.height < shapeMinimumSize.height) {
+    final shape = _decode(json, 'shape element', _$ShapeElementDataFromJson)
+      ..validateType('shape');
+    if (shape.size.width < shapeMinimumSize.width ||
+        shape.size.height < shapeMinimumSize.height) {
       throw const FormatException('element.size is below the shape minimum');
     }
-    return ShapeElementData(
-      id: id,
-      kind: kind,
-      position: _offsetFromJson(value['position'], 'element.position'),
-      size: size,
-      strokeColor: _argbColor(value['strokeColor'], 'element.strokeColor'),
-      fillColor: value.containsKey('fillColor')
-          ? _argbColor(value['fillColor'], 'element.fillColor')
-          : null,
-      strokeWidth: _positiveNumber(
-        value['strokeWidth'],
-        'element.strokeWidth',
-      ),
-    );
+    _validateArgb(shape.strokeColor, 'element.strokeColor');
+    if (shape.fillColor case final color?) {
+      _validateArgb(color, 'element.fillColor');
+    }
+    _validatePositive(shape.strokeWidth, 'element.strokeWidth');
+    return shape;
   }
 
   // ---------- State ----------
 
   ShapeKind kind;
+  @_OffsetConverter()
   Offset position;
+  @_SizeConverter()
   Size size;
+  @JsonKey(fromJson: _jsonInt)
   int strokeColor;
+  @JsonKey(fromJson: _nullableJsonInt)
   int? fillColor;
   double strokeWidth;
-
-  // ---------- Identity ----------
-
-  @override
-  String get type => 'shape';
 
   // ---------- Serialization ----------
 
   @override
-  Map<String, Object> toJson() => <String, Object>{
-    'id': id,
-    'type': type,
-    'kind': kind.name,
-    'position': _offsetToJson(position),
-    'size': _sizeToJson(size),
-    'strokeColor': strokeColor,
-    'fillColor': ?fillColor,
-    'strokeWidth': strokeWidth,
-  };
+  Map<String, Object?> toJson() => _$ShapeElementDataToJson(this);
 
   // ---------- Copying ----------
 
@@ -276,6 +220,7 @@ class ShapeElementData extends CanvasElementData {
 
 /// Stores the position, width, and source URL of a media element.
 /// Used by media nodes and document attachment handling.
+@_strictJson
 class MediaElementData extends CanvasElementData {
   // ---------- Construction ----------
 
@@ -284,52 +229,37 @@ class MediaElementData extends CanvasElementData {
     required this.position,
     required this.width,
     required this.url,
-  }) : super(id);
+  }) : super(id, 'media');
+
+  MediaElementData._json({
+    required String id,
+    required String type,
+    required this.position,
+    required this.width,
+    required this.url,
+  }) : super(id, type);
 
   factory MediaElementData.fromJson(Object? json) {
-    final value = _jsonObject(
-      json,
-      'media element',
-      allowedKeys: const {'id', 'type', 'position', 'width', 'url'},
-    );
-    final id = _requiredString(value, 'id', nonEmpty: true);
-    if (value['type'] != 'media') {
-      throw const FormatException('element.type must be media');
-    }
-    final width = _finiteNumber(value['width'], 'element.width');
-    if (width < mediaNodeMinimumWidth) {
+    final media = _decode(json, 'media element', _$MediaElementDataFromJson)
+      ..validateType('media');
+    _validateFinite(media.width, 'element.width');
+    if (media.width < mediaNodeMinimumWidth) {
       throw const FormatException('element.width is below the minimum');
     }
-
-    return MediaElementData(
-      id: id,
-      position: _offsetFromJson(value['position'], 'element.position'),
-      width: width,
-      url: _requiredString(value, 'url'),
-    );
+    return media;
   }
 
   // ---------- State ----------
 
+  @_OffsetConverter()
   Offset position;
   double width;
   String url;
 
-  // ---------- Identity ----------
-
-  @override
-  String get type => 'media';
-
   // ---------- Serialization ----------
 
   @override
-  Map<String, Object> toJson() => <String, Object>{
-    'id': id,
-    'type': type,
-    'position': _offsetToJson(position),
-    'width': width,
-    'url': url,
-  };
+  Map<String, Object?> toJson() => _$MediaElementDataToJson(this);
 
   // ---------- Copying ----------
 
@@ -344,6 +274,7 @@ class MediaElementData extends CanvasElementData {
 
 /// Stores the font and color settings applied to a text element.
 /// Used by text element data and the text editor model.
+@_strictJson
 class TextNodeStyle {
   // ---------- Construction ----------
 
@@ -353,32 +284,22 @@ class TextNodeStyle {
     required this.color,
   });
 
+  const TextNodeStyle._json({
+    required this.fontFamily,
+    required this.fontSize,
+    required this.color,
+  });
+
   factory TextNodeStyle.fromJson(Object? json) {
-    final value = _jsonObject(
-      json,
-      'style',
-      allowedKeys: const {'fontFamily', 'fontSize', 'color'},
-    );
-    final fontFamily = value['fontFamily'];
-    if (fontFamily is! String || !textNodeFontFamilies.contains(fontFamily)) {
+    final style = _decode(json, 'style', _$TextNodeStyleFromJson);
+    if (!textNodeFontFamilies.contains(style.fontFamily)) {
       throw const FormatException('style.fontFamily is not supported');
     }
-
-    final fontSize = _finiteNumber(value['fontSize'], 'style.fontSize');
-    if (fontSize <= 0) {
-      throw const FormatException('style.fontSize must be positive');
-    }
-
-    final color = value['color'];
-    if (color is! String || !_canonicalColor.hasMatch(color)) {
+    _validatePositive(style.fontSize, 'style.fontSize');
+    if (!_canonicalColor.hasMatch(style.color)) {
       throw const FormatException('style.color must be uppercase #RRGGBB');
     }
-
-    return TextNodeStyle(
-      fontFamily: fontFamily,
-      fontSize: fontSize,
-      color: color,
-    );
+    return style;
   }
 
   // ---------- State ----------
@@ -405,98 +326,71 @@ class TextNodeStyle {
 
   // ---------- Serialization ----------
 
-  Map<String, Object> toJson() => <String, Object>{
-    'fontFamily': fontFamily,
-    'fontSize': fontSize,
-    'color': color,
-  };
+  Map<String, Object?> toJson() => _$TextNodeStyleToJson(this);
 }
 
 /// Stores editable text content, layout, rotation, and styling.
 /// Used by text blocks and document serialization.
+@_strictJson
 class TextElementData extends CanvasElementData {
   // ---------- Construction ----------
 
   TextElementData({
     required String id,
     required this.position,
-    required this.width,
-    required this.height,
+    required double width,
+    required double? height,
     required this.markdown,
     required this.style,
     this.rotation = 0,
-  }) : super(id);
+  }) : textSize = (width: width, height: height),
+       super(id, 'text');
+
+  TextElementData._json({
+    required String id,
+    required String type,
+    required this.position,
+    required this.textSize,
+    required this.markdown,
+    required this.style,
+    required this.rotation,
+  }) : super(id, type);
 
   factory TextElementData.fromJson(Object? json) {
-    final value = _jsonObject(
-      json,
-      'text element',
-      allowedKeys: const {
-        'id',
-        'type',
-        'position',
-        'size',
-        'rotation',
-        'markdown',
-        'style',
-      },
-    );
-    final id = _requiredString(value, 'id', nonEmpty: true);
-    if (value['type'] != 'text') {
-      throw const FormatException('element.type must be text');
-    }
-
-    final position = _offsetFromJson(value['position'], 'element.position');
-    final size = _textSizeFromJson(value['size'], 'element.size');
-    if (size.width < textNodeMinimumWidth) {
+    final text = _decode(json, 'text element', _$TextElementDataFromJson)
+      ..validateType('text');
+    if (text.width < textNodeMinimumWidth) {
       throw const FormatException('element.size.width is below the minimum');
     }
-    if (size.height != null && size.height! < textNodeMinimumHeight) {
+    if (text.height != null && text.height! < textNodeMinimumHeight) {
       throw const FormatException('element.size.height is below the minimum');
     }
-    final rotation = _finiteNumber(value['rotation'], 'element.rotation');
-    final markdown = value['markdown'];
-    if (markdown is! String) {
-      throw const FormatException('element.markdown must be a string');
-    }
-
-    return TextElementData(
-      id: id,
-      position: position,
-      width: size.width,
-      height: size.height,
-      markdown: markdown,
-      style: TextNodeStyle.fromJson(value['style']),
-      rotation: rotation,
-    );
+    _validateFinite(text.rotation, 'element.rotation');
+    return text;
   }
 
   // ---------- State ----------
 
+  @_OffsetConverter()
   Offset position;
-  double width;
-  double? height;
+  @JsonKey(name: 'size', fromJson: _textSizeFromJson, toJson: _textSizeToJson)
+  ({double width, double? height}) textSize;
   String markdown;
   TextNodeStyle style;
   double rotation;
 
-  // ---------- Identity ----------
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  double get width => textSize.width;
+  set width(double value) => textSize = (width: value, height: height);
 
-  @override
-  String get type => 'text';
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  double? get height => textSize.height;
+  set height(double? value) => textSize = (width: width, height: value);
 
   // ---------- Serialization ----------
 
   @override
-  Map<String, Object> toJson() => <String, Object>{
-    'id': id,
-    'type': type,
-    'position': _offsetToJson(position),
-    'size': <String, Object>{'width': width, 'height': ?height},
-    'rotation': rotation,
-    'markdown': markdown,
-    'style': style.toJson(),
-  };
+  Map<String, Object?> toJson() => _$TextElementDataToJson(this);
 
   // ---------- Copying ----------
 
@@ -514,6 +408,7 @@ class TextElementData extends CanvasElementData {
 
 /// Stores source code, language, position, and size for a code block.
 /// Used by code block models and document serialization.
+@_strictJson
 class CodeElementData extends CanvasElementData {
   // ---------- Construction ----------
 
@@ -523,68 +418,40 @@ class CodeElementData extends CanvasElementData {
     required this.size,
     required this.language,
     required this.source,
-  }) : super(id);
+  }) : super(id, 'code');
+
+  CodeElementData._json({
+    required String id,
+    required String type,
+    required this.position,
+    required this.size,
+    required this.language,
+    required this.source,
+  }) : super(id, type);
 
   factory CodeElementData.fromJson(Object? json) {
-    final value = _jsonObject(
-      json,
-      'code element',
-      allowedKeys: const {
-        'id',
-        'type',
-        'position',
-        'size',
-        'language',
-        'source',
-      },
-    );
-    final id = _requiredString(value, 'id', nonEmpty: true);
-    if (value['type'] != 'code') {
-      throw const FormatException('element.type must be code');
-    }
-    final source = value['source'];
-    if (source is! String) {
-      throw const FormatException('element.source must be a string');
-    }
-
-    final size = _sizeFromJson(value['size'], 'element.size');
-    if (size.width < codeBlockMinimumSize.width ||
-        size.height < codeBlockMinimumSize.height) {
+    final code = _decode(json, 'code element', _$CodeElementDataFromJson)
+      ..validateType('code');
+    if (code.size.width < codeBlockMinimumSize.width ||
+        code.size.height < codeBlockMinimumSize.height) {
       throw const FormatException('element.size is below the minimum');
     }
-
-    return CodeElementData(
-      id: id,
-      position: _offsetFromJson(value['position'], 'element.position'),
-      size: size,
-      language: _languageFromJson(value['language']),
-      source: source,
-    );
+    return code;
   }
 
   // ---------- State ----------
 
+  @_OffsetConverter()
   Offset position;
+  @_SizeConverter()
   Size size;
   CodeLanguage language;
   String source;
 
-  // ---------- Identity ----------
-
-  @override
-  String get type => 'code';
-
   // ---------- Serialization ----------
 
   @override
-  Map<String, Object> toJson() => <String, Object>{
-    'id': id,
-    'type': type,
-    'position': _offsetToJson(position),
-    'size': _sizeToJson(size),
-    'language': language.name,
-    'source': source,
-  };
+  Map<String, Object?> toJson() => _$CodeElementDataToJson(this);
 
   // ---------- Copying ----------
 
@@ -600,19 +467,46 @@ class CodeElementData extends CanvasElementData {
 
 /// Stores a sampled pen position and its input pressure.
 /// Used by pen strokes during rendering and serialization.
+@_strictJson
 final class PenPointData {
   // ---------- Construction ----------
 
   const PenPointData(this.position, {required this.pressure});
 
+  PenPointData._json({
+    required double x,
+    required double y,
+    required this.pressure,
+  }) : position = Offset(x, y);
+
+  factory PenPointData.fromJson(Object? json) {
+    final point = _decode(json, 'pen point', _$PenPointDataFromJson);
+    _validateFinite(point.x, 'point.x');
+    _validateFinite(point.y, 'point.y');
+    _validateFinite(point.pressure, 'point.pressure');
+    if (point.pressure < 0 || point.pressure > 1) {
+      throw const FormatException('point.pressure must be between 0 and 1');
+    }
+    return point;
+  }
+
   // ---------- State ----------
 
+  @JsonKey(includeFromJson: false, includeToJson: false)
   final Offset position;
   final double pressure;
+
+  double get x => position.dx;
+  double get y => position.dy;
+
+  // ---------- Serialization ----------
+
+  Map<String, Object?> toJson() => _$PenPointDataToJson(this);
 }
 
 /// Stores the sampled path and appearance of a freehand pen stroke.
 /// Used by pen stroke models and document serialization.
+@_strictJson
 class PenElementData extends CanvasElementData {
   // ---------- Construction ----------
 
@@ -624,110 +518,50 @@ class PenElementData extends CanvasElementData {
     required this.points,
     required this.color,
     required this.width,
-  }) : super(id);
+  }) : super(id, 'pen');
+
+  PenElementData._json({
+    required String id,
+    required String type,
+    required this.position,
+    required this.size,
+    required this.hitSlop,
+    required this.points,
+    required this.color,
+    required this.width,
+  }) : super(id, type);
 
   factory PenElementData.fromJson(Object? json) {
-    final value = _jsonObject(
-      json,
-      'pen element',
-      allowedKeys: const {
-        'id',
-        'type',
-        'position',
-        'size',
-        'hitSlop',
-        'points',
-        'color',
-        'width',
-      },
-    );
-    final id = _requiredString(value, 'id', nonEmpty: true);
-    if (value['type'] != 'pen') {
-      throw const FormatException('element.type must be pen');
-    }
-    final hitSlop = _finiteNumber(value['hitSlop'], 'element.hitSlop');
-    if (hitSlop < 0) {
+    final pen = _decode(json, 'pen element', _$PenElementDataFromJson)
+      ..validateType('pen');
+    _validateFinite(pen.hitSlop, 'element.hitSlop');
+    if (pen.hitSlop < 0) {
       throw const FormatException('element.hitSlop must be non-negative');
     }
-
-    final color = _argbColor(value['color'], 'element.color');
-    final width = _positiveNumber(value['width'], 'element.width');
-    final encodedPoints = value['points'];
-    if (encodedPoints is! List || encodedPoints.isEmpty) {
+    if (pen.points.isEmpty) {
       throw const FormatException('element.points must not be empty');
     }
-    final points = <PenPointData>[];
-    for (var index = 0; index < encodedPoints.length; index++) {
-      final point = _jsonObject(
-        encodedPoints[index],
-        'element.points[$index]',
-        allowedKeys: const {'x', 'y', 'pressure'},
-      );
-      final pressure = _finiteNumber(
-        point['pressure'],
-        'element.points[$index].pressure',
-      );
-      if (pressure < 0 || pressure > 1) {
-        throw FormatException(
-          'element.points[$index].pressure must be between 0 and 1',
-        );
-      }
-      points.add(
-        PenPointData(
-          Offset(
-            _finiteNumber(point['x'], 'element.points[$index].x'),
-            _finiteNumber(point['y'], 'element.points[$index].y'),
-          ),
-          pressure: pressure,
-        ),
-      );
-    }
-
-    return PenElementData(
-      id: id,
-      position: _offsetFromJson(value['position'], 'element.position'),
-      size: _sizeFromJson(value['size'], 'element.size'),
-      hitSlop: hitSlop,
-      points: points,
-      color: color,
-      width: width,
-    );
+    _validateArgb(pen.color, 'element.color');
+    _validatePositive(pen.width, 'element.width');
+    return pen;
   }
 
   // ---------- State ----------
 
+  @_OffsetConverter()
   Offset position;
+  @_SizeConverter()
   Size size;
   double hitSlop;
   List<PenPointData> points;
+  @JsonKey(fromJson: _jsonInt)
   int color;
   double width;
-
-  // ---------- Identity ----------
-
-  @override
-  String get type => 'pen';
 
   // ---------- Serialization ----------
 
   @override
-  Map<String, Object> toJson() => <String, Object>{
-    'id': id,
-    'type': type,
-    'position': _offsetToJson(position),
-    'size': _sizeToJson(size),
-    'hitSlop': hitSlop,
-    'color': color,
-    'width': width,
-    'points': [
-      for (final point in points)
-        <String, Object>{
-          'x': point.position.dx,
-          'y': point.position.dy,
-          'pressure': point.pressure,
-        },
-    ],
-  };
+  Map<String, Object?> toJson() => _$PenElementDataToJson(this);
 
   // ---------- Copying ----------
 
@@ -745,6 +579,7 @@ class PenElementData extends CanvasElementData {
 
 /// Stores the control points that define a curved arrow.
 /// Used by arrow models and document serialization.
+@_strictJson
 class ArrowElementData extends CanvasElementData {
   // ---------- Construction ----------
 
@@ -753,54 +588,38 @@ class ArrowElementData extends CanvasElementData {
     required this.start,
     required this.control,
     required this.end,
-  }) : super(id);
+  }) : super(id, 'arrow');
+
+  ArrowElementData._json({
+    required String id,
+    required String type,
+    required this.start,
+    required this.control,
+    required this.end,
+  }) : super(id, type);
 
   factory ArrowElementData.fromJson(Object? json) {
-    final value = _jsonObject(
-      json,
-      'arrow element',
-      allowedKeys: const {'id', 'type', 'start', 'control', 'end'},
-    );
-    final id = _requiredString(value, 'id', nonEmpty: true);
-    if (value['type'] != 'arrow') {
-      throw const FormatException('element.type must be arrow');
-    }
-    final start = _offsetFromJson(value['start'], 'element.start');
-    final control = _offsetFromJson(value['control'], 'element.control');
-    final end = _offsetFromJson(value['end'], 'element.end');
-    if ((end - start).distance < arrowMinimumLength) {
+    final arrow = _decode(json, 'arrow element', _$ArrowElementDataFromJson)
+      ..validateType('arrow');
+    if ((arrow.end - arrow.start).distance < arrowMinimumLength) {
       throw const FormatException('element arrow is shorter than the minimum');
     }
-
-    return ArrowElementData(
-      id: id,
-      start: start,
-      control: control,
-      end: end,
-    );
+    return arrow;
   }
 
   // ---------- State ----------
 
+  @_OffsetConverter()
   Offset start;
+  @_OffsetConverter()
   Offset control;
+  @_OffsetConverter()
   Offset end;
-
-  // ---------- Identity ----------
-
-  @override
-  String get type => 'arrow';
 
   // ---------- Serialization ----------
 
   @override
-  Map<String, Object> toJson() => <String, Object>{
-    'id': id,
-    'type': type,
-    'start': _offsetToJson(start),
-    'control': _offsetToJson(control),
-    'end': _offsetToJson(end),
-  };
+  Map<String, Object?> toJson() => _$ArrowElementDataToJson(this);
 
   // ---------- Copying ----------
 
@@ -813,139 +632,19 @@ class ArrowElementData extends CanvasElementData {
   );
 }
 
-// ---------- JSON object validation ----------
+// ---------- Domain validation ----------
 
-/// Validates a decoded JSON object and rejects unknown keys.
-/// Used by document and element deserializers at their input boundaries.
-Map<String, Object?> _jsonObject(
-  Object? value,
-  String field, {
-  required Set<String> allowedKeys,
-}) {
-  if (value is! Map) {
-    throw FormatException('$field must be an object');
-  }
-
-  final result = <String, Object?>{};
-  for (final entry in value.entries) {
-    if (entry.key is! String) {
-      throw FormatException('$field must have string keys');
-    }
-    final key = entry.key as String;
-    if (!allowedKeys.contains(key)) {
-      throw FormatException('$field has unknown key: $key');
-    }
-    result[key] = entry.value;
-  }
-  return result;
+void _validateFinite(double value, String field) {
+  if (!value.isFinite) throw FormatException('$field must be finite');
 }
 
-// ---------- Scalar validation ----------
-
-String _requiredString(
-  Map<String, Object?> value,
-  String field, {
-  bool nonEmpty = false,
-}) {
-  final result = value[field];
-  if (result is! String || (nonEmpty && result.isEmpty)) {
-    throw FormatException('$field must be a string');
-  }
-  return result;
+void _validatePositive(double value, String field) {
+  _validateFinite(value, field);
+  if (value <= 0) throw FormatException('$field must be positive');
 }
 
-double _finiteNumber(Object? value, String field) {
-  if (value is! num) {
-    throw FormatException('$field must be a finite number');
-  }
-  final result = value.toDouble();
-  if (!result.isFinite) {
-    throw FormatException('$field must be a finite number');
-  }
-  return result;
-}
-
-double _positiveNumber(Object? value, String field) {
-  final result = _finiteNumber(value, field);
-  if (result <= 0) throw FormatException('$field must be positive');
-  return result;
-}
-
-int _argbColor(Object? value, String field) {
-  if (value is! int || value < 0 || value > 0xffffffff) {
+void _validateArgb(int value, String field) {
+  if (value < 0 || value > 0xffffffff) {
     throw FormatException('$field must be an ARGB integer');
   }
-  return value;
-}
-
-// ---------- Geometry serialization ----------
-
-Offset _offsetFromJson(Object? value, String field) {
-  final object = _jsonObject(value, field, allowedKeys: const {'x', 'y'});
-  return Offset(
-    _finiteNumber(object['x'], '$field.x'),
-    _finiteNumber(object['y'], '$field.y'),
-  );
-}
-
-Map<String, Object> _offsetToJson(Offset offset) => <String, Object>{
-  'x': offset.dx,
-  'y': offset.dy,
-};
-
-Size _sizeFromJson(Object? value, String field) {
-  final object = _jsonObject(
-    value,
-    field,
-    allowedKeys: const {'width', 'height'},
-  );
-  final width = _finiteNumber(object['width'], '$field.width');
-  final height = _finiteNumber(object['height'], '$field.height');
-  if (width <= 0 || height <= 0) {
-    throw FormatException('$field dimensions must be positive');
-  }
-  return Size(width, height);
-}
-
-({double width, double? height}) _textSizeFromJson(
-  Object? value,
-  String field,
-) {
-  final object = _jsonObject(
-    value,
-    field,
-    allowedKeys: const {'width', 'height'},
-  );
-  final width = _finiteNumber(object['width'], '$field.width');
-  final height = object.containsKey('height')
-      ? _finiteNumber(object['height'], '$field.height')
-      : null;
-  return (width: width, height: height);
-}
-
-Map<String, Object> _sizeToJson(Size size) => <String, Object>{
-  'width': size.width,
-  'height': size.height,
-};
-
-// ---------- Enum serialization ----------
-
-CodeLanguage _languageFromJson(Object? value) {
-  if (value is! String) {
-    throw const FormatException('element.language must be a string');
-  }
-  for (final language in CodeLanguage.values) {
-    if (language.name == value) return language;
-  }
-  throw FormatException('Unknown code language: $value');
-}
-
-CanvasBackgroundKind _backgroundFromJson(Object? value) {
-  if (value is! String) {
-    throw const FormatException('document.background must be a string');
-  }
-  for (final background in CanvasBackgroundKind.values) {
-    if (background.name == value) return background;
-  }
-  throw FormatException('Unknown canvas background: $value');
 }

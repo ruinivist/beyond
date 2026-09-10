@@ -147,6 +147,10 @@ void main() {
       () => CanvasDocument.fromJson(_document(version: 1)),
       throwsA(isA<FormatException>()),
     );
+    expect(
+      () => CanvasDocument.fromJson(_document()..['version'] = 2.5),
+      throwsA(isA<FormatException>()),
+    );
   });
 
   test('shape kinds and minimum dimensions are validated', () {
@@ -180,6 +184,12 @@ void main() {
     expect(
       () => CanvasDocument.fromJson(
         _document(elements: [shape(strokeColor: -1)]),
+      ),
+      throwsA(isA<FormatException>()),
+    );
+    expect(
+      () => CanvasDocument.fromJson(
+        _document(elements: [shape(strokeColor: 1.5)]),
       ),
       throwsA(isA<FormatException>()),
     );
