@@ -87,9 +87,9 @@ const _starlessGeo = BGeo(
   elevationHigh: 12,
 );
 
-var _useMonoFallback = false;
-
 // ---------- Typography ----------
+
+var _useMonoFallback = false;
 
 BTypo _starlessTypo(BColors colors) => BTypo(
   display: GoogleFonts.sourceSerif4(

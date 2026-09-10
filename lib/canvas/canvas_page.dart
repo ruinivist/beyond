@@ -168,7 +168,7 @@ class _CanvasPageState extends State<CanvasPage> {
 
   bool get _eraserEnabled => _activeTool.value == _CanvasTool.eraser;
 
-  // ---------- Lifecycle and preferences ----------
+  // ---------- Lifecycle ----------
 
   @override
   void initState() {
@@ -190,6 +190,59 @@ class _CanvasPageState extends State<CanvasPage> {
     unawaited(_restoreNoIcons());
     unawaited(_restoreDocument());
   }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final colors = BTheme.of(context).colors;
+    _canvasController.background = _canvasBackgroundKind.build(colors);
+    if (_customPenColor == null) _penTool.setColor(colors.textPrimary);
+    if (_customShapeStrokeColor == null) {
+      _shapeTool.setStrokeColor(colors.textSecondary);
+    }
+  }
+
+  FocusNode? _editorFocusNode(CanvasElementModel model) => switch (model) {
+    final TextBlockModel text => text.focusNode,
+    final CodeBlockModel code => code.focusNode,
+    final MediaModel media => media.focusNode,
+    _ => null,
+  };
+
+  @override
+  void dispose() {
+    _saveTimer?.cancel();
+    _saveTimer = null;
+    if (_documentLoaded && _documentDirty) {
+      unawaited(_enqueueDocumentSave() ?? Future<void>.value());
+    }
+    unawaited(_saveQueue);
+    for (final model in _elements) {
+      _editorFocusNode(model)?.removeListener(_finishHistoryOperation);
+      model
+        ..removeListener(_scheduleDocumentSave)
+        ..dispose();
+    }
+    HardwareKeyboard.instance.removeHandler(_handleKeyEvent);
+    _clipboardEvents
+      ?..unregisterCopyEventListener(_handleWebCopy)
+      ..unregisterCutEventListener(_handleWebCut)
+      ..unregisterPasteEventListener(_handleWebPaste);
+    _activeTool.dispose();
+    _selectionModifierPressed.dispose();
+    _canvasPointerPosition.dispose();
+    _penTool.dispose();
+    _arrowTool
+      ..removeListener(_handleDrawingToolChanged)
+      ..dispose();
+    _shapeTool
+      ..removeListener(_handleDrawingToolChanged)
+      ..dispose();
+    _canvasController.dispose();
+    super.dispose();
+  }
+
+  // ---------- Preferences ----------
 
   Future<void> _restoreNoIcons() async {
     try {
@@ -218,22 +271,11 @@ class _CanvasPageState extends State<CanvasPage> {
     }
   }
 
+  // ---------- Tool selection ----------
+
   void _handleDrawingToolChanged() {
     if (mounted) setState(() {});
   }
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    final colors = BTheme.of(context).colors;
-    _canvasController.background = _canvasBackgroundKind.build(colors);
-    if (_customPenColor == null) _penTool.setColor(colors.textPrimary);
-    if (_customShapeStrokeColor == null) {
-      _shapeTool.setStrokeColor(colors.textSecondary);
-    }
-  }
-
-  // ---------- Tool selection ----------
 
   void _toggleTool(_CanvasTool tool) {
     if (!_documentLoaded) return;
@@ -1735,48 +1777,6 @@ class _CanvasPageState extends State<CanvasPage> {
     _historyOperationActive = false;
     _replaceLiveModels(CanvasDocument.fromJson(jsonDecode(entry)));
     _scheduleDocumentSave();
-  }
-
-  // ---------- Lifecycle ----------
-
-  FocusNode? _editorFocusNode(CanvasElementModel model) => switch (model) {
-    final TextBlockModel text => text.focusNode,
-    final CodeBlockModel code => code.focusNode,
-    final MediaModel media => media.focusNode,
-    _ => null,
-  };
-
-  @override
-  void dispose() {
-    _saveTimer?.cancel();
-    _saveTimer = null;
-    if (_documentLoaded && _documentDirty) {
-      unawaited(_enqueueDocumentSave() ?? Future<void>.value());
-    }
-    unawaited(_saveQueue);
-    for (final model in _elements) {
-      _editorFocusNode(model)?.removeListener(_finishHistoryOperation);
-      model
-        ..removeListener(_scheduleDocumentSave)
-        ..dispose();
-    }
-    HardwareKeyboard.instance.removeHandler(_handleKeyEvent);
-    _clipboardEvents
-      ?..unregisterCopyEventListener(_handleWebCopy)
-      ..unregisterCutEventListener(_handleWebCut)
-      ..unregisterPasteEventListener(_handleWebPaste);
-    _activeTool.dispose();
-    _selectionModifierPressed.dispose();
-    _canvasPointerPosition.dispose();
-    _penTool.dispose();
-    _arrowTool
-      ..removeListener(_handleDrawingToolChanged)
-      ..dispose();
-    _shapeTool
-      ..removeListener(_handleDrawingToolChanged)
-      ..dispose();
-    _canvasController.dispose();
-    super.dispose();
   }
 
   // ---------- Rendering ----------

@@ -18,17 +18,17 @@ final _formatMarker = RegExp(
 
 const canvasClipboardVersion = 2;
 
-// ---------- Types ----------
-
-typedef ClipboardImage = ({Uint8List bytes, String extension});
-typedef CanvasClipboardSnapshot = ({String? text, ClipboardImage? image});
-
 const _imageFormats = <FileFormat, String>{
   Formats.png: 'png',
   Formats.jpeg: 'jpg',
   Formats.gif: 'gif',
   Formats.webp: 'webp',
 };
+
+// ---------- Types ----------
+
+typedef ClipboardImage = ({Uint8List bytes, String extension});
+typedef CanvasClipboardSnapshot = ({String? text, ClipboardImage? image});
 
 // ---------- Clipboard reading ----------
 

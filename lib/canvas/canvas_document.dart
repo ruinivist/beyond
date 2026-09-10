@@ -42,10 +42,6 @@ enum ShapeKind {
   hexagon,
 }
 
-// ---------- Validation ----------
-
-final _canonicalColor = RegExp(r'^#[0-9A-F]{6}$');
-
 // ---------- Document models ----------
 
 /// Holds the background and ordered elements of a persisted canvas.
@@ -633,6 +629,8 @@ class ArrowElementData extends CanvasElementData {
 }
 
 // ---------- Domain validation ----------
+
+final _canonicalColor = RegExp(r'^#[0-9A-F]{6}$');
 
 void _validateFinite(double value, String field) {
   if (!value.isFinite) throw FormatException('$field must be finite');
