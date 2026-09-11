@@ -16,4 +16,4 @@
 
 - Only test for "behavior" and not UI token values as such token values can change anytime; behavior like so and so tokens should exist is correct but matchin them against a constant is wrong.
 - Keep testing lighter, we'll add tests once we have something concrete but NOT at this stage.
-- Don't run the FULL test suite for every change, just ONCE before we commit.
+- Don't run the FULL test suite for every change, just ONCE before we commit if we added new features/fixes. For styling/refactors, you can skip tests.
