@@ -38,14 +38,12 @@ class ArrowGeometry {
 
   Offset get arrowheadLeft {
     final tangent = endTangent;
-    return arrowheadBase +
-        Offset(-tangent.dy, tangent.dx) * _arrowHeadHalfWidth;
+    return arrowheadBase + Offset(-tangent.dy, tangent.dx) * _arrowHeadHalfWidth;
   }
 
   Offset get arrowheadRight {
     final tangent = endTangent;
-    return arrowheadBase -
-        Offset(-tangent.dy, tangent.dx) * _arrowHeadHalfWidth;
+    return arrowheadBase - Offset(-tangent.dy, tangent.dx) * _arrowHeadHalfWidth;
   }
 
   Path get path {
@@ -177,9 +175,7 @@ class ArrowTool extends ChangeNotifier {
     final id = _id;
     final start = _start;
     final end = _end;
-    final arrow = id != null && start != null && end != null
-        ? _newArrow(id, start, end)
-        : null;
+    final arrow = id != null && start != null && end != null ? _newArrow(id, start, end) : null;
     _clearPreview();
     if (arrow != null) onArrow(arrow);
   }
@@ -337,16 +333,13 @@ class _ArrowPainter extends CustomPainter {
     const radiusSquared = radius * radius;
     Offset curvePoint(double t) {
       final oneMinusT = 1 - t;
-      return geometry.start * (oneMinusT * oneMinusT) +
-          geometry.control * (2 * oneMinusT * t) +
-          geometry.end * (t * t);
+      return geometry.start * (oneMinusT * oneMinusT) + geometry.control * (2 * oneMinusT * t) + geometry.end * (t * t);
     }
 
     var previous = geometry.start;
     for (var index = 1; index <= 24; index++) {
       final current = curvePoint(index / 24);
-      if (_distanceToSegmentSquared(position, previous, current) <=
-          radiusSquared) {
+      if (_distanceToSegmentSquared(position, previous, current) <= radiusSquared) {
         return true;
       }
       previous = current;
@@ -381,10 +374,9 @@ double _distanceToSegmentSquared(Offset point, Offset start, Offset end) {
   final lengthSquared = segment.distanceSquared;
   if (lengthSquared == 0) return (point - start).distanceSquared;
   final offset = point - start;
-  final ratio =
-      ((offset.dx * segment.dx + offset.dy * segment.dy) / lengthSquared).clamp(
-        0.0,
-        1.0,
-      );
+  final ratio = ((offset.dx * segment.dx + offset.dy * segment.dy) / lengthSquared).clamp(
+    0.0,
+    1.0,
+  );
   return (point - (start + segment * ratio)).distanceSquared;
 }

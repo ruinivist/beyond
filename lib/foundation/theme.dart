@@ -156,8 +156,7 @@ class BGeo {
       radiusMedium: BorderRadius.lerp(radiusMedium, other.radiusMedium, t)!,
       radiusLarge: BorderRadius.lerp(radiusLarge, other.radiusLarge, t)!,
       elevationLow: elevationLow + (other.elevationLow - elevationLow) * t,
-      elevationMedium:
-          elevationMedium + (other.elevationMedium - elevationMedium) * t,
+      elevationMedium: elevationMedium + (other.elevationMedium - elevationMedium) * t,
       elevationHigh: elevationHigh + (other.elevationHigh - elevationHigh) * t,
     );
   }

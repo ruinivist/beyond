@@ -20,9 +20,7 @@ const _strokeHitSlop = 6.0;
 const _minimumPointDistanceSquared = 4.0;
 
 Path createPenPath(List<PenPointData> points, double width) {
-  final simulatePressure =
-      points.isNotEmpty &&
-      points.every((point) => point.pressure == points.first.pressure);
+  final simulatePressure = points.isNotEmpty && points.every((point) => point.pressure == points.first.pressure);
   final outline = pf.getStroke(
     [
       for (final point in points)
@@ -172,8 +170,7 @@ class _PenStrokePainter extends CustomPainter {
   bool hitTest(Offset position) {
     final radiusSquared = (width + hitSlop) * (width + hitSlop);
     if (points.length == 1) {
-      return (position - points.single.position).distanceSquared <=
-          radiusSquared;
+      return (position - points.single.position).distanceSquared <= radiusSquared;
     }
     for (var index = 1; index < points.length; index++) {
       if (_distanceToSegmentSquared(
@@ -201,11 +198,10 @@ double _distanceToSegmentSquared(Offset point, Offset start, Offset end) {
   final lengthSquared = segment.distanceSquared;
   if (lengthSquared == 0) return (point - start).distanceSquared;
   final offset = point - start;
-  final ratio =
-      ((offset.dx * segment.dx + offset.dy * segment.dy) / lengthSquared).clamp(
-        0.0,
-        1.0,
-      );
+  final ratio = ((offset.dx * segment.dx + offset.dy * segment.dy) / lengthSquared).clamp(
+    0.0,
+    1.0,
+  );
   return (point - (start + segment * ratio)).distanceSquared;
 }
 
@@ -253,24 +249,18 @@ class PenTool extends ChangeNotifier {
 
   bool _isAllowedPointer(PointerDownEvent event) => switch (event.kind) {
     PointerDeviceKind.mouse => event.buttons & kPrimaryButton != 0,
-    PointerDeviceKind.touch ||
-    PointerDeviceKind.stylus ||
-    PointerDeviceKind.invertedStylus => true,
+    PointerDeviceKind.touch || PointerDeviceKind.stylus || PointerDeviceKind.invertedStylus => true,
     _ => false,
   };
 
   double _pressure(PointerEvent event) {
     if (event.pressureMin == event.pressureMax) return 0.5;
-    return ((event.pressure - event.pressureMin) /
-            (event.pressureMax - event.pressureMin))
-        .clamp(0.0, 1.0);
+    return ((event.pressure - event.pressureMin) / (event.pressureMax - event.pressureMin)).clamp(0.0, 1.0);
   }
 
   void _append(PointerEvent event) {
     final position = event.localPosition;
-    if (_points.isNotEmpty &&
-        (position - _points.last.position).distanceSquared <=
-            _minimumPointDistanceSquared) {
+    if (_points.isNotEmpty && (position - _points.last.position).distanceSquared <= _minimumPointDistanceSquared) {
       return;
     }
     _points.add(PenPointData(position, pressure: _pressure(event)));
@@ -341,8 +331,7 @@ class PenTool extends ChangeNotifier {
 // ---------- Preview ----------
 
 class PenPreviewPainter extends CustomPainter {
-  PenPreviewPainter({required this.tool, required this.color})
-    : super(repaint: tool);
+  PenPreviewPainter({required this.tool, required this.color}) : super(repaint: tool);
 
   final PenTool tool;
   final Color color;
@@ -380,18 +369,10 @@ PenElementData positionStroke(
   required double canvasScale,
 }) {
   final positions = stroke.points.map((point) => point.position);
-  final minX = positions
-      .map((point) => point.dx)
-      .reduce((a, b) => a < b ? a : b);
-  final minY = positions
-      .map((point) => point.dy)
-      .reduce((a, b) => a < b ? a : b);
-  final maxX = positions
-      .map((point) => point.dx)
-      .reduce((a, b) => a > b ? a : b);
-  final maxY = positions
-      .map((point) => point.dy)
-      .reduce((a, b) => a > b ? a : b);
+  final minX = positions.map((point) => point.dx).reduce((a, b) => a < b ? a : b);
+  final minY = positions.map((point) => point.dy).reduce((a, b) => a < b ? a : b);
+  final maxX = positions.map((point) => point.dx).reduce((a, b) => a > b ? a : b);
+  final maxY = positions.map((point) => point.dy).reduce((a, b) => a > b ? a : b);
   final padding = stroke.width + _strokeHitSlop;
   final screenOrigin = Offset(minX - padding, minY - padding);
 
@@ -399,9 +380,7 @@ PenElementData positionStroke(
     id: id,
     position: screenOrigin / canvasScale + canvasOffset,
     hitSlop: _strokeHitSlop / canvasScale,
-    size:
-        Size(maxX - minX + padding * 2, maxY - minY + padding * 2) /
-        canvasScale,
+    size: Size(maxX - minX + padding * 2, maxY - minY + padding * 2) / canvasScale,
     points: [
       for (final point in stroke.points)
         PenPointData(

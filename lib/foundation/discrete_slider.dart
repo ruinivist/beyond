@@ -85,9 +85,7 @@ class DiscreteSlider extends StatelessWidget {
             semanticFormatterCallback: (value) => '${(value * 4).round()}',
             focusNode: focusNode,
             autofocus: autofocus,
-            onChanged: onChanged == null
-                ? null
-                : (next) => onChanged!(next.clamp(_minimum, _maximum)),
+            onChanged: onChanged == null ? null : (next) => onChanged!(next.clamp(_minimum, _maximum)),
           ),
         ),
       ),
@@ -216,8 +214,7 @@ class _DiscreteSliderValueIndicatorShape extends SliderComponentShape {
       pillWidth,
       pillHeight,
     );
-    final path = Path()
-      ..addRRect(RRect.fromRectAndRadius(pillRect, const Radius.circular(7)));
+    final path = Path()..addRRect(RRect.fromRectAndRadius(pillRect, const Radius.circular(7)));
     final canvas = context.canvas;
     final drawPath = canvas.drawPath;
     canvas

@@ -12,8 +12,7 @@ import 'package:markdown/markdown.dart' as md;
 // ---------- Limits ----------
 
 const int canvasProjectMaximumBytes = 140 * 1024 * 1024;
-const int _maximumEncodedAttachmentLength =
-    ((attachmentMaximumBytes + 2) ~/ 3) * 4;
+const int _maximumEncodedAttachmentLength = ((attachmentMaximumBytes + 2) ~/ 3) * 4;
 
 // ---------- Validation ----------
 
@@ -134,8 +133,7 @@ Future<CanvasProject> decodeCanvasProject(Uint8List bytes) async {
   }
 
   final referencedPaths = canvasAttachmentPaths(document);
-  if (attachments.length != referencedPaths.length ||
-      !referencedPaths.containsAll(attachments.keys)) {
+  if (attachments.length != referencedPaths.length || !referencedPaths.containsAll(attachments.keys)) {
     throw const FormatException('Attachment references do not match the map');
   }
 

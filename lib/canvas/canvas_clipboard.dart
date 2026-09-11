@@ -46,20 +46,17 @@ Future<CanvasClipboardSnapshot> readCanvasClipboard(
       image = (bytes: bytes, extension: _imageFormats[format]!);
     }
   }
-  final text = reader.canProvide(Formats.plainText)
-      ? await reader.readValue(Formats.plainText)
-      : null;
+  final text = reader.canProvide(Formats.plainText) ? await reader.readValue(Formats.plainText) : null;
   return (text: text, image: image);
 }
 
 // ---------- Element serialization ----------
 
-String encodeCanvasClipboard(Iterable<CanvasElementData> elements) =>
-    jsonEncode(<String, Object>{
-      'format': _format,
-      'version': canvasClipboardVersion,
-      'elements': elements.map((element) => element.toJson()).toList(),
-    });
+String encodeCanvasClipboard(Iterable<CanvasElementData> elements) => jsonEncode(<String, Object>{
+  'format': _format,
+  'version': canvasClipboardVersion,
+  'elements': elements.map((element) => element.toJson()).toList(),
+});
 
 List<CanvasElementData>? decodeCanvasClipboard(String text) {
   Object? decoded;
@@ -79,9 +76,7 @@ List<CanvasElementData>? decodeCanvasClipboard(String text) {
       decoded['elements'] is! List) {
     throw const FormatException('Malformed Beyond clipboard payload');
   }
-  final elements = (decoded['elements'] as List)
-      .map(CanvasElementData.fromJson)
-      .toList();
+  final elements = (decoded['elements'] as List).map(CanvasElementData.fromJson).toList();
   if (elements.isEmpty) {
     throw const FormatException('Clipboard elements must not be empty');
   }

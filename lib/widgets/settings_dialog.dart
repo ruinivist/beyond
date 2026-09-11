@@ -107,9 +107,8 @@ class _SettingsDialogState extends State<SettingsDialog> {
           fit: StackFit.expand,
           children: [
             LayoutBuilder(
-              builder: (context, constraints) => constraints.maxWidth < 520
-                  ? _compactBody(context)
-                  : _wideBody(context),
+              builder: (context, constraints) =>
+                  constraints.maxWidth < 520 ? _compactBody(context) : _wideBody(context),
             ),
             Positioned(top: 16, right: 16, child: _closeButton(context)),
           ],
@@ -132,16 +131,14 @@ class _SettingsDialogState extends State<SettingsDialog> {
           if (states.contains(WidgetState.pressed)) {
             return theme.colors.surfacePressed;
           }
-          if (states.contains(WidgetState.hovered) ||
-              states.contains(WidgetState.focused)) {
+          if (states.contains(WidgetState.hovered) || states.contains(WidgetState.focused)) {
             return theme.colors.surfaceHover;
           }
           return Colors.transparent;
         }),
         side: WidgetStateProperty.resolveWith(
-          (states) => states.contains(WidgetState.focused)
-              ? BorderSide(color: theme.colors.focusRing)
-              : BorderSide.none,
+          (states) =>
+              states.contains(WidgetState.focused) ? BorderSide(color: theme.colors.focusRing) : BorderSide.none,
         ),
         shape: WidgetStatePropertyAll(
           RoundedRectangleBorder(borderRadius: theme.geo.radiusSmall),
@@ -336,8 +333,7 @@ class _SettingsDialogState extends State<SettingsDialog> {
             key: const ValueKey('theme-select'),
             value: _appTheme,
             options: [
-              for (final appTheme in AppTheme.values)
-                SelectOption(value: appTheme, label: appTheme.label),
+              for (final appTheme in AppTheme.values) SelectOption(value: appTheme, label: appTheme.label),
             ],
             showBorder: false,
             onChanged: widget.onAppThemeChanged == null
@@ -426,17 +422,13 @@ class _SettingsDialogState extends State<SettingsDialog> {
           children: [
             Button(
               key: const ValueKey('canvas-import-button'),
-              onPressed: _transferActive || widget.onImportCanvas == null
-                  ? null
-                  : _importCanvas,
+              onPressed: _transferActive || widget.onImportCanvas == null ? null : _importCanvas,
               variant: ButtonVariant.secondary,
               child: const Text('Import canvas'),
             ),
             Button(
               key: const ValueKey('canvas-export-button'),
-              onPressed: _transferActive || widget.onExportCanvas == null
-                  ? null
-                  : _exportCanvas,
+              onPressed: _transferActive || widget.onExportCanvas == null ? null : _exportCanvas,
               variant: ButtonVariant.secondary,
               child: const Text('Export canvas'),
             ),

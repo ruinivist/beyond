@@ -95,12 +95,9 @@ class _CanvasPageState extends State<CanvasPage> {
     useIdsFromArgs: true,
   );
   CanvasBackgroundKind _canvasBackgroundKind = CanvasBackgroundKind.dotGrid;
-  late final CanvasDocumentStore _documentStore =
-      widget.documentStore ?? CanvasDocumentStore();
-  late final AttachmentStore _attachmentStore =
-      widget.attachmentStore ?? createAttachmentStore();
-  late final CanvasProjectFiles _projectFiles =
-      widget.projectFiles ?? createCanvasProjectFiles();
+  late final CanvasDocumentStore _documentStore = widget.documentStore ?? CanvasDocumentStore();
+  late final AttachmentStore _attachmentStore = widget.attachmentStore ?? createAttachmentStore();
+  late final CanvasProjectFiles _projectFiles = widget.projectFiles ?? createCanvasProjectFiles();
   final _elements = <CanvasElementModel>[];
   TextBlockModel? _editingTextBlock;
   TextBlockModel? _editingChromeModel;
@@ -148,8 +145,7 @@ class _CanvasPageState extends State<CanvasPage> {
   var _noIcons = false;
   var _noIconsChanged = false;
 
-  Color get _penColor =>
-      _customPenColor ?? BTheme.of(context).colors.textPrimary;
+  Color get _penColor => _customPenColor ?? BTheme.of(context).colors.textPrimary;
 
   bool get _penEnabled => _activeTool.value == _CanvasTool.pen;
 
@@ -174,13 +170,10 @@ class _CanvasPageState extends State<CanvasPage> {
   void initState() {
     super.initState();
     _penTool = PenTool(onStroke: _addStroke)..setStrokeWidth(_penWidth);
-    _arrowTool = ArrowTool(onArrow: _addArrow)
-      ..addListener(_handleDrawingToolChanged);
-    _shapeTool = ShapeTool(onShape: _addShape)
-      ..addListener(_handleDrawingToolChanged);
+    _arrowTool = ArrowTool(onArrow: _addArrow)..addListener(_handleDrawingToolChanged);
+    _shapeTool = ShapeTool(onShape: _addShape)..addListener(_handleDrawingToolChanged);
     HardwareKeyboard.instance.addHandler(_handleKeyEvent);
-    _clipboardEvents =
-        widget.readClipboard == null && widget.writeClipboardText == null
+    _clipboardEvents = widget.readClipboard == null && widget.writeClipboardText == null
         ? ClipboardEvents.instance
         : null;
     _clipboardEvents
@@ -246,8 +239,7 @@ class _CanvasPageState extends State<CanvasPage> {
 
   Future<void> _restoreNoIcons() async {
     try {
-      final noIcons =
-          await _preferences.getBool(_noIconsPreferenceKey) ?? false;
+      final noIcons = await _preferences.getBool(_noIconsPreferenceKey) ?? false;
       if (mounted && !_noIconsChanged && noIcons != _noIcons) {
         setState(() => _noIcons = noIcons);
       }
@@ -324,9 +316,7 @@ class _CanvasPageState extends State<CanvasPage> {
     if (!_documentLoaded) return;
     _canvasPointerPosition.value = event.localPosition;
     if (_eraserEnabled && !_spaceHeld) {
-      if (_eraserPointer == null &&
-          (event.kind != PointerDeviceKind.mouse ||
-              event.buttons == kPrimaryButton)) {
+      if (_eraserPointer == null && (event.kind != PointerDeviceKind.mouse || event.buttons == kPrimaryButton)) {
         _eraserPointer = event.pointer;
         _eraseAt(event.position);
       }
@@ -340,9 +330,7 @@ class _CanvasPageState extends State<CanvasPage> {
     final onInteractiveChild = _interactiveCanvasPointerIds.remove(
       event.pointer,
     );
-    final position =
-        _canvasController.offset +
-        event.localPosition / _canvasController.scale;
+    final position = _canvasController.offset + event.localPosition / _canvasController.scale;
     if (_tryPlaceActiveTool(position)) return;
     if (onInteractiveChild) {
       if (!_selectionModifierPressed.value) {
@@ -368,9 +356,7 @@ class _CanvasPageState extends State<CanvasPage> {
       ..addAll(_selectedModels());
     _toggleDragSelection = _selectionModifierPressed.value;
     if (!_toggleDragSelection) _clearSelection();
-    if (event.kind != PointerDeviceKind.mouse ||
-        _penEnabled ||
-        _eraserEnabled) {
+    if (event.kind != PointerDeviceKind.mouse || _penEnabled || _eraserEnabled) {
       return;
     }
     setState(() {
@@ -393,16 +379,14 @@ class _CanvasPageState extends State<CanvasPage> {
     if (_arrowTool.ownsPointer(event.pointer)) {
       _arrowTool.onPointerMove(
         event,
-        _canvasController.offset +
-            event.localPosition / _canvasController.scale,
+        _canvasController.offset + event.localPosition / _canvasController.scale,
       );
       return;
     }
     if (_shapeTool.ownsPointer(event.pointer)) {
       _shapeTool.onPointerMove(
         event,
-        _canvasController.offset +
-            event.localPosition / _canvasController.scale,
+        _canvasController.offset + event.localPosition / _canvasController.scale,
       );
       return;
     }
@@ -429,16 +413,14 @@ class _CanvasPageState extends State<CanvasPage> {
     if (_arrowTool.ownsPointer(event.pointer)) {
       _arrowTool.onPointerUp(
         event,
-        _canvasController.offset +
-            event.localPosition / _canvasController.scale,
+        _canvasController.offset + event.localPosition / _canvasController.scale,
       );
       return;
     }
     if (_shapeTool.ownsPointer(event.pointer)) {
       _shapeTool.onPointerUp(
         event,
-        _canvasController.offset +
-            event.localPosition / _canvasController.scale,
+        _canvasController.offset + event.localPosition / _canvasController.scale,
       );
       return;
     }
@@ -497,8 +479,7 @@ class _CanvasPageState extends State<CanvasPage> {
     setState(() => _dragSelectionEnd = end);
     final rect = Rect.fromPoints(start, end);
     final positions = {
-      for (final child in _canvasController.widgetsWithScreenPositions())
-        child.id: child.ssPosition,
+      for (final child in _canvasController.widgetsWithScreenPositions()) child.id: child.ssPosition,
     };
 
     bool selected(CanvasElementModel model) {
@@ -513,9 +494,7 @@ class _CanvasPageState extends State<CanvasPage> {
           rect.overlaps(
             position & (renderObject.size * _canvasController.scale),
           );
-      return _toggleDragSelection
-          ? _selectionBeforeDrag.contains(model) != overlaps
-          : overlaps;
+      return _toggleDragSelection ? _selectionBeforeDrag.contains(model) != overlaps : overlaps;
     }
 
     for (final model in _elements) {
@@ -543,11 +522,7 @@ class _CanvasPageState extends State<CanvasPage> {
     CodeBlockModel model,
     PointerDownEvent event,
   ) {
-    if (event.buttons != kPrimaryButton ||
-        !_documentLoaded ||
-        _placementEnabled ||
-        _penEnabled ||
-        _eraserEnabled) {
+    if (event.buttons != kPrimaryButton || !_documentLoaded || _placementEnabled || _penEnabled || _eraserEnabled) {
       return;
     }
     _interactiveCanvasPointerIds.add(event.pointer);
@@ -566,10 +541,7 @@ class _CanvasPageState extends State<CanvasPage> {
     TextBlockModel model,
     PointerDownEvent event,
   ) {
-    if (event.buttons != kPrimaryButton ||
-        _placementEnabled ||
-        _penEnabled ||
-        _eraserEnabled) {
+    if (event.buttons != kPrimaryButton || _placementEnabled || _penEnabled || _eraserEnabled) {
       return;
     }
     _interactiveCanvasPointerIds.add(event.pointer);
@@ -646,11 +618,7 @@ class _CanvasPageState extends State<CanvasPage> {
   }
 
   void _editTextBlock(TextBlockModel model) {
-    if (!_documentLoaded ||
-        _placementEnabled ||
-        _penEnabled ||
-        _eraserEnabled ||
-        !_elements.contains(model)) {
+    if (!_documentLoaded || _placementEnabled || _penEnabled || _eraserEnabled || !_elements.contains(model)) {
       return;
     }
     _startTextEditing(model);
@@ -721,8 +689,7 @@ class _CanvasPageState extends State<CanvasPage> {
 
   // ---------- Element transforms ----------
 
-  GlobalKey _selectionKey(Object model) =>
-      _selectionKeys.putIfAbsent(model, GlobalKey.new);
+  GlobalKey _selectionKey(Object model) => _selectionKeys.putIfAbsent(model, GlobalKey.new);
 
   void _moveSelectedChildren(CanvasElementModel dragged, Offset screenDelta) {
     if (!_documentLoaded ||
@@ -738,16 +705,14 @@ class _CanvasPageState extends State<CanvasPage> {
     final draggedWasSelected = selectedBeforeWidgetPointer.contains(dragged);
     if (draggedWasSelected) _setSelection(selectedBeforeWidgetPointer);
 
-    final draggedSelected =
-        draggedWasSelected || (_elements.contains(dragged) && dragged.selected);
+    final draggedSelected = draggedWasSelected || (_elements.contains(dragged) && dragged.selected);
 
     if (!draggedSelected) _clearSelection();
 
     final gridDelta = screenDelta / _canvasController.scale;
     final affected = _elements
         .where(
-          (model) =>
-              identical(model, dragged) || draggedSelected && model.selected,
+          (model) => identical(model, dragged) || draggedSelected && model.selected,
         )
         .toList();
 
@@ -766,10 +731,7 @@ class _CanvasPageState extends State<CanvasPage> {
     Size renderedSize,
     Offset screenDelta,
   ) {
-    if (!_documentLoaded ||
-        _placementEnabled ||
-        _penEnabled ||
-        _eraserEnabled) {
+    if (!_documentLoaded || _placementEnabled || _penEnabled || _eraserEnabled) {
       return;
     }
     if (!_elements.contains(model)) return;
@@ -787,18 +749,14 @@ class _CanvasPageState extends State<CanvasPage> {
   }
 
   void _resizeMedia(MediaModel model, Offset screenDelta) {
-    if (!_documentLoaded ||
-        _activeTool.value != _CanvasTool.select ||
-        !_elements.contains(model)) {
+    if (!_documentLoaded || _activeTool.value != _CanvasTool.select || !_elements.contains(model)) {
       return;
     }
     model.resizeBy(screenDelta / _canvasController.scale);
   }
 
   void _resizeShape(ShapeModel model, Offset screenDelta) {
-    if (!_documentLoaded ||
-        _activeTool.value != _CanvasTool.select ||
-        !_elements.contains(model)) {
+    if (!_documentLoaded || _activeTool.value != _CanvasTool.select || !_elements.contains(model)) {
       return;
     }
     if (_selectionBeforeWidgetPointer.contains(model)) {
@@ -808,10 +766,7 @@ class _CanvasPageState extends State<CanvasPage> {
   }
 
   void _rotateTextBlock(TextBlockModel model, double angle) {
-    if (!_documentLoaded ||
-        _placementEnabled ||
-        _penEnabled ||
-        _eraserEnabled) {
+    if (!_documentLoaded || _placementEnabled || _penEnabled || _eraserEnabled) {
       return;
     }
     if (!_elements.contains(model)) return;
@@ -1119,14 +1074,11 @@ class _CanvasPageState extends State<CanvasPage> {
         );
   }
 
-  List<CanvasElementModel> get _selectedInStackingOrder =>
-      _elements.where((model) => model.selected).toList();
+  List<CanvasElementModel> get _selectedInStackingOrder => _elements.where((model) => model.selected).toList();
 
-  void _handleWebCopy(ClipboardWriteEvent event) =>
-      unawaited(_copySelection(event));
+  void _handleWebCopy(ClipboardWriteEvent event) => unawaited(_copySelection(event));
 
-  void _handleWebCut(ClipboardWriteEvent event) =>
-      unawaited(_copySelection(event, cut: true));
+  void _handleWebCut(ClipboardWriteEvent event) => unawaited(_copySelection(event, cut: true));
 
   void _handleWebPaste(ClipboardReadEvent event) {
     if (!_documentLoaded || _editingElement) return;
@@ -1161,9 +1113,7 @@ class _CanvasPageState extends State<CanvasPage> {
       if (cut) _removeElements(selected);
     } on Object {
       _showProjectSnackBar(
-        cut
-            ? 'Could not cut canvas elements'
-            : 'Could not copy canvas elements',
+        cut ? 'Could not cut canvas elements' : 'Could not copy canvas elements',
       );
     }
   }
@@ -1173,9 +1123,7 @@ class _CanvasPageState extends State<CanvasPage> {
       final read = widget.readClipboard;
       late final CanvasClipboardSnapshot clipboard;
       try {
-        clipboard = read != null
-            ? await read()
-            : await readCanvasClipboard(await readerFuture!);
+        clipboard = read != null ? await read() : await readCanvasClipboard(await readerFuture!);
       } on FormatException {
         return;
       }
@@ -1193,24 +1141,17 @@ class _CanvasPageState extends State<CanvasPage> {
       final payload = text!;
 
       final pointer = _canvasPointerPosition.value;
-      final placeAtPointer =
-          pointer != null && (payload, pointer) != _pointerReference;
+      final placeAtPointer = pointer != null && (payload, pointer) != _pointerReference;
       final pasted = [
-        for (final element in elements)
-          _createElementModel(element.copy(id: const Uuid().v4())),
+        for (final element in elements) _createElementModel(element.copy(id: const Uuid().v4())),
       ];
       if (placeAtPointer) {
         final bounds = pasted
             .map((model) => model.canvasPosition & model.canvasSize)
             .reduce((bounds, next) => bounds.expandToInclude(next));
-        _pasteOffset =
-            _canvasController.offset +
-            pointer / _canvasController.scale -
-            bounds.center;
+        _pasteOffset = _canvasController.offset + pointer / _canvasController.scale - bounds.center;
       } else if (_lastPastedPayload != payload) {
-        _pasteOffset = payload == _cutPayload
-            ? Offset.zero
-            : const Offset(24, 24) / _canvasController.scale;
+        _pasteOffset = payload == _cutPayload ? Offset.zero : const Offset(24, 24) / _canvasController.scale;
       } else {
         _pasteOffset += const Offset(24, 24) / _canvasController.scale;
       }
@@ -1263,11 +1204,8 @@ class _CanvasPageState extends State<CanvasPage> {
   );
 
   void _placePastedMedia(MediaModel model) {
-    final screenPosition =
-        _canvasPointerPosition.value ??
-        _canvasController.canvasSize.center(Offset.zero);
-    final center =
-        _canvasController.offset + screenPosition / _canvasController.scale;
+    final screenPosition = _canvasPointerPosition.value ?? _canvasController.canvasSize.center(Offset.zero);
+    final center = _canvasController.offset + screenPosition / _canvasController.scale;
     model
       ..data.position = center - model.canvasSize.center(Offset.zero)
       ..active = false;
@@ -1286,8 +1224,7 @@ class _CanvasPageState extends State<CanvasPage> {
   void _eraseAt(Offset globalPosition) {
     final hits = <CanvasElementModel>[];
     for (final model in _elements) {
-      final renderObject = _selectionKeys[model]?.currentContext
-          ?.findRenderObject();
+      final renderObject = _selectionKeys[model]?.currentContext?.findRenderObject();
       if (renderObject is RenderBox &&
           renderObject.hitTest(
             BoxHitTestResult(),
@@ -1309,9 +1246,7 @@ class _CanvasPageState extends State<CanvasPage> {
 
     final removesEditingText = modelsToDispose.any(
       (model) =>
-          model is TextBlockModel &&
-          (identical(model, _editingTextBlock) ||
-              identical(model, _editingChromeModel)),
+          model is TextBlockModel && (identical(model, _editingTextBlock) || identical(model, _editingChromeModel)),
     );
     if (removesEditingText) {
       _clearTextEditing();
@@ -1388,9 +1323,7 @@ class _CanvasPageState extends State<CanvasPage> {
 
       _saveTimer?.cancel();
       _saveTimer = null;
-      final dirtyFlush = _documentDirty
-          ? _enqueueDocumentSave(throwOnFailure: true)
-          : null;
+      final dirtyFlush = _documentDirty ? _enqueueDocumentSave(throwOnFailure: true) : null;
       _documentLoaded = false;
       if (dirtyFlush != null) await dirtyFlush;
 
@@ -1418,8 +1351,7 @@ class _CanvasPageState extends State<CanvasPage> {
     final currentDocument = _currentDocument();
     final currentPaths = canvasAttachmentPaths(currentDocument);
     final importedPaths = project.attachments.keys.toSet();
-    final collisionPaths = currentPaths.intersection(importedPaths).toList()
-      ..sort();
+    final collisionPaths = currentPaths.intersection(importedPaths).toList()..sort();
     final backups = <String, Uint8List>{};
     final attemptedPaths = <String>[];
 
@@ -1536,8 +1468,7 @@ class _CanvasPageState extends State<CanvasPage> {
 
   bool _handleKeyEvent(KeyEvent event) {
     if (!_documentLoaded) return false;
-    _selectionModifierPressed.value =
-        Theme.of(context).platform == TargetPlatform.macOS
+    _selectionModifierPressed.value = Theme.of(context).platform == TargetPlatform.macOS
         ? HardwareKeyboard.instance.isMetaPressed
         : HardwareKeyboard.instance.isControlPressed;
     final unmodifiedKeyDown =
@@ -1567,11 +1498,8 @@ class _CanvasPageState extends State<CanvasPage> {
       }
       return true;
     }
-    if (event is KeyDownEvent &&
-        _selectionModifierPressed.value &&
-        _clipboardEvents == null) {
-      if (event.logicalKey == LogicalKeyboardKey.keyC ||
-          event.logicalKey == LogicalKeyboardKey.keyX) {
+    if (event is KeyDownEvent && _selectionModifierPressed.value && _clipboardEvents == null) {
+      if (event.logicalKey == LogicalKeyboardKey.keyC || event.logicalKey == LogicalKeyboardKey.keyX) {
         if (_selectedInStackingOrder.isEmpty) return false;
         unawaited(
           _copySelection(
@@ -1592,9 +1520,7 @@ class _CanvasPageState extends State<CanvasPage> {
         return true;
       }
     }
-    if (event is KeyDownEvent &&
-        event.logicalKey == LogicalKeyboardKey.keyA &&
-        _selectionModifierPressed.value) {
+    if (event is KeyDownEvent && event.logicalKey == LogicalKeyboardKey.keyA && _selectionModifierPressed.value) {
       _selectAll();
       return true;
     }
@@ -1616,14 +1542,12 @@ class _CanvasPageState extends State<CanvasPage> {
     }
     final deletionKey =
         event.logicalKey == LogicalKeyboardKey.delete ||
-        (Theme.of(context).platform == TargetPlatform.macOS &&
-            event.logicalKey == LogicalKeyboardKey.backspace);
+        (Theme.of(context).platform == TargetPlatform.macOS && event.logicalKey == LogicalKeyboardKey.backspace);
     if ((event is KeyDownEvent || event is KeyRepeatEvent) && deletionKey) {
       _deleteSelected();
       return true;
     }
-    if ((!_penEnabled && !_eraserEnabled) ||
-        event.logicalKey != LogicalKeyboardKey.space) {
+    if ((!_penEnabled && !_eraserEnabled) || event.logicalKey != LogicalKeyboardKey.space) {
       return false;
     }
     final held = event is! KeyUpEvent;
@@ -1687,8 +1611,7 @@ class _CanvasPageState extends State<CanvasPage> {
     _documentDirty = false;
     final snapshot = _currentDocument();
     final operation = _saveQueue.then(
-      (_) =>
-          throwOnFailure ? _persistDocument(snapshot) : _saveDocument(snapshot),
+      (_) => throwOnFailure ? _persistDocument(snapshot) : _saveDocument(snapshot),
     );
     _saveQueue = operation.then<void>(
       (_) {},
@@ -1793,9 +1716,7 @@ class _CanvasPageState extends State<CanvasPage> {
           IgnorePointer(
             ignoring: !_documentLoaded,
             child: MouseRegion(
-              cursor: !_spaceHeld && (_penEnabled || _eraserEnabled)
-                  ? SystemMouseCursors.none
-                  : MouseCursor.defer,
+              cursor: !_spaceHeld && (_penEnabled || _eraserEnabled) ? SystemMouseCursors.none : MouseCursor.defer,
               onExit: _handleCanvasPointerExit,
               child: Listener(
                 behavior: HitTestBehavior.opaque,
@@ -1806,10 +1727,7 @@ class _CanvasPageState extends State<CanvasPage> {
                 onPointerHover: _handleCanvasPointerHover,
                 child: LazyCanvas(
                   controller: _canvasController,
-                  mousePanButtons:
-                      kSecondaryMouseButton |
-                      kMiddleMouseButton |
-                      (_spaceHeld ? kPrimaryMouseButton : 0),
+                  mousePanButtons: kSecondaryMouseButton | kMiddleMouseButton | (_spaceHeld ? kPrimaryMouseButton : 0),
                 ),
               ),
             ),
@@ -1923,10 +1841,8 @@ class _CanvasPageState extends State<CanvasPage> {
                           child: TextBlockControls(
                             key: ValueKey(editing.node.id),
                             model: editing,
-                            onMove: (delta) =>
-                                _moveSelectedChildren(editing, delta),
-                            onRotate: (angle) =>
-                                _rotateTextBlock(editing, angle),
+                            onMove: (delta) => _moveSelectedChildren(editing, delta),
+                            onRotate: (angle) => _rotateTextBlock(editing, angle),
                             onTransformStart: _finishHistoryOperation,
                             onTransformEnd: _finishHistoryOperation,
                             rotationCenter: () => _textBlockCenter(editing),
@@ -2286,9 +2202,7 @@ class _ColorSwatches extends StatelessWidget {
                       shape: BoxShape.circle,
                       color: swatch.color,
                       border: Border.all(
-                        color: selectedColor == swatch.color
-                            ? colors.focusRing
-                            : colors.borderSubtle,
+                        color: selectedColor == swatch.color ? colors.focusRing : colors.borderSubtle,
                         width: selectedColor == swatch.color ? 2 : 1,
                       ),
                     ),
@@ -2328,8 +2242,7 @@ class _SelectionPointerRegion extends StatelessWidget {
       child: ListenableBuilder(
         listenable: Listenable.merge([activeTool, modifierPressed]),
         builder: (context, child) => AbsorbPointer(
-          absorbing:
-              activeTool.value != _CanvasTool.select || modifierPressed.value,
+          absorbing: activeTool.value != _CanvasTool.select || modifierPressed.value,
           child: child,
         ),
         child: child,
@@ -2373,9 +2286,7 @@ ButtonStyle _toolbarButtonStyle(BColors colors, BGeo geo) {
       return Colors.transparent;
     }),
     side: WidgetStateProperty.resolveWith(
-      (states) => states.contains(WidgetState.focused)
-          ? BorderSide(color: colors.focusRing)
-          : BorderSide.none,
+      (states) => states.contains(WidgetState.focused) ? BorderSide(color: colors.focusRing) : BorderSide.none,
     ),
     shape: WidgetStatePropertyAll(
       RoundedRectangleBorder(borderRadius: geo.radiusSmall),

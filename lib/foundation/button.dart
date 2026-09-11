@@ -99,13 +99,10 @@ class Button extends StatelessWidget {
 
   Color _foreground(BColors colors) => switch (variant) {
     ButtonVariant.primary => colors.surface,
-    ButtonVariant.outline ||
-    ButtonVariant.secondary ||
-    ButtonVariant.ghost => colors.textPrimary,
+    ButtonVariant.outline || ButtonVariant.secondary || ButtonVariant.ghost => colors.textPrimary,
     ButtonVariant.destructive => colors.accentPressed,
     ButtonVariant.link => colors.accent,
-    ButtonVariant.toolbar =>
-      selected == true ? colors.accent : colors.textSecondary,
+    ButtonVariant.toolbar => selected == true ? colors.accent : colors.textSecondary,
   };
 
   Color _background(BColors colors) => switch (variant) {
@@ -114,15 +111,12 @@ class Button extends StatelessWidget {
     ButtonVariant.secondary => colors.surfaceSubtle,
     ButtonVariant.ghost || ButtonVariant.link => Colors.transparent,
     ButtonVariant.destructive => colors.accentSoft,
-    ButtonVariant.toolbar =>
-      selected == true ? colors.surfacePressed : Colors.transparent,
+    ButtonVariant.toolbar => selected == true ? colors.surfacePressed : Colors.transparent,
   };
 
   Color _hoverBackground(BColors colors) => switch (variant) {
     ButtonVariant.primary => colors.accentHover,
-    ButtonVariant.outline ||
-    ButtonVariant.secondary ||
-    ButtonVariant.ghost => colors.surfaceHover,
+    ButtonVariant.outline || ButtonVariant.secondary || ButtonVariant.ghost => colors.surfaceHover,
     ButtonVariant.destructive => colors.accentSubtle,
     ButtonVariant.link => Colors.transparent,
     ButtonVariant.toolbar => colors.surfaceHover,
@@ -130,9 +124,7 @@ class Button extends StatelessWidget {
 
   Color _pressedBackground(BColors colors) => switch (variant) {
     ButtonVariant.primary => colors.accentPressed,
-    ButtonVariant.outline ||
-    ButtonVariant.secondary ||
-    ButtonVariant.ghost => colors.surfacePressed,
+    ButtonVariant.outline || ButtonVariant.secondary || ButtonVariant.ghost => colors.surfacePressed,
     ButtonVariant.destructive => colors.accentSubtle,
     ButtonVariant.link => Colors.transparent,
     ButtonVariant.toolbar => colors.surfacePressed,
@@ -147,23 +139,18 @@ class Button extends StatelessWidget {
   ) {
     return ButtonStyle(
       foregroundColor: WidgetStateProperty.resolveWith((states) {
-        return states.contains(WidgetState.disabled)
-            ? colors.textMuted
-            : _foreground(colors);
+        return states.contains(WidgetState.disabled) ? colors.textMuted : _foreground(colors);
       }),
       backgroundColor: WidgetStateProperty.resolveWith((states) {
         if (states.contains(WidgetState.disabled)) {
-          return variant == ButtonVariant.outline ||
-                  variant == ButtonVariant.ghost ||
-                  variant == ButtonVariant.link
+          return variant == ButtonVariant.outline || variant == ButtonVariant.ghost || variant == ButtonVariant.link
               ? Colors.transparent
               : colors.surfacePressed;
         }
         if (states.contains(WidgetState.pressed)) {
           return _pressedBackground(colors);
         }
-        if (states.contains(WidgetState.hovered) ||
-            states.contains(WidgetState.focused)) {
+        if (states.contains(WidgetState.hovered) || states.contains(WidgetState.focused)) {
           return _hoverBackground(colors);
         }
         return _background(colors);
@@ -177,17 +164,14 @@ class Button extends StatelessWidget {
         if (states.contains(WidgetState.focused)) {
           return BorderSide(color: colors.focusRing, width: 2);
         }
-        return variant == ButtonVariant.outline
-            ? BorderSide(color: colors.borderSubtle)
-            : BorderSide.none;
+        return variant == ButtonVariant.outline ? BorderSide(color: colors.borderSubtle) : BorderSide.none;
       }),
       shape: WidgetStatePropertyAll(
         RoundedRectangleBorder(borderRadius: borderRadius),
       ),
       textStyle: WidgetStateProperty.resolveWith((states) {
         if (variant == ButtonVariant.link &&
-            (states.contains(WidgetState.hovered) ||
-                states.contains(WidgetState.focused))) {
+            (states.contains(WidgetState.hovered) || states.contains(WidgetState.focused))) {
           return textStyle.copyWith(decoration: TextDecoration.underline);
         }
         return textStyle;
@@ -201,9 +185,7 @@ class Button extends StatelessWidget {
       minimumSize: WidgetStatePropertyAll(
         Size(size == ButtonSize.toolbar ? 88 : 0, _height),
       ),
-      fixedSize: size == ButtonSize.icon
-          ? WidgetStatePropertyAll(Size.square(_height))
-          : null,
+      fixedSize: size == ButtonSize.icon ? WidgetStatePropertyAll(Size.square(_height)) : null,
       tapTargetSize: MaterialTapTargetSize.shrinkWrap,
     );
   }
@@ -242,8 +224,6 @@ class Button extends StatelessWidget {
         child: _content(),
       ),
     );
-    return selected == null
-        ? button
-        : Semantics(selected: selected, child: button);
+    return selected == null ? button : Semantics(selected: selected, child: button);
   }
 }

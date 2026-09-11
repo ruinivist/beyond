@@ -8,8 +8,7 @@ import 'package:flutter/material.dart';
 
 /// Adds selection and canvas geometry behavior to persisted element data.
 /// Extended by each concrete interactive canvas element model.
-abstract class CanvasElementModel<T extends CanvasElementData>
-    extends ChangeNotifier {
+abstract class CanvasElementModel<T extends CanvasElementData> extends ChangeNotifier {
   // ---------- Construction ----------
 
   CanvasElementModel(this.data);

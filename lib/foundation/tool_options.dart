@@ -45,8 +45,7 @@ class ToolOptions extends StatelessWidget {
           ),
         );
       },
-      child:
-          child ?? const SizedBox.shrink(key: ValueKey('tool-options-hidden')),
+      child: child ?? const SizedBox.shrink(key: ValueKey('tool-options-hidden')),
     );
   }
 }

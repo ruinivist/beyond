@@ -1,8 +1,6 @@
 // Provides rich text editing, Markdown preview, styling, and interaction.
 // Used by the canvas text tool and persisted text elements.
 // The deeply nested toolbar configuration stays inline with its widgets.
-// ignore_for_file: lines_longer_than_80_chars
-
 import 'dart:async';
 import 'dart:math' as math;
 
@@ -193,9 +191,7 @@ class TextBlock extends StatelessWidget {
               : _TextMarkdownPreview(
                   source: model.node.markdown,
                   style: model.style,
-                  scrollController: model.node.height == null
-                      ? null
-                      : model.scrollController,
+                  scrollController: model.node.height == null ? null : model.scrollController,
                   onEdit: onEdit,
                   onMove: onMove,
                   attachmentStore: attachmentStore,
@@ -211,19 +207,16 @@ class TextBlock extends StatelessWidget {
                   thumbVisibility: true,
                   child: PointerScrollBoundary(child: configuredBody),
                 );
-          final resizeGestureFactory =
-              GestureRecognizerFactoryWithHandlers<
-                ImmediateMultiDragGestureRecognizer
-              >(
-                ImmediateMultiDragGestureRecognizer.new,
-                (recognizer) {
-                  recognizer.onStart = (_) {
-                    return _TextBlockResizeDrag(
-                      (delta) => onResize(context.size!, delta),
-                    );
-                  };
-                },
-              );
+          final resizeGestureFactory = GestureRecognizerFactoryWithHandlers<ImmediateMultiDragGestureRecognizer>(
+            ImmediateMultiDragGestureRecognizer.new,
+            (recognizer) {
+              recognizer.onStart = (_) {
+                return _TextBlockResizeDrag(
+                  (delta) => onResize(context.size!, delta),
+                );
+              };
+            },
+          );
           const resizeRecognizer = ImmediateMultiDragGestureRecognizer;
           return Semantics(
             container: true,
@@ -231,9 +224,7 @@ class TextBlock extends StatelessWidget {
             child: DecoratedBox(
               decoration: BoxDecoration(
                 color: model.selected ? colors.accentSoft : Colors.transparent,
-                border: model.selected
-                    ? Border.all(color: colors.accent, width: 2)
-                    : null,
+                border: model.selected ? Border.all(color: colors.accent, width: 2) : null,
                 borderRadius: theme.geo.radiusSmall,
               ),
               child: CompositedTransformTarget(
@@ -247,10 +238,7 @@ class TextBlock extends StatelessWidget {
                     ),
                     child: Stack(
                       children: [
-                        if (model.node.height != null)
-                          Positioned.fill(child: visibleBody)
-                        else
-                          visibleBody,
+                        if (model.node.height != null) Positioned.fill(child: visibleBody) else visibleBody,
                         Positioned.fill(
                           child: IgnorePointer(
                             child: AnimatedSwitcher(
@@ -260,11 +248,10 @@ class TextBlock extends StatelessWidget {
                               ),
                               switchInCurve: Curves.easeOutCubic,
                               switchOutCurve: Curves.easeOutCubic,
-                              transitionBuilder: (child, animation) =>
-                                  FadeTransition(
-                                    opacity: animation,
-                                    child: child,
-                                  ),
+                              transitionBuilder: (child, animation) => FadeTransition(
+                                opacity: animation,
+                                child: child,
+                              ),
                               child: model.editing
                                   ? SizedBox.expand(
                                       key: const ValueKey(
@@ -311,8 +298,7 @@ class TextBlock extends StatelessWidget {
                                           ),
                                           semanticLabel: 'Resize text block',
                                           gestures: {
-                                            resizeRecognizer:
-                                                resizeGestureFactory,
+                                            resizeRecognizer: resizeGestureFactory,
                                           },
                                         ),
                                       )
@@ -402,8 +388,7 @@ class _TextMarkdownEditorState extends State<_TextMarkdownEditor> {
     if (_events != null ||
         event is! KeyDownEvent ||
         event.logicalKey != LogicalKeyboardKey.keyV ||
-        (!HardwareKeyboard.instance.isControlPressed &&
-            !HardwareKeyboard.instance.isMetaPressed)) {
+        (!HardwareKeyboard.instance.isControlPressed && !HardwareKeyboard.instance.isMetaPressed)) {
       return KeyEventResult.ignored;
     }
     final clipboard = SystemClipboard.instance;
@@ -505,8 +490,7 @@ class _TextMarkdownPreviewState extends State<_TextMarkdownPreview> {
               ),
             },
             styleSheet: _styleSheet(context, widget.style),
-            imageBuilder: (uri, title, alt) =>
-                _buildImage(uri, alt, widget.attachmentStore),
+            imageBuilder: (uri, title, alt) => _buildImage(uri, alt, widget.attachmentStore),
             onTapLink: (_, href, _) => _openLink(context, href),
           );
     return GestureDetector(
@@ -698,9 +682,7 @@ class TextBlockControls extends StatelessWidget {
                       behavior: HitTestBehavior.opaque,
                       gestures: {
                         ImmediateMultiDragGestureRecognizer:
-                            GestureRecognizerFactoryWithHandlers<
-                              ImmediateMultiDragGestureRecognizer
-                            >(
+                            GestureRecognizerFactoryWithHandlers<ImmediateMultiDragGestureRecognizer>(
                               ImmediateMultiDragGestureRecognizer.new,
                               (recognizer) {
                                 recognizer.onStart = (_) {
@@ -740,9 +722,7 @@ class TextBlockControls extends StatelessWidget {
                         behavior: HitTestBehavior.opaque,
                         gestures: {
                           ImmediateMultiDragGestureRecognizer:
-                              GestureRecognizerFactoryWithHandlers<
-                                ImmediateMultiDragGestureRecognizer
-                              >(
+                              GestureRecognizerFactoryWithHandlers<ImmediateMultiDragGestureRecognizer>(
                                 ImmediateMultiDragGestureRecognizer.new,
                                 (recognizer) {
                                   recognizer.onStart = (position) {
@@ -815,9 +795,8 @@ class _TextSettingsState extends State<TextSettings> {
         const colorSwatch = SizedBox.square(dimension: 20);
         const clear = Colors.transparent;
         final colorButtonOverlay = WidgetStateProperty.resolveWith<Color?>(
-          (states) => states.contains(WidgetState.focused)
-              ? colors.focusRing.withValues(alpha: 0.18)
-              : Colors.transparent,
+          (states) =>
+              states.contains(WidgetState.focused) ? colors.focusRing.withValues(alpha: 0.18) : Colors.transparent,
         );
         return SizedBox(
           height: 56,
@@ -922,41 +901,31 @@ class _TextSettingsState extends State<TextSettings> {
                                                   message: swatch.label,
                                                   child: Semantics(
                                                     button: true,
-                                                    selected:
-                                                        selectedColor ==
-                                                        swatch.color,
-                                                    label:
-                                                        'Use ${swatch.label}',
+                                                    selected: selectedColor == swatch.color,
+                                                    label: 'Use ${swatch.label}',
                                                     child: IconButton(
                                                       key: ValueKey(
                                                         'text-color-'
                                                         '${swatch.label}',
                                                       ),
                                                       onPressed: () {
-                                                        widget
-                                                            .onChangeBoundary();
-                                                        widget.model.style =
-                                                            style.copyWith(
-                                                              color: colorToHex(
-                                                                swatch.color,
-                                                              ),
-                                                            );
-                                                        widget
-                                                            .onChangeBoundary();
+                                                        widget.onChangeBoundary();
+                                                        widget.model.style = style.copyWith(
+                                                          color: colorToHex(
+                                                            swatch.color,
+                                                          ),
+                                                        );
+                                                        widget.onChangeBoundary();
                                                         _colorMenu.close();
                                                       },
                                                       style: IconButton.styleFrom(
-                                                        minimumSize:
-                                                            const Size.square(
-                                                              40,
-                                                            ),
-                                                        padding:
-                                                            colorButtonPadding,
+                                                        minimumSize: const Size.square(
+                                                          40,
+                                                        ),
+                                                        padding: colorButtonPadding,
                                                         shape: colorButtonShape,
                                                         side: BorderSide(
-                                                          color:
-                                                              selectedColor ==
-                                                                  swatch.color
+                                                          color: selectedColor == swatch.color
                                                               ? colors.focusRing
                                                               : clear,
                                                           width: 2,
@@ -965,11 +934,9 @@ class _TextSettingsState extends State<TextSettings> {
                                                       icon: DecoratedBox(
                                                         decoration: BoxDecoration(
                                                           color: swatch.color,
-                                                          shape:
-                                                              BoxShape.circle,
+                                                          shape: BoxShape.circle,
                                                           border: Border.all(
-                                                            color: colors
-                                                                .borderSubtle,
+                                                            color: colors.borderSubtle,
                                                           ),
                                                         ),
                                                         child: colorSwatch,
@@ -981,40 +948,35 @@ class _TextSettingsState extends State<TextSettings> {
                                           ),
                                         ),
                                       ],
-                                      builder: (context, controller, _) =>
-                                          IconButton(
-                                            key: const ValueKey(
-                                              'text-settings-color',
+                                      builder: (context, controller, _) => IconButton(
+                                        key: const ValueKey(
+                                          'text-settings-color',
+                                        ),
+                                        tooltip: 'Choose text color',
+                                        onPressed: controller.isOpen ? controller.close : controller.open,
+                                        style:
+                                            IconButton.styleFrom(
+                                              minimumSize: const Size.square(40),
+                                              padding: const EdgeInsets.all(
+                                                8,
+                                              ),
+                                              shape: const CircleBorder(),
+                                            ).copyWith(
+                                              overlayColor: colorButtonOverlay,
                                             ),
-                                            tooltip: 'Choose text color',
-                                            onPressed: controller.isOpen
-                                                ? controller.close
-                                                : controller.open,
-                                            style:
-                                                IconButton.styleFrom(
-                                                  minimumSize:
-                                                      const Size.square(40),
-                                                  padding: const EdgeInsets.all(
-                                                    8,
-                                                  ),
-                                                  shape: const CircleBorder(),
-                                                ).copyWith(
-                                                  overlayColor:
-                                                      colorButtonOverlay,
-                                                ),
-                                            icon: DecoratedBox(
-                                              decoration: BoxDecoration(
-                                                color: selectedColor,
-                                                shape: BoxShape.circle,
-                                                border: Border.all(
-                                                  color: colors.borderSubtle,
-                                                ),
-                                              ),
-                                              child: const SizedBox.square(
-                                                dimension: 24,
-                                              ),
+                                        icon: DecoratedBox(
+                                          decoration: BoxDecoration(
+                                            color: selectedColor,
+                                            shape: BoxShape.circle,
+                                            border: Border.all(
+                                              color: colors.borderSubtle,
                                             ),
                                           ),
+                                          child: const SizedBox.square(
+                                            dimension: 24,
+                                          ),
+                                        ),
+                                      ),
                                     ),
                                   ],
                                 ),
@@ -1038,9 +1000,7 @@ class _TextSettingsState extends State<TextSettings> {
 // ---------- Markdown media and links ----------
 
 bool _sameStyle(TextNodeStyle first, TextNodeStyle second) {
-  return first.fontFamily == second.fontFamily &&
-      first.fontSize == second.fontSize &&
-      first.color == second.color;
+  return first.fontFamily == second.fontFamily && first.fontSize == second.fontSize && first.color == second.color;
 }
 
 Widget _buildImage(Uri uri, String? alt, AttachmentStore attachmentStore) {
@@ -1123,10 +1083,7 @@ class _TextImageError extends StatelessWidget {
 
 Future<void> _openLink(BuildContext context, String? href) async {
   final uri = href == null ? null : Uri.tryParse(href);
-  final supported =
-      uri != null &&
-      (uri.scheme == 'http' || uri.scheme == 'https') &&
-      uri.host.isNotEmpty;
+  final supported = uri != null && (uri.scheme == 'http' || uri.scheme == 'https') && uri.host.isNotEmpty;
   if (supported) {
     try {
       if (await launchUrl(uri, mode: LaunchMode.externalApplication)) return;
@@ -1200,5 +1157,4 @@ class _TextBlockRotateDrag extends Drag {
   void cancel() => onEnd();
 }
 
-double _pointerAngle(Offset pointer, Offset center) =>
-    math.atan2(pointer.dy - center.dy, pointer.dx - center.dx);
+double _pointerAngle(Offset pointer, Offset center) => math.atan2(pointer.dy - center.dy, pointer.dx - center.dx);

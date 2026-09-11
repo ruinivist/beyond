@@ -57,8 +57,7 @@ Map<String, Object?> _textSizeToJson(
   ({double width, double? height}) size,
 ) => <String, Object?>{'width': size.width, 'height': ?size.height};
 
-final class _OffsetConverter
-    extends JsonConverter<Offset, Map<String, dynamic>> {
+final class _OffsetConverter extends JsonConverter<Offset, Map<String, dynamic>> {
   const _OffsetConverter();
 
   @override

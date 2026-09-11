@@ -58,9 +58,7 @@ double _selectPreferredWidth<T>(
 
 WidgetStateProperty<Color?> _selectForegroundColor(BColors colors) {
   return WidgetStateProperty.resolveWith((states) {
-    return states.contains(WidgetState.disabled)
-        ? colors.textPrimary.withValues(alpha: 0.38)
-        : colors.textPrimary;
+    return states.contains(WidgetState.disabled) ? colors.textPrimary.withValues(alpha: 0.38) : colors.textPrimary;
   });
 }
 
@@ -115,8 +113,7 @@ ButtonStyle _selectOptionStyle({
       if (states.contains(WidgetState.disabled)) return Colors.transparent;
       if (isSelected) return Colors.transparent;
       if (states.contains(WidgetState.pressed)) return colors.surfacePressed;
-      if (states.contains(WidgetState.hovered) ||
-          states.contains(WidgetState.focused)) {
+      if (states.contains(WidgetState.hovered) || states.contains(WidgetState.focused)) {
         return colors.surfaceHover;
       }
       return Colors.transparent;
@@ -203,9 +200,7 @@ Widget _buildSelectTrigger({
       },
       child: TextButton(
         key: ValueKey('$keyPrefix-trigger'),
-        onPressed: enabled
-            ? () => controller.isOpen ? controller.close() : controller.open()
-            : null,
+        onPressed: enabled ? () => controller.isOpen ? controller.close() : controller.open() : null,
         focusNode: focusNode,
         style: _selectTriggerStyle(
           theme: theme,
@@ -288,14 +283,11 @@ class _SelectState<T> extends State<Select<T>> {
   bool get _enabled => widget.onChanged != null;
   BTheme get _theme => BTheme.of(context);
   TextStyle get _textStyle => _theme.typo.body;
-  double get _preferredWidth =>
-      _selectPreferredWidth(context, widget.options, _textStyle);
+  double get _preferredWidth => _selectPreferredWidth(context, widget.options, _textStyle);
 
   double get _triggerWidth {
     final renderBox = _triggerKey.currentContext?.findRenderObject();
-    return renderBox is RenderBox && renderBox.hasSize
-        ? renderBox.size.width
-        : _preferredWidth;
+    return renderBox is RenderBox && renderBox.hasSize ? renderBox.size.width : _preferredWidth;
   }
 
   // ---------- Lifecycle ----------
@@ -372,8 +364,7 @@ class _SelectState<T> extends State<Select<T>> {
       crossAxisUnconstrained: false,
       style: _selectMenuStyle(theme: _theme, width: () => _triggerWidth),
       menuChildren: [
-        for (var i = 0; i < widget.options.length; i++)
-          _buildOption(widget.options[i], i),
+        for (var i = 0; i < widget.options.length; i++) _buildOption(widget.options[i], i),
       ],
       builder: (context, controller, child) => _buildSelectTrigger(
         triggerKey: _triggerKey,
@@ -443,14 +434,11 @@ class _SearchableSelectState<T> extends State<SearchableSelect<T>> {
   BTheme get _theme => BTheme.of(context);
   BColors get _colors => _theme.colors;
   TextStyle get _textStyle => _theme.typo.body;
-  double get _preferredWidth =>
-      _selectPreferredWidth(context, widget.options, _textStyle);
+  double get _preferredWidth => _selectPreferredWidth(context, widget.options, _textStyle);
 
   double get _triggerWidth {
     final renderBox = _triggerKey.currentContext?.findRenderObject();
-    return renderBox is RenderBox && renderBox.hasSize
-        ? renderBox.size.width
-        : _preferredWidth;
+    return renderBox is RenderBox && renderBox.hasSize ? renderBox.size.width : _preferredWidth;
   }
 
   // ---------- Lifecycle ----------
@@ -496,9 +484,7 @@ class _SearchableSelectState<T> extends State<SearchableSelect<T>> {
   List<SelectOption<T>> get _visibleOptions {
     final query = _searchController.text.toLowerCase();
     if (query.isNotEmpty) {
-      return widget.options
-          .where((option) => option.label.toLowerCase().contains(query))
-          .toList()
+      return widget.options.where((option) => option.label.toLowerCase().contains(query)).toList()
         ..sort(_compareOptions);
     }
 
@@ -511,8 +497,7 @@ class _SearchableSelectState<T> extends State<SearchableSelect<T>> {
           break;
         }
       }
-      if (option != null &&
-          !preferred.any((current) => current.value == option!.value)) {
+      if (option != null && !preferred.any((current) => current.value == option!.value)) {
         preferred.add(option);
       }
     }
@@ -520,8 +505,7 @@ class _SearchableSelectState<T> extends State<SearchableSelect<T>> {
     final remaining =
         widget.options
             .where(
-              (option) =>
-                  !preferred.any((current) => current.value == option.value),
+              (option) => !preferred.any((current) => current.value == option.value),
             )
             .toList()
           ..sort(_compareOptions);
@@ -606,8 +590,7 @@ class _SearchableSelectState<T> extends State<SearchableSelect<T>> {
                 primary: false,
                 shrinkWrap: true,
                 children: [
-                  for (var i = 0; i < visibleOptions.length; i++)
-                    _buildSearchableOption(visibleOptions[i], i),
+                  for (var i = 0; i < visibleOptions.length; i++) _buildSearchableOption(visibleOptions[i], i),
                 ],
               ),
             ),

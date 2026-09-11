@@ -73,9 +73,7 @@ class MediaModel extends CanvasElementModel<MediaElementData> {
 
   bool get hasImage => _image != null && _aspectRatio != null;
 
-  double get urlPanelWidth => hasImage
-      ? math.max(mediaUrlPanelMinimumWidth, data.width)
-      : mediaUrlPanelMinimumWidth;
+  double get urlPanelWidth => hasImage ? math.max(mediaUrlPanelMinimumWidth, data.width) : mediaUrlPanelMinimumWidth;
 
   bool get active => _active;
 
@@ -90,9 +88,8 @@ class MediaModel extends CanvasElementModel<MediaElementData> {
   Offset get canvasPosition => data.position;
 
   @override
-  Size get canvasSize => hasImage
-      ? Size(data.width, data.width / _aspectRatio!)
-      : Size(urlPanelWidth, _mediaUrlPanelCanvasHeight);
+  Size get canvasSize =>
+      hasImage ? Size(data.width, data.width / _aspectRatio!) : Size(urlPanelWidth, _mediaUrlPanelCanvasHeight);
 
   @override
   void moveBy(Offset delta) {
@@ -105,9 +102,7 @@ class MediaModel extends CanvasElementModel<MediaElementData> {
     final aspectRatio = _aspectRatio;
     if (aspectRatio == null) return;
     final inverseRatio = 1 / aspectRatio;
-    final widthDelta =
-        (delta.dx + delta.dy * inverseRatio) /
-        (1 + inverseRatio * inverseRatio);
+    final widthDelta = (delta.dx + delta.dy * inverseRatio) / (1 + inverseRatio * inverseRatio);
     final width = math.max(mediaNodeMinimumWidth, data.width + widthDelta);
     if (width == data.width) return;
     data.width = width;
@@ -117,9 +112,7 @@ class MediaModel extends CanvasElementModel<MediaElementData> {
   // ---------- Image updates ----------
 
   Future<void> setDeviceImage(Uint8List bytes, String extension) async {
-    final normalizedExtension = extension.toLowerCase() == 'jpeg'
-        ? 'jpg'
-        : extension.toLowerCase();
+    final normalizedExtension = extension.toLowerCase() == 'jpeg' ? 'jpg' : extension.toLowerCase();
     if (!const {'png', 'jpg', 'gif', 'webp'}.contains(normalizedExtension)) {
       throw const FormatException('Unsupported image type');
     }
@@ -397,11 +390,12 @@ class _MediaImage extends StatelessWidget {
         behavior: HitTestBehavior.opaque,
         gestures: {
           ImmediateMultiDragGestureRecognizer:
-              GestureRecognizerFactoryWithHandlers<
-                ImmediateMultiDragGestureRecognizer
-              >(ImmediateMultiDragGestureRecognizer.new, (recognizer) {
-                recognizer.onStart = (_) => _MediaDrag(onMove);
-              }),
+              GestureRecognizerFactoryWithHandlers<ImmediateMultiDragGestureRecognizer>(
+                ImmediateMultiDragGestureRecognizer.new,
+                (recognizer) {
+                  recognizer.onStart = (_) => _MediaDrag(onMove);
+                },
+              ),
         },
         child: Stack(
           children: [
@@ -435,9 +429,7 @@ class _MediaImage extends StatelessWidget {
                   semanticLabel: 'Resize media',
                   gestures: {
                     ImmediateMultiDragGestureRecognizer:
-                        GestureRecognizerFactoryWithHandlers<
-                          ImmediateMultiDragGestureRecognizer
-                        >(
+                        GestureRecognizerFactoryWithHandlers<ImmediateMultiDragGestureRecognizer>(
                           ImmediateMultiDragGestureRecognizer.new,
                           (recognizer) {
                             recognizer.onStart = (_) => _MediaDrag(onResize);
@@ -511,9 +503,7 @@ class _MediaUrlPanel extends StatelessWidget {
                     behavior: HitTestBehavior.opaque,
                     gestures: {
                       ImmediateMultiDragGestureRecognizer:
-                          GestureRecognizerFactoryWithHandlers<
-                            ImmediateMultiDragGestureRecognizer
-                          >(
+                          GestureRecognizerFactoryWithHandlers<ImmediateMultiDragGestureRecognizer>(
                             ImmediateMultiDragGestureRecognizer.new,
                             (recognizer) {
                               recognizer.onStart = (_) => _MediaDrag(move);

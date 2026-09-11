@@ -273,9 +273,7 @@ class Shape extends StatelessWidget {
           child: RawGestureDetector(
             gestures: {
               ImmediateMultiDragGestureRecognizer:
-                  GestureRecognizerFactoryWithHandlers<
-                    ImmediateMultiDragGestureRecognizer
-                  >(
+                  GestureRecognizerFactoryWithHandlers<ImmediateMultiDragGestureRecognizer>(
                     ImmediateMultiDragGestureRecognizer.new,
                     (recognizer) {
                       recognizer.onStart = (_) => _ShapeDrag(onMove);
@@ -291,12 +289,8 @@ class Shape extends StatelessWidget {
                         model.data.kind,
                         Offset.zero & model.canvasSize,
                       ),
-                      color: model.selected || model.active
-                          ? colors.accent
-                          : Color(model.data.strokeColor),
-                      fillColor: model.data.fillColor == null
-                          ? null
-                          : Color(model.data.fillColor!),
+                      color: model.selected || model.active ? colors.accent : Color(model.data.strokeColor),
+                      fillColor: model.data.fillColor == null ? null : Color(model.data.fillColor!),
                       strokeWidth: model.data.strokeWidth,
                     ),
                   ),
@@ -310,13 +304,10 @@ class Shape extends StatelessWidget {
                       semanticLabel: 'Resize shape',
                       gestures: {
                         ImmediateMultiDragGestureRecognizer:
-                            GestureRecognizerFactoryWithHandlers<
-                              ImmediateMultiDragGestureRecognizer
-                            >(
+                            GestureRecognizerFactoryWithHandlers<ImmediateMultiDragGestureRecognizer>(
                               ImmediateMultiDragGestureRecognizer.new,
                               (recognizer) {
-                                recognizer.onStart = (_) =>
-                                    _ShapeDrag(onResize);
+                                recognizer.onStart = (_) => _ShapeDrag(onResize);
                               },
                             ),
                       },

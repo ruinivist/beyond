@@ -205,9 +205,7 @@ ThemeData _starlessThemeData({
     geo: _starlessGeo,
     syntaxTheme: syntaxTheme,
   );
-  final onAccent = brightness == Brightness.light
-      ? colors.surface
-      : colors.canvasBackground;
+  final onAccent = brightness == Brightness.light ? colors.surface : colors.canvasBackground;
   final colorScheme = ColorScheme(
     brightness: brightness,
     primary: colors.accent,

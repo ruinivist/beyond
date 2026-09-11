@@ -170,9 +170,7 @@ class CodeBlock extends StatelessWidget {
                             fontSize: codeStyle.fontSize,
                             fontHeight: codeStyle.height,
                             textColor: colors.textPrimary,
-                            backgroundColor: model.selected
-                                ? colors.accentSoft
-                                : colors.surface,
+                            backgroundColor: model.selected ? colors.accentSoft : colors.surface,
                             cursorColor: colors.accent,
                             selectionColor: colors.accentSubtle,
                             codeTheme: model.language.theme(
@@ -220,24 +218,19 @@ class CodeBlock extends StatelessWidget {
                     semanticLabel: 'Resize code block',
                     background: false,
                     gestures: {
-                      ScaleGestureRecognizer:
-                          GestureRecognizerFactoryWithHandlers<
-                            ScaleGestureRecognizer
-                          >(
-                            () => ScaleGestureRecognizer(
-                              allowedButtonsFilter: (buttons) =>
-                                  buttons == kPrimaryButton,
-                            ),
-                            (recognizer) {
-                              recognizer.onUpdate = (details) {
-                                model.size = Size(
-                                  model.size.width + details.focalPointDelta.dx,
-                                  model.size.height +
-                                      details.focalPointDelta.dy,
-                                );
-                              };
-                            },
-                          ),
+                      ScaleGestureRecognizer: GestureRecognizerFactoryWithHandlers<ScaleGestureRecognizer>(
+                        () => ScaleGestureRecognizer(
+                          allowedButtonsFilter: (buttons) => buttons == kPrimaryButton,
+                        ),
+                        (recognizer) {
+                          recognizer.onUpdate = (details) {
+                            model.size = Size(
+                              model.size.width + details.focalPointDelta.dx,
+                              model.size.height + details.focalPointDelta.dy,
+                            );
+                          };
+                        },
+                      ),
                     },
                   ),
                 ),
@@ -276,11 +269,12 @@ class _CodeBlockHeader extends StatelessWidget {
           behavior: HitTestBehavior.opaque,
           gestures: {
             ImmediateMultiDragGestureRecognizer:
-                GestureRecognizerFactoryWithHandlers<
-                  ImmediateMultiDragGestureRecognizer
-                >(ImmediateMultiDragGestureRecognizer.new, (recognizer) {
-                  recognizer.onStart = (_) => _CodeBlockDrag(onMove);
-                }),
+                GestureRecognizerFactoryWithHandlers<ImmediateMultiDragGestureRecognizer>(
+                  ImmediateMultiDragGestureRecognizer.new,
+                  (recognizer) {
+                    recognizer.onStart = (_) => _CodeBlockDrag(onMove);
+                  },
+                ),
           },
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -293,8 +287,7 @@ class _CodeBlockHeader extends StatelessWidget {
                   preferredValues: CodeLanguage.values,
                   searchHint: 'Search languages…',
                   options: [
-                    for (final language in CodeLanguage.values)
-                      SelectOption(value: language, label: language.label),
+                    for (final language in CodeLanguage.values) SelectOption(value: language, label: language.label),
                   ],
                   showBorder: false,
                   onChanged: (language) {

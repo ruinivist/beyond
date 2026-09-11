@@ -50,8 +50,7 @@ enum ShapeKind {
 class CanvasDocument {
   // ---------- Construction ----------
 
-  const CanvasDocument({required this.background, required this.elements})
-    : schemaVersion = version;
+  const CanvasDocument({required this.background, required this.elements}) : schemaVersion = version;
 
   const CanvasDocument._json({
     required this.schemaVersion,
@@ -168,10 +167,8 @@ class ShapeElementData extends CanvasElementData {
   }) : super(id, type);
 
   factory ShapeElementData.fromJson(Object? json) {
-    final shape = _decode(json, 'shape element', _$ShapeElementDataFromJson)
-      ..validateType('shape');
-    if (shape.size.width < shapeMinimumSize.width ||
-        shape.size.height < shapeMinimumSize.height) {
+    final shape = _decode(json, 'shape element', _$ShapeElementDataFromJson)..validateType('shape');
+    if (shape.size.width < shapeMinimumSize.width || shape.size.height < shapeMinimumSize.height) {
       throw const FormatException('element.size is below the shape minimum');
     }
     _validateArgb(shape.strokeColor, 'element.strokeColor');
@@ -236,8 +233,7 @@ class MediaElementData extends CanvasElementData {
   }) : super(id, type);
 
   factory MediaElementData.fromJson(Object? json) {
-    final media = _decode(json, 'media element', _$MediaElementDataFromJson)
-      ..validateType('media');
+    final media = _decode(json, 'media element', _$MediaElementDataFromJson)..validateType('media');
     _validateFinite(media.width, 'element.width');
     if (media.width < mediaNodeMinimumWidth) {
       throw const FormatException('element.width is below the minimum');
@@ -353,8 +349,7 @@ class TextElementData extends CanvasElementData {
   }) : super(id, type);
 
   factory TextElementData.fromJson(Object? json) {
-    final text = _decode(json, 'text element', _$TextElementDataFromJson)
-      ..validateType('text');
+    final text = _decode(json, 'text element', _$TextElementDataFromJson)..validateType('text');
     if (text.width < textNodeMinimumWidth) {
       throw const FormatException('element.size.width is below the minimum');
     }
@@ -426,10 +421,8 @@ class CodeElementData extends CanvasElementData {
   }) : super(id, type);
 
   factory CodeElementData.fromJson(Object? json) {
-    final code = _decode(json, 'code element', _$CodeElementDataFromJson)
-      ..validateType('code');
-    if (code.size.width < codeBlockMinimumSize.width ||
-        code.size.height < codeBlockMinimumSize.height) {
+    final code = _decode(json, 'code element', _$CodeElementDataFromJson)..validateType('code');
+    if (code.size.width < codeBlockMinimumSize.width || code.size.height < codeBlockMinimumSize.height) {
       throw const FormatException('element.size is below the minimum');
     }
     return code;
@@ -528,8 +521,7 @@ class PenElementData extends CanvasElementData {
   }) : super(id, type);
 
   factory PenElementData.fromJson(Object? json) {
-    final pen = _decode(json, 'pen element', _$PenElementDataFromJson)
-      ..validateType('pen');
+    final pen = _decode(json, 'pen element', _$PenElementDataFromJson)..validateType('pen');
     _validateFinite(pen.hitSlop, 'element.hitSlop');
     if (pen.hitSlop < 0) {
       throw const FormatException('element.hitSlop must be non-negative');
@@ -595,8 +587,7 @@ class ArrowElementData extends CanvasElementData {
   }) : super(id, type);
 
   factory ArrowElementData.fromJson(Object? json) {
-    final arrow = _decode(json, 'arrow element', _$ArrowElementDataFromJson)
-      ..validateType('arrow');
+    final arrow = _decode(json, 'arrow element', _$ArrowElementDataFromJson)..validateType('arrow');
     if ((arrow.end - arrow.start).distance < arrowMinimumLength) {
       throw const FormatException('element arrow is shorter than the minimum');
     }
