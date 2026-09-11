@@ -57,7 +57,6 @@ class TextBlockModel extends CanvasElementModel<TextElementData> {
   );
   final layerLink = LayerLink();
   bool _editing = false;
-  bool _resizing = false;
 
   // ---------- State and geometry ----------
 
@@ -79,14 +78,6 @@ class TextBlockModel extends CanvasElementModel<TextElementData> {
   set editing(bool value) {
     if (_editing == value) return;
     _editing = value;
-    notifyListeners();
-  }
-
-  bool get resizing => _resizing;
-
-  set resizing(bool value) {
-    if (_resizing == value) return;
-    _resizing = value;
     notifyListeners();
   }
 
@@ -227,10 +218,8 @@ class TextBlock extends StatelessWidget {
                 ImmediateMultiDragGestureRecognizer.new,
                 (recognizer) {
                   recognizer.onStart = (_) {
-                    model.resizing = true;
                     return _TextBlockResizeDrag(
                       (delta) => onResize(context.size!, delta),
-                      () => model.resizing = false,
                     );
                   };
                 },
@@ -271,8 +260,12 @@ class TextBlock extends StatelessWidget {
                               ),
                               switchInCurve: Curves.easeOutCubic,
                               switchOutCurve: Curves.easeOutCubic,
-                              transitionBuilder: _textResizeHandleTransition,
-                              child: model.resizing
+                              transitionBuilder: (child, animation) =>
+                                  FadeTransition(
+                                    opacity: animation,
+                                    child: child,
+                                  ),
+                              child: model.editing
                                   ? SizedBox.expand(
                                       key: const ValueKey(
                                         'text-block-editing-border',
@@ -1166,19 +1159,12 @@ class _TextBlockDrag extends Drag {
 }
 
 class _TextBlockResizeDrag extends Drag {
-  _TextBlockResizeDrag(this.onResize, this.onEnd);
+  _TextBlockResizeDrag(this.onResize);
 
   final ValueChanged<Offset> onResize;
-  final VoidCallback onEnd;
 
   @override
   void update(DragUpdateDetails details) => onResize(details.delta);
-
-  @override
-  void end(DragEndDetails details) => onEnd();
-
-  @override
-  void cancel() => onEnd();
 }
 
 class _TextBlockRotateDrag extends Drag {

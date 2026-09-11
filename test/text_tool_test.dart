@@ -79,6 +79,10 @@ void main() {
       find.byKey(const ValueKey('text-block-resize-handle')),
       findsOneWidget,
     );
+    expect(
+      find.byKey(const ValueKey('text-block-editing-border')),
+      findsOneWidget,
+    );
 
     model.selected = true;
     await tester.sendKeyEvent(LogicalKeyboardKey.escape);
@@ -89,6 +93,10 @@ void main() {
     expect(find.byType(TextField), findsNothing);
     expect(find.byKey(const ValueKey('text-markdown-preview')), findsOneWidget);
     expect(
+      find.byKey(const ValueKey('text-block-editing-border')),
+      findsOneWidget,
+    );
+    expect(
       find.byKey(const ValueKey('text-block-handle')).hitTestable(),
       findsNothing,
     );
@@ -98,6 +106,10 @@ void main() {
     );
     expect(find.byType(TextBlockControls), findsOneWidget);
     await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey('text-block-editing-border')),
+      findsNothing,
+    );
     expect(
       find.byKey(const ValueKey('text-block-resize-handle')),
       findsNothing,
