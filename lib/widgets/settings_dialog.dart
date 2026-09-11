@@ -4,10 +4,12 @@
 import 'dart:math' as math;
 
 import 'package:beyond/canvas/canvas_background.dart';
+import 'package:beyond/dev/theme_page.dart';
 import 'package:beyond/foundation/button.dart';
 import 'package:beyond/foundation/select.dart';
 import 'package:beyond/foundation/theme.dart';
 import 'package:beyond/theme/starless.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 // ---------- Dialog ----------
@@ -44,7 +46,7 @@ class SettingsDialog extends StatefulWidget {
 
 // ---------- Sections ----------
 
-enum _SettingsSection { about, canvas, interface }
+enum _SettingsSection { about, canvas, interface, dev }
 
 class _SettingsDialogState extends State<SettingsDialog> {
   // ---------- State ----------
@@ -229,6 +231,13 @@ class _SettingsDialogState extends State<SettingsDialog> {
         icon: Icons.info_outline,
         label: 'About',
       ),
+      if (kDebugMode)
+        _navigationItem(
+          context,
+          section: _SettingsSection.dev,
+          icon: Icons.developer_mode,
+          label: 'Dev',
+        ),
     ];
 
     return Padding(
@@ -314,7 +323,30 @@ class _SettingsDialogState extends State<SettingsDialog> {
       _SettingsSection.about => _aboutContent(context),
       _SettingsSection.canvas => _canvasContent(context),
       _SettingsSection.interface => _interfaceContent(context),
+      _SettingsSection.dev => _devContent(context),
     };
+  }
+
+  Widget _devContent(BuildContext context) {
+    final theme = BTheme.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Theme',
+          style: theme.typo.label.copyWith(color: theme.colors.textPrimary),
+        ),
+        const SizedBox(height: 10),
+        BButton(
+          key: const ValueKey('dev-theme-button'),
+          variant: ButtonVariant.secondary,
+          onPressed: () => Navigator.of(context).push(
+            MaterialPageRoute<void>(builder: (_) => const ThemeDevPage()),
+          ),
+          child: const Text('Theme'),
+        ),
+      ],
+    );
   }
 
   Widget _interfaceContent(BuildContext context) {

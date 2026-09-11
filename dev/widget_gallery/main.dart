@@ -169,20 +169,8 @@ class _WidgetGalleryPageState extends State<WidgetGalleryPage> {
                 _section(
                   context,
                   title: 'Foundations',
-                  description: 'Theme colors, type, surfaces, and states.',
+                  description: 'Theme surfaces and interaction states.',
                   cards: [
-                    _GalleryCard(
-                      title: 'Semantic colors',
-                      existing: true,
-                      note: 'Shared meaning for canvas and component styling.',
-                      child: _colorSwatches(theme.colors),
-                    ),
-                    _GalleryCard(
-                      title: 'Typography',
-                      existing: true,
-                      note: 'Semantic UI, editorial, and code typography.',
-                      child: _typography(context),
-                    ),
                     _GalleryCard(
                       title: 'Surfaces and states',
                       existing: true,
@@ -694,130 +682,6 @@ class _WidgetGalleryPageState extends State<WidgetGalleryPage> {
   }
 
   // ---------- Preview helpers ----------
-
-  Widget _colorSwatches(BColors colors) {
-    final swatches = [
-      ('Canvas', colors.canvasBackground),
-      ('Grid', colors.canvasGrid),
-      ('Surface', colors.surface),
-      ('Raised', colors.surfaceRaised),
-      ('Subtle', colors.surfaceSubtle),
-      ('Hover', colors.surfaceHover),
-      ('Pressed', colors.surfacePressed),
-      ('Text', colors.textPrimary),
-      ('Secondary', colors.textSecondary),
-      ('Muted', colors.textMuted),
-      ('Border', colors.borderSubtle),
-      ('Accent', colors.accent),
-      ('Accent hover', colors.accentHover),
-      ('Accent pressed', colors.accentPressed),
-      ('Accent soft', colors.accentSoft),
-      ('Accent subtle', colors.accentSubtle),
-      ('Focus', colors.focusRing),
-      ('Scrim', colors.scrim),
-    ];
-    return Wrap(
-      spacing: 12,
-      runSpacing: 12,
-      children: [
-        for (final (label, color) in swatches)
-          SizedBox(
-            width: 92,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  height: 48,
-                  decoration: BoxDecoration(
-                    color: color,
-                    borderRadius: BTheme.of(context).geo.radiusMedium,
-                    border: Border.all(color: colors.borderSubtle),
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  label,
-                  style: BTheme.of(context).typo.body.copyWith(fontSize: 12),
-                ),
-                Text(
-                  '#${_colorHex(color)}',
-                  style: BTheme.of(
-                    context,
-                  ).typo.body.copyWith(color: colors.textMuted, fontSize: 10),
-                ),
-              ],
-            ),
-          ),
-      ],
-    );
-  }
-
-  String _colorHex(Color color) => color.toARGB32().toRadixString(16).substring(2).toUpperCase();
-
-  Widget _typography(BuildContext context) {
-    final typography = BTheme.of(context).typo;
-    final colors = BTheme.of(context).colors;
-    final sourceSerif = typography.heading;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Roboto Mono · UI and chrome',
-          style: typography.title.copyWith(color: colors.textPrimary),
-        ),
-        Text(
-          'Controls, navigation, labels · 11–14 px · 400–600',
-          style: typography.body.copyWith(color: colors.textSecondary),
-        ),
-        const SizedBox(height: 12),
-        Text(
-          'Source Serif 4 · editorial and document',
-          style: sourceSerif.copyWith(
-            fontSize: 17,
-            fontWeight: FontWeight.w600,
-            height: 1.35,
-            color: colors.textPrimary,
-          ),
-        ),
-        Text(
-          'A heading for a note or rendered Markdown.',
-          style: sourceSerif.copyWith(
-            fontSize: 20,
-            fontWeight: FontWeight.w600,
-            height: 1.3,
-            color: colors.textPrimary,
-          ),
-        ),
-        Text(
-          'Long-form prose and large canvas text use this warmer reading face.',
-          style: sourceSerif.copyWith(
-            fontSize: 16,
-            height: 1.5,
-            color: colors.textSecondary,
-          ),
-        ),
-        const SizedBox(height: 12),
-        Text(
-          'JetBrains Mono · code and technical metadata',
-          style: typography.code.copyWith(
-            color: colors.textPrimary,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        Text(
-          'const line = 42;',
-          style: typography.code.copyWith(color: colors.textPrimary),
-        ),
-        Text(
-          'MARKDOWN · 0.1.0',
-          style: typography.code.copyWith(
-            color: colors.textMuted,
-            fontSize: 11,
-          ),
-        ),
-      ],
-    );
-  }
 
   Widget _surfaceStates(BTheme theme) {
     final colors = theme.colors;
