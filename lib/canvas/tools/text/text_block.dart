@@ -648,108 +648,49 @@ class TextBlockControls extends StatelessWidget {
   final VoidCallback onTransformEnd;
   final ValueGetter<Offset> rotationCenter;
 
-  static const size = Size(500, 168);
-  static const followerOffset = Offset(-132, 0);
+  static const size = Size(500, 136);
+  static const followerOffset = Offset(-50, 0);
 
   @override
   Widget build(BuildContext context) {
     return SizedBox(
       width: size.width,
       height: size.height,
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          Positioned(
-            top: 0,
-            left: 30,
-            child: TextSettings(
+      child: TextFieldTapRegion(
+        child: Column(
+          spacing: 8,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            TextSettings(
               model: model,
               onChangeBoundary: onTransformEnd,
             ),
-          ),
-          Positioned(
-            top: 63,
-            left: 0,
-            child: MouseRegion(
-              cursor: SystemMouseCursors.grab,
-              child: TextFieldTapRegion(
-                child: ControlSurface(
-                  child: Semantics(
-                    button: true,
-                    label: 'Move text block',
-                    child: RawGestureDetector(
-                      key: const ValueKey('text-block-handle'),
-                      behavior: HitTestBehavior.opaque,
-                      gestures: {
-                        ImmediateMultiDragGestureRecognizer:
-                            GestureRecognizerFactoryWithHandlers<ImmediateMultiDragGestureRecognizer>(
-                              ImmediateMultiDragGestureRecognizer.new,
-                              (recognizer) {
-                                recognizer.onStart = (_) {
-                                  onTransformStart();
-                                  return _TextBlockDrag(
-                                    onMove,
-                                    onTransformEnd,
-                                  );
-                                };
-                              },
-                            ),
-                      },
-                      child: const SizedBox.square(
-                        dimension: 48,
-                        child: Icon(Icons.drag_indicator, size: 28),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
+            BIconDrag(
+              key: const ValueKey('text-block-handle'),
+              tooltip: 'Move text block',
+              onDragStart: (_) {
+                onTransformStart();
+                return _TextBlockDrag(onMove, onTransformEnd);
+              },
+              icon: const Icon(Icons.drag_indicator),
             ),
-          ),
-          Positioned(
-            top: 127,
-            left: 30,
-            child: Tooltip(
-              message: 'Rotate text',
-              child: MouseRegion(
-                cursor: SystemMouseCursors.grab,
-                child: TextFieldTapRegion(
-                  child: ControlSurface(
-                    child: Semantics(
-                      button: true,
-                      label: 'Rotate text block',
-                      child: RawGestureDetector(
-                        key: const ValueKey('text-block-rotate-control'),
-                        behavior: HitTestBehavior.opaque,
-                        gestures: {
-                          ImmediateMultiDragGestureRecognizer:
-                              GestureRecognizerFactoryWithHandlers<ImmediateMultiDragGestureRecognizer>(
-                                ImmediateMultiDragGestureRecognizer.new,
-                                (recognizer) {
-                                  recognizer.onStart = (position) {
-                                    onTransformStart();
-                                    return _TextBlockRotateDrag(
-                                      startPosition: position,
-                                      center: rotationCenter(),
-                                      rotation: model.node.rotation,
-                                      onRotate: onRotate,
-                                      onEnd: onTransformEnd,
-                                    );
-                                  };
-                                },
-                              ),
-                        },
-                        child: const SizedBox.square(
-                          dimension: 32,
-                          child: Icon(Icons.rotate_right, size: 24),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
+            BIconDrag(
+              key: const ValueKey('text-block-rotate-control'),
+              tooltip: 'Rotate text block',
+              onDragStart: (position) {
+                onTransformStart();
+                return _TextBlockRotateDrag(
+                  startPosition: position,
+                  center: rotationCenter(),
+                  rotation: model.node.rotation,
+                  onRotate: onRotate,
+                  onEnd: onTransformEnd,
+                );
+              },
+              icon: const Icon(Icons.rotate_right),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -799,30 +740,18 @@ class _TextSettingsState extends State<TextSettings> {
               states.contains(WidgetState.focused) ? colors.focusRing.withValues(alpha: 0.18) : Colors.transparent,
         );
         return SizedBox(
-          height: 56,
+          height: 40,
           child: Stack(
             alignment: Alignment.centerLeft,
             clipBehavior: Clip.none,
             children: [
-              Tooltip(
-                message: _open ? 'Close text settings' : 'Open text settings',
-                child: ControlSurface(
-                  selected: _open,
-                  child: IconButton(
-                    key: const ValueKey('text-settings-button'),
-                    onPressed: () => setState(() => _open = !_open),
-                    style: IconButton.styleFrom(
-                      minimumSize: const Size.square(32),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: theme.geo.radiusLarge,
-                      ),
-                    ),
-                    icon: Transform.translate(
-                      offset: _open ? const Offset(0, 1) : Offset.zero,
-                      child: const Icon(Icons.tune, size: 22),
-                    ),
-                  ),
-                ),
+              BIconButton(
+                key: const ValueKey('text-settings-button'),
+                tooltip: 'Open text settings',
+                selectedTooltip: 'Close text settings',
+                selected: _open,
+                onPressed: () => setState(() => _open = !_open),
+                icon: const Icon(Icons.tune),
               ),
               Row(
                 mainAxisSize: MainAxisSize.min,

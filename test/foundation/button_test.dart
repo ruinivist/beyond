@@ -15,7 +15,7 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         theme: starlessLightThemeData,
-        home: const Button(onPressed: _noop, child: Text('Primary')),
+        home: const BButton(onPressed: _noop, child: Text('Primary')),
       ),
     );
 
@@ -30,8 +30,7 @@ void main() {
       theme.typo.body.fontSize,
     );
     expect(
-      (textButton.style!.shape!.resolve({})! as RoundedRectangleBorder)
-          .borderRadius,
+      (textButton.style!.shape!.resolve({})! as RoundedRectangleBorder).borderRadius,
       theme.geo.radiusMedium,
     );
   });
@@ -40,7 +39,7 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         theme: starlessLightThemeData,
-        home: const Button(
+        home: const BButton(
           variant: ButtonVariant.outline,
           onPressed: _noop,
           child: Text('Outline'),
@@ -65,7 +64,7 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           theme: starlessLightThemeData,
-          home: Button(
+          home: BButton(
             variant: variant,
             onPressed: _noop,
             child: const Text('Button'),
@@ -77,15 +76,11 @@ void main() {
       expect(style.backgroundColor!.resolve({}), Colors.transparent);
       expect(
         style.backgroundColor!.resolve({WidgetState.hovered}),
-        variant == ButtonVariant.ghost
-            ? theme.colors.surfaceHover
-            : Colors.transparent,
+        variant == ButtonVariant.ghost ? theme.colors.surfaceHover : Colors.transparent,
       );
       expect(
         style.backgroundColor!.resolve({WidgetState.pressed}),
-        variant == ButtonVariant.ghost
-            ? theme.colors.surfacePressed
-            : Colors.transparent,
+        variant == ButtonVariant.ghost ? theme.colors.surfacePressed : Colors.transparent,
       );
     }
   });

@@ -102,11 +102,11 @@ void main() {
       final button = find.byKey(ValueKey('toolbar-$name'));
       await tester.sendKeyEvent(key);
       await tester.pump();
-      expect(tester.widget<Button>(button).selected, isTrue);
+      expect(tester.widget<BButton>(button).selected, isTrue);
 
       await tester.sendKeyEvent(key);
       await tester.pump();
-      expect(tester.widget<Button>(button).selected, isFalse);
+      expect(tester.widget<BButton>(button).selected, isFalse);
     }
 
     await tester.sendKeyEvent(LogicalKeyboardKey.keyP);
@@ -114,7 +114,7 @@ void main() {
     await tester.pump();
     expect(
       tester
-          .widget<Button>(find.byKey(const ValueKey('toolbar-draw')))
+          .widget<BButton>(find.byKey(const ValueKey('toolbar-draw')))
           .selected,
       isFalse,
     );
@@ -125,7 +125,7 @@ void main() {
     await tester.pump();
     expect(
       tester
-          .widget<Button>(find.byKey(const ValueKey('toolbar-draw')))
+          .widget<BButton>(find.byKey(const ValueKey('toolbar-draw')))
           .selected,
       isFalse,
     );
@@ -139,7 +139,7 @@ void main() {
     await tester.pump();
     expect(
       tester
-          .widget<Button>(find.byKey(const ValueKey('toolbar-draw')))
+          .widget<BButton>(find.byKey(const ValueKey('toolbar-draw')))
           .selected,
       isFalse,
     );

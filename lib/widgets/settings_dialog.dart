@@ -420,13 +420,13 @@ class _SettingsDialogState extends State<SettingsDialog> {
           spacing: 8,
           runSpacing: 8,
           children: [
-            Button(
+            BButton(
               key: const ValueKey('canvas-import-button'),
               onPressed: _transferActive || widget.onImportCanvas == null ? null : _importCanvas,
               variant: ButtonVariant.secondary,
               child: const Text('Import canvas'),
             ),
-            Button(
+            BButton(
               key: const ValueKey('canvas-export-button'),
               onPressed: _transferActive || widget.onExportCanvas == null ? null : _exportCanvas,
               variant: ButtonVariant.secondary,

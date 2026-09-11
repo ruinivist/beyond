@@ -164,8 +164,8 @@ class _ThemeHostState extends State<_ThemeHost> {
   }
 }
 
-Button _button(WidgetTester tester, String key) =>
-    tester.widget<Button>(find.byKey(ValueKey(key)));
+BButton _button(WidgetTester tester, String key) =>
+    tester.widget<BButton>(find.byKey(ValueKey(key)));
 
 // ---------- Test helpers ----------
 

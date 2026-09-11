@@ -1871,7 +1871,7 @@ class _CanvasPageState extends State<CanvasPage> {
                       children: [
                         Tooltip(
                           message: 'Place text',
-                          child: Button(
+                          child: BButton(
                             key: const ValueKey('toolbar-text'),
                             variant: ButtonVariant.toolbar,
                             size: ButtonSize.toolbar,
@@ -1885,7 +1885,7 @@ class _CanvasPageState extends State<CanvasPage> {
                         ),
                         Tooltip(
                           message: 'Place code block',
-                          child: Button(
+                          child: BButton(
                             key: const ValueKey('toolbar-code'),
                             variant: ButtonVariant.toolbar,
                             size: ButtonSize.toolbar,
@@ -1899,7 +1899,7 @@ class _CanvasPageState extends State<CanvasPage> {
                         ),
                         Tooltip(
                           message: 'Place media',
-                          child: Button(
+                          child: BButton(
                             key: const ValueKey('toolbar-media'),
                             variant: ButtonVariant.toolbar,
                             size: ButtonSize.toolbar,
@@ -1913,7 +1913,7 @@ class _CanvasPageState extends State<CanvasPage> {
                         ),
                         Tooltip(
                           message: 'Draw rounded rectangle',
-                          child: Button(
+                          child: BButton(
                             key: const ValueKey('toolbar-shape'),
                             variant: ButtonVariant.toolbar,
                             size: ButtonSize.toolbar,
@@ -1927,7 +1927,7 @@ class _CanvasPageState extends State<CanvasPage> {
                         ),
                         Tooltip(
                           message: 'Draw with pen',
-                          child: Button(
+                          child: BButton(
                             key: const ValueKey('toolbar-draw'),
                             variant: ButtonVariant.toolbar,
                             size: ButtonSize.toolbar,
@@ -1941,7 +1941,7 @@ class _CanvasPageState extends State<CanvasPage> {
                         ),
                         Tooltip(
                           message: 'Erase elements',
-                          child: Button(
+                          child: BButton(
                             key: const ValueKey('toolbar-erase'),
                             variant: ButtonVariant.toolbar,
                             size: ButtonSize.toolbar,
@@ -1955,7 +1955,7 @@ class _CanvasPageState extends State<CanvasPage> {
                         ),
                         Tooltip(
                           message: 'Draw an arrow',
-                          child: Button(
+                          child: BButton(
                             key: const ValueKey('toolbar-arrow'),
                             variant: ButtonVariant.toolbar,
                             size: ButtonSize.toolbar,
@@ -2059,7 +2059,7 @@ class _ShapeSettings extends StatelessWidget {
                 for (final option in ShapeKind.values)
                   Tooltip(
                     message: option.label,
-                    child: Button(
+                    child: BButton(
                       key: ValueKey('shape-option-${option.name}'),
                       variant: ButtonVariant.toolbar,
                       size: ButtonSize.icon,
@@ -2175,7 +2175,7 @@ class _ColorSwatches extends StatelessWidget {
         if (allowNone)
           Tooltip(
             message: 'No fill',
-            child: Button(
+            child: BButton(
               key: ValueKey('$keyPrefix-none'),
               variant: ButtonVariant.toolbar,
               size: ButtonSize.icon,

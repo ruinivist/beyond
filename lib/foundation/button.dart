@@ -22,10 +22,10 @@ enum ButtonSize { small, medium, large, toolbar, icon }
 
 /// Renders a semantic Beyond button from a variant and size.
 /// Used as the shared button primitive across editor surfaces.
-class Button extends StatelessWidget {
+class BButton extends StatelessWidget {
   // ---------- Construction ----------
 
-  const Button({
+  const BButton({
     required this.onPressed,
     this.child,
     this.leadingIcon,

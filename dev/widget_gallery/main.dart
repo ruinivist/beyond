@@ -244,14 +244,14 @@ class _WidgetGalleryPageState extends State<WidgetGalleryPage> {
                         spacing: 12,
                         runSpacing: 12,
                         children: [
-                          Button(
+                          BButton(
                             key: const ValueKey('open-settings'),
                             variant: ButtonVariant.outline,
                             onPressed: _openSettings,
                             leadingIcon: const Icon(Icons.settings_outlined),
                             child: const Text('Open settings'),
                           ),
-                          Button(
+                          BButton(
                             key: const ValueKey('open-canvas'),
                             variant: ButtonVariant.outline,
                             onPressed: () => Navigator.of(context).push(
@@ -283,45 +283,45 @@ class _WidgetGalleryPageState extends State<WidgetGalleryPage> {
                         runSpacing: 12,
                         crossAxisAlignment: WrapCrossAlignment.center,
                         children: [
-                          Button(
+                          BButton(
                             onPressed: () {},
                             child: const Text('Primary'),
                           ),
-                          Button(
+                          BButton(
                             variant: ButtonVariant.outline,
                             onPressed: () {},
                             child: const Text('Secondary'),
                           ),
-                          Button(
+                          BButton(
                             variant: ButtonVariant.secondary,
                             onPressed: () {},
                             child: const Text('Secondary fill'),
                           ),
                           Tooltip(
                             message: 'Favorite',
-                            child: Button(
+                            child: BButton(
                               variant: ButtonVariant.ghost,
                               size: ButtonSize.icon,
                               onPressed: () {},
                               leadingIcon: const Icon(Icons.favorite_outline),
                             ),
                           ),
-                          Button(
+                          BButton(
                             variant: ButtonVariant.ghost,
                             onPressed: () {},
                             child: const Text('Quiet'),
                           ),
-                          Button(
+                          BButton(
                             variant: ButtonVariant.destructive,
                             onPressed: () {},
                             child: const Text('Destructive'),
                           ),
-                          Button(
+                          BButton(
                             variant: ButtonVariant.link,
                             onPressed: () {},
                             child: const Text('Link'),
                           ),
-                          const Button(
+                          const BButton(
                             onPressed: null,
                             child: Text('Disabled'),
                           ),
@@ -569,13 +569,13 @@ class _WidgetGalleryPageState extends State<WidgetGalleryPage> {
                             children: [
                               Tooltip(
                                 message: 'Helpful context',
-                                child: Button(
+                                child: BButton(
                                   variant: ButtonVariant.outline,
                                   onPressed: () {},
                                   child: const Text('Hover for tooltip'),
                                 ),
                               ),
-                              Button(
+                              BButton(
                                 variant: ButtonVariant.outline,
                                 onPressed: () =>
                                     ScaffoldMessenger.of(context).showSnackBar(
@@ -630,7 +630,7 @@ class _WidgetGalleryPageState extends State<WidgetGalleryPage> {
                               ),
                             ),
                             const SizedBox(height: 16),
-                            Button(
+                            BButton(
                               onPressed: () {},
                               child: const Text('Add block'),
                             ),
@@ -642,7 +642,7 @@ class _WidgetGalleryPageState extends State<WidgetGalleryPage> {
                       title: 'Confirmation dialog',
                       existing: false,
                       note: 'Confirm an important reversible action.',
-                      child: Button(
+                      child: BButton(
                         variant: ButtonVariant.outline,
                         onPressed: _openConfirmation,
                         child: const Text('Open confirmation'),
@@ -926,12 +926,12 @@ class _WidgetGalleryPageState extends State<WidgetGalleryPage> {
             'This removes every block from the current view.',
           ),
           actions: [
-            Button(
+            BButton(
               variant: ButtonVariant.link,
               onPressed: () => Navigator.pop(dialogContext),
               child: const Text('Cancel'),
             ),
-            Button(
+            BButton(
               variant: ButtonVariant.destructive,
               onPressed: () => Navigator.pop(dialogContext),
               child: const Text('Clear'),

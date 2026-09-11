@@ -155,11 +155,11 @@ void main() {
     await tester.sendKeyEvent(LogicalKeyboardKey.keyS);
     await tester.pump();
     final toolbar = find.byKey(const ValueKey('toolbar-shape'));
-    expect(tester.widget<Button>(toolbar).selected, isTrue);
+    expect(tester.widget<BButton>(toolbar).selected, isTrue);
     expect(find.byKey(const ValueKey('shape-settings-panel')), findsOneWidget);
     expect(
       tester
-          .widget<Button>(
+          .widget<BButton>(
             find.byKey(
               const ValueKey('shape-option-roundedRectangle'),
             ),
@@ -182,7 +182,7 @@ void main() {
       tester.widget<Shape>(find.byType(Shape)).model.data.kind,
       ShapeKind.roundedRectangle,
     );
-    expect(tester.widget<Button>(toolbar).selected, isFalse);
+    expect(tester.widget<BButton>(toolbar).selected, isFalse);
     expect(find.byKey(const ValueKey('shape-settings-panel')), findsNothing);
 
     final secondDrag = await tester.startGesture(
@@ -199,7 +199,7 @@ void main() {
     expect(find.byKey(const ValueKey('shape-settings-panel')), findsOneWidget);
     expect(
       tester
-          .widget<Button>(
+          .widget<BButton>(
             find.byKey(
               const ValueKey('shape-option-roundedRectangle'),
             ),
@@ -219,7 +219,7 @@ void main() {
       tester.widget<Shape>(find.byType(Shape).last).model.data.kind,
       ShapeKind.roundedRectangle,
     );
-    expect(tester.widget<Button>(toolbar).selected, isFalse);
+    expect(tester.widget<BButton>(toolbar).selected, isFalse);
 
     final first = tester.widget<Shape>(find.byType(Shape).first).model;
     final firstFinder = find.byWidgetPredicate(

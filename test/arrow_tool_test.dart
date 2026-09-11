@@ -122,7 +122,7 @@ void main() {
     expect(first.start, const Offset(120, 200));
     expect(first.end, const Offset(300, 260));
     final toolbar = find.byKey(const ValueKey('toolbar-arrow'));
-    expect(tester.widget<Button>(toolbar).selected, isFalse);
+    expect(tester.widget<BButton>(toolbar).selected, isFalse);
 
     final secondDrag = await tester.startGesture(
       const Offset(420, 200),
