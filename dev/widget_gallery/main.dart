@@ -10,6 +10,7 @@ import 'package:beyond/canvas/tools/code_block/code_block.dart';
 import 'package:beyond/canvas/tools/code_block/code_language.dart';
 import 'package:beyond/canvas/tools/text/text_block.dart';
 import 'package:beyond/foundation/button.dart';
+import 'package:beyond/foundation/context_menu.dart';
 import 'package:beyond/foundation/discrete_slider.dart';
 import 'package:beyond/foundation/select.dart';
 import 'package:beyond/foundation/theme.dart';
@@ -226,8 +227,7 @@ class _WidgetGalleryPageState extends State<WidgetGalleryPage> {
                     _GalleryCard(
                       title: 'Code block',
                       existing: true,
-                      note:
-                          'Resizable editor with syntax and language controls.',
+                      note: 'Resizable editor with syntax and language controls.',
                       child: _horizontalPreview(
                         CodeBlock(
                           model: _codeModel,
@@ -331,8 +331,7 @@ class _WidgetGalleryPageState extends State<WidgetGalleryPage> {
                     _GalleryCard(
                       title: 'Text inputs',
                       existing: false,
-                      note:
-                          'Single-line, multiline, and disabled entry states.',
+                      note: 'Single-line, multiline, and disabled entry states.',
                       child: Column(
                         children: [
                           TextField(
@@ -376,8 +375,7 @@ class _WidgetGalleryPageState extends State<WidgetGalleryPage> {
                           SelectOption(value: 'Code', label: 'Code'),
                           SelectOption(value: 'Markdown', label: 'Markdown'),
                         ],
-                        onChanged: (value) =>
-                            setState(() => _dropdownValue = value),
+                        onChanged: (value) => setState(() => _dropdownValue = value),
                       ),
                     ),
                     _GalleryCard(
@@ -415,17 +413,16 @@ class _WidgetGalleryPageState extends State<WidgetGalleryPage> {
                             label: 'TypeScript',
                           ),
                         ],
-                        onChanged: (value) =>
-                            setState(() => _searchableLanguage = value),
+                        onChanged: (value) => setState(() => _searchableLanguage = value),
                       ),
                     ),
-                    const _GalleryCard(
+                    _GalleryCard(
                       title: 'Context menu',
                       existing: false,
                       note:
                           'Secondary-click the preview to open actions '
                           'at the pointer.',
-                      child: _ContextMenuPreview(),
+                      child: _contextMenuPreview(context),
                     ),
                   ],
                 ),
@@ -445,8 +442,7 @@ class _WidgetGalleryPageState extends State<WidgetGalleryPage> {
                             title: const Text('Show grid'),
                             value: _checked,
                             activeColor: theme.colors.accent,
-                            onChanged: (value) =>
-                                setState(() => _checked = value ?? false),
+                            onChanged: (value) => setState(() => _checked = value ?? false),
                           ),
                           RadioGroup<int>(
                             groupValue: _choice,
@@ -480,8 +476,7 @@ class _WidgetGalleryPageState extends State<WidgetGalleryPage> {
                       child: DiscreteSlider(
                         key: const ValueKey('gallery-discrete-slider'),
                         value: _snapValue,
-                        onChanged: (value) =>
-                            setState(() => _snapValue = value),
+                        onChanged: (value) => setState(() => _snapValue = value),
                       ),
                     ),
                     _GalleryCard(
@@ -503,8 +498,7 @@ class _WidgetGalleryPageState extends State<WidgetGalleryPage> {
                                   label: Text(label),
                                   selected: _chip == index,
                                   selectedColor: theme.colors.accentSoft,
-                                  onSelected: (_) =>
-                                      setState(() => _chip = index),
+                                  onSelected: (_) => setState(() => _chip = index),
                                 ),
                             ],
                           ),
@@ -515,8 +509,7 @@ class _WidgetGalleryPageState extends State<WidgetGalleryPage> {
                               ButtonSegment(value: 1, label: Text('Preview')),
                             ],
                             selected: {_segment},
-                            onSelectionChanged: (value) =>
-                                setState(() => _segment = value.first),
+                            onSelectionChanged: (value) => setState(() => _segment = value.first),
                           ),
                         ],
                       ),
@@ -553,8 +546,7 @@ class _WidgetGalleryPageState extends State<WidgetGalleryPage> {
                 _section(
                   context,
                   title: 'Feedback and overlays',
-                  description:
-                      'Transient feedback, progress, and empty states.',
+                  description: 'Transient feedback, progress, and empty states.',
                   cards: [
                     _GalleryCard(
                       title: 'Feedback',
@@ -577,12 +569,11 @@ class _WidgetGalleryPageState extends State<WidgetGalleryPage> {
                               ),
                               BButton(
                                 variant: ButtonVariant.outline,
-                                onPressed: () =>
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                        content: Text('Canvas saved'),
-                                      ),
-                                    ),
+                                onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Canvas saved'),
+                                  ),
+                                ),
                                 child: const Text('Show snackbar'),
                               ),
                             ],
@@ -687,8 +678,7 @@ class _WidgetGalleryPageState extends State<WidgetGalleryPage> {
           LayoutBuilder(
             builder: (context, constraints) {
               final columns = constraints.maxWidth >= 900 ? 2 : 1;
-              final width =
-                  (constraints.maxWidth - (columns - 1) * 16) / columns;
+              final width = (constraints.maxWidth - (columns - 1) * 16) / columns;
               return Wrap(
                 spacing: 16,
                 runSpacing: 16,
@@ -762,8 +752,7 @@ class _WidgetGalleryPageState extends State<WidgetGalleryPage> {
     );
   }
 
-  String _colorHex(Color color) =>
-      color.toARGB32().toRadixString(16).substring(2).toUpperCase();
+  String _colorHex(Color color) => color.toARGB32().toRadixString(16).substring(2).toUpperCase();
 
   Widget _typography(BuildContext context) {
     final typography = BTheme.of(context).typo;
@@ -853,21 +842,15 @@ class _WidgetGalleryPageState extends State<WidgetGalleryPage> {
               color: color,
               borderRadius: theme.geo.radiusMedium,
               border: Border.all(
-                color: label == 'Selected'
-                    ? colors.accent
-                    : colors.borderSubtle,
+                color: label == 'Selected' ? colors.accent : colors.borderSubtle,
               ),
-              boxShadow: label == 'Raised'
-                  ? [BoxShadow(color: colors.shadow, blurRadius: 8)]
-                  : null,
+              boxShadow: label == 'Raised' ? [BoxShadow(color: colors.shadow, blurRadius: 8)] : null,
             ),
             child: Text(
               label,
               style: theme.typo.body.copyWith(
                 fontSize: 12,
-                color: label == 'Disabled'
-                    ? colors.textMuted
-                    : colors.textPrimary,
+                color: label == 'Disabled' ? colors.textMuted : colors.textPrimary,
               ),
             ),
           ),
@@ -879,6 +862,95 @@ class _WidgetGalleryPageState extends State<WidgetGalleryPage> {
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: Padding(padding: const EdgeInsets.all(4), child: child),
+    );
+  }
+
+  Widget _contextMenuPreview(BuildContext context) {
+    final theme = BTheme.of(context);
+    final colors = theme.colors;
+    return BContextMenu(
+      semanticLabel: 'Context menu target',
+      semanticHint: 'Right-click for actions',
+      groups: [
+        [
+          BContextMenuAction(
+            label: 'Open in new tab',
+            icon: Icons.open_in_new,
+            shortcut: const SingleActivator(
+              LogicalKeyboardKey.enter,
+              control: true,
+            ),
+            autofocus: true,
+            onPressed: () {},
+          ),
+          BContextMenuAction(
+            label: 'Duplicate',
+            icon: Icons.copy_outlined,
+            shortcut: const SingleActivator(
+              LogicalKeyboardKey.keyD,
+              control: true,
+            ),
+            onPressed: () {},
+          ),
+        ],
+        [
+          BContextMenuAction(
+            label: 'Rename',
+            icon: Icons.edit_outlined,
+            shortcut: const SingleActivator(LogicalKeyboardKey.f2),
+            onPressed: () {},
+          ),
+          const BContextMenuAction(
+            label: 'Share',
+            icon: Icons.ios_share_outlined,
+            shortcut: SingleActivator(
+              LogicalKeyboardKey.keyS,
+              control: true,
+              shift: true,
+            ),
+            onPressed: null,
+          ),
+        ],
+        [
+          BContextMenuAction(
+            label: 'Delete',
+            icon: Icons.delete_outline,
+            shortcut: const SingleActivator(
+              LogicalKeyboardKey.delete,
+              shift: true,
+            ),
+            destructive: true,
+            onPressed: () {},
+          ),
+        ],
+      ],
+      child: SizedBox(
+        width: double.infinity,
+        height: 144,
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            color: colors.surface,
+            borderRadius: theme.geo.radiusMedium,
+            border: Border.all(color: colors.borderSubtle),
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.ads_click, size: 28, color: colors.accent),
+              const SizedBox(height: 10),
+              Text(
+                'Right-click this area',
+                style: theme.typo.title.copyWith(color: colors.textPrimary),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Use arrow keys and Enter in the menu',
+                style: theme.typo.body.copyWith(color: colors.textSecondary),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
@@ -993,196 +1065,6 @@ class _GalleryCard extends StatelessWidget {
             const SizedBox(height: 20),
             child,
           ],
-        ),
-      ),
-    );
-  }
-}
-
-class _ContextMenuPreview extends StatelessWidget {
-  const _ContextMenuPreview();
-
-  static const _menuWidth = 224.0;
-
-  static MenuStyle _menuStyle(BTheme theme) {
-    final colors = theme.colors;
-    return MenuStyle(
-      backgroundColor: WidgetStatePropertyAll(colors.surfaceRaised),
-      shadowColor: WidgetStatePropertyAll(colors.shadow),
-      elevation: WidgetStatePropertyAll(theme.geo.elevationMedium),
-      padding: const WidgetStatePropertyAll(EdgeInsets.all(4)),
-      minimumSize: const WidgetStatePropertyAll(Size(_menuWidth, 0)),
-      side: WidgetStatePropertyAll(BorderSide(color: colors.borderSubtle)),
-      shape: WidgetStatePropertyAll(
-        RoundedRectangleBorder(borderRadius: theme.geo.radiusMedium),
-      ),
-    );
-  }
-
-  static ButtonStyle _itemStyle(BTheme theme, {bool destructive = false}) {
-    final colors = theme.colors;
-    final foreground = destructive ? colors.accentPressed : colors.textPrimary;
-    return MenuItemButton.styleFrom(
-      foregroundColor: foreground,
-      disabledForegroundColor: colors.textMuted,
-      iconColor: foreground,
-      disabledIconColor: colors.textMuted,
-      backgroundColor: Colors.transparent,
-      disabledBackgroundColor: Colors.transparent,
-      textStyle: theme.typo.body,
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-      minimumSize: const Size(0, 34),
-      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-      alignment: Alignment.centerLeft,
-      shape: RoundedRectangleBorder(borderRadius: theme.geo.radiusSmall),
-    ).copyWith(
-      overlayColor: WidgetStateProperty.resolveWith((states) {
-        if (states.contains(WidgetState.pressed)) return colors.surfacePressed;
-        if (states.contains(WidgetState.hovered) ||
-            states.contains(WidgetState.focused)) {
-          return colors.surfaceHover;
-        }
-        return Colors.transparent;
-      }),
-    );
-  }
-
-  Widget _item(
-    BuildContext context,
-    String label,
-    IconData icon,
-    MenuSerializableShortcut shortcut, {
-    bool enabled = true,
-    bool destructive = false,
-    bool autofocus = false,
-    String? shortcutLabel,
-  }) {
-    final theme = BTheme.of(context);
-    final item = MenuItemButton(
-      autofocus: autofocus,
-      onPressed: enabled ? () {} : null,
-      shortcut: shortcutLabel == null ? shortcut : null,
-      style: _itemStyle(theme, destructive: destructive),
-      leadingIcon: Icon(icon, size: 16),
-      child: shortcutLabel == null
-          ? Text(label)
-          : Row(
-              children: [
-                Text(label),
-                const Spacer(),
-                Text(
-                  shortcutLabel,
-                  style: theme.typo.body.copyWith(
-                    color: theme.colors.textSecondary,
-                  ),
-                ),
-              ],
-            ),
-    );
-    return SizedBox(
-      width: _menuWidth,
-      child: shortcutLabel == null
-          ? item
-          : Shortcuts(
-              shortcuts: {shortcut: const ActivateIntent()},
-              child: item,
-            ),
-    );
-  }
-
-  Widget _divider(BTheme theme) {
-    return SizedBox(
-      width: _menuWidth,
-      child: Divider(height: 8, color: theme.colors.borderSubtle),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = BTheme.of(context);
-    final colors = theme.colors;
-    return MenuAnchor(
-      consumeOutsideTap: true,
-      style: _menuStyle(theme),
-      menuChildren: [
-        _item(
-          context,
-          'Open in new tab',
-          Icons.open_in_new,
-          const SingleActivator(LogicalKeyboardKey.enter, control: true),
-          autofocus: true,
-        ),
-        _item(
-          context,
-          'Duplicate',
-          Icons.copy_outlined,
-          const SingleActivator(LogicalKeyboardKey.keyD, control: true),
-        ),
-        _divider(theme),
-        _item(
-          context,
-          'Rename',
-          Icons.edit_outlined,
-          const SingleActivator(LogicalKeyboardKey.f2),
-          shortcutLabel: 'F2',
-        ),
-        _item(
-          context,
-          'Share',
-          Icons.ios_share_outlined,
-          const SingleActivator(
-            LogicalKeyboardKey.keyS,
-            control: true,
-            shift: true,
-          ),
-          enabled: false,
-        ),
-        _divider(theme),
-        _item(
-          context,
-          'Delete',
-          Icons.delete_outline,
-          const SingleActivator(LogicalKeyboardKey.delete, shift: true),
-          destructive: true,
-        ),
-      ],
-      builder: (context, controller, child) => Semantics(
-        label: 'Context menu target',
-        hint: 'Right-click for actions',
-        button: true,
-        child: InkWell(
-          mouseCursor: SystemMouseCursors.contextMenu,
-          onTap: controller.open,
-          onSecondaryTapDown: (details) =>
-              controller.open(position: details.localPosition),
-          child: child,
-        ),
-      ),
-      child: SizedBox(
-        width: double.infinity,
-        height: 144,
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            color: colors.surface,
-            borderRadius: theme.geo.radiusMedium,
-            border: Border.all(color: colors.borderSubtle),
-          ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.ads_click, size: 28, color: colors.accent),
-              const SizedBox(height: 10),
-              Text(
-                'Right-click this area',
-                style: theme.typo.title.copyWith(color: colors.textPrimary),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                'Use arrow keys and Enter in the menu',
-                style: theme.typo.body.copyWith(color: colors.textSecondary),
-              ),
-            ],
-          ),
         ),
       ),
     );
