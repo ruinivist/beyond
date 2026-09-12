@@ -1,7 +1,7 @@
 // Provides the themed drag handle shown on resizable canvas elements.
 // Used by text, code, media, and shape element controls.
 
-import 'package:beyond/foundation/control_surface.dart';
+import 'package:beyond/foundation/b_container.dart';
 import 'package:beyond/foundation/theme.dart';
 import 'package:flutter/material.dart';
 
@@ -44,7 +44,7 @@ class ResizeHandle extends StatelessWidget {
         child: RawGestureDetector(
           behavior: HitTestBehavior.opaque,
           gestures: gestures,
-          child: background ? ControlSurface(child: icon) : icon,
+          child: background ? BContainer(child: icon) : icon,
         ),
       ),
     );

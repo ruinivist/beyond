@@ -1,7 +1,7 @@
 // Provides the animated surface that hosts active tool options.
 // Used by the canvas toolbar when switching editing tools.
 
-import 'package:beyond/foundation/control_surface.dart';
+import 'package:beyond/foundation/b_container.dart';
 import 'package:flutter/material.dart';
 
 // ---------- Widgets ----------
@@ -36,7 +36,7 @@ class ToolOptions extends StatelessWidget {
           ).animate(animation),
           child: Padding(
             padding: const EdgeInsets.only(top: 8),
-            child: ControlSurface(
+            child: BContainer(
               child: Padding(
                 padding: const EdgeInsets.all(12),
                 child: child,

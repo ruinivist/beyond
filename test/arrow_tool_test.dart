@@ -2,8 +2,8 @@
 // Exercises the arrow tool through model and canvas widget flows.
 
 import 'package:beyond/canvas/canvas_document_store.dart';
+import 'package:beyond/canvas/toolbar_button.dart';
 import 'package:beyond/canvas/tools/arrow/arrow_tool.dart';
-import 'package:beyond/foundation/button.dart';
 import 'package:beyond/main.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
@@ -122,7 +122,7 @@ void main() {
     expect(first.start, const Offset(120, 200));
     expect(first.end, const Offset(300, 260));
     final toolbar = find.byKey(const ValueKey('toolbar-arrow'));
-    expect(tester.widget<BButton>(toolbar).selected, isFalse);
+    expect(tester.widget<ToolbarButton>(toolbar).selected, isFalse);
 
     final secondDrag = await tester.startGesture(
       const Offset(420, 200),

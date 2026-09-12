@@ -5,7 +5,6 @@ import 'dart:math' as math;
 
 import 'package:beyond/canvas/canvas_background.dart';
 import 'package:beyond/dev/theme_page.dart';
-import 'package:beyond/foundation/button.dart';
 import 'package:beyond/foundation/select.dart';
 import 'package:beyond/foundation/theme.dart';
 import 'package:beyond/theme/starless.dart';
@@ -337,7 +336,7 @@ class _SettingsDialogState extends State<SettingsDialog> {
           style: theme.typo.label.copyWith(color: theme.colors.textPrimary),
         ),
         const SizedBox(height: 10),
-        BButton(
+        TextButton(
           key: const ValueKey('dev-theme-button'),
           onPressed: () => Navigator.of(context).push(
             MaterialPageRoute<void>(builder: (_) => const ThemeDevPage()),
@@ -451,12 +450,12 @@ class _SettingsDialogState extends State<SettingsDialog> {
           spacing: 8,
           runSpacing: 8,
           children: [
-            BButton(
+            TextButton(
               key: const ValueKey('canvas-import-button'),
               onPressed: _transferActive || widget.onImportCanvas == null ? null : _importCanvas,
               child: const Text('Import canvas'),
             ),
-            BButton(
+            TextButton(
               key: const ValueKey('canvas-export-button'),
               onPressed: _transferActive || widget.onExportCanvas == null ? null : _exportCanvas,
               child: const Text('Export canvas'),

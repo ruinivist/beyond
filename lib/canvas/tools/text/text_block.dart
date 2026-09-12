@@ -8,7 +8,9 @@ import 'package:beyond/canvas/attachments/store.dart';
 import 'package:beyond/canvas/canvas_clipboard.dart';
 import 'package:beyond/canvas/canvas_document.dart';
 import 'package:beyond/canvas/canvas_element_model.dart';
-import 'package:beyond/foundation/control_surface.dart';
+import 'package:beyond/foundation/b_container.dart';
+import 'package:beyond/foundation/interaction/b_icon_button.dart';
+import 'package:beyond/foundation/interaction/b_icon_drag.dart';
 import 'package:beyond/foundation/pointer_scroll_boundary.dart';
 import 'package:beyond/foundation/resize_handle.dart';
 import 'package:beyond/foundation/select.dart';
@@ -774,7 +776,7 @@ class _TextSettingsState extends State<TextSettings> {
                         ? Padding(
                             key: const ValueKey('text-settings-open'),
                             padding: const EdgeInsets.only(left: 8),
-                            child: ControlSurface(
+                            child: BContainer(
                               key: const ValueKey('text-settings-panel'),
                               child: Padding(
                                 padding: const EdgeInsets.all(8),

@@ -9,7 +9,7 @@ import 'dart:ui' as ui;
 import 'package:beyond/canvas/attachments/store.dart';
 import 'package:beyond/canvas/canvas_document.dart';
 import 'package:beyond/canvas/canvas_element_model.dart';
-import 'package:beyond/foundation/control_surface.dart';
+import 'package:beyond/foundation/b_container.dart';
 import 'package:beyond/foundation/resize_handle.dart';
 import 'package:beyond/foundation/theme.dart';
 import 'package:file_selector/file_selector.dart';
@@ -464,7 +464,7 @@ class _MediaUrlPanel extends StatelessWidget {
     return SizedBox(
       key: const ValueKey('media-url-panel'),
       width: model.urlPanelWidth,
-      child: ControlSurface(
+      child: BContainer(
         selected: model.selected,
         child: Stack(
           children: [

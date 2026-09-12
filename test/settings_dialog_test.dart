@@ -3,7 +3,6 @@
 
 import 'dart:async';
 
-import 'package:beyond/foundation/button.dart';
 import 'package:beyond/foundation/select.dart';
 import 'package:beyond/foundation/theme.dart';
 import 'package:beyond/theme/starless.dart';
@@ -164,8 +163,8 @@ class _ThemeHostState extends State<_ThemeHost> {
   }
 }
 
-BButton _button(WidgetTester tester, String key) =>
-    tester.widget<BButton>(find.byKey(ValueKey(key)));
+TextButton _button(WidgetTester tester, String key) =>
+    tester.widget<TextButton>(find.byKey(ValueKey(key)));
 
 // ---------- Test helpers ----------
 

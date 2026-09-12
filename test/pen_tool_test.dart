@@ -6,12 +6,12 @@ import 'dart:convert';
 import 'package:beyond/canvas/canvas_background.dart';
 import 'package:beyond/canvas/canvas_document.dart';
 import 'package:beyond/canvas/canvas_document_store.dart';
+import 'package:beyond/canvas/toolbar_button.dart';
 import 'package:beyond/canvas/tools/arrow/arrow_tool.dart';
 import 'package:beyond/canvas/tools/code_block/code_block.dart';
 import 'package:beyond/canvas/tools/code_block/code_language.dart';
 import 'package:beyond/canvas/tools/pen/pen_tool.dart';
 import 'package:beyond/canvas/tools/text/text_block.dart';
-import 'package:beyond/foundation/button.dart';
 import 'package:beyond/foundation/select.dart';
 import 'package:beyond/main.dart';
 import 'package:beyond/utils/preset_colors.dart';
@@ -102,11 +102,11 @@ void main() {
       final button = find.byKey(ValueKey('toolbar-$name'));
       await tester.sendKeyEvent(key);
       await tester.pump();
-      expect(tester.widget<BButton>(button).selected, isTrue);
+      expect(tester.widget<ToolbarButton>(button).selected, isTrue);
 
       await tester.sendKeyEvent(key);
       await tester.pump();
-      expect(tester.widget<BButton>(button).selected, isFalse);
+      expect(tester.widget<ToolbarButton>(button).selected, isFalse);
     }
 
     await tester.sendKeyEvent(LogicalKeyboardKey.keyP);
@@ -114,7 +114,7 @@ void main() {
     await tester.pump();
     expect(
       tester
-          .widget<BButton>(find.byKey(const ValueKey('toolbar-draw')))
+          .widget<ToolbarButton>(find.byKey(const ValueKey('toolbar-draw')))
           .selected,
       isFalse,
     );
@@ -125,7 +125,7 @@ void main() {
     await tester.pump();
     expect(
       tester
-          .widget<BButton>(find.byKey(const ValueKey('toolbar-draw')))
+          .widget<ToolbarButton>(find.byKey(const ValueKey('toolbar-draw')))
           .selected,
       isFalse,
     );
@@ -139,7 +139,7 @@ void main() {
     await tester.pump();
     expect(
       tester
-          .widget<BButton>(find.byKey(const ValueKey('toolbar-draw')))
+          .widget<ToolbarButton>(find.byKey(const ValueKey('toolbar-draw')))
           .selected,
       isFalse,
     );

@@ -13,6 +13,7 @@ import 'package:beyond/canvas/canvas_document_store.dart';
 import 'package:beyond/canvas/canvas_element_model.dart';
 import 'package:beyond/canvas/canvas_project.dart';
 import 'package:beyond/canvas/canvas_project_files.dart';
+import 'package:beyond/canvas/toolbar_button.dart';
 import 'package:beyond/canvas/tools/arrow/arrow_tool.dart';
 import 'package:beyond/canvas/tools/code_block/code_block.dart';
 import 'package:beyond/canvas/tools/code_block/code_language.dart';
@@ -20,8 +21,7 @@ import 'package:beyond/canvas/tools/media/media_node.dart';
 import 'package:beyond/canvas/tools/pen/pen_tool.dart';
 import 'package:beyond/canvas/tools/shape/shape_tool.dart';
 import 'package:beyond/canvas/tools/text/text_block.dart';
-import 'package:beyond/foundation/button.dart';
-import 'package:beyond/foundation/control_surface.dart';
+import 'package:beyond/foundation/b_container.dart';
 import 'package:beyond/foundation/discrete_slider.dart';
 import 'package:beyond/foundation/theme.dart';
 import 'package:beyond/foundation/tool_options.dart';
@@ -1864,17 +1864,15 @@ class _CanvasPageState extends State<CanvasPage> {
                 padding: const EdgeInsets.only(top: 12),
                 child: FittedBox(
                   fit: BoxFit.scaleDown,
-                  child: ControlSurface(
+                  child: BContainer(
                     key: const ValueKey('toolbar-surface'),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Tooltip(
                           message: 'Place text',
-                          child: BButton(
+                          child: ToolbarButton(
                             key: const ValueKey('toolbar-text'),
-                            variant: ButtonVariant.toolbar,
-                            size: ButtonSize.toolbar,
                             selected: _activeTool.value == _CanvasTool.text,
                             onPressed: () => _toggleTool(_CanvasTool.text),
                             child: _toolbarContent(
@@ -1885,10 +1883,8 @@ class _CanvasPageState extends State<CanvasPage> {
                         ),
                         Tooltip(
                           message: 'Place code block',
-                          child: BButton(
+                          child: ToolbarButton(
                             key: const ValueKey('toolbar-code'),
-                            variant: ButtonVariant.toolbar,
-                            size: ButtonSize.toolbar,
                             selected: _activeTool.value == _CanvasTool.code,
                             onPressed: () => _toggleTool(_CanvasTool.code),
                             child: _toolbarContent(
@@ -1899,10 +1895,8 @@ class _CanvasPageState extends State<CanvasPage> {
                         ),
                         Tooltip(
                           message: 'Place media',
-                          child: BButton(
+                          child: ToolbarButton(
                             key: const ValueKey('toolbar-media'),
-                            variant: ButtonVariant.toolbar,
-                            size: ButtonSize.toolbar,
                             selected: _activeTool.value == _CanvasTool.media,
                             onPressed: () => _toggleTool(_CanvasTool.media),
                             child: _toolbarContent(
@@ -1913,10 +1907,8 @@ class _CanvasPageState extends State<CanvasPage> {
                         ),
                         Tooltip(
                           message: 'Draw rounded rectangle',
-                          child: BButton(
+                          child: ToolbarButton(
                             key: const ValueKey('toolbar-shape'),
-                            variant: ButtonVariant.toolbar,
-                            size: ButtonSize.toolbar,
                             selected: _shapeEnabled,
                             onPressed: () => _toggleTool(_CanvasTool.shape),
                             child: _toolbarContent(
@@ -1927,10 +1919,8 @@ class _CanvasPageState extends State<CanvasPage> {
                         ),
                         Tooltip(
                           message: 'Draw with pen',
-                          child: BButton(
+                          child: ToolbarButton(
                             key: const ValueKey('toolbar-draw'),
-                            variant: ButtonVariant.toolbar,
-                            size: ButtonSize.toolbar,
                             selected: _penEnabled,
                             onPressed: () => _toggleTool(_CanvasTool.pen),
                             child: _toolbarContent(
@@ -1941,10 +1931,8 @@ class _CanvasPageState extends State<CanvasPage> {
                         ),
                         Tooltip(
                           message: 'Erase elements',
-                          child: BButton(
+                          child: ToolbarButton(
                             key: const ValueKey('toolbar-erase'),
-                            variant: ButtonVariant.toolbar,
-                            size: ButtonSize.toolbar,
                             selected: _eraserEnabled,
                             onPressed: () => _toggleTool(_CanvasTool.eraser),
                             child: _toolbarContent(
@@ -1955,10 +1943,8 @@ class _CanvasPageState extends State<CanvasPage> {
                         ),
                         Tooltip(
                           message: 'Draw an arrow',
-                          child: BButton(
+                          child: ToolbarButton(
                             key: const ValueKey('toolbar-arrow'),
-                            variant: ButtonVariant.toolbar,
-                            size: ButtonSize.toolbar,
                             selected: _arrowEnabled,
                             onPressed: () => _toggleTool(_CanvasTool.arrow),
                             child: _toolbarContent(
@@ -1988,7 +1974,7 @@ class _CanvasPageState extends State<CanvasPage> {
                   crossAxisAlignment: CrossAxisAlignment.end,
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    ControlSurface(
+                    BContainer(
                       key: const ValueKey('settings-button-surface'),
                       child: IconButton(
                         key: const ValueKey('settings-button'),
@@ -2059,10 +2045,9 @@ class _ShapeSettings extends StatelessWidget {
                 for (final option in ShapeKind.values)
                   Tooltip(
                     message: option.label,
-                    child: BButton(
+                    child: ToolbarButton(
                       key: ValueKey('shape-option-${option.name}'),
-                      variant: ButtonVariant.toolbar,
-                      size: ButtonSize.icon,
+                      iconOnly: true,
                       selected: option == tool.kind,
                       onPressed: () => tool.setKind(option),
                       child: Icon(
@@ -2175,10 +2160,9 @@ class _ColorSwatches extends StatelessWidget {
         if (allowNone)
           Tooltip(
             message: 'No fill',
-            child: BButton(
+            child: ToolbarButton(
               key: ValueKey('$keyPrefix-none'),
-              variant: ButtonVariant.toolbar,
-              size: ButtonSize.icon,
+              iconOnly: true,
               selected: selectedColor == null,
               onPressed: () => onColorChanged(null),
               child: const Icon(LucideIcons.ban, semanticLabel: 'No fill'),
