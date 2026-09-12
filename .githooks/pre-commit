@@ -3,6 +3,7 @@ set -euo pipefail
 
 root="$(git rev-parse --show-toplevel)"
 cd "$root"
+unset $(git rev-parse --local-env-vars)
 
 make fmt
 flutter analyze
