@@ -11,8 +11,6 @@ import 'package:beyond/canvas/editor/widgets/pointer_scroll_boundary.dart';
 import 'package:beyond/canvas/editor/widgets/resize_handle.dart';
 import 'package:beyond/canvas/persistence/attachments/store.dart';
 import 'package:beyond/theme/preset_colors.dart';
-import 'package:beyond/ui/common/b_container.dart';
-import 'package:beyond/ui/common/b_icon_button.dart';
 import 'package:beyond/ui/common/b_icon_drag.dart';
 import 'package:beyond/ui/common/select.dart';
 import 'package:beyond/ui/theme.dart';
@@ -650,8 +648,8 @@ class TextBlockControls extends StatelessWidget {
   final VoidCallback onTransformEnd;
   final ValueGetter<Offset> rotationCenter;
 
-  static const size = Size(500, 136);
-  static const followerOffset = Offset(-50, 0);
+  static const size = Size(40, 88);
+  static const followerOffset = Offset(-50, 24);
 
   @override
   Widget build(BuildContext context) {
@@ -663,10 +661,6 @@ class TextBlockControls extends StatelessWidget {
           spacing: 8,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            TextSettings(
-              model: model,
-              onChangeBoundary: onTransformEnd,
-            ),
             BIconDrag(
               key: const ValueKey('text-block-handle'),
               tooltip: 'Move text block',
@@ -700,7 +694,7 @@ class TextBlockControls extends StatelessWidget {
 
 /// Renders font, size, color, and alignment settings for a text block.
 /// Used by the canvas tool options while a text element is selected.
-class TextSettings extends StatefulWidget {
+class TextSettings extends StatelessWidget {
   const TextSettings({
     required this.model,
     required this.onChangeBoundary,
@@ -711,213 +705,74 @@ class TextSettings extends StatefulWidget {
   final VoidCallback onChangeBoundary;
 
   @override
-  State<TextSettings> createState() => _TextSettingsState();
-}
-
-class _TextSettingsState extends State<TextSettings> {
-  final _colorMenu = MenuController();
-  var _open = false;
-
-  @override
-  void didUpdateWidget(covariant TextSettings oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.model != widget.model) _open = false;
-  }
-
-  @override
   Widget build(BuildContext context) {
     final theme = BTheme.of(context);
     final colors = theme.colors;
     return ListenableBuilder(
-      listenable: widget.model,
+      listenable: model,
       builder: (context, _) {
-        final style = widget.model.style;
+        final style = model.style;
         final selectedColor = colorFromHex(style.color);
-        const colorButtonPadding = EdgeInsets.all(8);
-        const colorButtonShape = CircleBorder();
-        const colorSwatch = SizedBox.square(dimension: 20);
-        const clear = Colors.transparent;
-        final colorButtonOverlay = WidgetStateProperty.resolveWith<Color?>(
-          (states) =>
-              states.contains(WidgetState.focused) ? colors.focusRing.withValues(alpha: 0.18) : Colors.transparent,
-        );
         return SizedBox(
-          height: 40,
-          child: Stack(
-            alignment: Alignment.centerLeft,
-            clipBehavior: Clip.none,
+          key: const ValueKey('text-settings-panel'),
+          width: 248,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
             children: [
-              BIconButton(
-                key: const ValueKey('text-settings-button'),
-                tooltip: 'Open text settings',
-                selectedTooltip: 'Close text settings',
-                selected: _open,
-                onPressed: () => setState(() => _open = !_open),
-                icon: const Icon(Icons.tune),
+              Text('Font', style: theme.typo.label),
+              const SizedBox(height: 6),
+              Select<String>(
+                key: const ValueKey('text-font-select'),
+                value: style.fontFamily,
+                options: textFontOptions,
+                onChanged: (fontFamily) {
+                  onChangeBoundary();
+                  model.style = style.copyWith(fontFamily: fontFamily);
+                  onChangeBoundary();
+                },
               ),
-              Row(
-                mainAxisSize: MainAxisSize.min,
+              const SizedBox(height: 10),
+              Text('Color', style: theme.typo.label),
+              const SizedBox(height: 6),
+              Wrap(
                 children: [
-                  const SizedBox(width: 48),
-                  AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 220),
-                    switchInCurve: Curves.easeOutCubic,
-                    switchOutCurve: Curves.easeOutCubic,
-                    transitionBuilder: (child, animation) => FadeTransition(
-                      opacity: animation,
-                      child: SizeTransition(
-                        axis: Axis.horizontal,
-                        alignment: Alignment.centerLeft,
-                        sizeFactor: animation,
-                        child: child,
+                  for (final swatch in presetColors)
+                    Tooltip(
+                      message: swatch.label,
+                      child: Semantics(
+                        button: true,
+                        selected: selectedColor == swatch.color,
+                        label: 'Use ${swatch.label}',
+                        child: IconButton(
+                          key: ValueKey('text-color-${swatch.label}'),
+                          onPressed: () {
+                            onChangeBoundary();
+                            model.style = style.copyWith(
+                              color: colorToHex(swatch.color),
+                            );
+                            onChangeBoundary();
+                          },
+                          style: IconButton.styleFrom(
+                            minimumSize: const Size.square(40),
+                            padding: const EdgeInsets.all(8),
+                            shape: const CircleBorder(),
+                            side: BorderSide(
+                              color: selectedColor == swatch.color ? colors.focusRing : Colors.transparent,
+                              width: 2,
+                            ),
+                          ),
+                          icon: DecoratedBox(
+                            decoration: BoxDecoration(
+                              color: swatch.color,
+                              shape: BoxShape.circle,
+                              border: Border.all(color: colors.borderSubtle),
+                            ),
+                            child: const SizedBox.square(dimension: 20),
+                          ),
+                        ),
                       ),
                     ),
-                    child: _open
-                        ? Padding(
-                            key: const ValueKey('text-settings-open'),
-                            padding: const EdgeInsets.only(left: 8),
-                            child: BContainer(
-                              key: const ValueKey('text-settings-panel'),
-                              child: Padding(
-                                padding: const EdgeInsets.all(8),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    SizedBox(
-                                      width: 230,
-                                      child: Select<String>(
-                                        key: const ValueKey('text-font-select'),
-                                        value: style.fontFamily,
-                                        options: textFontOptions,
-                                        onChanged: (fontFamily) {
-                                          widget.onChangeBoundary();
-                                          widget.model.style = style.copyWith(
-                                            fontFamily: fontFamily,
-                                          );
-                                          widget.onChangeBoundary();
-                                        },
-                                      ),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    MenuAnchor(
-                                      controller: _colorMenu,
-                                      style: MenuStyle(
-                                        backgroundColor: WidgetStatePropertyAll(
-                                          colors.surfaceRaised,
-                                        ),
-                                        elevation: WidgetStatePropertyAll(
-                                          theme.geo.elevationMedium,
-                                        ),
-                                        padding: const WidgetStatePropertyAll(
-                                          EdgeInsets.all(8),
-                                        ),
-                                        shape: WidgetStatePropertyAll(
-                                          RoundedRectangleBorder(
-                                            borderRadius: theme.geo.radiusLarge,
-                                            side: BorderSide(
-                                              color: colors.borderSubtle,
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                      menuChildren: [
-                                        SizedBox(
-                                          width: 176,
-                                          child: Wrap(
-                                            spacing: 4,
-                                            runSpacing: 4,
-                                            children: [
-                                              for (final swatch in presetColors)
-                                                Tooltip(
-                                                  message: swatch.label,
-                                                  child: Semantics(
-                                                    button: true,
-                                                    selected: selectedColor == swatch.color,
-                                                    label: 'Use ${swatch.label}',
-                                                    child: IconButton(
-                                                      key: ValueKey(
-                                                        'text-color-'
-                                                        '${swatch.label}',
-                                                      ),
-                                                      onPressed: () {
-                                                        widget.onChangeBoundary();
-                                                        widget.model.style = style.copyWith(
-                                                          color: colorToHex(
-                                                            swatch.color,
-                                                          ),
-                                                        );
-                                                        widget.onChangeBoundary();
-                                                        _colorMenu.close();
-                                                      },
-                                                      style: IconButton.styleFrom(
-                                                        minimumSize: const Size.square(
-                                                          40,
-                                                        ),
-                                                        padding: colorButtonPadding,
-                                                        shape: colorButtonShape,
-                                                        side: BorderSide(
-                                                          color: selectedColor == swatch.color
-                                                              ? colors.focusRing
-                                                              : clear,
-                                                          width: 2,
-                                                        ),
-                                                      ),
-                                                      icon: DecoratedBox(
-                                                        decoration: BoxDecoration(
-                                                          color: swatch.color,
-                                                          shape: BoxShape.circle,
-                                                          border: Border.all(
-                                                            color: colors.borderSubtle,
-                                                          ),
-                                                        ),
-                                                        child: colorSwatch,
-                                                      ),
-                                                    ),
-                                                  ),
-                                                ),
-                                            ],
-                                          ),
-                                        ),
-                                      ],
-                                      builder: (context, controller, _) => IconButton(
-                                        key: const ValueKey(
-                                          'text-settings-color',
-                                        ),
-                                        tooltip: 'Choose text color',
-                                        onPressed: controller.isOpen ? controller.close : controller.open,
-                                        style:
-                                            IconButton.styleFrom(
-                                              minimumSize: const Size.square(40),
-                                              padding: const EdgeInsets.all(
-                                                8,
-                                              ),
-                                              shape: const CircleBorder(),
-                                            ).copyWith(
-                                              overlayColor: colorButtonOverlay,
-                                            ),
-                                        icon: DecoratedBox(
-                                          decoration: BoxDecoration(
-                                            color: selectedColor,
-                                            shape: BoxShape.circle,
-                                            border: Border.all(
-                                              color: colors.borderSubtle,
-                                            ),
-                                          ),
-                                          child: const SizedBox.square(
-                                            dimension: 24,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          )
-                        : const SizedBox(
-                            key: ValueKey('text-settings-closed'),
-                          ),
-                  ),
                 ],
               ),
             ],

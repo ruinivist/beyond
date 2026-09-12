@@ -47,16 +47,16 @@ void main() {
 
   testWidgets('text places one focused source editor', (tester) async {
     await _addTextBlock(tester, const Offset(120, 200));
+    await tester.pumpAndSettle();
     final model = tester.widget<TextBlock>(find.byType(TextBlock)).model;
     final editor = find.byKey(const ValueKey('text-markdown-editor'));
 
     expect(find.byType(TextField), findsOneWidget);
     expect(model.editing, isTrue);
     expect(find.byType(TextBlockControls), findsOneWidget);
-    expect(find.byKey(const ValueKey('text-settings-button')), findsOneWidget);
     expect(
       find.byKey(const ValueKey('text-settings-panel')).hitTestable(),
-      findsNothing,
+      findsOneWidget,
     );
     expect(
       find.byKey(const ValueKey('text-block-rotate-control')),
@@ -836,16 +836,10 @@ Inline $x^2$''';
         find.byKey(const ValueKey('text-markdown-editor')),
         source,
       );
+      await tester.pumpAndSettle();
 
       final model = tester.widget<TextBlock>(find.byType(TextBlock)).model;
       expect(find.byType(TextBlockControls), findsOneWidget);
-      expect(
-        find.byKey(const ValueKey('text-settings-panel')).hitTestable(),
-        findsNothing,
-      );
-
-      await tester.tap(find.byKey(const ValueKey('text-settings-button')));
-      await tester.pumpAndSettle();
       expect(
         find.byKey(const ValueKey('text-settings-panel')).hitTestable(),
         findsOneWidget,
@@ -870,8 +864,6 @@ Inline $x^2$''';
       );
       expect(find.byType(TextBlockControls), findsOneWidget);
 
-      await tester.tap(find.byKey(const ValueKey('text-settings-color')));
-      await tester.pumpAndSettle();
       expect(
         find.byKey(const ValueKey('text-color-Black')),
         findsOneWidget,
@@ -893,7 +885,6 @@ Inline $x^2$''';
       expect(model.style.color, colorToHex(orange.color));
       expect(model.node.markdown, source);
       expect(model.editing, isTrue);
-      expect(find.byType(TextBlockControls), findsOneWidget);
     },
   );
 
@@ -917,7 +908,7 @@ Inline $x^2$''';
     expect(find.byType(TextBlockControls), findsNothing);
   });
 
-  testWidgets('editing a second text rebinds closed text settings', (
+  testWidgets('editing a second text rebinds top-right settings', (
     tester,
   ) async {
     await tester.pumpWidget(const BeyondApp());
@@ -925,26 +916,19 @@ Inline $x^2$''';
 
     final first = await _placeTextBlock(tester, const Offset(120, 200));
     final second = await _placeTextBlock(tester, const Offset(480, 360));
-
-    await tester.tap(
-      find.byKey(const ValueKey('text-settings-button')).hitTestable(),
-    );
     await tester.pumpAndSettle();
+
     tester.widget<Select<String>>(find.byKey(const ValueKey('text-font-select'))).onChanged!.call('Inter');
     await tester.pump();
     expect(second.style.fontFamily, 'Inter');
     expect(first.style.fontFamily, 'Source Serif 4');
 
     await tester.tapAt(const Offset(120, 200));
-    await tester.pump();
+    await tester.pumpAndSettle();
     expect(
       find.byKey(const ValueKey('text-settings-panel')).hitTestable(),
-      findsNothing,
+      findsOneWidget,
     );
-    await tester.tap(
-      find.byKey(const ValueKey('text-settings-button')).hitTestable(),
-    );
-    await tester.pumpAndSettle();
     tester.widget<Select<String>>(find.byKey(const ValueKey('text-font-select'))).onChanged!.call('Roboto Mono');
     await tester.pump();
     expect(first.style.fontFamily, 'Roboto Mono');
@@ -983,16 +967,10 @@ Inline $x^2$''';
       const Offset(40, 0),
       kind: PointerDeviceKind.mouse,
     );
-    await tester.pump();
-
-    await tester.tap(
-      find.byKey(const ValueKey('text-settings-button')).hitTestable(),
-    );
     await tester.pumpAndSettle();
+
     tester.widget<Select<String>>(find.byKey(const ValueKey('text-font-select'))).onChanged!.call('Inter');
     await tester.pump();
-    await tester.tap(find.byKey(const ValueKey('text-settings-color')));
-    await tester.pumpAndSettle();
     await tester.tap(
       find.byWidgetPredicate(
         (widget) => widget is Semantics && widget.properties.label == 'Use Orange',

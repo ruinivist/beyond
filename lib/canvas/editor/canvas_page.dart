@@ -1978,7 +1978,15 @@ class _CanvasPageState extends State<CanvasPage> {
                       ),
                     ),
                     ToolOptions(
-                      child: _penEnabled
+                      child: _editingTextBlock != null
+                          ? TextSettings(
+                              key: ValueKey(
+                                'text-settings-${_editingTextBlock!.node.id}',
+                              ),
+                              model: _editingTextBlock!,
+                              onChangeBoundary: _finishHistoryOperation,
+                            )
+                          : _penEnabled
                           ? _DrawSettings(
                               key: const ValueKey('draw-settings-panel'),
                               color: _penColor,
