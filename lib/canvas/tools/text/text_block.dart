@@ -663,7 +663,7 @@ class TextBlockControls extends StatelessWidget {
           children: [
             BIconDrag(
               key: const ValueKey('text-block-handle'),
-              tooltip: 'Move text block',
+              semanticLabel: 'Move text block',
               onDragStart: (_) {
                 onTransformStart();
                 return _TextBlockDrag(onMove, onTransformEnd);
@@ -672,7 +672,7 @@ class TextBlockControls extends StatelessWidget {
             ),
             BIconDrag(
               key: const ValueKey('text-block-rotate-control'),
-              tooltip: 'Rotate text block',
+              semanticLabel: 'Rotate text block',
               onDragStart: (position) {
                 onTransformStart();
                 return _TextBlockRotateDrag(

@@ -68,7 +68,7 @@ Widget bIconButtonPreview() => _surface(
 Widget bIconDragPreview() => _surface(
   BIconDrag(
     icon: const Icon(Icons.open_with),
-    tooltip: 'Drag',
+    semanticLabel: 'Drag',
     onDragStart: (_) => null,
   ),
 );

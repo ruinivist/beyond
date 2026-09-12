@@ -12,43 +12,40 @@ class BIconDrag extends StatelessWidget {
 
   const BIconDrag({
     required this.icon,
-    required this.tooltip,
+    required this.semanticLabel,
     required this.onDragStart,
     super.key,
   });
 
   final Widget icon;
-  final String tooltip;
+  final String semanticLabel;
   final GestureMultiDragStartCallback onDragStart;
 
   // ---------- Rendering ----------
 
   @override
   Widget build(BuildContext context) {
-    return Tooltip(
-      message: tooltip,
-      child: BContainer(
-        child: MouseRegion(
-          cursor: SystemMouseCursors.grab,
-          child: Semantics(
-            button: true,
-            label: tooltip,
-            child: RawGestureDetector(
-              behavior: HitTestBehavior.opaque,
-              gestures: {
-                ImmediateMultiDragGestureRecognizer:
-                    GestureRecognizerFactoryWithHandlers<ImmediateMultiDragGestureRecognizer>(
-                      ImmediateMultiDragGestureRecognizer.new,
-                      (recognizer) => recognizer.onStart = onDragStart,
-                    ),
-              },
-              child: SizedBox.square(
-                dimension: 40,
-                child: Center(
-                  child: IconTheme.merge(
-                    data: const IconThemeData(size: 18),
-                    child: icon,
+    return BContainer(
+      child: MouseRegion(
+        cursor: SystemMouseCursors.grab,
+        child: Semantics(
+          button: true,
+          label: semanticLabel,
+          child: RawGestureDetector(
+            behavior: HitTestBehavior.opaque,
+            gestures: {
+              ImmediateMultiDragGestureRecognizer:
+                  GestureRecognizerFactoryWithHandlers<ImmediateMultiDragGestureRecognizer>(
+                    ImmediateMultiDragGestureRecognizer.new,
+                    (recognizer) => recognizer.onStart = onDragStart,
                   ),
+            },
+            child: SizedBox.square(
+              dimension: 40,
+              child: Center(
+                child: IconTheme.merge(
+                  data: const IconThemeData(size: 18),
+                  child: icon,
                 ),
               ),
             ),
