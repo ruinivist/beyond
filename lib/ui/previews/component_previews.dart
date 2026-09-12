@@ -51,9 +51,7 @@ Widget bIconButtonPreview() => _surface(
       const SizedBox(width: 12),
       BIconButton(
         icon: const Icon(Icons.check),
-        tooltip: 'Select',
-        selectedTooltip: 'Selected',
-        selected: true,
+        tooltip: 'Done',
         onPressed: () {},
       ),
     ],
