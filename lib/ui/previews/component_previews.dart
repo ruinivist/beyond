@@ -3,11 +3,11 @@
 
 import 'package:beyond/ui/common/b_container.dart';
 import 'package:beyond/ui/common/b_icon_button.dart';
-import 'package:beyond/ui/common/b_icon_drag.dart';
 import 'package:beyond/ui/common/b_text_button.dart';
 import 'package:beyond/ui/common/color_picker.dart';
 import 'package:beyond/ui/common/context_menu.dart';
 import 'package:beyond/ui/common/discrete_slider.dart';
+import 'package:beyond/ui/common/icon_drag.dart';
 import 'package:beyond/ui/common/select.dart';
 import 'package:beyond/ui/previews/theme_preview.dart';
 import 'package:beyond/ui/theme.dart';
@@ -74,13 +74,13 @@ Widget bTextButtonPreview() => _surface(
 );
 
 @Preview(
-  name: 'BIconDrag',
+  name: 'IconDrag',
   size: Size(400, 240),
   theme: previewTheme,
   brightness: Brightness.light,
 )
-Widget bIconDragPreview() => _surface(
-  BIconDrag(
+Widget iconDragPreview() => _surface(
+  IconDrag(
     icon: const Icon(Icons.open_with),
     semanticLabel: 'Drag',
     onDragStart: (_) => null,

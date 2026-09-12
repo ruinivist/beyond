@@ -4,7 +4,7 @@
 import 'dart:math' as math;
 
 import 'package:beyond/canvas/tools/text/text_block_model.dart';
-import 'package:beyond/ui/common/b_icon_drag.dart';
+import 'package:beyond/ui/common/icon_drag.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
@@ -43,7 +43,7 @@ class TextBlockControls extends StatelessWidget {
           spacing: 8,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            BIconDrag(
+            IconDrag(
               key: const ValueKey('text-block-handle'),
               semanticLabel: 'Move text block',
               onDragStart: (_) {
@@ -52,7 +52,7 @@ class TextBlockControls extends StatelessWidget {
               },
               icon: const Icon(Icons.drag_indicator),
             ),
-            BIconDrag(
+            IconDrag(
               key: const ValueKey('text-block-rotate-control'),
               semanticLabel: 'Rotate text block',
               onDragStart: (position) {

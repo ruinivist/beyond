@@ -7,10 +7,10 @@ import 'package:flutter/material.dart';
 
 // ---------- Widgets ----------
 
-class BIconDrag extends StatelessWidget {
+class IconDrag extends StatelessWidget {
   // ---------- Construction ----------
 
-  const BIconDrag({
+  const IconDrag({
     required this.icon,
     required this.semanticLabel,
     required this.onDragStart,
