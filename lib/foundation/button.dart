@@ -6,17 +6,9 @@ import 'package:flutter/material.dart';
 
 // ---------- Types ----------
 
-enum ButtonVariant {
-  primary,
-  outline,
-  secondary,
-  ghost,
-  destructive,
-  link,
-  toolbar,
-}
+enum ButtonVariant { secondary, toolbar }
 
-enum ButtonSize { small, medium, large, toolbar, icon }
+enum ButtonSize { medium, toolbar, icon }
 
 // ---------- Widgets ----------
 
@@ -27,107 +19,52 @@ class BButton extends StatelessWidget {
 
   const BButton({
     required this.onPressed,
-    this.child,
-    this.leadingIcon,
-    this.trailingIcon,
-    this.variant = ButtonVariant.primary,
+    required this.child,
+    this.variant = ButtonVariant.secondary,
     this.size = ButtonSize.medium,
     this.selected,
-    this.focusNode,
-    this.autofocus = false,
-    this.onLongPress,
     super.key,
-  }) : assert(
-         child != null || leadingIcon != null || trailingIcon != null,
-         'A button needs a child or an icon.',
-       );
+  });
 
   final VoidCallback? onPressed;
-  final VoidCallback? onLongPress;
-  final Widget? child;
-  final Widget? leadingIcon;
-  final Widget? trailingIcon;
+  final Widget child;
   final ButtonVariant variant;
   final ButtonSize size;
   final bool? selected;
-  final FocusNode? focusNode;
-  final bool autofocus;
 
   // ---------- Size resolution ----------
 
   double get _height => switch (size) {
-    ButtonSize.small => 32,
     ButtonSize.medium => 40,
-    ButtonSize.large => 44,
     ButtonSize.toolbar => 48,
     ButtonSize.icon => 40,
   };
 
   double get _horizontalPadding => switch (size) {
-    ButtonSize.small => 16,
-    ButtonSize.medium => 20,
-    ButtonSize.large => 24,
-    ButtonSize.toolbar => 20,
+    ButtonSize.medium || ButtonSize.toolbar => 20,
     ButtonSize.icon => 0,
   };
 
   double get _verticalPadding => switch (size) {
-    ButtonSize.small => 6,
-    ButtonSize.medium => 8,
-    ButtonSize.large => 10,
-    ButtonSize.toolbar => 8,
+    ButtonSize.medium || ButtonSize.toolbar => 8,
     ButtonSize.icon => 0,
   };
 
   double get _iconSize => switch (size) {
-    ButtonSize.small => 14,
-    ButtonSize.medium => 16,
-    ButtonSize.large => 18,
-    ButtonSize.toolbar => 16,
+    ButtonSize.medium || ButtonSize.toolbar => 16,
     ButtonSize.icon => 18,
-  };
-
-  double get _gap => switch (size) {
-    ButtonSize.small => 6,
-    ButtonSize.medium => 8,
-    ButtonSize.large => 8,
-    ButtonSize.toolbar => 8,
-    ButtonSize.icon => 0,
   };
 
   // ---------- Color resolution ----------
 
   Color _foreground(BColors colors) => switch (variant) {
-    ButtonVariant.primary => colors.surface,
-    ButtonVariant.outline || ButtonVariant.secondary || ButtonVariant.ghost => colors.textPrimary,
-    ButtonVariant.destructive => colors.accentPressed,
-    ButtonVariant.link => colors.accent,
+    ButtonVariant.secondary => colors.textPrimary,
     ButtonVariant.toolbar => selected == true ? colors.accent : colors.textSecondary,
   };
 
   Color _background(BColors colors) => switch (variant) {
-    ButtonVariant.primary => colors.accent,
-    ButtonVariant.outline => colors.surface,
     ButtonVariant.secondary => colors.surfaceSubtle,
-    ButtonVariant.ghost || ButtonVariant.link => Colors.transparent,
-    ButtonVariant.destructive => colors.accentSoft,
     ButtonVariant.toolbar => selected == true ? colors.surfacePressed : Colors.transparent,
-  };
-
-  Color _hoverBackground(BColors colors) => switch (variant) {
-    ButtonVariant.primary => colors.accentHover,
-    ButtonVariant.outline || ButtonVariant.secondary || ButtonVariant.ghost => colors.surfaceHover,
-    ButtonVariant.destructive => colors.accentSubtle,
-    ButtonVariant.link => Colors.transparent,
-    ButtonVariant.toolbar => colors.surfaceHover,
-  };
-
-  Color _pressedBackground(BColors colors) => switch (variant) {
-    ButtonVariant.primary => colors.accentPressed,
-    ButtonVariant.outline || ButtonVariant.secondary || ButtonVariant.ghost => colors.surfacePressed,
-    ButtonVariant.destructive => colors.accentSubtle,
-    ButtonVariant.link => Colors.transparent,
-    ButtonVariant.toolbar => colors.surfacePressed,
   };
 
   // ---------- Composition ----------
@@ -142,40 +79,25 @@ class BButton extends StatelessWidget {
         return states.contains(WidgetState.disabled) ? colors.textMuted : _foreground(colors);
       }),
       backgroundColor: WidgetStateProperty.resolveWith((states) {
-        if (states.contains(WidgetState.disabled)) {
-          return variant == ButtonVariant.outline || variant == ButtonVariant.ghost || variant == ButtonVariant.link
-              ? Colors.transparent
-              : colors.surfacePressed;
-        }
+        if (states.contains(WidgetState.disabled)) return colors.surfacePressed;
         if (states.contains(WidgetState.pressed)) {
-          return _pressedBackground(colors);
+          return colors.surfacePressed;
         }
         if (states.contains(WidgetState.hovered) || states.contains(WidgetState.focused)) {
-          return _hoverBackground(colors);
+          return colors.surfaceHover;
         }
         return _background(colors);
       }),
       side: WidgetStateProperty.resolveWith((states) {
-        if (states.contains(WidgetState.disabled)) {
-          return variant == ButtonVariant.outline
-              ? BorderSide(color: colors.borderSubtle.withValues(alpha: 0.38))
-              : BorderSide.none;
-        }
         if (states.contains(WidgetState.focused)) {
           return BorderSide(color: colors.focusRing, width: 2);
         }
-        return variant == ButtonVariant.outline ? BorderSide(color: colors.borderSubtle) : BorderSide.none;
+        return BorderSide.none;
       }),
       shape: WidgetStatePropertyAll(
         RoundedRectangleBorder(borderRadius: borderRadius),
       ),
-      textStyle: WidgetStateProperty.resolveWith((states) {
-        if (variant == ButtonVariant.link &&
-            (states.contains(WidgetState.hovered) || states.contains(WidgetState.focused))) {
-          return textStyle.copyWith(decoration: TextDecoration.underline);
-        }
-        return textStyle;
-      }),
+      textStyle: WidgetStatePropertyAll(textStyle),
       padding: WidgetStatePropertyAll(
         EdgeInsets.symmetric(
           horizontal: _horizontalPadding,
@@ -190,24 +112,6 @@ class BButton extends StatelessWidget {
     );
   }
 
-  Widget _content() {
-    final children = <Widget>[];
-    if (leadingIcon != null) children.add(leadingIcon!);
-    if (child != null) children.add(child!);
-    if (trailingIcon != null) children.add(trailingIcon!);
-    if (children.length == 1) return children.single;
-
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        for (var i = 0; i < children.length; i++) ...[
-          if (i > 0) SizedBox(width: _gap),
-          children[i],
-        ],
-      ],
-    );
-  }
-
   // ---------- Rendering ----------
 
   @override
@@ -215,13 +119,10 @@ class BButton extends StatelessWidget {
     final theme = BTheme.of(context);
     final button = TextButton(
       onPressed: onPressed,
-      onLongPress: onLongPress,
-      focusNode: focusNode,
-      autofocus: autofocus,
       style: _style(theme.colors, theme.typo.body, theme.geo.radiusMedium),
       child: IconTheme.merge(
         data: IconThemeData(size: _iconSize),
-        child: _content(),
+        child: child,
       ),
     );
     return selected == null ? button : Semantics(selected: selected, child: button);

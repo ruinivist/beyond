@@ -339,7 +339,6 @@ class _SettingsDialogState extends State<SettingsDialog> {
         const SizedBox(height: 10),
         BButton(
           key: const ValueKey('dev-theme-button'),
-          variant: ButtonVariant.secondary,
           onPressed: () => Navigator.of(context).push(
             MaterialPageRoute<void>(builder: (_) => const ThemeDevPage()),
           ),
@@ -455,13 +454,11 @@ class _SettingsDialogState extends State<SettingsDialog> {
             BButton(
               key: const ValueKey('canvas-import-button'),
               onPressed: _transferActive || widget.onImportCanvas == null ? null : _importCanvas,
-              variant: ButtonVariant.secondary,
               child: const Text('Import canvas'),
             ),
             BButton(
               key: const ValueKey('canvas-export-button'),
               onPressed: _transferActive || widget.onExportCanvas == null ? null : _exportCanvas,
-              variant: ButtonVariant.secondary,
               child: const Text('Export canvas'),
             ),
           ],

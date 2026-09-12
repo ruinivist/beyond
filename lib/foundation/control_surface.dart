@@ -1,7 +1,6 @@
 // Provides a themed raised surface for grouped controls.
 // Used by floating editor controls and tool option panels.
 
-import 'package:beyond/foundation/button.dart';
 import 'package:beyond/foundation/theme.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
@@ -65,23 +64,47 @@ class BIconButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final message = selected ? selectedTooltip ?? tooltip : tooltip;
-    final transformedIcon = IconTheme.merge(
-      data: const IconThemeData(size: 18),
-      child: Transform.translate(
-        offset: selected ? const Offset(0, 1) : Offset.zero,
-        child: icon,
-      ),
+    final theme = BTheme.of(context);
+    final transformedIcon = Transform.translate(
+      offset: selected ? const Offset(0, 1) : Offset.zero,
+      child: icon,
     );
     return Tooltip(
       message: message,
       child: ControlSurface(
         selected: selected,
-        child: BButton(
-          onPressed: onPressed,
-          variant: ButtonVariant.ghost,
-          size: ButtonSize.icon,
+        child: Semantics(
           selected: selected,
-          leadingIcon: transformedIcon,
+          child: IconButton(
+            onPressed: onPressed,
+            icon: transformedIcon,
+            iconSize: 18,
+            style: ButtonStyle(
+              foregroundColor: WidgetStatePropertyAll(
+                theme.colors.textPrimary,
+              ),
+              backgroundColor: WidgetStateProperty.resolveWith((states) {
+                if (states.contains(WidgetState.pressed)) {
+                  return theme.colors.surfacePressed;
+                }
+                if (states.contains(WidgetState.hovered) || states.contains(WidgetState.focused)) {
+                  return theme.colors.surfaceHover;
+                }
+                return Colors.transparent;
+              }),
+              side: WidgetStateProperty.resolveWith(
+                (states) => states.contains(WidgetState.focused)
+                    ? BorderSide(color: theme.colors.focusRing, width: 2)
+                    : BorderSide.none,
+              ),
+              shape: WidgetStatePropertyAll(
+                RoundedRectangleBorder(borderRadius: theme.geo.radiusMedium),
+              ),
+              fixedSize: const WidgetStatePropertyAll(Size.square(40)),
+              padding: const WidgetStatePropertyAll(EdgeInsets.zero),
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+          ),
         ),
       ),
     );

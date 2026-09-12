@@ -1,8 +1,7 @@
-// Verifies semantic button behavior, states, and accessibility.
+// Verifies the shared button's press and disabled behavior.
 // Exercises the reusable button under Beyond themes.
 
 import 'package:beyond/foundation/button.dart';
-import 'package:beyond/foundation/theme.dart';
 import 'package:beyond/theme/starless.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -10,80 +9,27 @@ import 'package:flutter_test/flutter_test.dart';
 // ---------- Tests ----------
 
 void main() {
-  testWidgets('button uses BTheme defaults', (tester) async {
-    final theme = starlessLightThemeData.extension<BTheme>()!;
+  testWidgets('button dispatches presses and supports disabling', (tester) async {
+    var presses = 0;
     await tester.pumpWidget(
       MaterialApp(
         theme: starlessLightThemeData,
-        home: const BButton(onPressed: _noop, child: Text('Primary')),
-      ),
-    );
-
-    final textButton = tester.widget<TextButton>(find.byType(TextButton));
-    expect(textButton.style!.backgroundColor!.resolve({}), theme.colors.accent);
-    expect(
-      textButton.style!.foregroundColor!.resolve({}),
-      theme.colors.surface,
-    );
-    expect(
-      textButton.style!.textStyle!.resolve({})!.fontSize,
-      theme.typo.body.fontSize,
-    );
-    expect(
-      (textButton.style!.shape!.resolve({})! as RoundedRectangleBorder).borderRadius,
-      theme.geo.radiusMedium,
-    );
-  });
-
-  testWidgets('button variants use expanded default spacing', (tester) async {
-    await tester.pumpWidget(
-      MaterialApp(
-        theme: starlessLightThemeData,
-        home: const BButton(
-          variant: ButtonVariant.outline,
-          onPressed: _noop,
-          child: Text('Outline'),
+        home: BButton(
+          onPressed: () => presses++,
+          child: const Text('Save'),
         ),
       ),
     );
 
-    final textButton = tester.widget<TextButton>(find.byType(TextButton));
-    expect(textButton.style!.minimumSize!.resolve({}), const Size(0, 40));
-    expect(
-      textButton.style!.padding!.resolve({}),
-      const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+    await tester.tap(find.text('Save'));
+    expect(presses, 1);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: starlessLightThemeData,
+        home: const BButton(onPressed: null, child: Text('Save')),
+      ),
     );
-  });
-
-  testWidgets('ghost and link buttons keep their background state behavior', (
-    tester,
-  ) async {
-    final theme = starlessLightThemeData.extension<BTheme>()!;
-
-    for (final variant in [ButtonVariant.ghost, ButtonVariant.link]) {
-      await tester.pumpWidget(
-        MaterialApp(
-          theme: starlessLightThemeData,
-          home: BButton(
-            variant: variant,
-            onPressed: _noop,
-            child: const Text('Button'),
-          ),
-        ),
-      );
-
-      final style = tester.widget<TextButton>(find.byType(TextButton)).style!;
-      expect(style.backgroundColor!.resolve({}), Colors.transparent);
-      expect(
-        style.backgroundColor!.resolve({WidgetState.hovered}),
-        variant == ButtonVariant.ghost ? theme.colors.surfaceHover : Colors.transparent,
-      );
-      expect(
-        style.backgroundColor!.resolve({WidgetState.pressed}),
-        variant == ButtonVariant.ghost ? theme.colors.surfacePressed : Colors.transparent,
-      );
-    }
+    expect(tester.widget<TextButton>(find.byType(TextButton)).onPressed, isNull);
   });
 }
-
-void _noop() {}
