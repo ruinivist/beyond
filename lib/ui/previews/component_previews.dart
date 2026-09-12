@@ -4,6 +4,7 @@
 import 'package:beyond/ui/common/b_container.dart';
 import 'package:beyond/ui/common/b_icon_button.dart';
 import 'package:beyond/ui/common/b_icon_drag.dart';
+import 'package:beyond/ui/common/b_text_button.dart';
 import 'package:beyond/ui/common/color_picker.dart';
 import 'package:beyond/ui/common/context_menu.dart';
 import 'package:beyond/ui/common/discrete_slider.dart';
@@ -56,6 +57,19 @@ Widget bIconButtonPreview() => _surface(
         onPressed: () {},
       ),
     ],
+  ),
+);
+
+@Preview(
+  name: 'BTextButton',
+  size: Size(400, 240),
+  theme: previewTheme,
+  brightness: Brightness.light,
+)
+Widget bTextButtonPreview() => _surface(
+  BTextButton(
+    label: 'New page',
+    onPressed: () {},
   ),
 );
 
