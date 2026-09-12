@@ -48,7 +48,7 @@ class BTextButton extends StatelessWidget {
           padding: const WidgetStatePropertyAll(
             EdgeInsets.symmetric(horizontal: 16, vertical: 6),
           ),
-          fixedSize: const WidgetStatePropertyAll(Size(160, 36)),
+          fixedSize: const WidgetStatePropertyAll(BSizes.defaultTextButtonSize),
           tapTargetSize: MaterialTapTargetSize.shrinkWrap,
           alignment: Alignment.center,
         ),

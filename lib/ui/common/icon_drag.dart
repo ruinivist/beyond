@@ -1,6 +1,7 @@
 // Provides Beyond's draggable icon control.
 // Used by canvas controls that start pointer transformations.
 
+import 'package:beyond/theme/sizes.dart';
 import 'package:beyond/ui/common/b_container.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
@@ -41,10 +42,10 @@ class IconDrag extends StatelessWidget {
                   ),
             },
             child: SizedBox.square(
-              dimension: 40,
+              dimension: BSizes.defaultIconButtonSize.width,
               child: Center(
                 child: IconTheme.merge(
-                  data: const IconThemeData(size: 18),
+                  data: const IconThemeData(size: BSizes.defaultIconSize),
                   child: icon,
                 ),
               ),

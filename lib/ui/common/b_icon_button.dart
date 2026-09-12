@@ -32,7 +32,7 @@ class BIconButton extends StatelessWidget {
         child: IconButton(
           onPressed: onPressed,
           icon: icon,
-          iconSize: 18,
+          iconSize: BSizes.defaultIconSize,
           style: ButtonStyle(
             foregroundColor: WidgetStatePropertyAll(
               theme.colors.textPrimary,
@@ -54,7 +54,7 @@ class BIconButton extends StatelessWidget {
             shape: WidgetStatePropertyAll(
               RoundedRectangleBorder(borderRadius: theme.geo.radiusMedium),
             ),
-            fixedSize: const WidgetStatePropertyAll(Size.square(40)),
+            fixedSize: const WidgetStatePropertyAll(BSizes.defaultIconButtonSize),
             padding: const WidgetStatePropertyAll(EdgeInsets.zero),
             tapTargetSize: MaterialTapTargetSize.shrinkWrap,
           ),

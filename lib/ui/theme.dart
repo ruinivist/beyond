@@ -3,6 +3,8 @@
 
 import 'package:flutter/material.dart';
 
+export 'package:beyond/theme/sizes.dart';
+
 // ---------- Semantic tokens ----------
 
 /// Holds semantic colors shared by Beyond components.
