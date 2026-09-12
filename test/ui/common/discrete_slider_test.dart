@@ -128,4 +128,26 @@ void main() {
     expect(focusNode.hasFocus, isFalse);
     expect(indicator, paintsNothing);
   });
+
+  testWidgets('derives divisions from min, max, and stepSize', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: starlessLightThemeData,
+        home: const Scaffold(
+          body: DiscreteSlider(
+            value: 2,
+            min: 1,
+            max: 6,
+            stepSize: 0.5,
+            onChanged: null,
+          ),
+        ),
+      ),
+    );
+
+    final slider = tester.widget<Slider>(find.byKey(const ValueKey('discrete-slider')));
+    expect(slider.min, 1);
+    expect(slider.max, 6);
+    expect(slider.divisions, 10);
+  });
 }

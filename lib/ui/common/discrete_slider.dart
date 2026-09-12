@@ -6,34 +6,46 @@ import 'package:flutter/material.dart';
 
 // ---------- Geometry ----------
 
-const _minimum = 0.25;
-const _maximum = 5.0;
-const _divisions = 19;
+const _defaultMinimum = 0.25;
+const _defaultMaximum = 5.0;
+const _defaultStepSize = 0.25;
 const _trackHeight = 4.0;
 const _thumbDiameter = 16.0;
 
 // ---------- Widgets ----------
 
-/// Renders the fixed-range slider used for stepped editing values.
-/// Used by tool settings that expose values from 0.25 through 5.0.
+/// Renders the stepped slider used for bounded numeric choices.
+/// Used by tool settings that expose stepped numeric values.
 class DiscreteSlider extends StatelessWidget {
   // ---------- Construction ----------
 
   const DiscreteSlider({
     required this.value,
     required this.onChanged,
+    this.min = _defaultMinimum,
+    this.max = _defaultMaximum,
+    this.stepSize = _defaultStepSize,
+    this.labelFormatter,
     this.focusNode,
     this.autofocus = false,
     super.key,
-  }) : assert(
-         value >= _minimum && value <= _maximum,
-         'value must be between 0.25 and 5',
+  }) : assert(min < max, 'min must be less than max'),
+       assert(stepSize > 0, 'stepSize must be greater than 0'),
+       assert(
+         value >= min && value <= max,
+         'value must be between min and max',
        );
 
   final double value;
   final ValueChanged<double>? onChanged;
+  final double min;
+  final double max;
+  final double stepSize;
+  final String Function(double value)? labelFormatter;
   final FocusNode? focusNode;
   final bool autofocus;
+
+  int get divisions => ((max - min) / stepSize).round();
 
   // ---------- Rendering ----------
 
@@ -78,14 +90,14 @@ class DiscreteSlider extends StatelessWidget {
           child: Slider(
             key: const ValueKey('discrete-slider'),
             value: value,
-            min: _minimum,
-            max: _maximum,
-            divisions: _divisions,
-            label: '${(value * 4).round()}',
-            semanticFormatterCallback: (value) => '${(value * 4).round()}',
+            min: min,
+            max: max,
+            divisions: divisions,
+            label: labelFormatter != null ? labelFormatter!(value) : '${(value / stepSize).round()}',
+            semanticFormatterCallback: labelFormatter ?? (value) => '${(value / stepSize).round()}',
             focusNode: focusNode,
             autofocus: autofocus,
-            onChanged: onChanged == null ? null : (next) => onChanged!(next.clamp(_minimum, _maximum)),
+            onChanged: onChanged == null ? null : (next) => onChanged!(next.clamp(min, max)),
           ),
         ),
       ),
