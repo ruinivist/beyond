@@ -7,7 +7,7 @@ import 'package:beyond/canvas/document/canvas_document.dart';
 import 'package:beyond/canvas/editor/canvas_element_model.dart';
 import 'package:beyond/canvas/editor/widgets/pointer_scroll_boundary.dart';
 import 'package:beyond/canvas/editor/widgets/resize_handle.dart';
-import 'package:beyond/canvas/tools/code_block/code_language.dart';
+import 'package:beyond/canvas/tools/code/code_language.dart';
 import 'package:beyond/ui/common/select.dart';
 import 'package:beyond/ui/theme.dart';
 import 'package:flutter/gestures.dart';
@@ -15,102 +15,17 @@ import 'package:flutter/material.dart';
 import 'package:re_editor/re_editor.dart';
 import 'package:scroll_animator/scroll_animator.dart';
 
-// ---------- Models ----------
+export 'code_language.dart';
 
-/// Owns code editor controllers and keeps them synchronized with element data.
-/// Used by code block rendering and canvas persistence.
-class CodeBlockModel extends CanvasElementModel<CodeElementData> {
-  // ---------- Construction ----------
-
-  CodeBlockModel(CodeElementData data) : super(data) {
-    controller.text = data.source;
-    controller.addListener(_syncSource);
-  }
-
-  final controller = CodeLineEditingController(
-    options: const CodeLineOptions(indentSize: 4),
-  );
-  final focusNode = FocusNode();
-  final scrollController = CodeScrollController(
-    verticalScroller: AnimatedScrollController(
-      animationFactory: const ChromiumEaseInOut(),
-    ),
-    horizontalScroller: AnimatedScrollController(
-      animationFactory: const ChromiumEaseInOut(),
-    ),
-  );
-
-  // ---------- Geometry and language ----------
-
-  @override
-  Offset get canvasPosition => data.position;
-
-  @override
-  Size get canvasSize => data.size;
-
-  Size get size => data.size;
-
-  set size(Size value) {
-    final nextSize = _clampSize(value);
-    if (data.size == nextSize) return;
-    data.size = nextSize;
-    notifyListeners();
-  }
-
-  CodeLanguage get language => data.language;
-
-  set language(CodeLanguage value) {
-    if (data.language == value) return;
-    data.language = value;
-    notifyListeners();
-  }
-
-  @override
-  void moveBy(Offset delta) {
-    if (delta == Offset.zero) return;
-    data.position += delta;
-    notifyListeners();
-  }
-
-  // ---------- Synchronization ----------
-
-  void _syncSource() {
-    if (data.source == controller.text) return;
-    data.source = controller.text;
-    notifyListeners();
-  }
-
-  // ---------- Lifecycle ----------
-
-  @override
-  void dispose() {
-    controller
-      ..removeListener(_syncSource)
-      ..dispose();
-    focusNode.dispose();
-    scrollController
-      ..verticalScroller.dispose()
-      ..horizontalScroller.dispose()
-      ..dispose();
-    super.dispose();
-  }
-}
-
-// ---------- Geometry ----------
-
-Size _clampSize(Size size) {
-  return Size(
-    math.max(codeBlockMinimumSize.width, size.width),
-    math.max(codeBlockMinimumSize.height, size.height),
-  );
-}
+part 'code_tool_model.dart';
+part 'code_tool_helpers.dart';
 
 // ---------- Rendering ----------
 
 /// Renders an editable code surface with language selection and resizing.
 /// Used by the canvas element stack.
-class CodeBlock extends StatelessWidget {
-  const CodeBlock({
+class CodeTool extends StatelessWidget {
+  const CodeTool({
     required this.model,
     required this.onMove,
     required this.onChangeBoundary,
@@ -241,77 +156,4 @@ class CodeBlock extends StatelessWidget {
       ),
     );
   }
-}
-
-// ---------- Supporting widgets ----------
-
-class _CodeBlockHeader extends StatelessWidget {
-  const _CodeBlockHeader({
-    required this.model,
-    required this.onMove,
-    required this.onChangeBoundary,
-  });
-
-  final CodeBlockModel model;
-  final ValueChanged<Offset> onMove;
-  final VoidCallback onChangeBoundary;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = BTheme.of(context);
-    final colors = theme.colors;
-    return SizedBox(
-      height: 40,
-      child: MouseRegion(
-        cursor: SystemMouseCursors.grab,
-        child: RawGestureDetector(
-          key: const ValueKey('code-block-header'),
-          behavior: HitTestBehavior.opaque,
-          gestures: {
-            ImmediateMultiDragGestureRecognizer:
-                GestureRecognizerFactoryWithHandlers<ImmediateMultiDragGestureRecognizer>(
-                  ImmediateMultiDragGestureRecognizer.new,
-                  (recognizer) {
-                    recognizer.onStart = (_) => _CodeBlockDrag(onMove);
-                  },
-                ),
-          },
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            child: Row(
-              children: [
-                Icon(Icons.code, size: 18, color: colors.textMuted),
-                const SizedBox(width: 8),
-                SearchableSelect<CodeLanguage>(
-                  value: model.language,
-                  preferredValues: CodeLanguage.values,
-                  searchHint: 'Search languages…',
-                  options: [
-                    for (final language in CodeLanguage.values) SelectOption(value: language, label: language.label),
-                  ],
-                  showBorder: false,
-                  onChanged: (language) {
-                    onChangeBoundary();
-                    model.language = language;
-                    onChangeBoundary();
-                  },
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-// ---------- Gestures ----------
-
-class _CodeBlockDrag extends Drag {
-  _CodeBlockDrag(this.onMove);
-
-  final ValueChanged<Offset> onMove;
-
-  @override
-  void update(DragUpdateDetails details) => onMove(details.delta);
 }

@@ -3,7 +3,7 @@
 
 import 'package:beyond/canvas/document/canvas_document.dart';
 import 'package:beyond/canvas/persistence/attachments/store.dart';
-import 'package:beyond/canvas/tools/text/text_block.dart';
+import 'package:beyond/canvas/tools/text/text_block_model.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';

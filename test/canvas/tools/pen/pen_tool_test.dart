@@ -8,10 +8,9 @@ import 'package:beyond/canvas/editor/canvas_background.dart';
 import 'package:beyond/canvas/editor/widgets/toolbar_button.dart';
 import 'package:beyond/canvas/persistence/canvas_document_store.dart';
 import 'package:beyond/canvas/tools/arrow/arrow_tool.dart';
-import 'package:beyond/canvas/tools/code_block/code_block.dart';
-import 'package:beyond/canvas/tools/code_block/code_language.dart';
+import 'package:beyond/canvas/tools/code/code_tool.dart';
 import 'package:beyond/canvas/tools/pen/pen_tool.dart';
-import 'package:beyond/canvas/tools/text/text_block.dart';
+import 'package:beyond/canvas/tools/text/text_tool.dart';
 import 'package:beyond/main.dart';
 import 'package:beyond/theme/preset_colors.dart';
 import 'package:beyond/ui/common/select.dart';
@@ -306,7 +305,7 @@ void main() {
     await tester.tapAt(const Offset(40, 160));
     await tester.pump();
     await tester.pump();
-    final text = tester.widget<TextBlock>(find.byType(TextBlock)).model;
+    final text = tester.widget<TextTool>(find.byType(TextTool)).model;
     final textPosition = text.data.position;
     await tester.enterText(
       find.byKey(const ValueKey('text-markdown-editor')),
@@ -314,7 +313,7 @@ void main() {
     );
 
     await _placeCodeBlock(tester, const Offset(120, 100));
-    final code = tester.widget<CodeBlock>(find.byType(CodeBlock)).model
+    final code = tester.widget<CodeTool>(find.byType(CodeTool)).model
       ..language = CodeLanguage.json
       ..controller.text = '{"saved": true}';
     final codePosition = code.data.position;
@@ -413,8 +412,8 @@ void main() {
       ),
     );
     expect(restored.elements.map((element) => element.id), ids);
-    expect(find.byType(TextBlock), findsOneWidget);
-    expect(find.byType(CodeBlock), findsOneWidget);
+    expect(find.byType(TextTool), findsOneWidget);
+    expect(find.byType(CodeTool), findsOneWidget);
     expect(find.byType(PenStroke), findsOneWidget);
     expect(find.byType(Arrow), findsOneWidget);
     final restoredCanvas = tester.widget<LazyCanvas>(find.byType(LazyCanvas));
@@ -424,24 +423,24 @@ void main() {
       ),
       ids,
     );
-    for (final block in tester.widgetList<TextBlock>(find.byType(TextBlock))) {
+    for (final block in tester.widgetList<TextTool>(find.byType(TextTool))) {
       expect(block.model.selected, isFalse);
       expect(block.model.focusNode.hasFocus, isFalse);
     }
-    for (final block in tester.widgetList<CodeBlock>(find.byType(CodeBlock))) {
+    for (final block in tester.widgetList<CodeTool>(find.byType(CodeTool))) {
       expect(block.model.selected, isFalse);
       expect(block.model.focusNode.hasFocus, isFalse);
     }
     expect(
-      tester.widget<CodeBlock>(find.byType(CodeBlock)).model.data.source,
+      tester.widget<CodeTool>(find.byType(CodeTool)).model.data.source,
       '{"saved": true}',
     );
     expect(
-      tester.widget<TextBlock>(find.byType(TextBlock)).model.data.position,
+      tester.widget<TextTool>(find.byType(TextTool)).model.data.position,
       textPosition,
     );
     expect(
-      tester.widget<CodeBlock>(find.byType(CodeBlock)).model.data.position,
+      tester.widget<CodeTool>(find.byType(CodeTool)).model.data.position,
       codePosition,
     );
     final restoredPen = tester.widget<PenStroke>(find.byType(PenStroke)).model;
@@ -715,7 +714,7 @@ void main() {
       tester.getCenter(find.byKey(const ValueKey('code-block-header'))),
     );
     await tester.pump();
-    final code = tester.widget<CodeBlock>(find.byType(CodeBlock)).model;
+    final code = tester.widget<CodeTool>(find.byType(CodeTool)).model;
     expect(stroke.selected, isTrue);
     expect(code.selected, isTrue);
 
@@ -743,18 +742,18 @@ void main() {
 
     await tester.tap(find.byKey(const ValueKey('toolbar-code')));
     await tester.pump();
-    expect(find.byType(CodeBlock), findsNothing);
+    expect(find.byType(CodeTool), findsNothing);
 
     await tester.tapAt(const Offset(120, 200));
     await tester.pump();
-    final code = tester.widget<CodeBlock>(find.byType(CodeBlock)).model;
-    expect(tester.getTopLeft(find.byType(CodeBlock)), const Offset(120, 200));
+    final code = tester.widget<CodeTool>(find.byType(CodeTool)).model;
+    expect(tester.getTopLeft(find.byType(CodeTool)), const Offset(120, 200));
     expect(code.focusNode.hasFocus, isTrue);
 
     code.selected = true;
     await tester.sendKeyEvent(LogicalKeyboardKey.escape);
     await tester.pump();
-    expect(find.byType(CodeBlock), findsOneWidget);
+    expect(find.byType(CodeTool), findsOneWidget);
     expect(code.focusNode.hasFocus, isFalse);
     expect(code.selected, isFalse);
     await tester.pump(const Duration(milliseconds: 100));
@@ -772,7 +771,7 @@ void main() {
     await tester.tapAt(const Offset(40, 520));
     await tester.pump();
     await tester.pump();
-    final text = tester.widget<TextBlock>(find.byType(TextBlock)).model;
+    final text = tester.widget<TextTool>(find.byType(TextTool)).model;
     final canvas = tester.widget<LazyCanvas>(find.byType(LazyCanvas));
     final textId = canvas.controller.widgetsWithScreenPositions().single.id;
     canvas.controller.updatePosition(textId, const Offset(10000, 10000));
@@ -789,7 +788,7 @@ void main() {
     await _placeCodeBlock(tester, const Offset(120, 100));
     await tester.pump(const Duration(milliseconds: 100));
 
-    final code = tester.widget<CodeBlock>(find.byType(CodeBlock)).model;
+    final code = tester.widget<CodeTool>(find.byType(CodeTool)).model;
     final stroke = tester.widget<PenStroke>(find.byType(PenStroke)).model;
     final visibleIds = canvas.controller.widgetsWithScreenPositions().map((child) => child.id).toList();
     FocusManager.instance.primaryFocus?.unfocus();
@@ -811,8 +810,8 @@ void main() {
     await tester.pump();
     await tester.pump();
 
-    expect(find.byType(TextBlock), findsNothing);
-    expect(find.byType(CodeBlock), findsNothing);
+    expect(find.byType(TextTool), findsNothing);
+    expect(find.byType(CodeTool), findsNothing);
     expect(find.byType(PenStroke), findsNothing);
     expect(canvas.controller.hasChild(textId), isFalse);
     for (final id in visibleIds) {
@@ -840,7 +839,7 @@ void main() {
     await tester.pump();
     await tester.pump();
 
-    final model = tester.widget<TextBlock>(find.byType(TextBlock)).model;
+    final model = tester.widget<TextTool>(find.byType(TextTool)).model;
     expect(model.editing, isTrue);
     expect(find.byType(TextBlockControls), findsOneWidget);
 
@@ -861,7 +860,7 @@ void main() {
     await _placeCodeBlock(tester, const Offset(120, 100));
     await tester.pump(const Duration(milliseconds: 100));
 
-    final block = find.byType(CodeBlock);
+    final block = find.byType(CodeTool);
     final handle = find.byKey(const ValueKey('code-block-resize-handle'));
     final originalSize = tester.getSize(block);
 
@@ -887,8 +886,8 @@ void main() {
     await tester.pump();
     await _placeCodeBlock(tester, const Offset(120, 100));
 
-    final block = find.byType(CodeBlock);
-    final model = tester.widget<CodeBlock>(block).model;
+    final block = find.byType(CodeTool);
+    final model = tester.widget<CodeTool>(block).model;
     final canvas = tester.widget<LazyCanvas>(find.byType(LazyCanvas));
     model.controller.text = List.generate(
       100,
@@ -926,17 +925,17 @@ void main() {
     await _placeCodeBlock(tester, const Offset(120, 100));
     await tester.pump(const Duration(milliseconds: 100));
 
-    final block = find.byType(CodeBlock);
+    final block = find.byType(CodeTool);
     final header = find.byKey(const ValueKey('code-block-header'));
     final canvas = tester.widget<LazyCanvas>(find.byType(LazyCanvas));
     final originalTopLeft = tester.getTopLeft(block);
     final originalCanvasOffset = canvas.controller.offset;
 
-    expect(tester.widget<CodeBlock>(block).model.selected, isFalse);
+    expect(tester.widget<CodeTool>(block).model.selected, isFalse);
 
     await tester.tap(header);
     await tester.pump();
-    expect(tester.widget<CodeBlock>(block).model.selected, isFalse);
+    expect(tester.widget<CodeTool>(block).model.selected, isFalse);
 
     const delta = Offset(80, 60);
     await tester.drag(header, delta);
@@ -947,7 +946,7 @@ void main() {
 
     await tester.tapAt(const Offset(24, 200));
     await tester.pump();
-    expect(tester.widget<CodeBlock>(block).model.selected, isFalse);
+    expect(tester.widget<CodeTool>(block).model.selected, isFalse);
 
     FocusManager.instance.primaryFocus?.unfocus();
     await tester.pump();
@@ -967,8 +966,8 @@ void main() {
     await _placeCodeBlock(tester, const Offset(120, 100));
     await tester.pump(const Duration(milliseconds: 100));
 
-    final text = tester.widget<TextBlock>(find.byType(TextBlock)).model;
-    final code = tester.widget<CodeBlock>(find.byType(CodeBlock)).model;
+    final text = tester.widget<TextTool>(find.byType(TextTool)).model;
+    final code = tester.widget<CodeTool>(find.byType(CodeTool)).model;
     final textCenter = tester.getCenter(
       find.byKey(const ValueKey('text-markdown-preview-surface')),
     );
@@ -1004,11 +1003,11 @@ void main() {
       (widget) => widget is Semantics && widget.properties.selected == true,
     );
     expect(
-      find.descendant(of: find.byType(TextBlock), matching: selectedSemantics),
+      find.descendant(of: find.byType(TextTool), matching: selectedSemantics),
       findsOneWidget,
     );
     expect(
-      find.descendant(of: find.byType(CodeBlock), matching: selectedSemantics),
+      find.descendant(of: find.byType(CodeTool), matching: selectedSemantics),
       findsOneWidget,
     );
 
@@ -1049,11 +1048,11 @@ void main() {
     await _placeCodeBlock(tester, const Offset(120, 100));
     await tester.pump(const Duration(milliseconds: 100));
 
-    final textFinder = find.byType(TextBlock);
-    final codeFinder = find.byType(CodeBlock);
+    final textFinder = find.byType(TextTool);
+    final codeFinder = find.byType(CodeTool);
     final strokeFinder = find.byType(PenStroke);
-    final text = tester.widget<TextBlock>(textFinder).model;
-    final code = tester.widget<CodeBlock>(codeFinder).model;
+    final text = tester.widget<TextTool>(textFinder).model;
+    final code = tester.widget<CodeTool>(codeFinder).model;
     final stroke = tester.widget<PenStroke>(strokeFinder).model;
     final textPosition = tester.getTopLeft(textFinder);
     final codePosition = tester.getTopLeft(codeFinder);
@@ -1109,8 +1108,8 @@ void main() {
     await _placeCodeBlock(tester, const Offset(120, 100));
     await tester.pump(const Duration(milliseconds: 100));
 
-    final text = tester.widget<TextBlock>(find.byType(TextBlock)).model;
-    final code = tester.widget<CodeBlock>(find.byType(CodeBlock)).model;
+    final text = tester.widget<TextTool>(find.byType(TextTool)).model;
+    final code = tester.widget<CodeTool>(find.byType(CodeTool)).model;
     await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
     await tester.pump();
     await tester.tapAt(
@@ -1157,10 +1156,10 @@ void main() {
     await _placeCodeBlock(tester, const Offset(120, 100));
     await tester.pump(const Duration(milliseconds: 100));
 
-    final textFinder = find.byType(TextBlock);
-    final codeFinder = find.byType(CodeBlock);
-    final text = tester.widget<TextBlock>(textFinder).model;
-    final code = tester.widget<CodeBlock>(codeFinder).model;
+    final textFinder = find.byType(TextTool);
+    final codeFinder = find.byType(CodeTool);
+    final text = tester.widget<TextTool>(textFinder).model;
+    final code = tester.widget<CodeTool>(codeFinder).model;
     final header = find.byKey(const ValueKey('code-block-header'));
 
     await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
@@ -1216,14 +1215,14 @@ void main() {
     await _placeCodeBlock(tester, const Offset(120, 100));
     await tester.pump(const Duration(milliseconds: 100));
 
-    final texts = tester.widgetList<TextBlock>(find.byType(TextBlock)).map((block) => block.model).toList();
+    final texts = tester.widgetList<TextTool>(find.byType(TextTool)).map((block) => block.model).toList();
     final insideText = texts.singleWhere(
       (model) => model.node.position.dx == 40,
     );
     final outsideText = texts.singleWhere(
       (model) => model.node.position.dx == 500,
     );
-    final code = tester.widget<CodeBlock>(find.byType(CodeBlock)).model;
+    final code = tester.widget<CodeTool>(find.byType(CodeTool)).model;
     final stroke = tester.widget<PenStroke>(find.byType(PenStroke)).model;
 
     final marquee = await tester.startGesture(
@@ -1280,8 +1279,8 @@ void main() {
     await tester.pump();
     await _placeCodeBlock(tester, const Offset(120, 100));
 
-    final block = find.byType(CodeBlock);
-    final model = tester.widget<CodeBlock>(block).model;
+    final block = find.byType(CodeTool);
+    final model = tester.widget<CodeTool>(block).model;
     final canvas = tester.widget<LazyCanvas>(find.byType(LazyCanvas));
     final originalGridPosition = canvas.controller.widgetsWithScreenPositions().single.gsPosition;
 
@@ -1443,8 +1442,8 @@ void main() {
     await erase.up();
     await tester.pump();
 
-    expect(find.byType(TextBlock), findsNothing);
-    expect(find.byType(CodeBlock), findsNothing);
+    expect(find.byType(TextTool), findsNothing);
+    expect(find.byType(CodeTool), findsNothing);
     expect(find.byType(Arrow), findsNothing);
     expect(find.byType(PenStroke), findsOneWidget);
     expect(

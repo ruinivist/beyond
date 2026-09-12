@@ -1,0 +1,111 @@
+// Provides Markdown text entry and clipboard insertion for text blocks.
+// Used by the text tool whenever a text element enters editing mode.
+
+import 'dart:async';
+
+import 'package:beyond/canvas/editor/canvas_clipboard.dart';
+import 'package:beyond/canvas/persistence/attachments/store.dart';
+import 'package:beyond/canvas/tools/text/text_block_model.dart';
+import 'package:beyond/ui/theme.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:super_clipboard/super_clipboard.dart';
+
+// ---------- Editor ----------
+
+/// Renders the focused Markdown source editor and handles rich paste data.
+/// Used by the text tool through the active [TextBlockModel].
+class TextMarkdownEditor extends StatefulWidget {
+  const TextMarkdownEditor({required this.model, required this.attachmentStore, super.key});
+
+  final TextBlockModel model;
+  final AttachmentStore attachmentStore;
+
+  @override
+  State<TextMarkdownEditor> createState() => _TextMarkdownEditorState();
+}
+
+class _TextMarkdownEditorState extends State<TextMarkdownEditor> {
+  // ---------- State ----------
+
+  ClipboardEvents? get _events => ClipboardEvents.instance;
+
+  // ---------- Lifecycle ----------
+
+  @override
+  void initState() {
+    super.initState();
+    _events?.registerPasteEventListener(_onWebPaste);
+  }
+
+  @override
+  void dispose() {
+    _events?.unregisterPasteEventListener(_onWebPaste);
+    super.dispose();
+  }
+
+  // ---------- Event handlers ----------
+
+  void _onWebPaste(ClipboardReadEvent event) {
+    if (!widget.model.focusNode.hasFocus) return;
+    unawaited(_paste(event.getClipboardReader()));
+  }
+
+  KeyEventResult _onKeyEvent(FocusNode _, KeyEvent event) {
+    if (_events != null ||
+        event is! KeyDownEvent ||
+        event.logicalKey != LogicalKeyboardKey.keyV ||
+        (!HardwareKeyboard.instance.isControlPressed && !HardwareKeyboard.instance.isMetaPressed)) {
+      return KeyEventResult.ignored;
+    }
+    final clipboard = SystemClipboard.instance;
+    if (clipboard == null) return KeyEventResult.ignored;
+    unawaited(_paste(clipboard.read()));
+    return KeyEventResult.handled;
+  }
+
+  Future<void> _paste(Future<ClipboardReader> readerFuture) async {
+    try {
+      final clipboard = await readCanvasClipboard(await readerFuture);
+      if (clipboard.image case final image?) {
+        await widget.model.insertPastedImage(image.bytes, image.extension, widget.attachmentStore);
+      } else if (clipboard.text case final text?) {
+        widget.model.insertPastedText(text);
+      }
+    } on Object {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not paste image')),
+      );
+    }
+  }
+
+  // ---------- Rendering ----------
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = BTheme.of(context);
+    final colors = theme.colors;
+    final code = theme.typo.code;
+    return Focus(
+      onKeyEvent: _onKeyEvent,
+      child: TextField(
+        key: const ValueKey('text-markdown-editor'),
+        controller: widget.model.controller,
+        focusNode: widget.model.focusNode,
+        scrollController: widget.model.scrollController,
+        expands: widget.model.node.height != null,
+        maxLines: null,
+        cursorColor: colors.accent,
+        decoration: InputDecoration(
+          border: InputBorder.none,
+          contentPadding: const EdgeInsets.all(12),
+          hintText: 'Type something',
+          hintStyle: code.copyWith(color: colors.textMuted),
+          floatingLabelBehavior: FloatingLabelBehavior.never,
+        ),
+        style: code.copyWith(color: colors.textPrimary),
+      ),
+    );
+  }
+}

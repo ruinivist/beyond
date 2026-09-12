@@ -6,7 +6,7 @@ import 'package:beyond/canvas/editor/canvas_background.dart';
 import 'package:beyond/canvas/editor/canvas_page.dart';
 import 'package:beyond/canvas/persistence/canvas_document_store.dart';
 import 'package:beyond/canvas/tools/pen/pen_tool.dart';
-import 'package:beyond/canvas/tools/text/text_block.dart';
+import 'package:beyond/canvas/tools/text/text_tool.dart';
 import 'package:beyond/theme/starless.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -74,7 +74,7 @@ void main() {
     tester,
   ) async {
     await _pumpCanvas(tester, _DocumentStore(_textDocument()));
-    final original = tester.widget<TextBlock>(find.byType(TextBlock)).model;
+    final original = tester.widget<TextTool>(find.byType(TextTool)).model;
 
     await tester.tap(find.byKey(const ValueKey('text-markdown-preview')));
     await tester.pump();
@@ -83,7 +83,7 @@ void main() {
     await _shortcut(tester);
 
     expect(
-      tester.widget<TextBlock>(find.byType(TextBlock)).model,
+      tester.widget<TextTool>(find.byType(TextTool)).model,
       same(original),
     );
   });

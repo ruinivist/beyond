@@ -4,7 +4,7 @@
 import 'dart:ui';
 
 import 'package:beyond/canvas/editor/canvas_background.dart';
-import 'package:beyond/canvas/tools/code_block/code_language.dart';
+import 'package:beyond/canvas/tools/code/code_language.dart';
 import 'package:json_annotation/json_annotation.dart';
 
 part 'canvas_document.g.dart';

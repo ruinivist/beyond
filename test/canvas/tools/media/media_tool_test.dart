@@ -9,7 +9,7 @@ import 'package:beyond/canvas/editor/canvas_background.dart';
 import 'package:beyond/canvas/editor/canvas_page.dart';
 import 'package:beyond/canvas/persistence/attachments/store.dart';
 import 'package:beyond/canvas/persistence/canvas_document_store.dart';
-import 'package:beyond/canvas/tools/media/media_node.dart';
+import 'package:beyond/canvas/tools/media/media_tool.dart';
 import 'package:beyond/theme/starless.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
@@ -33,7 +33,7 @@ void main() {
     await tester.pump();
     await tester.pump();
 
-    final model = tester.widget<MediaNode>(find.byType(MediaNode)).model;
+    final model = tester.widget<MediaTool>(find.byType(MediaTool)).model;
     expect(model.data.position, const Offset(120, 180));
     expect(model.data.width, mediaNodeDefaultWidth);
     expect(model.hasImage, isFalse);
@@ -68,7 +68,7 @@ void main() {
 
     await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
     await tester.pump();
-    await tester.tapAt(tester.getCenter(find.byType(MediaNode)));
+    await tester.tapAt(tester.getCenter(find.byType(MediaTool)));
     await tester.pump();
     await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
     expect(model.selected, isTrue);
@@ -91,7 +91,7 @@ void main() {
       ),
     );
 
-    final model = tester.widget<MediaNode>(find.byType(MediaNode)).model;
+    final model = tester.widget<MediaTool>(find.byType(MediaTool)).model;
     await tester.tap(find.byKey(const ValueKey('media-image')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('media-url-field')));
@@ -124,7 +124,7 @@ void main() {
     await tester.pump();
     await tester.pump();
 
-    final model = tester.widget<MediaNode>(find.byType(MediaNode)).model;
+    final model = tester.widget<MediaTool>(find.byType(MediaTool)).model;
     final bytes = _pngBytes;
     await tester.runAsync(() => model.setDeviceImage(bytes, 'PNG'));
     await tester.pumpAndSettle();
@@ -154,8 +154,8 @@ void main() {
     );
     await _pumpCanvas(tester, store);
 
-    final node = find.byType(MediaNode);
-    final model = tester.widget<MediaNode>(node).model;
+    final node = find.byType(MediaTool);
+    final model = tester.widget<MediaTool>(node).model;
     expect(model.hasImage, isTrue);
     expect(model.canvasSize, const Size(400, 200));
     expect(find.byKey(const ValueKey('media-url-field')), findsNothing);

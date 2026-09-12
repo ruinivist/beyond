@@ -11,10 +11,9 @@ import 'package:beyond/canvas/persistence/canvas_document_store.dart';
 import 'package:beyond/canvas/persistence/canvas_project.dart';
 import 'package:beyond/canvas/persistence/canvas_project_files.dart';
 import 'package:beyond/canvas/tools/arrow/arrow_tool.dart';
-import 'package:beyond/canvas/tools/code_block/code_block.dart';
-import 'package:beyond/canvas/tools/code_block/code_language.dart';
+import 'package:beyond/canvas/tools/code/code_tool.dart';
 import 'package:beyond/canvas/tools/pen/pen_tool.dart';
-import 'package:beyond/canvas/tools/text/text_block.dart';
+import 'package:beyond/canvas/tools/text/text_tool.dart';
 import 'package:beyond/main.dart';
 import 'package:beyond/ui/common/select.dart';
 import 'package:flutter/material.dart';
@@ -89,11 +88,11 @@ void main() {
       );
 
     await _pumpPage(tester, documentStore, attachments, files);
-    tester.widget<TextBlock>(find.byType(TextBlock)).model.selected = true;
+    tester.widget<TextTool>(find.byType(TextTool)).model.selected = true;
     await tester.sendKeyEvent(LogicalKeyboardKey.delete);
     await tester.pump();
     await _historyShortcut(tester);
-    expect(find.byType(TextBlock), findsOneWidget);
+    expect(find.byType(TextTool), findsOneWidget);
 
     final controller = _canvasController(tester)
       ..scrollBy(const Offset(90, 60))
@@ -111,22 +110,22 @@ void main() {
     expect(attachments.files[_path0], _newBytes);
     expect(_canvasController(tester).offset, offset);
     expect(_canvasController(tester).scale, scale);
-    expect(find.byType(TextBlock), findsOneWidget);
-    expect(find.byType(CodeBlock), findsOneWidget);
+    expect(find.byType(TextTool), findsOneWidget);
+    expect(find.byType(CodeTool), findsOneWidget);
     expect(find.byType(PenStroke), findsOneWidget);
     expect(find.byType(Arrow), findsOneWidget);
     expect(
-      tester.widget<TextBlock>(find.byType(TextBlock)).model.selected,
+      tester.widget<TextTool>(find.byType(TextTool)).model.selected,
       isFalse,
     );
     expect(
-      tester.widget<TextBlock>(find.byType(TextBlock)).model.focusNode.hasFocus,
+      tester.widget<TextTool>(find.byType(TextTool)).model.focusNode.hasFocus,
       isFalse,
     );
 
     await _historyShortcut(tester, redo: true);
     expect(
-      tester.widget<TextBlock>(find.byType(TextBlock)).model.node.markdown,
+      tester.widget<TextTool>(find.byType(TextTool)).model.node.markdown,
       '![new]($_path0)',
     );
 
@@ -140,9 +139,9 @@ void main() {
     );
     await tester.pump();
     await tester.pump();
-    expect(find.byType(TextBlock), findsOneWidget);
+    expect(find.byType(TextTool), findsOneWidget);
     expect(
-      tester.widget<TextBlock>(find.byType(TextBlock)).model.node.markdown,
+      tester.widget<TextTool>(find.byType(TextTool)).model.node.markdown,
       '![new]($_path0)',
     );
   });
@@ -170,7 +169,7 @@ void main() {
 
       await _pumpPage(tester, documentStore, attachments, files);
       await _openCanvasSettings(tester);
-      tester.widget<TextBlock>(find.byType(TextBlock)).model.selected = true;
+      tester.widget<TextTool>(find.byType(TextTool)).model.selected = true;
       await tester.pump(const Duration(milliseconds: 320));
       await tester.pump();
 
@@ -195,13 +194,13 @@ void main() {
       writeGate.complete();
       await tester.pumpAndSettle();
 
-      expect(find.byType(TextBlock), findsOneWidget);
+      expect(find.byType(TextTool), findsOneWidget);
       expect(
-        tester.widget<TextBlock>(find.byType(TextBlock)).model.node.markdown,
+        tester.widget<TextTool>(find.byType(TextTool)).model.node.markdown,
         oldDocument.elements.whereType<TextElementData>().single.markdown,
       );
       expect(
-        tester.widget<TextBlock>(find.byType(TextBlock)).model.selected,
+        tester.widget<TextTool>(find.byType(TextTool)).model.selected,
         isTrue,
       );
 
@@ -230,7 +229,7 @@ void main() {
 
       await _pumpPage(tester, documentStore, attachments, files);
       await _openCanvasSettings(tester);
-      tester.widget<TextBlock>(find.byType(TextBlock)).model.insertPastedText(' dirty');
+      tester.widget<TextTool>(find.byType(TextTool)).model.insertPastedText(' dirty');
       await tester.pump();
       await tester.tap(find.byKey(const ValueKey('canvas-import-button')));
       await tester.pumpAndSettle();
@@ -240,7 +239,7 @@ void main() {
       expect(documentStore.saveCalls, 1);
       expect(documentStore.persisted, isNull);
       expect(
-        tester.widget<TextBlock>(find.byType(TextBlock)).model.node.markdown,
+        tester.widget<TextTool>(find.byType(TextTool)).model.node.markdown,
         'old dirty',
       );
 
@@ -261,7 +260,7 @@ void main() {
       await tester.pump();
       await tester.pump();
       expect(
-        tester.widget<TextBlock>(find.byType(TextBlock)).model.node.markdown,
+        tester.widget<TextTool>(find.byType(TextTool)).model.node.markdown,
         'old dirty',
       );
     },
@@ -292,7 +291,7 @@ void main() {
     expect(attachments.files[_path0], _oldBytes);
     expect(documentStore.persisted, isNull);
     expect(
-      tester.widget<TextBlock>(find.byType(TextBlock)).model.node.markdown,
+      tester.widget<TextTool>(find.byType(TextTool)).model.node.markdown,
       oldDocument.elements.whereType<TextElementData>().single.markdown,
     );
 
@@ -306,7 +305,7 @@ void main() {
     documentStore.failSaves = false;
     await tester.tap(find.byTooltip('Close'));
     await tester.pumpAndSettle();
-    tester.widget<TextBlock>(find.byType(TextBlock)).model.insertPastedText(' changed');
+    tester.widget<TextTool>(find.byType(TextTool)).model.insertPastedText(' changed');
     await tester.pump(const Duration(milliseconds: 320));
     await tester.pump();
     expect(documentStore.saveCalls, greaterThan(1));

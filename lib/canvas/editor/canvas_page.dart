@@ -16,12 +16,11 @@ import 'package:beyond/canvas/persistence/canvas_document_store.dart';
 import 'package:beyond/canvas/persistence/canvas_project.dart';
 import 'package:beyond/canvas/persistence/canvas_project_files.dart';
 import 'package:beyond/canvas/tools/arrow/arrow_tool.dart';
-import 'package:beyond/canvas/tools/code_block/code_block.dart';
-import 'package:beyond/canvas/tools/code_block/code_language.dart';
-import 'package:beyond/canvas/tools/media/media_node.dart';
+import 'package:beyond/canvas/tools/code/code_tool.dart';
+import 'package:beyond/canvas/tools/media/media_tool.dart';
 import 'package:beyond/canvas/tools/pen/pen_tool.dart';
 import 'package:beyond/canvas/tools/shape/shape_tool.dart';
-import 'package:beyond/canvas/tools/text/text_block.dart';
+import 'package:beyond/canvas/tools/text/text_tool.dart';
 import 'package:beyond/settings/settings_dialog.dart';
 import 'package:beyond/theme/preset_colors.dart';
 import 'package:beyond/ui/common/b_container.dart';
@@ -831,7 +830,7 @@ class _CanvasPageState extends State<CanvasPage> {
         modifierPressed: _selectionModifierPressed,
         rotationModel: text,
         onPointerDown: (event) => _handleTextBlockPointerDown(text, event),
-        child: TextBlock(
+        child: TextTool(
           model: text,
           attachmentStore: _attachmentStore,
           onEdit: () => _editTextBlock(text),
@@ -844,7 +843,7 @@ class _CanvasPageState extends State<CanvasPage> {
         activeTool: _activeTool,
         modifierPressed: _selectionModifierPressed,
         onPointerDown: (event) => _handleCodeBlockPointerDown(code, event),
-        child: CodeBlock(
+        child: CodeTool(
           model: code,
           onMove: (delta) => _moveSelectedChildren(code, delta),
           onChangeBoundary: _finishHistoryOperation,
@@ -855,7 +854,7 @@ class _CanvasPageState extends State<CanvasPage> {
         activeTool: _activeTool,
         modifierPressed: _selectionModifierPressed,
         onPointerDown: (event) => _handleMediaPointerDown(media, event),
-        child: MediaNode(
+        child: MediaTool(
           model: media,
           onMove: (delta) => _moveSelectedChildren(media, delta),
           onResize: (delta) => _resizeMedia(media, delta),
@@ -1979,7 +1978,7 @@ class _CanvasPageState extends State<CanvasPage> {
                     ),
                     ToolOptions(
                       child: _editingTextBlock != null
-                          ? TextSettings(
+                          ? TextToolSettings(
                               key: ValueKey(
                                 'text-settings-${_editingTextBlock!.node.id}',
                               ),

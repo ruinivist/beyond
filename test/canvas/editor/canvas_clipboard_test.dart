@@ -11,11 +11,10 @@ import 'package:beyond/canvas/editor/canvas_page.dart';
 import 'package:beyond/canvas/persistence/attachments/store.dart';
 import 'package:beyond/canvas/persistence/canvas_document_store.dart';
 import 'package:beyond/canvas/tools/arrow/arrow_tool.dart';
-import 'package:beyond/canvas/tools/code_block/code_block.dart';
-import 'package:beyond/canvas/tools/code_block/code_language.dart';
-import 'package:beyond/canvas/tools/media/media_node.dart';
+import 'package:beyond/canvas/tools/code/code_tool.dart';
+import 'package:beyond/canvas/tools/media/media_tool.dart';
 import 'package:beyond/canvas/tools/pen/pen_tool.dart';
-import 'package:beyond/canvas/tools/text/text_block.dart';
+import 'package:beyond/canvas/tools/text/text_tool.dart';
 import 'package:beyond/theme/starless.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
@@ -227,13 +226,13 @@ void main() {
     await _shortcut(tester, LogicalKeyboardKey.keyV);
     await tester.pump();
     expect(
-      tester.widget<MediaNode>(find.byType(MediaNode)).model.data.url,
+      tester.widget<MediaTool>(find.byType(MediaTool)).model.data.url,
       'https://example.com/image.png',
     );
 
     clipboard = (text: 'ordinary text', image: null);
     await _shortcut(tester, LogicalKeyboardKey.keyV);
-    expect(find.byType(MediaNode), findsOneWidget);
+    expect(find.byType(MediaTool), findsOneWidget);
 
     clipboard = (
       text: 'https://example.com/ignored.png',
@@ -247,7 +246,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    final pasted = tester.widgetList<MediaNode>(find.byType(MediaNode)).last.model;
+    final pasted = tester.widgetList<MediaTool>(find.byType(MediaTool)).last.model;
     expect(pasted.data.url, matches(attachmentPathPattern));
     expect(attachments.files[pasted.data.url], _pngBytes);
   });
@@ -269,8 +268,8 @@ Future<void> _waitForSave(WidgetTester tester) async {
 }
 
 List<CanvasElementModel> _models(WidgetTester tester) => <CanvasElementModel>[
-  ...tester.widgetList<TextBlock>(find.byType(TextBlock)).map((widget) => widget.model),
-  ...tester.widgetList<CodeBlock>(find.byType(CodeBlock)).map((widget) => widget.model),
+  ...tester.widgetList<TextTool>(find.byType(TextTool)).map((widget) => widget.model),
+  ...tester.widgetList<CodeTool>(find.byType(CodeTool)).map((widget) => widget.model),
   ...tester.widgetList<PenStroke>(find.byType(PenStroke)).map((widget) => widget.model),
   ...tester.widgetList<Arrow>(find.byType(Arrow)).map((widget) => widget.model),
 ];
