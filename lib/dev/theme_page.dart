@@ -1,7 +1,7 @@
 // Provides a compact development reference for Beyond's colors and typography.
 // Opened from debug settings while reviewing or adjusting application themes.
 
-import 'package:beyond/foundation/theme.dart';
+import 'package:beyond/ui/theme.dart';
 import 'package:flutter/material.dart';
 import 'package:scroll_animator/scroll_animator.dart';
 

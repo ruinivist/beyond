@@ -1,9 +1,9 @@
 // Provides arrow geometry, editing state, rendering, and hit testing.
 // Used by the canvas arrow creation and selection flows.
 
-import 'package:beyond/canvas/canvas_document.dart';
-import 'package:beyond/canvas/canvas_element_model.dart';
-import 'package:beyond/foundation/theme.dart';
+import 'package:beyond/canvas/document/canvas_document.dart';
+import 'package:beyond/canvas/editor/canvas_element_model.dart';
+import 'package:beyond/ui/theme.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';

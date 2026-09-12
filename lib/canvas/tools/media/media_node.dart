@@ -6,12 +6,12 @@ import 'dart:math' as math;
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 
-import 'package:beyond/canvas/attachments/store.dart';
-import 'package:beyond/canvas/canvas_document.dart';
-import 'package:beyond/canvas/canvas_element_model.dart';
-import 'package:beyond/foundation/b_container.dart';
-import 'package:beyond/foundation/resize_handle.dart';
-import 'package:beyond/foundation/theme.dart';
+import 'package:beyond/canvas/document/canvas_document.dart';
+import 'package:beyond/canvas/editor/canvas_element_model.dart';
+import 'package:beyond/canvas/editor/widgets/resize_handle.dart';
+import 'package:beyond/canvas/persistence/attachments/store.dart';
+import 'package:beyond/ui/common/b_container.dart';
+import 'package:beyond/ui/theme.dart';
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';

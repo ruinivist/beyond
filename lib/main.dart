@@ -1,10 +1,10 @@
 // Boots the Beyond application and owns its root theme state.
 // Used as the Flutter entry point for the canvas editor.
 
-import 'package:beyond/canvas/attachments/store.dart';
-import 'package:beyond/canvas/canvas_document_store.dart';
-import 'package:beyond/canvas/canvas_page.dart';
-import 'package:beyond/canvas/canvas_project_files.dart';
+import 'package:beyond/canvas/editor/canvas_page.dart';
+import 'package:beyond/canvas/persistence/attachments/store.dart';
+import 'package:beyond/canvas/persistence/canvas_document_store.dart';
+import 'package:beyond/canvas/persistence/canvas_project_files.dart';
 import 'package:beyond/theme/starless.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';

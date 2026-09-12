@@ -1,7 +1,7 @@
 // Defines Beyond's concrete themes, typography, colors, and shared geometry.
 // Used by the app shell and themed editor widgets.
 
-import 'package:beyond/foundation/theme.dart';
+import 'package:beyond/ui/theme.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:re_highlight/styles/atom-one-dark.dart';
