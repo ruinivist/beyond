@@ -11,7 +11,9 @@
 - Put app-wide Flutter primitives in `lib/ui/common/` and read semantic `BTheme` values internally.
 - Keep canvas-specific widgets in `lib/canvas/editor/widgets/`.
 - Do not expose visual overrides until a concrete product requirement justifies an explicit semantic API.
-- Keep concrete Starless Light palette, typography, syntax theme, and reusable geometry in the app theme; keep component-specific geometry local to each component.
+- Keep concrete Starless Light palette, typography, syntax theme, and reusable geometry in the app theme; keep component-specific geometry local to each componen. Example: instead of hardcoding random number sizes that we are using repeatedly across the app as a "preferred size" make it owned
+  by the app. Example something like an icon should be consistent unless component-specific override is needed, so an icons size belongs some place
+  in theme but a widget specific larger icon size can be hardcoded inline.
 
 # Testing guidance
 
