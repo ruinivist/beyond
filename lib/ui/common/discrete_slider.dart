@@ -1,7 +1,7 @@
 // Provides the themed discrete slider used for bounded numeric choices.
 // Used by canvas tool settings that edit stepped values.
 
-import 'package:beyond/ui/theme.dart';
+import 'package:beyond/theme/theme.dart';
 import 'package:flutter/material.dart';
 
 // ---------- Geometry ----------

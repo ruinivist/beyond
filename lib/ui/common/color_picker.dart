@@ -1,7 +1,7 @@
 // Provides the app's compact floating HSV color picker.
 // Used by editor popovers that need direct color selection.
 
-import 'package:beyond/ui/theme.dart';
+import 'package:beyond/theme/theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 

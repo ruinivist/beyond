@@ -1,8 +1,8 @@
 // Provides the themed drag handle shown on resizable canvas elements.
 // Used by text, code, media, and shape element controls.
 
+import 'package:beyond/theme/theme.dart';
 import 'package:beyond/ui/common/b_container.dart';
-import 'package:beyond/ui/theme.dart';
 import 'package:flutter/material.dart';
 
 // ---------- Widgets ----------

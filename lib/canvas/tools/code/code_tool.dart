@@ -8,8 +8,8 @@ import 'package:beyond/canvas/editor/canvas_element_model.dart';
 import 'package:beyond/canvas/editor/widgets/pointer_scroll_boundary.dart';
 import 'package:beyond/canvas/editor/widgets/resize_handle.dart';
 import 'package:beyond/canvas/tools/code/code_language.dart';
+import 'package:beyond/theme/theme.dart';
 import 'package:beyond/ui/common/select.dart';
-import 'package:beyond/ui/theme.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:re_editor/re_editor.dart';
@@ -17,8 +17,8 @@ import 'package:scroll_animator/scroll_animator.dart';
 
 export 'code_language.dart';
 
-part 'code_tool_model.dart';
 part 'code_tool_helpers.dart';
+part 'code_tool_model.dart';
 
 // ---------- Rendering ----------
 

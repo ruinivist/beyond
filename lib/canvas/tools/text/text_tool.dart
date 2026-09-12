@@ -8,7 +8,7 @@ import 'package:beyond/canvas/persistence/attachments/store.dart';
 import 'package:beyond/canvas/tools/text/text_block_model.dart';
 import 'package:beyond/canvas/tools/text/text_markdown_editor.dart';
 import 'package:beyond/canvas/tools/text/text_markdown_preview.dart';
-import 'package:beyond/ui/theme.dart';
+import 'package:beyond/theme/theme.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 

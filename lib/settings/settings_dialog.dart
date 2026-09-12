@@ -4,8 +4,8 @@
 import 'dart:math' as math;
 
 import 'package:beyond/canvas/editor/canvas_background.dart';
+import 'package:beyond/theme/theme.dart';
 import 'package:beyond/ui/common/select.dart';
-import 'package:beyond/ui/theme.dart';
 import 'package:flutter/material.dart';
 
 // ---------- Dialog ----------

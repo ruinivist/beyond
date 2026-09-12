@@ -3,8 +3,8 @@
 
 import 'package:beyond/canvas/tools/text/text_block_model.dart';
 import 'package:beyond/theme/preset_colors.dart';
+import 'package:beyond/theme/theme.dart';
 import 'package:beyond/ui/common/select.dart';
-import 'package:beyond/ui/theme.dart';
 import 'package:flutter/material.dart';
 
 // ---------- Font options ----------

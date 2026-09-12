@@ -2,7 +2,7 @@
 // Also provides the shared app theme for component previews.
 
 import 'package:beyond/theme/starless.dart';
-import 'package:beyond/ui/theme.dart';
+import 'package:beyond/theme/theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/widget_previews.dart';
 

@@ -1,8 +1,8 @@
 // Provides Beyond's raised text action.
 // Used for app-wide actions that need a text label.
 
+import 'package:beyond/theme/theme.dart';
 import 'package:beyond/ui/common/b_container.dart';
-import 'package:beyond/ui/theme.dart';
 import 'package:flutter/material.dart';
 
 // ---------- Widgets ----------

@@ -1,7 +1,7 @@
 // Verifies failure behavior when the semantic theme is unavailable.
 // Exercises BTheme lookup at the reusable widget boundary.
 
-import 'package:beyond/ui/theme.dart';
+import 'package:beyond/theme/theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 

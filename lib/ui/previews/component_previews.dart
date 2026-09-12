@@ -1,6 +1,7 @@
 // Gives each app-wide UI component an independently discovered preview.
 // Interactive wrappers keep each preview responsible for only its own state.
 
+import 'package:beyond/theme/theme.dart';
 import 'package:beyond/ui/common/b_container.dart';
 import 'package:beyond/ui/common/b_icon_button.dart';
 import 'package:beyond/ui/common/b_text_button.dart';
@@ -10,7 +11,6 @@ import 'package:beyond/ui/common/discrete_slider.dart';
 import 'package:beyond/ui/common/icon_drag.dart';
 import 'package:beyond/ui/common/select.dart';
 import 'package:beyond/ui/previews/theme_preview.dart';
-import 'package:beyond/ui/theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widget_previews.dart';

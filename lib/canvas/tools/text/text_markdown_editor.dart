@@ -6,7 +6,7 @@ import 'dart:async';
 import 'package:beyond/canvas/editor/canvas_clipboard.dart';
 import 'package:beyond/canvas/persistence/attachments/store.dart';
 import 'package:beyond/canvas/tools/text/text_block_model.dart';
-import 'package:beyond/ui/theme.dart';
+import 'package:beyond/theme/theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:super_clipboard/super_clipboard.dart';

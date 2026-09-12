@@ -6,7 +6,7 @@ import 'dart:math' as math;
 import 'package:beyond/canvas/document/canvas_document.dart';
 import 'package:beyond/canvas/editor/canvas_element_model.dart';
 import 'package:beyond/canvas/editor/widgets/resize_handle.dart';
-import 'package:beyond/ui/theme.dart';
+import 'package:beyond/theme/theme.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
