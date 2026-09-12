@@ -22,9 +22,9 @@ Future<void> main() async {
 
 // ---------- Root application ----------
 
-/// Hosts the canvas editor and the currently selected application theme.
+/// Hosts the canvas editor under the application theme.
 /// Used as the root widget created by the application bootstrap.
-class BeyondApp extends StatefulWidget {
+class BeyondApp extends StatelessWidget {
   const BeyondApp({
     this.attachmentStore,
     this.documentStore,
@@ -37,27 +37,14 @@ class BeyondApp extends StatefulWidget {
   final CanvasProjectFiles? projectFiles;
 
   @override
-  State<BeyondApp> createState() => _BeyondAppState();
-}
-
-class _BeyondAppState extends State<BeyondApp> {
-  // ---------- State ----------
-
-  AppTheme _theme = AppTheme.starlessLight;
-
-  // ---------- Rendering ----------
-
-  @override
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      theme: _theme.themeData,
+      theme: starlessLightThemeData,
       home: CanvasPage(
-        appTheme: _theme,
-        attachmentStore: widget.attachmentStore,
-        documentStore: widget.documentStore,
-        onAppThemeChanged: (theme) => setState(() => _theme = theme),
-        projectFiles: widget.projectFiles,
+        attachmentStore: attachmentStore,
+        documentStore: documentStore,
+        projectFiles: projectFiles,
       ),
     );
   }

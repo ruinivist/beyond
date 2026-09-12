@@ -4,11 +4,8 @@
 import 'dart:math' as math;
 
 import 'package:beyond/canvas/editor/canvas_background.dart';
-import 'package:beyond/dev/theme_page.dart';
-import 'package:beyond/theme/starless.dart';
 import 'package:beyond/ui/common/select.dart';
 import 'package:beyond/ui/theme.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 // ---------- Dialog ----------
@@ -19,10 +16,8 @@ class SettingsDialog extends StatefulWidget {
   // ---------- Construction ----------
 
   const SettingsDialog({
-    this.appTheme = AppTheme.starlessLight,
     this.canvasBackgroundKind = CanvasBackgroundKind.dotGrid,
     this.noIcons = false,
-    this.onAppThemeChanged,
     this.onCanvasBackgroundChanged,
     this.onNoIconsChanged,
     this.onImportCanvas,
@@ -30,10 +25,8 @@ class SettingsDialog extends StatefulWidget {
     super.key,
   });
 
-  final AppTheme appTheme;
   final CanvasBackgroundKind canvasBackgroundKind;
   final bool noIcons;
-  final ValueChanged<AppTheme>? onAppThemeChanged;
   final ValueChanged<CanvasBackgroundKind>? onCanvasBackgroundChanged;
   final ValueChanged<bool>? onNoIconsChanged;
   final Future<bool> Function()? onImportCanvas;
@@ -45,13 +38,12 @@ class SettingsDialog extends StatefulWidget {
 
 // ---------- Sections ----------
 
-enum _SettingsSection { about, canvas, interface, dev }
+enum _SettingsSection { about, canvas, interface }
 
 class _SettingsDialogState extends State<SettingsDialog> {
   // ---------- State ----------
 
   _SettingsSection _section = _SettingsSection.canvas;
-  late AppTheme _appTheme = widget.appTheme;
   late CanvasBackgroundKind _canvasBackgroundKind = widget.canvasBackgroundKind;
   late bool _noIcons = widget.noIcons;
   var _transferActive = false;
@@ -230,13 +222,6 @@ class _SettingsDialogState extends State<SettingsDialog> {
         icon: Icons.info_outline,
         label: 'About',
       ),
-      if (kDebugMode)
-        _navigationItem(
-          context,
-          section: _SettingsSection.dev,
-          icon: Icons.developer_mode,
-          label: 'Dev',
-        ),
     ];
 
     return Padding(
@@ -322,29 +307,7 @@ class _SettingsDialogState extends State<SettingsDialog> {
       _SettingsSection.about => _aboutContent(context),
       _SettingsSection.canvas => _canvasContent(context),
       _SettingsSection.interface => _interfaceContent(context),
-      _SettingsSection.dev => _devContent(context),
     };
-  }
-
-  Widget _devContent(BuildContext context) {
-    final theme = BTheme.of(context);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Theme',
-          style: theme.typo.label.copyWith(color: theme.colors.textPrimary),
-        ),
-        const SizedBox(height: 10),
-        TextButton(
-          key: const ValueKey('dev-theme-button'),
-          onPressed: () => Navigator.of(context).push(
-            MaterialPageRoute<void>(builder: (_) => const ThemeDevPage()),
-          ),
-          child: const Text('Theme'),
-        ),
-      ],
-    );
   }
 
   Widget _interfaceContent(BuildContext context) {
@@ -354,26 +317,6 @@ class _SettingsDialogState extends State<SettingsDialog> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Theme',
-            style: theme.typo.label.copyWith(color: theme.colors.textPrimary),
-          ),
-          const SizedBox(height: 10),
-          Select<AppTheme>(
-            key: const ValueKey('theme-select'),
-            value: _appTheme,
-            options: [
-              for (final appTheme in AppTheme.values) SelectOption(value: appTheme, label: appTheme.label),
-            ],
-            showBorder: false,
-            onChanged: widget.onAppThemeChanged == null
-                ? null
-                : (appTheme) {
-                    setState(() => _appTheme = appTheme);
-                    widget.onAppThemeChanged!(appTheme);
-                  },
-          ),
-          const SizedBox(height: 20),
           MergeSemantics(
             child: Row(
               children: [

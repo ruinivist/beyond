@@ -24,7 +24,6 @@ import 'package:beyond/canvas/tools/shape/shape_tool.dart';
 import 'package:beyond/canvas/tools/text/text_block.dart';
 import 'package:beyond/settings/settings_dialog.dart';
 import 'package:beyond/theme/preset_colors.dart';
-import 'package:beyond/theme/starless.dart';
 import 'package:beyond/ui/common/b_container.dart';
 import 'package:beyond/ui/common/discrete_slider.dart';
 import 'package:beyond/ui/theme.dart';
@@ -60,20 +59,16 @@ class CanvasPage extends StatefulWidget {
   // ---------- Construction ----------
 
   const CanvasPage({
-    this.appTheme = AppTheme.starlessLight,
     this.attachmentStore,
     this.documentStore,
-    this.onAppThemeChanged,
     this.projectFiles,
     this.readClipboard,
     this.writeClipboardText,
     super.key,
   });
 
-  final AppTheme appTheme;
   final AttachmentStore? attachmentStore;
   final CanvasDocumentStore? documentStore;
-  final ValueChanged<AppTheme>? onAppThemeChanged;
   final CanvasProjectFiles? projectFiles;
   final Future<CanvasClipboardSnapshot> Function()? readClipboard;
   final Future<void> Function(String text)? writeClipboardText;
@@ -1284,10 +1279,8 @@ class _CanvasPageState extends State<CanvasPage> {
         context: context,
         barrierColor: BTheme.of(context).colors.scrim,
         builder: (_) => SettingsDialog(
-          appTheme: widget.appTheme,
           canvasBackgroundKind: _canvasBackgroundKind,
           noIcons: _noIcons,
-          onAppThemeChanged: widget.onAppThemeChanged,
           onCanvasBackgroundChanged: _setCanvasBackground,
           onNoIconsChanged: _setNoIcons,
           onImportCanvas: _importProject,

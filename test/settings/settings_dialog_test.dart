@@ -5,50 +5,12 @@ import 'dart:async';
 
 import 'package:beyond/settings/settings_dialog.dart';
 import 'package:beyond/theme/starless.dart';
-import 'package:beyond/ui/common/select.dart';
-import 'package:beyond/ui/theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 // ---------- Tests ----------
 
 void main() {
-  testWidgets('theme selection updates the open app', (tester) async {
-    await tester.pumpWidget(const _ThemeHost());
-    await tester.tap(find.byKey(const ValueKey('open-settings-button')));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Interface'));
-    await tester.pumpAndSettle();
-
-    final select = tester.widget<Select<AppTheme>>(
-      find.byKey(const ValueKey('theme-select')),
-    );
-    expect(select.options.map((option) => option.label), [
-      'Starless Light',
-      'Starless Dark',
-      'Classic Dark',
-    ]);
-    select.onChanged!(AppTheme.classicDark);
-    await tester.pumpAndSettle();
-
-    expect(
-      tester
-          .widget<Select<AppTheme>>(
-            find.byKey(const ValueKey('theme-select')),
-          )
-          .value,
-      AppTheme.classicDark,
-    );
-    expect(
-      Theme.of(tester.element(find.byType(SettingsDialog))).brightness,
-      Brightness.dark,
-    );
-    expect(
-      BTheme.of(tester.element(find.byType(SettingsDialog))).syntaxTheme,
-      isNotEmpty,
-    );
-  });
-
   testWidgets(
     'export disables both actions until it completes',
     (tester) async {
@@ -126,41 +88,6 @@ void main() {
     expect(importCalls, 2);
     expect(find.byType(SettingsDialog), findsOneWidget);
   });
-}
-
-// ---------- Test host ----------
-
-class _ThemeHost extends StatefulWidget {
-  const _ThemeHost();
-
-  @override
-  State<_ThemeHost> createState() => _ThemeHostState();
-}
-
-class _ThemeHostState extends State<_ThemeHost> {
-  AppTheme _theme = AppTheme.starlessLight;
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      theme: _theme.themeData,
-      home: Builder(
-        builder: (context) => Scaffold(
-          body: TextButton(
-            key: const ValueKey('open-settings-button'),
-            onPressed: () => showDialog<void>(
-              context: context,
-              builder: (_) => SettingsDialog(
-                appTheme: _theme,
-                onAppThemeChanged: (theme) => setState(() => _theme = theme),
-              ),
-            ),
-            child: const Text('Open settings'),
-          ),
-        ),
-      ),
-    );
-  }
 }
 
 TextButton _button(WidgetTester tester, String key) => tester.widget<TextButton>(find.byKey(ValueKey(key)));

@@ -6,6 +6,7 @@
 - Keep concrete palettes, fonts, and syntax themes out of `ui/`.
 - Expose behavior parameters needed by current call sites, but no speculative visual overrides.
 - Prefer small, composable widgets and Flutter platform primitives over broad abstractions.
+- Add every new reusable UI widget to `dev_preview.dart`.
 
 ## Naming convention
 

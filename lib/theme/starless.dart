@@ -4,7 +4,6 @@
 import 'package:beyond/ui/theme.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:re_highlight/styles/atom-one-dark.dart';
 import 'package:re_highlight/styles/atom-one-light.dart';
 
 // ---------- Palette and geometry ----------
@@ -30,52 +29,6 @@ const _starlessLightColors = BColors(
   focusRing: Color(0xffe5a48f),
   shadow: Color(0x1f302a27),
   scrim: Color(0x52201c1a),
-);
-
-const _starlessDarkColors = BColors(
-  canvasBackground: Color(0xff171412),
-  canvasGrid: Color(0xff403734),
-  surface: Color(0xff211d1b),
-  surfaceRaised: Color(0xff292421),
-  surfaceSubtle: Color(0xff26211f),
-  surfaceHover: Color(0xff302a27),
-  surfacePressed: Color(0xff3a322e),
-  textPrimary: Color(0xfff5efeb),
-  textSecondary: Color(0xffc8bbb3),
-  textMuted: Color(0xff9f9088),
-  border: Color(0xff403733),
-  borderSubtle: Color(0xff342d29),
-  accent: Color(0xffdc8068),
-  accentHover: Color(0xffe58f79),
-  accentPressed: Color(0xffc56a53),
-  accentSoft: Color(0xff35211c),
-  accentSubtle: Color(0xff472820),
-  focusRing: Color(0xffe5a48f),
-  shadow: Color(0x80000000),
-  scrim: Color(0xa6000000),
-);
-
-const _classicDarkColors = BColors(
-  canvasBackground: Color(0xff0d1117),
-  canvasGrid: Color(0xff30363d),
-  surface: Color(0xff161b22),
-  surfaceRaised: Color(0xff21262d),
-  surfaceSubtle: Color(0xff1c2128),
-  surfaceHover: Color(0xff292e36),
-  surfacePressed: Color(0xff30363d),
-  textPrimary: Color(0xffe6edf3),
-  textSecondary: Color(0xffb1bac4),
-  textMuted: Color(0xff7d8590),
-  border: Color(0xff30363d),
-  borderSubtle: Color(0xff21262d),
-  accent: Color(0xff2f81f7),
-  accentHover: Color(0xff58a6ff),
-  accentPressed: Color(0xff1f6feb),
-  accentSoft: Color(0xff13233a),
-  accentSubtle: Color(0xff1b3354),
-  focusRing: Color(0xff58a6ff),
-  shadow: Color(0x99000000),
-  scrim: Color(0xb3000000),
 );
 
 const _starlessGeo = BGeo(
@@ -149,67 +102,25 @@ Future<void> loadFonts() async {
   }
 }
 
-// ---------- Theme selection ----------
-
-/// Identifies the concrete visual themes available to the application.
-/// Used by the app shell and interface settings.
-enum AppTheme {
-  starlessLight,
-  starlessDark,
-  classicDark;
-
-  String get label => switch (this) {
-    AppTheme.starlessLight => 'Starless Light',
-    AppTheme.starlessDark => 'Starless Dark',
-    AppTheme.classicDark => 'Classic Dark',
-  };
-
-  ThemeData get themeData => switch (this) {
-    AppTheme.starlessLight => starlessLightThemeData,
-    AppTheme.starlessDark => starlessDarkThemeData,
-    AppTheme.classicDark => classicDarkThemeData,
-  };
-}
-
 // ---------- Theme instances ----------
 
-final ThemeData starlessLightThemeData = _starlessThemeData(
-  brightness: Brightness.light,
-  colors: _starlessLightColors,
-  syntaxTheme: atomOneLightTheme,
-);
-
-final ThemeData starlessDarkThemeData = _starlessThemeData(
-  brightness: Brightness.dark,
-  colors: _starlessDarkColors,
-  syntaxTheme: atomOneDarkTheme,
-);
-
-final ThemeData classicDarkThemeData = _starlessThemeData(
-  brightness: Brightness.dark,
-  colors: _classicDarkColors,
-  syntaxTheme: atomOneDarkTheme,
-);
+final ThemeData starlessLightThemeData = _starlessThemeData();
 
 // ---------- Theme construction ----------
 
-ThemeData _starlessThemeData({
-  required Brightness brightness,
-  required BColors colors,
-  required Map<String, TextStyle> syntaxTheme,
-}) {
+ThemeData _starlessThemeData() {
+  const colors = _starlessLightColors;
   final typo = _starlessTypo(colors);
   final theme = BTheme(
     colors: colors,
     typo: typo,
     geo: _starlessGeo,
-    syntaxTheme: syntaxTheme,
+    syntaxTheme: atomOneLightTheme,
   );
-  final onAccent = brightness == Brightness.light ? colors.surface : colors.canvasBackground;
   final colorScheme = ColorScheme(
-    brightness: brightness,
+    brightness: Brightness.light,
     primary: colors.accent,
-    onPrimary: onAccent,
+    onPrimary: colors.surface,
     primaryContainer: colors.accentSoft,
     onPrimaryContainer: colors.accentPressed,
     primaryFixed: colors.accentSoft,
@@ -217,7 +128,7 @@ ThemeData _starlessThemeData({
     onPrimaryFixed: colors.accentPressed,
     onPrimaryFixedVariant: colors.accentHover,
     secondary: colors.accent,
-    onSecondary: onAccent,
+    onSecondary: colors.surface,
     secondaryContainer: colors.accentSoft,
     onSecondaryContainer: colors.accentPressed,
     secondaryFixed: colors.accentSoft,
@@ -225,7 +136,7 @@ ThemeData _starlessThemeData({
     onSecondaryFixed: colors.accentPressed,
     onSecondaryFixedVariant: colors.accentHover,
     tertiary: colors.accent,
-    onTertiary: onAccent,
+    onTertiary: colors.surface,
     tertiaryContainer: colors.accentSoft,
     onTertiaryContainer: colors.accentPressed,
     tertiaryFixed: colors.accentSoft,
@@ -233,7 +144,7 @@ ThemeData _starlessThemeData({
     onTertiaryFixed: colors.accentPressed,
     onTertiaryFixedVariant: colors.accentHover,
     error: colors.accentPressed,
-    onError: onAccent,
+    onError: colors.surface,
     errorContainer: colors.accentSoft,
     onErrorContainer: colors.accentPressed,
     surface: colors.surface,
@@ -257,7 +168,7 @@ ThemeData _starlessThemeData({
   );
 
   return ThemeData(
-    brightness: brightness,
+    brightness: Brightness.light,
     colorScheme: colorScheme,
     scaffoldBackgroundColor: colors.canvasBackground,
     extensions: [theme],
