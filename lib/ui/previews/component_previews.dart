@@ -198,7 +198,7 @@ class _DiscreteSliderPreview extends StatefulWidget {
 }
 
 class _DiscreteSliderPreviewState extends State<_DiscreteSliderPreview> {
-  double _value = 2.25;
+  double _value = 3;
 
   @override
   Widget build(BuildContext context) => _surface(
@@ -206,6 +206,8 @@ class _DiscreteSliderPreviewState extends State<_DiscreteSliderPreview> {
       width: 320,
       child: DiscreteSlider(
         value: _value,
+        min: 1,
+        stepSize: 1,
         onChanged: (next) => setState(() => _value = next),
       ),
     ),
