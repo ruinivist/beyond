@@ -50,29 +50,24 @@ class _SettingsDialogState extends State<SettingsDialog> {
 
   // ---------- Transfer actions ----------
 
-  Future<void> _importCanvas() async {
-    final callback = widget.onImportCanvas;
-    if (_transferActive || callback == null) return;
+  Future<T?> _runTransfer<T>(Future<T> Function()? callback) async {
+    if (_transferActive || callback == null) return null;
     setState(() => _transferActive = true);
     try {
-      final imported = await callback();
-      if (!mounted) return;
-      if (imported) Navigator.of(context).pop();
+      return await callback();
     } finally {
       if (mounted) setState(() => _transferActive = false);
     }
   }
 
+  Future<void> _importCanvas() async {
+    final imported = await _runTransfer(widget.onImportCanvas);
+    if (!mounted || imported != true) return;
+    Navigator.of(context).pop();
+  }
+
   Future<void> _exportCanvas() async {
-    final callback = widget.onExportCanvas;
-    if (_transferActive || callback == null) return;
-    setState(() => _transferActive = true);
-    try {
-      await callback();
-      if (!mounted) return;
-    } finally {
-      if (mounted) setState(() => _transferActive = false);
-    }
+    await _runTransfer(widget.onExportCanvas);
   }
 
   // ---------- Rendering ----------

@@ -26,12 +26,19 @@ class SelectOption<T> {
 
 // ---------- Geometry ----------
 
-final double _selectMinimumWidth = BSizes.defaultTextButtonSize.x;
-final double _selectTriggerHeight = BSizes.defaultTextButtonSize.y;
+final double _selectMinimumWidth = BSizes.defaultTextButtonSize.width;
+final double _selectTriggerHeight = BSizes.defaultTextButtonSize.height;
 const _selectTriggerHorizontalPadding = 16.0;
 const _selectTriggerIconSize = 16.0;
 
 // ---------- Shared rendering ----------
+
+SelectOption<T>? _findOption<T>(List<SelectOption<T>> options, T value) {
+  for (final option in options) {
+    if (option.value == value) return option;
+  }
+  return null;
+}
 
 double _selectPreferredWidth<T>(
   BuildContext context,
@@ -330,12 +337,7 @@ class _SelectState<T> extends State<Select<T>> {
 
   // ---------- Selection ----------
 
-  SelectOption<T>? get _selectedOption {
-    for (final option in widget.options) {
-      if (option.value == widget.value) return option;
-    }
-    return null;
-  }
+  SelectOption<T>? get _selectedOption => _findOption(widget.options, widget.value);
 
   void _focusSelectedOption() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -490,14 +492,8 @@ class _SearchableSelectState<T> extends State<SearchableSelect<T>> {
 
     final preferred = <SelectOption<T>>[];
     for (final value in widget.preferredValues) {
-      SelectOption<T>? option;
-      for (final candidate in widget.options) {
-        if (candidate.value == value) {
-          option = candidate;
-          break;
-        }
-      }
-      if (option != null && !preferred.any((current) => current.value == option!.value)) {
+      final option = _findOption(widget.options, value);
+      if (option != null && !preferred.any((current) => current.value == value)) {
         preferred.add(option);
       }
     }
@@ -517,12 +513,7 @@ class _SearchableSelectState<T> extends State<SearchableSelect<T>> {
     return comparison == 0 ? a.label.compareTo(b.label) : comparison;
   }
 
-  SelectOption<T>? get _selectedOption {
-    for (final option in widget.options) {
-      if (option.value == widget.value) return option;
-    }
-    return null;
-  }
+  SelectOption<T>? get _selectedOption => _findOption(widget.options, widget.value);
 
   // ---------- Rendering ----------
 

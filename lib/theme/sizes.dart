@@ -8,8 +8,3 @@ abstract final class BSizes {
   static const defaultIconSize = 18.0;
   static const defaultIconButtonSize = Size.square(40);
 }
-
-extension BSizeCoordinates on Size {
-  double get x => width;
-  double get y => height;
-}

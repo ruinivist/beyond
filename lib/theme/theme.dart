@@ -25,7 +25,6 @@ class BColors {
     required this.textSecondary,
     required this.textMuted,
     required this.resizeHandle,
-    required this.border,
     required this.borderSubtle,
     required this.accent,
     required this.accentHover,
@@ -48,7 +47,6 @@ class BColors {
   final Color textSecondary;
   final Color textMuted;
   final Color resizeHandle;
-  final Color border;
   final Color borderSubtle;
   final Color accent;
   final Color accentHover;
@@ -79,7 +77,6 @@ class BColors {
       textSecondary: Color.lerp(textSecondary, other.textSecondary, t)!,
       textMuted: Color.lerp(textMuted, other.textMuted, t)!,
       resizeHandle: Color.lerp(resizeHandle, other.resizeHandle, t)!,
-      border: Color.lerp(border, other.border, t)!,
       borderSubtle: Color.lerp(borderSubtle, other.borderSubtle, t)!,
       accent: Color.lerp(accent, other.accent, t)!,
       accentHover: Color.lerp(accentHover, other.accentHover, t)!,
@@ -142,7 +139,6 @@ class BGeo {
     required this.radiusLarge,
     required this.elevationLow,
     required this.elevationMedium,
-    required this.elevationHigh,
   });
 
   final BorderRadius radiusSmall;
@@ -150,7 +146,6 @@ class BGeo {
   final BorderRadius radiusLarge;
   final double elevationLow;
   final double elevationMedium;
-  final double elevationHigh;
 
   // ---------- Interpolation ----------
 
@@ -162,7 +157,6 @@ class BGeo {
       radiusLarge: BorderRadius.lerp(radiusLarge, other.radiusLarge, t)!,
       elevationLow: elevationLow + (other.elevationLow - elevationLow) * t,
       elevationMedium: elevationMedium + (other.elevationMedium - elevationMedium) * t,
-      elevationHigh: elevationHigh + (other.elevationHigh - elevationHigh) * t,
     );
   }
 }

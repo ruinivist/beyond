@@ -68,7 +68,6 @@ class _Colors extends StatelessWidget {
       ('Text', colors.textPrimary),
       ('Secondary', colors.textSecondary),
       ('Muted', colors.textMuted),
-      ('Border', colors.border),
       ('Border subtle', colors.borderSubtle),
       ('Accent', colors.accent),
       ('Accent hover', colors.accentHover),

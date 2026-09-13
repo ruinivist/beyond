@@ -20,7 +20,6 @@ const _starlessLightColors = BColors(
   textSecondary: Color(0xff655a53),
   textMuted: Color(0xff887b73),
   resizeHandle: Color(0xff6b6b6b),
-  border: Color(0xffded7d2),
   borderSubtle: Color(0xffeae3de),
   accent: Color(0xffc66b53),
   accentHover: Color(0xffae5742),
@@ -38,7 +37,6 @@ const _starlessGeo = BGeo(
   radiusLarge: BorderRadius.all(Radius.circular(10)),
   elevationLow: 4,
   elevationMedium: 8,
-  elevationHigh: 12,
 );
 
 // ---------- Typography ----------
