@@ -99,31 +99,27 @@ class TextTool extends StatelessWidget {
                       children: [
                         if (model.node.height != null) Positioned.fill(child: visibleBody) else visibleBody,
                         Positioned(
-                          right: 0,
-                          bottom: 0,
-                          child: SizedBox(
-                            width: 32,
-                            height: 20,
-                            child: IgnorePointer(
-                              ignoring: !model.editing,
-                              child: AnimatedSwitcher(
-                                duration: const Duration(milliseconds: 260),
-                                reverseDuration: const Duration(milliseconds: 180),
-                                switchInCurve: Curves.easeOutCubic,
-                                switchOutCurve: Curves.easeOutCubic,
-                                transitionBuilder: _resizeHandleTransition,
-                                child: model.editing
-                                    ? TextFieldTapRegion(
-                                        child: ResizeHandle(
-                                          key: const ValueKey('text-block-resize-handle'),
-                                          semanticLabel: 'Resize text block',
-                                          gestures: {resizeRecognizer: resizeGestureFactory},
-                                        ),
-                                      )
-                                    : const SizedBox(
-                                        key: ValueKey('text-block-resize-handle-hidden'),
+                          right: 2,
+                          bottom: 2,
+                          child: IgnorePointer(
+                            ignoring: !model.editing,
+                            child: AnimatedSwitcher(
+                              duration: const Duration(milliseconds: 260),
+                              reverseDuration: const Duration(milliseconds: 180),
+                              switchInCurve: Curves.easeOutCubic,
+                              switchOutCurve: Curves.easeOutCubic,
+                              transitionBuilder: _resizeHandleTransition,
+                              child: model.editing
+                                  ? TextFieldTapRegion(
+                                      child: ResizeHandle(
+                                        key: const ValueKey('text-block-resize-handle'),
+                                        semanticLabel: 'Resize text block',
+                                        gestures: {resizeRecognizer: resizeGestureFactory},
                                       ),
-                              ),
+                                    )
+                                  : const SizedBox(
+                                      key: ValueKey('text-block-resize-handle-hidden'),
+                                    ),
                             ),
                           ),
                         ),

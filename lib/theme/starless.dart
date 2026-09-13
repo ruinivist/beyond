@@ -19,6 +19,7 @@ const _starlessLightColors = BColors(
   textPrimary: Color(0xff201c1a),
   textSecondary: Color(0xff655a53),
   textMuted: Color(0xff887b73),
+  resizeHandle: Color(0xff6b6b6b),
   border: Color(0xffded7d2),
   borderSubtle: Color(0xffeae3de),
   accent: Color(0xffc66b53),

@@ -131,7 +131,6 @@ class CodeTool extends StatelessWidget {
                   child: ResizeHandle(
                     key: const ValueKey('code-block-resize-handle'),
                     semanticLabel: 'Resize code block',
-                    background: false,
                     gestures: {
                       ScaleGestureRecognizer: GestureRecognizerFactoryWithHandlers<ScaleGestureRecognizer>(
                         () => ScaleGestureRecognizer(

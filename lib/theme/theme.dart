@@ -24,6 +24,7 @@ class BColors {
     required this.textPrimary,
     required this.textSecondary,
     required this.textMuted,
+    required this.resizeHandle,
     required this.border,
     required this.borderSubtle,
     required this.accent,
@@ -46,6 +47,7 @@ class BColors {
   final Color textPrimary;
   final Color textSecondary;
   final Color textMuted;
+  final Color resizeHandle;
   final Color border;
   final Color borderSubtle;
   final Color accent;
@@ -76,6 +78,7 @@ class BColors {
       textPrimary: Color.lerp(textPrimary, other.textPrimary, t)!,
       textSecondary: Color.lerp(textSecondary, other.textSecondary, t)!,
       textMuted: Color.lerp(textMuted, other.textMuted, t)!,
+      resizeHandle: Color.lerp(resizeHandle, other.resizeHandle, t)!,
       border: Color.lerp(border, other.border, t)!,
       borderSubtle: Color.lerp(borderSubtle, other.borderSubtle, t)!,
       accent: Color.lerp(accent, other.accent, t)!,
