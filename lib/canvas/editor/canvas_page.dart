@@ -11,6 +11,7 @@ import 'package:beyond/canvas/editor/canvas_clipboard.dart';
 import 'package:beyond/canvas/editor/canvas_element_model.dart';
 import 'package:beyond/canvas/editor/widgets/tool_options.dart';
 import 'package:beyond/canvas/editor/widgets/toolbar_button.dart';
+import 'package:beyond/canvas/editor/widgets/zoom_control.dart';
 import 'package:beyond/canvas/persistence/attachments/store.dart';
 import 'package:beyond/canvas/persistence/canvas_document_store.dart';
 import 'package:beyond/canvas/persistence/canvas_project.dart';
@@ -1832,6 +1833,15 @@ class _CanvasPageState extends State<CanvasPage> {
                 ),
               ),
             ),
+          SafeArea(
+            child: Align(
+              alignment: Alignment.bottomRight,
+              child: Padding(
+                padding: const EdgeInsets.only(right: 16, bottom: 12),
+                child: ZoomControl(controller: _canvasController),
+              ),
+            ),
+          ),
           SafeArea(
             child: Align(
               alignment: Alignment.topCenter,
