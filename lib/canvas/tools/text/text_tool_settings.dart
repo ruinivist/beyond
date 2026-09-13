@@ -99,6 +99,19 @@ class TextToolSettings extends StatelessWidget {
                     ),
                 ],
               ),
+              const SizedBox(height: 10),
+              CheckboxListTile(
+                key: const ValueKey('text-no-fill'),
+                value: style.noFill,
+                contentPadding: EdgeInsets.zero,
+                controlAffinity: ListTileControlAffinity.leading,
+                title: Text('No Fill', style: theme.typo.label),
+                onChanged: (noFill) {
+                  onChangeBoundary();
+                  model.style = style.copyWith(noFill: noFill);
+                  onChangeBoundary();
+                },
+              ),
             ],
           ),
         );

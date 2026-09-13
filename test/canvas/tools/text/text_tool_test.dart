@@ -883,6 +883,40 @@ Inline $x^2$''';
     },
   );
 
+  testWidgets('no fill removes the preview surface', (tester) async {
+    await _addTextBlock(tester, const Offset(120, 200));
+    final model = tester.widget<TextTool>(find.byType(TextTool)).model;
+    final surface = find.byKey(const ValueKey('text-block-surface'));
+    final editingBorder = find.byKey(
+      const ValueKey('text-no-fill-editing-border'),
+    );
+
+    expect(model.style.noFill, isFalse);
+    tester
+        .widget<CheckboxListTile>(
+          find.byKey(const ValueKey('text-no-fill')),
+        )
+        .onChanged!(true);
+    await tester.pump();
+
+    expect(model.style.noFill, isTrue);
+    expect(tester.widget<Material>(surface).type, MaterialType.transparency);
+    expect(
+      find.descendant(
+        of: surface,
+        matching: find.byType(PhysicalShape),
+      ),
+      findsNothing,
+    );
+    expect(tester.widget<AnimatedOpacity>(editingBorder).opacity, 1);
+
+    await tester.tapAt(const Offset(700, 500));
+    await tester.pump();
+
+    expect(model.editing, isFalse);
+    expect(tester.widget<AnimatedOpacity>(editingBorder).opacity, 0);
+  });
+
   testWidgets('text editing is cleared by other blocks and empty canvas', (
     tester,
   ) async {

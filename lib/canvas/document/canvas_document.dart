@@ -275,12 +275,14 @@ class TextNodeStyle {
     required this.fontFamily,
     required this.fontSize,
     required this.color,
+    this.noFill = false,
   });
 
   const TextNodeStyle._json({
     required this.fontFamily,
     required this.fontSize,
     required this.color,
+    required this.noFill,
   });
 
   factory TextNodeStyle.fromJson(Object? json) {
@@ -300,6 +302,7 @@ class TextNodeStyle {
   final String fontFamily;
   final double fontSize;
   final String color;
+  final bool noFill;
 
   // ---------- Copying ----------
 
@@ -307,11 +310,13 @@ class TextNodeStyle {
     String? fontFamily,
     double? fontSize,
     String? color,
+    bool? noFill,
   }) {
     return TextNodeStyle(
       fontFamily: fontFamily ?? this.fontFamily,
       fontSize: fontSize ?? this.fontSize,
       color: color ?? this.color,
+      noFill: noFill ?? this.noFill,
     );
   }
 

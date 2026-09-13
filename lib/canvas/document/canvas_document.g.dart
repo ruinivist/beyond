@@ -121,11 +121,15 @@ Map<String, dynamic> _$MediaElementDataToJson(MediaElementData instance) => <Str
 
 TextNodeStyle _$TextNodeStyleFromJson(Map<String, dynamic> json) =>
     $checkedCreate('TextNodeStyle', json, ($checkedConvert) {
-      $checkKeys(json, allowedKeys: const ['fontFamily', 'fontSize', 'color']);
+      $checkKeys(
+        json,
+        allowedKeys: const ['fontFamily', 'fontSize', 'color', 'noFill'],
+      );
       final val = TextNodeStyle._json(
         fontFamily: $checkedConvert('fontFamily', (v) => v as String),
         fontSize: $checkedConvert('fontSize', (v) => (v as num).toDouble()),
         color: $checkedConvert('color', (v) => v as String),
+        noFill: $checkedConvert('noFill', (v) => v as bool),
       );
       return val;
     });
@@ -134,6 +138,7 @@ Map<String, dynamic> _$TextNodeStyleToJson(TextNodeStyle instance) => <String, d
   'fontFamily': instance.fontFamily,
   'fontSize': instance.fontSize,
   'color': instance.color,
+  'noFill': instance.noFill,
 };
 
 TextElementData _$TextElementDataFromJson(Map<String, dynamic> json) =>

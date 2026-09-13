@@ -46,6 +46,7 @@ class TextTool extends StatelessWidget {
       child: ListenableBuilder(
         listenable: model,
         builder: (context, _) {
+          final noFill = model.style.noFill;
           final body = model.editing
               ? TextMarkdownEditor(model: model, attachmentStore: attachmentStore)
               : TextMarkdownPreview(
@@ -75,12 +76,20 @@ class TextTool extends StatelessWidget {
             container: true,
             selected: model.selected,
             child: Material(
-              color: model.selected ? colors.accentSoft : colors.surface,
-              elevation: theme.geo.elevationLow,
+              key: const ValueKey('text-block-surface'),
+              type: noFill ? MaterialType.transparency : MaterialType.canvas,
+              color: noFill
+                  ? null
+                  : model.selected
+                  ? colors.accentSoft
+                  : colors.surface,
+              elevation: noFill ? 0 : theme.geo.elevationLow,
               shadowColor: colors.shadow,
               shape: RoundedRectangleBorder(
                 borderRadius: theme.geo.radiusLarge,
-                side: model.selected
+                side: noFill
+                    ? BorderSide.none
+                    : model.selected
                     ? BorderSide(color: colors.accent, width: 2)
                     : BorderSide(color: colors.borderSubtle),
               ),
@@ -119,6 +128,22 @@ class TextTool extends StatelessWidget {
                             ),
                           ),
                         ),
+                        if (noFill)
+                          Positioned.fill(
+                            child: IgnorePointer(
+                              child: AnimatedOpacity(
+                                key: const ValueKey('text-no-fill-editing-border'),
+                                opacity: model.editing ? 1 : 0,
+                                duration: const Duration(milliseconds: 200),
+                                child: DecoratedBox(
+                                  decoration: BoxDecoration(
+                                    border: Border.all(color: colors.borderSubtle),
+                                    borderRadius: theme.geo.radiusLarge,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
                       ],
                     ),
                   ),

@@ -35,6 +35,7 @@ void main() {
             fontFamily: 'Inter',
             fontSize: 20,
             color: '#201C1A',
+            noFill: true,
           ),
         ),
         PenElementData(
@@ -103,6 +104,7 @@ void main() {
     expect(node.style.fontFamily, 'Inter');
     expect(node.style.fontSize, 20);
     expect(node.style.color, '#201C1A');
+    expect(node.style.noFill, isTrue);
 
     final pen = elements[2] as PenElementData;
     expect(pen.size, const Size(180, 90));
@@ -429,6 +431,7 @@ Map<String, Object?> _encodedText({
           'fontFamily': fontFamily,
           'fontSize': fontSize,
           'color': color,
+          'noFill': false,
         },
   };
 }
