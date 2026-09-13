@@ -5,14 +5,12 @@ import 'dart:convert';
 import 'dart:math' as math;
 
 import 'package:beyond/canvas/document/canvas_document.dart';
-import 'package:beyond/canvas/editor/canvas_page.dart';
 import 'package:beyond/canvas/persistence/attachments/store.dart';
 import 'package:beyond/canvas/persistence/canvas_document_store.dart';
 import 'package:beyond/canvas/tools/code/code_tool.dart';
 import 'package:beyond/canvas/tools/text/text_tool.dart';
 import 'package:beyond/main.dart';
 import 'package:beyond/theme/preset_colors.dart';
-import 'package:beyond/theme/starless.dart';
 import 'package:beyond/ui/common/select.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
@@ -26,6 +24,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:shared_preferences_web/shared_preferences_web.dart';
 import 'package:url_launcher_platform_interface/link.dart';
 import 'package:url_launcher_platform_interface/url_launcher_platform_interface.dart';
+
+import '../../test_helpers.dart';
 
 // ---------- Tests ----------
 
@@ -686,11 +686,7 @@ Inline $x^2$''';
     tester,
   ) async {
     const path = 'attachments/00000000-0000-4000-8000-000000000000.png';
-    final store = _FakeAttachmentStore()
-      ..files[path] = base64Decode(
-        'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwC'
-        'AAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=',
-      );
+    final store = _FakeAttachmentStore()..files[path] = onePixelPngBytes;
     await _addTextBlock(
       tester,
       const Offset(120, 200),
@@ -984,7 +980,7 @@ Inline $x^2$''';
     await tester.pump();
     FocusManager.instance.primaryFocus?.unfocus();
     await tester.pump();
-    await _pumpPastSave(tester);
+    await pumpPastSave(tester);
 
     final preferences = SharedPreferencesAsync();
     final savedSource = await preferences.getString(CanvasDocumentStore.key);
@@ -1077,7 +1073,7 @@ Inline $x^2$''';
       find.byKey(const ValueKey('text-markdown-editor')),
       'replacement',
     );
-    await _pumpPastSave(tester);
+    await pumpPastSave(tester);
 
     final replacement = await preferences.getString(CanvasDocumentStore.key);
     expect(
@@ -1095,22 +1091,17 @@ Future<void> _addTextBlock(
   AttachmentStore? attachmentStore,
   TargetPlatform? platform,
 }) async {
-  await tester.pumpWidget(
-    platform == null
-        ? BeyondApp(attachmentStore: attachmentStore)
-        : MaterialApp(
-            theme: starlessLightThemeData.copyWith(platform: platform),
-            home: CanvasPage(attachmentStore: attachmentStore),
-          ),
-  );
-  await tester.pump();
-  await tester.pump();
+  if (platform == null) {
+    await pumpBeyondApp(tester, attachmentStore: attachmentStore);
+  } else {
+    await pumpCanvas(
+      tester,
+      CanvasDocumentStore(),
+      attachmentStore: attachmentStore,
+      platform: platform,
+    );
+  }
   await _placeTextBlock(tester, position);
-}
-
-Future<void> _pumpPastSave(WidgetTester tester) async {
-  await tester.pump(const Duration(milliseconds: 320));
-  await tester.pump();
 }
 
 Future<TextBlockModel> _placeTextBlock(
@@ -1149,23 +1140,12 @@ class _FakeUrlLauncher extends UrlLauncherPlatform {
   }
 }
 
-class _FakeAttachmentStore implements AttachmentStore {
-  final files = <String, Uint8List>{};
+class _FakeAttachmentStore extends TestAttachmentStore {
   final readPaths = <String>[];
 
   @override
   Future<Uint8List> read(String path) async {
     readPaths.add(path);
-    final bytes = files[path];
-    if (bytes == null) throw StateError('missing attachment');
-    return bytes;
-  }
-
-  @override
-  Future<Uint8List?> readIfExists(String path) async => files[path];
-
-  @override
-  Future<void> write(String path, Uint8List bytes) async {
-    files[path] = bytes;
+    return super.read(path);
   }
 }

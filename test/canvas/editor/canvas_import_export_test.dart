@@ -6,21 +6,20 @@ import 'dart:convert';
 
 import 'package:beyond/canvas/document/canvas_document.dart';
 import 'package:beyond/canvas/editor/canvas_background.dart';
-import 'package:beyond/canvas/persistence/attachments/store.dart';
-import 'package:beyond/canvas/persistence/canvas_document_store.dart';
 import 'package:beyond/canvas/persistence/canvas_project.dart';
 import 'package:beyond/canvas/persistence/canvas_project_files.dart';
 import 'package:beyond/canvas/tools/arrow/arrow_tool.dart';
 import 'package:beyond/canvas/tools/code/code_tool.dart';
 import 'package:beyond/canvas/tools/pen/pen_tool.dart';
 import 'package:beyond/canvas/tools/text/text_tool.dart';
-import 'package:beyond/main.dart';
 import 'package:beyond/ui/common/select.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:infinite_lazy_grid/infinite_lazy_grid.dart';
 import 'package:shared_preferences_web/shared_preferences_web.dart';
+
+import '../test_helpers.dart';
 
 // ---------- Tests ----------
 
@@ -30,10 +29,15 @@ void main() {
   testWidgets('exports the current durable project', (tester) async {
     final document = _document(markdown: '![image]($_path0)');
     final documentStore = _FakeDocumentStore(document);
-    final attachments = _FakeAttachmentStore({_path0: _oldBytes});
+    final attachments = _FakeAttachmentStore({_path0: onePixelPngBytes});
     final files = _FakeProjectFiles();
 
-    await _pumpPage(tester, documentStore, attachments, files);
+    await pumpBeyondApp(
+      tester,
+      documentStore: documentStore,
+      attachmentStore: attachments,
+      projectFiles: files,
+    );
     await _openCanvasSettings(tester);
     await tester.tap(find.byKey(const ValueKey('canvas-export-button')));
     await tester.pumpAndSettle();
@@ -42,17 +46,17 @@ void main() {
     final root = jsonDecode(utf8.decode(files.saved!)) as Map<String, dynamic>;
     expect(root['format'], 'beyond-canvas');
     expect(root['document'], document.toJson());
-    expect(root['attachments'], {_path0: base64Encode(_oldBytes)});
+    expect(root['attachments'], {_path0: base64Encode(onePixelPngBytes)});
     expect(find.text('Canvas exported'), findsOneWidget);
   });
 
   testWidgets('canceled file operations are silent', (tester) async {
     final files = _FakeProjectFiles()..cancelOpen = true;
-    await _pumpPage(
+    await pumpBeyondApp(
       tester,
-      _FakeDocumentStore(_document(markdown: '')),
-      _FakeAttachmentStore(),
-      files,
+      documentStore: _FakeDocumentStore(_document(markdown: '')),
+      attachmentStore: _FakeAttachmentStore(),
+      projectFiles: files,
     );
     await _openCanvasSettings(tester);
     await tester.tap(find.byKey(const ValueKey('canvas-import-button')));
@@ -79,7 +83,7 @@ void main() {
       background: CanvasBackgroundKind.dotGrid,
       idSuffix: '-new',
     );
-    final attachments = _FakeAttachmentStore({_path0: _oldBytes});
+    final attachments = _FakeAttachmentStore({_path0: onePixelPngBytes});
     final documentStore = _FakeDocumentStore(oldDocument);
     final files = _FakeProjectFiles()
       ..opened = await encodeCanvasProject(
@@ -87,7 +91,12 @@ void main() {
         _FakeAttachmentStore({_path0: _newBytes}),
       );
 
-    await _pumpPage(tester, documentStore, attachments, files);
+    await pumpBeyondApp(
+      tester,
+      documentStore: documentStore,
+      attachmentStore: attachments,
+      projectFiles: files,
+    );
     tester.widget<TextTool>(find.byType(TextTool)).model.selected = true;
     await tester.sendKeyEvent(LogicalKeyboardKey.delete);
     await tester.pump();
@@ -130,15 +139,12 @@ void main() {
     );
 
     documentStore.initial = documentStore.persisted;
-    await tester.pumpWidget(
-      BeyondApp(
-        documentStore: documentStore,
-        attachmentStore: attachments,
-        projectFiles: files,
-      ),
+    await pumpBeyondApp(
+      tester,
+      documentStore: documentStore,
+      attachmentStore: attachments,
+      projectFiles: files,
     );
-    await tester.pump();
-    await tester.pump();
     expect(find.byType(TextTool), findsOneWidget);
     expect(
       tester.widget<TextTool>(find.byType(TextTool)).model.node.markdown,
@@ -159,7 +165,7 @@ void main() {
         background: CanvasBackgroundKind.dotGrid,
         idSuffix: '-new',
       );
-      final attachments = _FakeAttachmentStore({_path0: _oldBytes});
+      final attachments = _FakeAttachmentStore({_path0: onePixelPngBytes});
       final documentStore = _FakeDocumentStore(oldDocument);
       final files = _FakeProjectFiles()
         ..opened = await encodeCanvasProject(
@@ -167,11 +173,15 @@ void main() {
           _FakeAttachmentStore({_path0: _newBytes}),
         );
 
-      await _pumpPage(tester, documentStore, attachments, files);
+      await pumpBeyondApp(
+        tester,
+        documentStore: documentStore,
+        attachmentStore: attachments,
+        projectFiles: files,
+      );
       await _openCanvasSettings(tester);
       tester.widget<TextTool>(find.byType(TextTool)).model.selected = true;
-      await tester.pump(const Duration(milliseconds: 320));
-      await tester.pump();
+      await pumpPastSave(tester);
 
       final writeGate = Completer<void>();
       attachments.writeGate = writeGate;
@@ -227,7 +237,12 @@ void main() {
           _FakeAttachmentStore(),
         );
 
-      await _pumpPage(tester, documentStore, attachments, files);
+      await pumpBeyondApp(
+        tester,
+        documentStore: documentStore,
+        attachmentStore: attachments,
+        projectFiles: files,
+      );
       await _openCanvasSettings(tester);
       tester.widget<TextTool>(find.byType(TextTool)).model.insertPastedText(' dirty');
       await tester.pump();
@@ -250,15 +265,12 @@ void main() {
       expect(documentStore.persisted, isNotNull);
 
       documentStore.initial = documentStore.persisted;
-      await tester.pumpWidget(
-        BeyondApp(
-          documentStore: documentStore,
-          attachmentStore: attachments,
-          projectFiles: files,
-        ),
+      await pumpBeyondApp(
+        tester,
+        documentStore: documentStore,
+        attachmentStore: attachments,
+        projectFiles: files,
       );
-      await tester.pump();
-      await tester.pump();
       expect(
         tester.widget<TextTool>(find.byType(TextTool)).model.node.markdown,
         'old dirty',
@@ -274,7 +286,7 @@ void main() {
       markdown: '![new]($_path0)',
       idSuffix: '-new',
     );
-    final attachments = _FakeAttachmentStore({_path0: _oldBytes});
+    final attachments = _FakeAttachmentStore({_path0: onePixelPngBytes});
     final documentStore = _FakeDocumentStore(oldDocument)..failSaves = true;
     final files = _FakeProjectFiles()
       ..opened = await encodeCanvasProject(
@@ -282,13 +294,18 @@ void main() {
         _FakeAttachmentStore({_path0: _newBytes}),
       );
 
-    await _pumpPage(tester, documentStore, attachments, files);
+    await pumpBeyondApp(
+      tester,
+      documentStore: documentStore,
+      attachmentStore: attachments,
+      projectFiles: files,
+    );
     await _openCanvasSettings(tester);
     await tester.tap(find.byKey(const ValueKey('canvas-import-button')));
     await tester.pumpAndSettle();
 
     expect(find.text('Could not import canvas'), findsOneWidget);
-    expect(attachments.files[_path0], _oldBytes);
+    expect(attachments.files[_path0], onePixelPngBytes);
     expect(documentStore.persisted, isNull);
     expect(
       tester.widget<TextTool>(find.byType(TextTool)).model.node.markdown,
@@ -299,15 +316,14 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('canvas-import-button')));
     await tester.pumpAndSettle();
     expect(find.text('Could not import canvas'), findsOneWidget);
-    expect(attachments.files[_path0], _oldBytes);
+    expect(attachments.files[_path0], onePixelPngBytes);
     expect(documentStore.persisted, isNull);
 
     documentStore.failSaves = false;
     await tester.tap(find.byTooltip('Close'));
     await tester.pumpAndSettle();
     tester.widget<TextTool>(find.byType(TextTool)).model.insertPastedText(' changed');
-    await tester.pump(const Duration(milliseconds: 320));
-    await tester.pump();
+    await pumpPastSave(tester);
     expect(documentStore.saveCalls, greaterThan(1));
   });
 
@@ -315,11 +331,11 @@ void main() {
     tester,
   ) async {
     final files = _FakeProjectFiles()..opened = Uint8List.fromList(utf8.encode('{"format":"wrong"}'));
-    await _pumpPage(
+    await pumpBeyondApp(
       tester,
-      _FakeDocumentStore(_document(markdown: 'unchanged')),
-      _FakeAttachmentStore(),
-      files,
+      documentStore: _FakeDocumentStore(_document(markdown: 'unchanged')),
+      attachmentStore: _FakeAttachmentStore(),
+      projectFiles: files,
     );
     await _openCanvasSettings(tester);
     await tester.tap(find.byKey(const ValueKey('canvas-import-button')));
@@ -338,25 +354,6 @@ void main() {
     completer.complete(null);
     await tester.pumpAndSettle();
   });
-}
-
-// ---------- Test helpers ----------
-
-Future<void> _pumpPage(
-  WidgetTester tester,
-  _FakeDocumentStore documentStore,
-  _FakeAttachmentStore attachments,
-  _FakeProjectFiles files,
-) async {
-  await tester.pumpWidget(
-    BeyondApp(
-      documentStore: documentStore,
-      attachmentStore: attachments,
-      projectFiles: files,
-    ),
-  );
-  await tester.pump();
-  await tester.pump();
 }
 
 Future<void> _openCanvasSettings(WidgetTester tester) async {
@@ -426,41 +423,29 @@ CanvasDocument _document({
 );
 
 const _path0 = 'attachments/00000000-0000-4000-8000-000000000000.png';
-final _oldBytes = Uint8List.fromList(
-  base64Decode(
-    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8A'
-    'AQUBAScY42YAAAAASUVORK5CYII=',
-  ),
-);
 final _newBytes = Uint8List.fromList(
   base64Decode('R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw=='),
 );
 
 // ---------- Test doubles ----------
 
-class _FakeDocumentStore extends CanvasDocumentStore {
-  _FakeDocumentStore(this.initial);
+class _FakeDocumentStore extends TestCanvasDocumentStore {
+  _FakeDocumentStore(super.initial);
 
-  CanvasDocument? initial;
-  CanvasDocument? persisted;
   bool failSaves = false;
   int saveCalls = 0;
-
-  @override
-  Future<CanvasDocument?> load() async => initial?.copy();
 
   @override
   Future<void> save(CanvasDocument document) async {
     saveCalls++;
     if (failSaves) throw StateError('save failed');
-    persisted = document.copy();
+    await super.save(document);
   }
 }
 
-class _FakeAttachmentStore implements AttachmentStore {
-  _FakeAttachmentStore([Map<String, Uint8List>? initial]) : files = {...?initial};
+class _FakeAttachmentStore extends TestAttachmentStore {
+  _FakeAttachmentStore([super.initial]);
 
-  final Map<String, Uint8List> files;
   int writeCalls = 0;
   bool failNextWrite = false;
   Completer<void>? writeGate;
@@ -481,16 +466,6 @@ class _FakeAttachmentStore implements AttachmentStore {
     }
     files[path] = Uint8List.fromList(bytes);
   }
-
-  @override
-  Future<Uint8List> read(String path) async {
-    final bytes = files[path];
-    if (bytes == null) throw StateError('missing attachment');
-    return bytes;
-  }
-
-  @override
-  Future<Uint8List?> readIfExists(String path) async => files[path];
 }
 
 class _FakeProjectFiles implements CanvasProjectFiles {

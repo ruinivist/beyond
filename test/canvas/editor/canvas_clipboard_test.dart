@@ -1,27 +1,23 @@
 // Verifies canvas clipboard encoding, decoding, and paste behavior.
 // Exercises serialized elements and external clipboard content in the editor.
 
-import 'dart:convert';
-
 import 'package:beyond/canvas/document/canvas_document.dart';
 import 'package:beyond/canvas/editor/canvas_background.dart';
 import 'package:beyond/canvas/editor/canvas_clipboard.dart';
 import 'package:beyond/canvas/editor/canvas_element_model.dart';
-import 'package:beyond/canvas/editor/canvas_page.dart';
 import 'package:beyond/canvas/persistence/attachments/store.dart';
-import 'package:beyond/canvas/persistence/canvas_document_store.dart';
 import 'package:beyond/canvas/tools/arrow/arrow_tool.dart';
 import 'package:beyond/canvas/tools/code/code_tool.dart';
 import 'package:beyond/canvas/tools/media/media_tool.dart';
 import 'package:beyond/canvas/tools/pen/pen_tool.dart';
 import 'package:beyond/canvas/tools/text/text_tool.dart';
-import 'package:beyond/theme/starless.dart';
 import 'package:flutter/gestures.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:infinite_lazy_grid/infinite_lazy_grid.dart';
 import 'package:shared_preferences_web/shared_preferences_web.dart';
+
+import '../test_helpers.dart';
 
 // ---------- Tests ----------
 
@@ -76,24 +72,18 @@ void main() {
   testWidgets('copies, pastes, cuts, restores, and persists mixed elements', (
     tester,
   ) async {
-    final store = _DocumentStore(_document);
+    final store = TestCanvasDocumentStore(_document);
     String? clipboard;
     var failWrite = false;
-    await tester.pumpWidget(
-      MaterialApp(
-        theme: starlessLightThemeData,
-        home: CanvasPage(
-          documentStore: store,
-          readClipboard: () async => (text: clipboard, image: null),
-          writeClipboardText: (text) async {
-            if (failWrite) throw StateError('write failed');
-            clipboard = text;
-          },
-        ),
-      ),
+    await pumpCanvas(
+      tester,
+      store,
+      readClipboard: () async => (text: clipboard, image: null),
+      writeClipboardText: (text) async {
+        if (failWrite) throw StateError('write failed');
+        clipboard = text;
+      },
     );
-    await tester.pump();
-    await tester.pump();
     for (final model in _models(tester)) {
       model.selected = true;
     }
@@ -101,7 +91,7 @@ void main() {
     expect(clipboard, isNotNull);
 
     await _shortcut(tester, LogicalKeyboardKey.keyV);
-    await _waitForSave(tester);
+    await pumpPastSave(tester);
     final copied = store.persisted!;
     expect(copied.elements, hasLength(8));
     expect(_types(copied.elements), [
@@ -130,11 +120,11 @@ void main() {
 
     failWrite = false;
     await _shortcut(tester, LogicalKeyboardKey.keyX);
-    await _waitForSave(tester);
+    await pumpPastSave(tester);
     expect(store.persisted!.elements, hasLength(4));
 
     await _shortcut(tester, LogicalKeyboardKey.keyV);
-    await _waitForSave(tester);
+    await pumpPastSave(tester);
     final restored = store.persisted!;
     expect(restored.elements, hasLength(8));
     final restoredPaste = restored.elements.skip(4).toList();
@@ -156,7 +146,7 @@ void main() {
     );
 
     await _shortcut(tester, LogicalKeyboardKey.keyV);
-    await _waitForSave(tester);
+    await pumpPastSave(tester);
     final cascaded = store.persisted!;
     expect(cascaded.elements, hasLength(12));
     for (var index = 0; index < 4; index++) {
@@ -179,13 +169,13 @@ void main() {
     const target = Offset(600, 400);
     await mouse.moveTo(target);
     await _shortcut(tester, LogicalKeyboardKey.keyV);
-    await _waitForSave(tester);
+    await pumpPastSave(tester);
     final controller = tester.widget<LazyCanvas>(find.byType(LazyCanvas)).controller;
     final targetOnCanvas = controller.offset + target / controller.scale;
     expect(_selectedBounds(tester).center, targetOnCanvas);
 
     await _shortcut(tester, LogicalKeyboardKey.keyV);
-    await _waitForSave(tester);
+    await pumpPastSave(tester);
     expect(
       _selectedBounds(tester).center,
       targetOnCanvas + const Offset(24, 24) / controller.scale,
@@ -197,7 +187,7 @@ void main() {
       ),
     );
     await _shortcut(tester, LogicalKeyboardKey.keyV);
-    await _waitForSave(tester);
+    await pumpPastSave(tester);
     expect(_selectedBounds(tester).center, targetOnCanvas);
     await mouse.removePointer();
   });
@@ -205,23 +195,17 @@ void main() {
   testWidgets('routes image clipboard content to media', (
     tester,
   ) async {
-    final attachments = _MemoryAttachmentStore();
+    final attachments = TestAttachmentStore();
     CanvasClipboardSnapshot clipboard = (
       text: ' https://example.com/image.png ',
       image: null,
     );
-    await tester.pumpWidget(
-      MaterialApp(
-        theme: starlessLightThemeData,
-        home: CanvasPage(
-          documentStore: _DocumentStore(_emptyDocument),
-          attachmentStore: attachments,
-          readClipboard: () async => clipboard,
-        ),
-      ),
+    await pumpCanvas(
+      tester,
+      TestCanvasDocumentStore(_emptyDocument),
+      attachmentStore: attachments,
+      readClipboard: () async => clipboard,
     );
-    await tester.pump();
-    await tester.pump();
 
     await _shortcut(tester, LogicalKeyboardKey.keyV);
     await tester.pump();
@@ -236,7 +220,7 @@ void main() {
 
     clipboard = (
       text: 'https://example.com/ignored.png',
-      image: (bytes: _pngBytes, extension: 'png'),
+      image: (bytes: onePixelPngBytes, extension: 'png'),
     );
     await tester.runAsync(
       () async {
@@ -248,7 +232,7 @@ void main() {
 
     final pasted = tester.widgetList<MediaTool>(find.byType(MediaTool)).last.model;
     expect(pasted.data.url, matches(attachmentPathPattern));
-    expect(attachments.files[pasted.data.url], _pngBytes);
+    expect(attachments.files[pasted.data.url], onePixelPngBytes);
   });
 }
 
@@ -259,11 +243,6 @@ Future<void> _shortcut(WidgetTester tester, LogicalKeyboardKey key) async {
   await tester.sendKeyDownEvent(key);
   await tester.sendKeyUpEvent(key);
   await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
-  await tester.pump();
-}
-
-Future<void> _waitForSave(WidgetTester tester) async {
-  await tester.pump(const Duration(milliseconds: 320));
   await tester.pump();
 }
 
@@ -362,44 +341,3 @@ const _emptyDocument = CanvasDocument(
   background: CanvasBackgroundKind.plain,
   elements: [],
 );
-
-final _pngBytes = Uint8List.fromList(
-  base64Decode(
-    [
-      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8A',
-      'AQUBAScY42YAAAAASUVORK5CYII=',
-    ].join(),
-  ),
-);
-
-// ---------- Test doubles ----------
-
-class _DocumentStore extends CanvasDocumentStore {
-  _DocumentStore(this.initial);
-
-  final CanvasDocument initial;
-  CanvasDocument? persisted;
-
-  @override
-  Future<CanvasDocument?> load() async => initial.copy();
-
-  @override
-  Future<void> save(CanvasDocument document) async {
-    persisted = document.copy();
-  }
-}
-
-class _MemoryAttachmentStore implements AttachmentStore {
-  final files = <String, Uint8List>{};
-
-  @override
-  Future<Uint8List> read(String path) async => files[path]!;
-
-  @override
-  Future<Uint8List?> readIfExists(String path) async => files[path];
-
-  @override
-  Future<void> write(String path, Uint8List bytes) async {
-    files[path] = bytes;
-  }
-}

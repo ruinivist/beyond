@@ -8,13 +8,15 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../test_helpers.dart';
+
 // ---------- Tests ----------
 
 void main() {
   test(
     'pasted image is committed before its short reference is inserted',
     () async {
-      final store = _MemoryAttachmentStore();
+      final store = TestAttachmentStore();
       final model = _model('before after')
         ..controller.selection = const TextSelection(
           baseOffset: 7,
@@ -39,7 +41,7 @@ void main() {
       model.insertPastedImage(
         Uint8List(attachmentMaximumBytes + 1),
         'png',
-        _MemoryAttachmentStore(),
+        TestAttachmentStore(),
       ),
       throwsFormatException,
     );
@@ -49,7 +51,7 @@ void main() {
       model.insertPastedImage(
         Uint8List.fromList(<int>[1]),
         'png',
-        _MemoryAttachmentStore(failWrites: true),
+        _FailingAttachmentStore(failWrites: true),
       ),
       throwsStateError,
     );
@@ -95,7 +97,7 @@ void main() {
   test('optional attachment reads return present bytes or null', () async {
     const path = 'attachments/00000000-0000-4000-8000-000000000000.png';
     final bytes = Uint8List.fromList(<int>[7, 8, 9]);
-    final store = _MemoryAttachmentStore()..files[path] = bytes;
+    final store = TestAttachmentStore()..files[path] = bytes;
 
     expect(await store.readIfExists(path), bytes);
     expect(
@@ -131,21 +133,14 @@ TextBlockModel _model(String markdown) => TextBlockModel(
 
 // ---------- Test doubles ----------
 
-class _MemoryAttachmentStore implements AttachmentStore {
-  _MemoryAttachmentStore({this.failWrites = false});
+class _FailingAttachmentStore extends TestAttachmentStore {
+  _FailingAttachmentStore({required this.failWrites});
 
   final bool failWrites;
-  final files = <String, Uint8List>{};
-
-  @override
-  Future<Uint8List> read(String path) async => files[path]!;
-
-  @override
-  Future<Uint8List?> readIfExists(String path) async => files[path];
 
   @override
   Future<void> write(String path, Uint8List bytes) async {
     if (failWrites) throw StateError('write failed');
-    files[path] = bytes;
+    await super.write(path, bytes);
   }
 }

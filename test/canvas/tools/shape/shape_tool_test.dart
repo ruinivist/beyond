@@ -2,9 +2,7 @@
 // Exercises the shape tool through model and canvas widget flows.
 
 import 'package:beyond/canvas/document/canvas_document.dart';
-import 'package:beyond/canvas/editor/canvas_page.dart';
 import 'package:beyond/canvas/editor/widgets/toolbar_button.dart';
-import 'package:beyond/canvas/persistence/canvas_document_store.dart';
 import 'package:beyond/canvas/tools/shape/shape_tool.dart';
 import 'package:beyond/theme/starless.dart';
 import 'package:flutter/gestures.dart';
@@ -12,6 +10,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences_web/shared_preferences_web.dart';
+
+import '../../test_helpers.dart';
 
 // ---------- Tests ----------
 
@@ -143,14 +143,7 @@ void main() {
   testWidgets('toolbar places one shape, then selects, moves, and resizes', (
     tester,
   ) async {
-    await tester.pumpWidget(
-      MaterialApp(
-        theme: starlessLightThemeData,
-        home: CanvasPage(documentStore: _DocumentStore()),
-      ),
-    );
-    await tester.pump();
-    await tester.pump();
+    await pumpCanvas(tester, TestCanvasDocumentStore());
 
     await tester.sendKeyEvent(LogicalKeyboardKey.keyS);
     await tester.pump();
@@ -251,14 +244,4 @@ void main() {
     await tester.pump();
     expect(first.data.size, originalSize + const Offset(40, 30));
   });
-}
-
-// ---------- Test doubles ----------
-
-class _DocumentStore extends CanvasDocumentStore {
-  @override
-  Future<CanvasDocument?> load() async => null;
-
-  @override
-  Future<void> save(CanvasDocument document) async {}
 }

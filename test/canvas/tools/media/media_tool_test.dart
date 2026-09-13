@@ -1,16 +1,12 @@
 // Verifies media creation, loading, resizing, and persistence behavior.
 // Exercises the media tool through model and canvas widget flows.
 
-import 'dart:convert';
 import 'dart:ui' as ui;
 
 import 'package:beyond/canvas/document/canvas_document.dart';
 import 'package:beyond/canvas/editor/canvas_background.dart';
-import 'package:beyond/canvas/editor/canvas_page.dart';
 import 'package:beyond/canvas/persistence/attachments/store.dart';
-import 'package:beyond/canvas/persistence/canvas_document_store.dart';
 import 'package:beyond/canvas/tools/media/media_tool.dart';
-import 'package:beyond/theme/starless.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
@@ -19,13 +15,15 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:infinite_lazy_grid/infinite_lazy_grid.dart';
 import 'package:shared_preferences_web/shared_preferences_web.dart';
 
+import '../../test_helpers.dart';
+
 // ---------- Tests ----------
 
 void main() {
   setUp(() => SharedPreferencesAsyncWeb.registerWith(null));
 
   testWidgets('media places as a selectable URL-only node', (tester) async {
-    await _pumpCanvas(tester, _DocumentStore(_document()));
+    await pumpCanvas(tester, TestCanvasDocumentStore(_document()));
 
     await tester.tap(find.byKey(const ValueKey('toolbar-media')));
     await tester.pump();
@@ -77,9 +75,9 @@ void main() {
   testWidgets('escape dismisses a focused media editor', (tester) async {
     const url = 'https://example.com/image.png';
     await _cacheImage(url);
-    await _pumpCanvas(
+    await pumpCanvas(
       tester,
-      _DocumentStore(
+      TestCanvasDocumentStore(
         _document(
           MediaElementData(
             id: 'media',
@@ -111,10 +109,10 @@ void main() {
   testWidgets('device images are stored and rendered from memory', (
     tester,
   ) async {
-    final attachments = _MemoryAttachmentStore();
-    await _pumpCanvas(
+    final attachments = TestAttachmentStore();
+    await pumpCanvas(
       tester,
-      _DocumentStore(_document()),
+      TestCanvasDocumentStore(_document()),
       attachmentStore: attachments,
     );
 
@@ -125,7 +123,7 @@ void main() {
     await tester.pump();
 
     final model = tester.widget<MediaTool>(find.byType(MediaTool)).model;
-    final bytes = _pngBytes;
+    final bytes = onePixelPngBytes;
     await tester.runAsync(() => model.setDeviceImage(bytes, 'PNG'));
     await tester.pumpAndSettle();
 
@@ -142,7 +140,7 @@ void main() {
   ) async {
     const url = 'https://example.com/image.png';
     await _cacheImage(url);
-    final store = _DocumentStore(
+    final store = TestCanvasDocumentStore(
       _document(
         MediaElementData(
           id: 'media',
@@ -152,7 +150,7 @@ void main() {
         ),
       ),
     );
-    await _pumpCanvas(tester, store);
+    await pumpCanvas(tester, store);
 
     final node = find.byType(MediaTool);
     final model = tester.widget<MediaTool>(node).model;
@@ -234,26 +232,6 @@ void main() {
   });
 }
 
-// ---------- Test helpers ----------
-
-Future<void> _pumpCanvas(
-  WidgetTester tester,
-  CanvasDocumentStore store, {
-  AttachmentStore? attachmentStore,
-}) async {
-  await tester.pumpWidget(
-    MaterialApp(
-      theme: starlessLightThemeData,
-      home: CanvasPage(
-        documentStore: store,
-        attachmentStore: attachmentStore,
-      ),
-    ),
-  );
-  await tester.pump();
-  await tester.pump();
-}
-
 Future<void> _cacheImage(String url) async {
   final recorder = ui.PictureRecorder();
   Canvas(recorder).drawRect(
@@ -269,50 +247,7 @@ Future<void> _cacheImage(String url) async {
   );
 }
 
-// ---------- Fixtures ----------
-
-final _pngBytes = Uint8List.fromList(
-  base64Decode(
-    [
-      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8A',
-      'AQUBAScY42YAAAAASUVORK5CYII=',
-    ].join(),
-  ),
-);
-
 CanvasDocument _document([MediaElementData? media]) => CanvasDocument(
   background: CanvasBackgroundKind.plain,
   elements: [?media],
 );
-
-// ---------- Test doubles ----------
-
-class _DocumentStore extends CanvasDocumentStore {
-  _DocumentStore(this.initial);
-
-  final CanvasDocument initial;
-  CanvasDocument? persisted;
-
-  @override
-  Future<CanvasDocument?> load() async => initial.copy();
-
-  @override
-  Future<void> save(CanvasDocument document) async {
-    persisted = document.copy();
-  }
-}
-
-class _MemoryAttachmentStore implements AttachmentStore {
-  final files = <String, Uint8List>{};
-
-  @override
-  Future<Uint8List> read(String path) async => files[path]!;
-
-  @override
-  Future<Uint8List?> readIfExists(String path) async => files[path];
-
-  @override
-  Future<void> write(String path, Uint8List bytes) async {
-    files[path] = bytes;
-  }
-}

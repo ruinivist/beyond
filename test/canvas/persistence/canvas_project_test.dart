@@ -12,6 +12,8 @@ import 'package:beyond/canvas/tools/code/code_language.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../test_helpers.dart';
+
 // ---------- Tests ----------
 
 void main() {
@@ -22,10 +24,10 @@ void main() {
 ![second](attachments/00000001-0000-4000-8000-000000000000.png)
 ''',
     )..elements.add(_media(_path(2)));
-    final first = _pngBytes;
-    final second = Uint8List.fromList(_pngBytes);
-    final third = Uint8List.fromList(_pngBytes);
-    final store = _MemoryAttachmentStore({
+    final first = onePixelPngBytes;
+    final second = Uint8List.fromList(onePixelPngBytes);
+    final third = Uint8List.fromList(onePixelPngBytes);
+    final store = TestAttachmentStore({
       _path(0): first,
       _path(1): second,
       _path(2): third,
@@ -68,7 +70,7 @@ attachments/00000000-0000-4000-8000-000000000000.png
     final document = _document(
       markdown: '![one](${_path(0)})\n![two](${_path(0)})',
     );
-    final store = _MemoryAttachmentStore({_path(0): _pngBytes});
+    final store = _CountingAttachmentStore({_path(0): onePixelPngBytes});
 
     await encodeCanvasProject(document, store);
 
@@ -79,7 +81,7 @@ attachments/00000000-0000-4000-8000-000000000000.png
     await expectLater(
       encodeCanvasProject(
         _document(markdown: '![missing](${_path(0)})'),
-        _MemoryAttachmentStore(),
+        TestAttachmentStore(),
       ),
       throwsStateError,
     );
@@ -118,7 +120,7 @@ attachments/00000000-0000-4000-8000-000000000000.png
       ..['document'] = _document(markdown: '![missing](${_path(0)})').toJson();
     await expectLater(_decodeJson(missingAttachment), throwsFormatException);
 
-    final extraAttachment = _validProjectJson()..['attachments'] = {_path(0): base64Encode(_pngBytes)};
+    final extraAttachment = _validProjectJson()..['attachments'] = {_path(0): base64Encode(onePixelPngBytes)};
     await expectLater(_decodeJson(extraAttachment), throwsFormatException);
   });
 
@@ -133,12 +135,12 @@ attachments/00000000-0000-4000-8000-000000000000.png
     );
 
     final document = _document(markdown: '![image](${_path(0)})');
-    final atLimit = _MemoryAttachmentStore({
+    final atLimit = TestAttachmentStore({
       _path(0): Uint8List(attachmentMaximumBytes),
     });
     await encodeCanvasProject(document, atLimit);
 
-    final overLimit = _MemoryAttachmentStore({
+    final overLimit = TestAttachmentStore({
       _path(0): Uint8List(attachmentMaximumBytes + 1),
     });
     await expectLater(
@@ -146,6 +148,18 @@ attachments/00000000-0000-4000-8000-000000000000.png
       throwsFormatException,
     );
   });
+}
+
+class _CountingAttachmentStore extends TestAttachmentStore {
+  _CountingAttachmentStore([super.initial]);
+
+  int reads = 0;
+
+  @override
+  Future<Uint8List> read(String path) async {
+    reads++;
+    return super.read(path);
+  }
 }
 
 // ---------- Test helpers ----------
@@ -207,39 +221,3 @@ Map<String, Object?> _validProjectJson() => {
 };
 
 String _path(int index) => 'attachments/0000000$index-0000-4000-8000-000000000000.png';
-
-// ---------- Fixtures ----------
-
-final _pngBytes = Uint8List.fromList(
-  base64Decode(
-    [
-      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8A',
-      'AQUBAScY42YAAAAASUVORK5CYII=',
-    ].join(),
-  ),
-);
-
-// ---------- Test doubles ----------
-
-class _MemoryAttachmentStore implements AttachmentStore {
-  _MemoryAttachmentStore([Map<String, Uint8List>? initial]) : files = {...?initial};
-
-  final Map<String, Uint8List> files;
-  int reads = 0;
-
-  @override
-  Future<Uint8List> read(String path) async {
-    reads++;
-    final bytes = files[path];
-    if (bytes == null) throw StateError('Missing attachment: $path');
-    return bytes;
-  }
-
-  @override
-  Future<Uint8List?> readIfExists(String path) async => files[path];
-
-  @override
-  Future<void> write(String path, Uint8List bytes) async {
-    files[path] = bytes;
-  }
-}

@@ -3,15 +3,14 @@
 
 import 'package:beyond/canvas/document/canvas_document.dart';
 import 'package:beyond/canvas/editor/canvas_background.dart';
-import 'package:beyond/canvas/editor/canvas_page.dart';
-import 'package:beyond/canvas/persistence/canvas_document_store.dart';
 import 'package:beyond/canvas/tools/pen/pen_tool.dart';
 import 'package:beyond/canvas/tools/text/text_tool.dart';
-import 'package:beyond/theme/starless.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences_web/shared_preferences_web.dart';
+
+import '../test_helpers.dart';
 
 // ---------- Tests ----------
 
@@ -21,8 +20,8 @@ void main() {
   testWidgets('undo and redo restore and persist canvas operations', (
     tester,
   ) async {
-    final store = _DocumentStore(_document());
-    await _pumpCanvas(tester, store);
+    final store = TestCanvasDocumentStore(_document());
+    await pumpCanvas(tester, store);
 
     _stroke(tester).selected = true;
     await tester.sendKeyEvent(LogicalKeyboardKey.delete);
@@ -31,20 +30,20 @@ void main() {
 
     await _shortcut(tester);
     expect(find.byType(PenStroke), findsOneWidget);
-    await _waitForSave(tester);
+    await pumpPastSave(tester);
     expect(store.persisted!.elements, hasLength(1));
 
     await _shortcut(tester, redo: true);
     expect(find.byType(PenStroke), findsNothing);
-    await _waitForSave(tester);
+    await pumpPastSave(tester);
     expect(store.persisted!.elements, isEmpty);
   });
 
   testWidgets('a drag is one step and a new operation clears redo', (
     tester,
   ) async {
-    final store = _DocumentStore(_document());
-    await _pumpCanvas(tester, store);
+    final store = TestCanvasDocumentStore(_document());
+    await pumpCanvas(tester, store);
     final start = _stroke(tester).data.position;
 
     final gesture = await tester.startGesture(
@@ -73,7 +72,7 @@ void main() {
   testWidgets('focused editors keep ownership of undo shortcuts', (
     tester,
   ) async {
-    await _pumpCanvas(tester, _DocumentStore(_textDocument()));
+    await pumpCanvas(tester, TestCanvasDocumentStore(_textDocument()));
     final original = tester.widget<TextTool>(find.byType(TextTool)).model;
 
     await tester.tap(find.byKey(const ValueKey('text-markdown-preview')));
@@ -89,7 +88,7 @@ void main() {
   });
 
   testWidgets('history retains only the latest 50 operations', (tester) async {
-    await _pumpCanvas(tester, _DocumentStore(_penDocument(51)));
+    await pumpCanvas(tester, TestCanvasDocumentStore(_penDocument(51)));
 
     for (var index = 0; index < 51; index++) {
       tester
@@ -114,22 +113,6 @@ void main() {
   });
 }
 
-// ---------- Test helpers ----------
-
-Future<void> _pumpCanvas(
-  WidgetTester tester,
-  CanvasDocumentStore store,
-) async {
-  await tester.pumpWidget(
-    MaterialApp(
-      theme: starlessLightThemeData,
-      home: CanvasPage(documentStore: store),
-    ),
-  );
-  await tester.pump();
-  await tester.pump();
-}
-
 Future<void> _shortcut(WidgetTester tester, {bool redo = false}) async {
   await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
   if (redo) await tester.sendKeyDownEvent(LogicalKeyboardKey.shiftLeft);
@@ -137,11 +120,6 @@ Future<void> _shortcut(WidgetTester tester, {bool redo = false}) async {
   await tester.sendKeyUpEvent(LogicalKeyboardKey.keyZ);
   if (redo) await tester.sendKeyUpEvent(LogicalKeyboardKey.shiftLeft);
   await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
-  await tester.pump();
-}
-
-Future<void> _waitForSave(WidgetTester tester) async {
-  await tester.pump(const Duration(milliseconds: 320));
   await tester.pump();
 }
 
@@ -190,20 +168,3 @@ CanvasDocument _textDocument() => CanvasDocument(
     ),
   ],
 );
-
-// ---------- Test doubles ----------
-
-class _DocumentStore extends CanvasDocumentStore {
-  _DocumentStore(this.initial);
-
-  final CanvasDocument initial;
-  CanvasDocument? persisted;
-
-  @override
-  Future<CanvasDocument?> load() async => initial.copy();
-
-  @override
-  Future<void> save(CanvasDocument document) async {
-    persisted = document.copy();
-  }
-}

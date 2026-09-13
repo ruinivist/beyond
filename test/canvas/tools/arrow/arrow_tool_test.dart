@@ -4,12 +4,13 @@
 import 'package:beyond/canvas/editor/widgets/toolbar_button.dart';
 import 'package:beyond/canvas/persistence/canvas_document_store.dart';
 import 'package:beyond/canvas/tools/arrow/arrow_tool.dart';
-import 'package:beyond/main.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:shared_preferences_web/shared_preferences_web.dart';
+
+import '../../test_helpers.dart';
 
 // ---------- Tests ----------
 
@@ -69,8 +70,8 @@ void main() {
       pointer.move(const Offset(120, 80)),
       const Offset(120, 80),
     );
-    expect(tool.preview!.geometry.start, const Offset(10, 20));
-    expect(tool.preview!.geometry.end, const Offset(120, 80));
+    expect(tool.preview!.start, const Offset(10, 20));
+    expect(tool.preview!.end, const Offset(120, 80));
     expect(committed, isEmpty);
 
     tool.onPointerUp(
@@ -100,9 +101,7 @@ void main() {
   testWidgets('arrows place once, select by click and marquee, and move', (
     tester,
   ) async {
-    await tester.pumpWidget(const BeyondApp());
-    await tester.pump();
-    await tester.pump();
+    await pumpBeyondApp(tester);
 
     await tester.tap(find.byKey(const ValueKey('toolbar-arrow')));
     await tester.pump();
