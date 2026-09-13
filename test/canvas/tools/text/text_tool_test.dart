@@ -11,6 +11,7 @@ import 'package:beyond/canvas/tools/code/code_tool.dart';
 import 'package:beyond/canvas/tools/text/text_tool.dart';
 import 'package:beyond/main.dart';
 import 'package:beyond/theme/preset_colors.dart';
+import 'package:beyond/ui/common/color_picker.dart';
 import 'package:beyond/ui/common/select.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
@@ -860,11 +861,11 @@ Inline $x^2$''';
       expect(find.byType(TextBlockControls), findsOneWidget);
 
       expect(
-        find.byKey(const ValueKey('text-color-Black')),
+        find.byKey(const ValueKey('color-preset-Black')),
         findsOneWidget,
       );
       expect(
-        find.byKey(const ValueKey('text-color-Pink')),
+        find.byKey(const ValueKey('color-preset-Pink')),
         findsOneWidget,
       );
 
@@ -882,6 +883,65 @@ Inline $x^2$''';
       expect(model.editing, isTrue);
     },
   );
+
+  testWidgets('custom text color picker expands and follows active text', (
+    tester,
+  ) async {
+    await _addTextBlock(tester, const Offset(120, 200));
+    await tester.pumpAndSettle();
+    final first = tester.widget<TextTool>(find.byType(TextTool)).model;
+    final panel = find.byKey(const ValueKey('text-settings-panel'));
+    final collapsedSize = tester.getSize(panel);
+
+    await tester.tap(
+      find.byKey(const ValueKey('color-picker-toggle')),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 130));
+    final animatingSize = tester.getSize(panel);
+    await tester.pumpAndSettle();
+    final expandedSize = tester.getSize(panel);
+
+    expect(animatingSize.width, collapsedSize.width);
+    expect(expandedSize.width, collapsedSize.width);
+    expect(animatingSize.height, greaterThan(collapsedSize.height));
+    expect(animatingSize.height, lessThan(expandedSize.height));
+
+    final controlFinder = find.byType(ColorControl);
+    final pickerFinder = find.byKey(const ValueKey('color-picker-custom'));
+    final control = tester.widget<ColorControl>(controlFinder);
+    expect(control.enableAlpha, isFalse);
+    expect(
+      tester
+          .widget<TextField>(
+            find.descendant(
+              of: pickerFinder,
+              matching: find.byType(TextField),
+            ),
+          )
+          .maxLength,
+      7,
+    );
+
+    control.onChanged(const Color(0xff123456));
+    await tester.pump();
+    expect(first.style.color, '#123456');
+
+    final second = await _placeTextBlock(tester, const Offset(480, 360));
+    await tester.pumpAndSettle();
+    expect(pickerFinder, findsOneWidget);
+    expect(
+      tester.widget<ColorControl>(controlFinder).color,
+      colorFromHex(second.style.color),
+    );
+
+    await tester.tap(
+      find.byKey(const ValueKey('color-picker-toggle')),
+    );
+    await tester.pumpAndSettle();
+    expect(pickerFinder, findsNothing);
+    expect(tester.getSize(panel), collapsedSize);
+  });
 
   testWidgets('no fill removes the preview surface', (tester) async {
     await _addTextBlock(tester, const Offset(120, 200));

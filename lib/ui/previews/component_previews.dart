@@ -86,7 +86,7 @@ Widget iconDragPreview() => _surface(
 );
 
 @Preview(
-  name: 'ColorPickerWidget',
+  name: 'ColorControl',
   size: Size(320, 420),
   theme: previewTheme,
   brightness: Brightness.light,
@@ -180,12 +180,15 @@ class _ColorPickerPreview extends StatefulWidget {
 
 class _ColorPickerPreviewState extends State<_ColorPickerPreview> {
   Color _color = const Color(0xff3b82f6);
+  var _expanded = true;
 
   @override
   Widget build(BuildContext context) => _surface(
-    ColorPickerWidget(
+    ColorControl(
       color: _color,
+      expanded: _expanded,
       onChanged: (value) => setState(() => _color = value),
+      onExpandedChanged: (value) => setState(() => _expanded = value),
     ),
   );
 }

@@ -1,6 +1,7 @@
-// Provides the app's compact floating HSV color picker.
-// Used by editor popovers that need direct color selection.
+// Provides the app's compact HSV color picker.
+// Used by editor surfaces that need direct color selection.
 
+import 'package:beyond/theme/preset_colors.dart';
 import 'package:beyond/theme/theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -8,31 +9,142 @@ import 'package:flutter/services.dart';
 // ---------- Geometry ----------
 
 const _popoverWidth = 232.0;
-const _panelRadius = BorderRadius.all(Radius.circular(14));
 const _pickerRadius = BorderRadius.all(Radius.circular(8));
 const _trackRadius = BorderRadius.all(Radius.circular(5));
 const _trackHeight = 10.0;
 const _handleRadius = 7.0;
 const _fieldHeight = 30.0;
+const _colorButtonSize = Size.square(32);
 
-// ---------- Color picker ----------
+// ---------- Color control ----------
 
-/// Renders a compact saturation, hue, alpha, and hex color editor.
-class ColorPickerWidget extends StatefulWidget {
-  const ColorPickerWidget({
+/// Presents preset colors and an expandable arbitrary color picker.
+class ColorControl extends StatelessWidget {
+  const ColorControl({
     required this.color,
     required this.onChanged,
+    required this.expanded,
+    required this.onExpandedChanged,
+    this.enableAlpha = true,
     super.key,
   });
 
   final Color color;
   final ValueChanged<Color> onChanged;
+  final bool expanded;
+  final ValueChanged<bool> onExpandedChanged;
+  final bool enableAlpha;
 
   @override
-  State<ColorPickerWidget> createState() => _ColorPickerWidgetState();
+  Widget build(BuildContext context) {
+    final colors = BTheme.of(context).colors;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Wrap(
+          children: [
+            for (final swatch in presetColors)
+              Tooltip(
+                message: swatch.label,
+                child: Semantics(
+                  button: true,
+                  selected: color == swatch.color,
+                  label: 'Use ${swatch.label}',
+                  child: IconButton(
+                    key: ValueKey('color-preset-${swatch.label}'),
+                    constraints: BoxConstraints.tight(_colorButtonSize),
+                    onPressed: () => onChanged(swatch.color),
+                    style: IconButton.styleFrom(
+                      padding: const EdgeInsets.all(6),
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      shape: const CircleBorder(),
+                      side: BorderSide(
+                        color: color == swatch.color ? colors.focusRing : Colors.transparent,
+                        width: 2,
+                      ),
+                    ),
+                    icon: DecoratedBox(
+                      decoration: BoxDecoration(
+                        color: swatch.color,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: colors.borderSubtle),
+                      ),
+                      child: const SizedBox.square(dimension: 20),
+                    ),
+                  ),
+                ),
+              ),
+            IconButton(
+              key: const ValueKey('color-picker-toggle'),
+              tooltip: expanded ? 'Hide custom color picker' : 'Show custom color picker',
+              constraints: BoxConstraints.tight(_colorButtonSize),
+              iconSize: BSizes.defaultIconSize,
+              style: IconButton.styleFrom(
+                padding: const EdgeInsets.all(6),
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+              onPressed: () => onExpandedChanged(!expanded),
+              icon: Icon(
+                expanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
+              ),
+            ),
+          ],
+        ),
+        AnimatedSwitcher(
+          duration: const Duration(milliseconds: 260),
+          reverseDuration: const Duration(milliseconds: 180),
+          switchInCurve: Curves.easeOutCubic,
+          switchOutCurve: Curves.easeOutCubic,
+          layoutBuilder: (currentChild, previousChildren) => Stack(
+            alignment: Alignment.topCenter,
+            children: [...previousChildren, ?currentChild],
+          ),
+          transitionBuilder: (child, animation) => FadeTransition(
+            opacity: animation,
+            child: SizeTransition(
+              sizeFactor: animation,
+              alignment: Alignment.topCenter,
+              child: child,
+            ),
+          ),
+          child: expanded
+              ? _ArbitraryColorPicker(
+                  key: const ValueKey('color-picker-custom'),
+                  color: color,
+                  enableAlpha: enableAlpha,
+                  onChanged: onChanged,
+                )
+              : const SizedBox(
+                  key: ValueKey('color-picker-hidden'),
+                  width: double.infinity,
+                ),
+        ),
+      ],
+    );
+  }
 }
 
-class _ColorPickerWidgetState extends State<ColorPickerWidget> {
+// ---------- Arbitrary picker ----------
+
+/// Renders a compact saturation, hue, alpha, and hex color editor.
+class _ArbitraryColorPicker extends StatefulWidget {
+  const _ArbitraryColorPicker({
+    required this.color,
+    required this.onChanged,
+    this.enableAlpha = true,
+    super.key,
+  });
+
+  final Color color;
+  final ValueChanged<Color> onChanged;
+  final bool enableAlpha;
+
+  @override
+  State<_ArbitraryColorPicker> createState() => _ArbitraryColorPickerState();
+}
+
+class _ArbitraryColorPickerState extends State<_ArbitraryColorPicker> {
   // ---------- State ----------
 
   late HSVColor _hsv;
@@ -51,9 +163,11 @@ class _ColorPickerWidgetState extends State<ColorPickerWidget> {
   }
 
   @override
-  void didUpdateWidget(covariant ColorPickerWidget oldWidget) {
+  void didUpdateWidget(covariant _ArbitraryColorPicker oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.color.toARGB32() == widget.color.toARGB32()) return;
+    if (oldWidget.color.toARGB32() == widget.color.toARGB32() && oldWidget.enableAlpha == widget.enableAlpha) {
+      return;
+    }
     _syncFrom(widget.color);
     if (!_hexFocusNode.hasFocus) _setHexText(_hex(widget.color));
   }
@@ -76,82 +190,75 @@ class _ColorPickerWidgetState extends State<ColorPickerWidget> {
 
     return SizedBox(
       width: _popoverWidth,
-      child: Material(
-        color: colors.surfaceRaised,
-        elevation: theme.geo.elevationLow,
-        shadowColor: colors.shadow,
-        shape: RoundedRectangleBorder(
-          borderRadius: _panelRadius,
-          side: BorderSide(color: colors.borderSubtle),
-        ),
-        clipBehavior: Clip.antiAlias,
-        child: Padding(
-          padding: const EdgeInsets.all(10),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          AspectRatio(
+            aspectRatio: 1,
+            child: _SaturationValuePicker(
+              hsv: _hsv,
+              colors: colors,
+              onChanged: _setSaturationValue,
+            ),
+          ),
+          const SizedBox(height: 10),
+          SizedBox(
+            height: 16,
+            child: _HuePicker(
+              hue: _hsv.hue,
+              colors: colors,
+              onChanged: _setHue,
+            ),
+          ),
+          if (widget.enableAlpha) ...[
+            const SizedBox(height: 6),
+            SizedBox(
+              height: 16,
+              child: _AlphaPicker(
+                alpha: _alpha,
+                color: _hsv.withAlpha(1).toColor(),
+                colors: colors,
+                onChanged: _setAlpha,
+              ),
+            ),
+          ],
+          const SizedBox(height: 12),
+          Row(
             children: [
-              AspectRatio(
-                aspectRatio: 1,
-                child: _SaturationValuePicker(
-                  hsv: _hsv,
-                  colors: colors,
-                  onChanged: _setSaturationValue,
-                ),
-              ),
-              const SizedBox(height: 10),
-              SizedBox(
-                height: 16,
-                child: _HuePicker(
-                  hue: _hsv.hue,
-                  colors: colors,
-                  onChanged: _setHue,
-                ),
-              ),
-              const SizedBox(height: 6),
-              SizedBox(
-                height: 16,
-                child: _AlphaPicker(
-                  alpha: _alpha,
-                  color: _hsv.withAlpha(1).toColor(),
-                  colors: colors,
-                  onChanged: _setAlpha,
-                ),
-              ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  SizedBox.square(
-                    dimension: 24,
-                    child: CustomPaint(
-                      painter: _PreviewPainter(_color, colors.surfacePressed),
-                    ),
+              SizedBox.square(
+                dimension: 20,
+                child: CustomPaint(
+                  painter: _PreviewPainter(
+                    _color,
+                    colors.surfacePressed,
+                    colors.borderSubtle,
                   ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: SizedBox(
-                      height: _fieldHeight,
-                      child: TextField(
-                        controller: _hexController,
-                        focusNode: _hexFocusNode,
-                        maxLength: 9,
-                        autocorrect: false,
-                        enableSuggestions: false,
-                        textAlign: TextAlign.center,
-                        textCapitalization: TextCapitalization.characters,
-                        inputFormatters: [FilteringTextInputFormatter.allow(RegExp('[#0-9a-fA-F]'))],
-                        style: theme.typo.body.copyWith(fontSize: 11),
-                        decoration: _inputDecoration(theme),
-                        onChanged: _setHex,
-                        onSubmitted: (_) => _normalizeHex(),
-                      ),
-                    ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: SizedBox(
+                  height: _fieldHeight,
+                  child: TextField(
+                    controller: _hexController,
+                    focusNode: _hexFocusNode,
+                    maxLength: widget.enableAlpha ? 9 : 7,
+                    autocorrect: false,
+                    enableSuggestions: false,
+                    textAlign: TextAlign.center,
+                    textCapitalization: TextCapitalization.characters,
+                    inputFormatters: [FilteringTextInputFormatter.allow(RegExp('[#0-9a-fA-F]'))],
+                    style: theme.typo.body.copyWith(fontSize: 11),
+                    decoration: _inputDecoration(theme),
+                    onChanged: _setHex,
+                    onSubmitted: (_) => _normalizeHex(),
                   ),
-                ],
+                ),
               ),
             ],
           ),
-        ),
+        ],
       ),
     );
   }
@@ -193,9 +300,10 @@ class _ColorPickerWidgetState extends State<ColorPickerWidget> {
 
   void _setHex(String value) {
     final digits = value.startsWith('#') ? value.substring(1) : value;
-    if (!RegExp(r'^[0-9a-fA-F]{6}([0-9a-fA-F]{2})?$').hasMatch(digits)) return;
+    final valid = widget.enableAlpha ? RegExp(r'^[0-9a-fA-F]{6}([0-9a-fA-F]{2})?$') : RegExp(r'^[0-9a-fA-F]{6}$');
+    if (!valid.hasMatch(digits)) return;
     final color = Color(int.parse('ff${digits.substring(0, 6)}', radix: 16));
-    final alpha = digits.length == 8 ? int.parse(digits.substring(6), radix: 16) / 255 : 1.0;
+    final alpha = widget.enableAlpha && digits.length == 8 ? int.parse(digits.substring(6), radix: 16) / 255 : 1.0;
     setState(() {
       _alpha = alpha;
       _hsv = HSVColor.fromColor(color).withAlpha(alpha);
@@ -212,7 +320,7 @@ class _ColorPickerWidgetState extends State<ColorPickerWidget> {
   // ---------- Helpers ----------
 
   void _syncFrom(Color color) {
-    _alpha = color.a;
+    _alpha = widget.enableAlpha ? color.a : 1;
     _hsv = HSVColor.fromColor(color);
   }
 
@@ -229,11 +337,11 @@ class _ColorPickerWidgetState extends State<ColorPickerWidget> {
     );
   }
 
-  static String _hex(Color color) {
+  String _hex(Color color) {
     final argb = color.toARGB32();
     final rgb = (argb & 0x00ffffff).toRadixString(16).padLeft(6, '0');
     final alpha = argb >>> 24;
-    final alphaSuffix = alpha == 255 ? '' : alpha.toRadixString(16).padLeft(2, '0');
+    final alphaSuffix = widget.enableAlpha && alpha != 255 ? alpha.toRadixString(16).padLeft(2, '0') : '';
     return '#${(rgb + alphaSuffix).toUpperCase()}';
   }
 }
@@ -498,27 +606,34 @@ class _AlphaPainter extends CustomPainter {
 }
 
 class _PreviewPainter extends CustomPainter {
-  const _PreviewPainter(this.color, this.checker);
+  const _PreviewPainter(this.color, this.checker, this.border);
 
   final Color color;
   final Color checker;
+  final Color border;
 
   @override
   void paint(Canvas canvas, Size size) {
     final rect = Offset.zero & size;
-    final rounded = _pickerRadius.toRRect(rect);
     canvas
       ..save()
-      ..clipRRect(rounded, doAntiAlias: false)
+      ..clipPath(Path()..addOval(rect))
       ..drawRect(rect, Paint()..color = Colors.white);
     _paintCheckerboard(canvas, rect, checker, 6);
     canvas
-      ..drawRect(rect, Paint()..color = color)
-      ..restore();
+      ..drawOval(rect, Paint()..color = color)
+      ..restore()
+      ..drawOval(
+        rect.deflate(0.5),
+        Paint()
+          ..color = border
+          ..style = PaintingStyle.stroke,
+      );
   }
 
   @override
-  bool shouldRepaint(_PreviewPainter oldDelegate) => oldDelegate.color != color || oldDelegate.checker != checker;
+  bool shouldRepaint(_PreviewPainter oldDelegate) =>
+      oldDelegate.color != color || oldDelegate.checker != checker || oldDelegate.border != border;
 }
 
 void _paintCheckerboard(Canvas canvas, Rect rect, Color checker, double square) {

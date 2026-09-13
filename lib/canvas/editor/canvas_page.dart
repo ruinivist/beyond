@@ -139,6 +139,7 @@ class _CanvasPageState extends State<CanvasPage> {
   var _historyOperationActive = false;
   var _noIcons = false;
   var _noIconsChanged = false;
+  var _textColorPickerExpanded = false;
 
   Color get _penColor => _customPenColor ?? BTheme.of(context).colors.textPrimary;
 
@@ -1983,6 +1984,10 @@ class _CanvasPageState extends State<CanvasPage> {
                               ),
                               model: _editingTextBlock!,
                               onChangeBoundary: _finishHistoryOperation,
+                              colorPickerExpanded: _textColorPickerExpanded,
+                              onColorPickerExpandedChanged: (expanded) => setState(
+                                () => _textColorPickerExpanded = expanded,
+                              ),
                             )
                           : _penEnabled
                           ? _DrawSettings(
