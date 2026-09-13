@@ -2019,60 +2019,57 @@ class _ShapeSettings extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = BTheme.of(context);
-    return SizedBox(
-      width: 160,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text('Shape', style: theme.typo.label),
-          const SizedBox(height: 6),
-          SizedBox(
-            width: 120,
-            child: Wrap(
-              children: [
-                for (final option in ShapeKind.values)
-                  Tooltip(
-                    message: option.label,
-                    child: ToolbarButton(
-                      key: ValueKey('shape-option-${option.name}'),
-                      iconOnly: true,
-                      selected: option == tool.kind,
-                      onPressed: () => tool.setKind(option),
-                      child: Icon(
-                        _shapeIcon(option),
-                        semanticLabel: option.label,
-                      ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text('Shape', style: theme.typo.label),
+        const SizedBox(height: 6),
+        SizedBox(
+          width: 120,
+          child: Wrap(
+            children: [
+              for (final option in ShapeKind.values)
+                Tooltip(
+                  message: option.label,
+                  child: ToolbarButton(
+                    key: ValueKey('shape-option-${option.name}'),
+                    iconOnly: true,
+                    selected: option == tool.kind,
+                    onPressed: () => tool.setKind(option),
+                    child: Icon(
+                      _shapeIcon(option),
+                      semanticLabel: option.label,
                     ),
                   ),
-              ],
-            ),
+                ),
+            ],
           ),
-          const SizedBox(height: 10),
-          Text('Outline', style: theme.typo.label),
-          const SizedBox(height: 6),
-          _ColorSwatches(
-            selectedColor: tool.strokeColor,
-            keyPrefix: 'shape-outline',
-            onColorChanged: (color) => onStrokeColorChanged(color!),
-          ),
-          const SizedBox(height: 10),
-          Text('Fill', style: theme.typo.label),
-          const SizedBox(height: 6),
-          _ColorSwatches(
-            selectedColor: tool.fillColor,
-            keyPrefix: 'shape-fill',
-            allowNone: true,
-            onColorChanged: tool.setFillColor,
-          ),
-          const SizedBox(height: 10),
-          Text('Width', style: theme.typo.label),
-          DiscreteSlider(
-            value: tool.strokeWidth,
-            onChanged: tool.setStrokeWidth,
-          ),
-        ],
-      ),
+        ),
+        const SizedBox(height: 10),
+        Text('Outline', style: theme.typo.label),
+        const SizedBox(height: 6),
+        _ColorSwatches(
+          selectedColor: tool.strokeColor,
+          keyPrefix: 'shape-outline',
+          onColorChanged: (color) => onStrokeColorChanged(color!),
+        ),
+        const SizedBox(height: 10),
+        Text('Fill', style: theme.typo.label),
+        const SizedBox(height: 6),
+        _ColorSwatches(
+          selectedColor: tool.fillColor,
+          keyPrefix: 'shape-fill',
+          allowNone: true,
+          onColorChanged: tool.setFillColor,
+        ),
+        const SizedBox(height: 10),
+        Text('Width', style: theme.typo.label),
+        DiscreteSlider(
+          value: tool.strokeWidth,
+          onChanged: tool.setStrokeWidth,
+        ),
+      ],
     );
   }
 }
@@ -2103,27 +2100,24 @@ class _DrawSettings extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = BTheme.of(context);
-    return SizedBox(
-      width: 248,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text('Color', style: theme.typo.label),
-          const SizedBox(height: 6),
-          _ColorSwatches(
-            selectedColor: color,
-            keyPrefix: 'draw-color',
-            onColorChanged: (color) => onColorChanged(color!),
-          ),
-          const SizedBox(height: 10),
-          Text('Width', style: theme.typo.label),
-          DiscreteSlider(
-            value: width,
-            onChanged: onWidthChanged,
-          ),
-        ],
-      ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text('Color', style: theme.typo.label),
+        const SizedBox(height: 6),
+        _ColorSwatches(
+          selectedColor: color,
+          keyPrefix: 'draw-color',
+          onColorChanged: (color) => onColorChanged(color!),
+        ),
+        const SizedBox(height: 10),
+        Text('Width', style: theme.typo.label),
+        DiscreteSlider(
+          value: width,
+          onChanged: onWidthChanged,
+        ),
+      ],
     );
   }
 }

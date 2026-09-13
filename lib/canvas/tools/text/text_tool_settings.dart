@@ -37,83 +37,80 @@ class TextToolSettings extends StatelessWidget {
       builder: (context, _) {
         final style = model.style;
         final selectedColor = colorFromHex(style.color);
-        return SizedBox(
+        return Column(
           key: const ValueKey('text-settings-panel'),
-          width: 248,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text('Font', style: theme.typo.label),
-              const SizedBox(height: 6),
-              Select<String>(
-                key: const ValueKey('text-font-select'),
-                value: style.fontFamily,
-                options: textFontOptions,
-                onChanged: (fontFamily) {
-                  onChangeBoundary();
-                  model.style = style.copyWith(fontFamily: fontFamily);
-                  onChangeBoundary();
-                },
-              ),
-              const SizedBox(height: 10),
-              Text('Color', style: theme.typo.label),
-              const SizedBox(height: 6),
-              Wrap(
-                children: [
-                  for (final swatch in presetColors)
-                    Tooltip(
-                      message: swatch.label,
-                      child: Semantics(
-                        button: true,
-                        selected: selectedColor == swatch.color,
-                        label: 'Use ${swatch.label}',
-                        child: IconButton(
-                          key: ValueKey('text-color-${swatch.label}'),
-                          onPressed: () {
-                            onChangeBoundary();
-                            model.style = style.copyWith(
-                              color: colorToHex(swatch.color),
-                            );
-                            onChangeBoundary();
-                          },
-                          style: IconButton.styleFrom(
-                            minimumSize: BSizes.defaultIconButtonSize,
-                            padding: const EdgeInsets.all(8),
-                            shape: const CircleBorder(),
-                            side: BorderSide(
-                              color: selectedColor == swatch.color ? colors.focusRing : Colors.transparent,
-                              width: 2,
-                            ),
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('Font', style: theme.typo.label),
+            const SizedBox(height: 6),
+            Select<String>(
+              key: const ValueKey('text-font-select'),
+              value: style.fontFamily,
+              options: textFontOptions,
+              onChanged: (fontFamily) {
+                onChangeBoundary();
+                model.style = style.copyWith(fontFamily: fontFamily);
+                onChangeBoundary();
+              },
+            ),
+            const SizedBox(height: 10),
+            Text('Color', style: theme.typo.label),
+            const SizedBox(height: 6),
+            Wrap(
+              children: [
+                for (final swatch in presetColors)
+                  Tooltip(
+                    message: swatch.label,
+                    child: Semantics(
+                      button: true,
+                      selected: selectedColor == swatch.color,
+                      label: 'Use ${swatch.label}',
+                      child: IconButton(
+                        key: ValueKey('text-color-${swatch.label}'),
+                        onPressed: () {
+                          onChangeBoundary();
+                          model.style = style.copyWith(
+                            color: colorToHex(swatch.color),
+                          );
+                          onChangeBoundary();
+                        },
+                        style: IconButton.styleFrom(
+                          minimumSize: BSizes.defaultIconButtonSize,
+                          padding: const EdgeInsets.all(8),
+                          shape: const CircleBorder(),
+                          side: BorderSide(
+                            color: selectedColor == swatch.color ? colors.focusRing : Colors.transparent,
+                            width: 2,
                           ),
-                          icon: DecoratedBox(
-                            decoration: BoxDecoration(
-                              color: swatch.color,
-                              shape: BoxShape.circle,
-                              border: Border.all(color: colors.borderSubtle),
-                            ),
-                            child: const SizedBox.square(dimension: 20),
+                        ),
+                        icon: DecoratedBox(
+                          decoration: BoxDecoration(
+                            color: swatch.color,
+                            shape: BoxShape.circle,
+                            border: Border.all(color: colors.borderSubtle),
                           ),
+                          child: const SizedBox.square(dimension: 20),
                         ),
                       ),
                     ),
-                ],
-              ),
-              const SizedBox(height: 10),
-              CheckboxListTile(
-                key: const ValueKey('text-no-fill'),
-                value: style.noFill,
-                contentPadding: EdgeInsets.zero,
-                controlAffinity: ListTileControlAffinity.leading,
-                title: Text('No Fill', style: theme.typo.label),
-                onChanged: (noFill) {
-                  onChangeBoundary();
-                  model.style = style.copyWith(noFill: noFill);
-                  onChangeBoundary();
-                },
-              ),
-            ],
-          ),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            CheckboxListTile(
+              key: const ValueKey('text-no-fill'),
+              value: style.noFill,
+              contentPadding: EdgeInsets.zero,
+              controlAffinity: ListTileControlAffinity.leading,
+              title: Text('No Fill', style: theme.typo.label),
+              onChanged: (noFill) {
+                onChangeBoundary();
+                model.style = style.copyWith(noFill: noFill);
+                onChangeBoundary();
+              },
+            ),
+          ],
         );
       },
     );

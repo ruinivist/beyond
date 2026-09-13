@@ -1,6 +1,7 @@
 // Provides the animated surface that hosts active tool options.
 // Used by the canvas toolbar when switching editing tools.
 
+import 'package:beyond/theme/sizes.dart';
 import 'package:beyond/ui/common/b_container.dart';
 import 'package:flutter/material.dart';
 
@@ -39,7 +40,7 @@ class ToolOptions extends StatelessWidget {
             child: BContainer(
               child: Padding(
                 padding: const EdgeInsets.all(12),
-                child: child,
+                child: SizedBox(width: BSizes.toolOptionsWidth, child: child),
               ),
             ),
           ),
