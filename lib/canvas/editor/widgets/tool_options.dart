@@ -29,7 +29,6 @@ class ToolOptions extends StatelessWidget {
         children: [...previousChildren, ?currentChild],
       ),
       transitionBuilder: (child, animation) {
-        if (child.key == const ValueKey('tool-options-hidden')) return child;
         return SlideTransition(
           position: Tween<Offset>(
             begin: const Offset(1, 0),
@@ -46,7 +45,7 @@ class ToolOptions extends StatelessWidget {
           ),
         );
       },
-      child: child ?? const SizedBox.shrink(key: ValueKey('tool-options-hidden')),
+      child: child,
     );
   }
 }

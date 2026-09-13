@@ -216,8 +216,13 @@ Widget _buildSelectTrigger({
         ),
         child: Row(
           children: [
-            Text(label),
-            const Spacer(),
+            Expanded(
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
             Icon(
               Icons.keyboard_arrow_down,
               size: _selectTriggerIconSize,

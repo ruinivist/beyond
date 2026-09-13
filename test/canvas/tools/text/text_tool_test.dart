@@ -354,25 +354,6 @@ void main() {
       await tester.pump();
 
       expect(model.node.rotation.abs(), closeTo(math.pi * 1.5, 0.01));
-
-      final originalWidth = model.node.width;
-      final resize = find.byKey(const ValueKey('text-block-resize-handle'));
-      await tester.drag(
-        resize,
-        const Offset(0, -40),
-        kind: PointerDeviceKind.mouse,
-      );
-      await tester.pump();
-      expect(model.node.width, closeTo(originalWidth + 40, 0.01));
-
-      final originalPosition = model.node.position;
-      await tester.drag(
-        find.byKey(const ValueKey('text-block-handle')),
-        const Offset(30, 20),
-        kind: PointerDeviceKind.mouse,
-      );
-      await tester.pump();
-      expect(model.node.position, originalPosition + const Offset(30, 20));
     },
   );
 

@@ -409,6 +409,8 @@ class _HuePicker extends StatelessWidget {
           slider: true,
           label: 'Hue',
           value: '${hue.round()} degrees',
+          increasedValue: '${(hue + 5).clamp(0, 360).round()} degrees',
+          decreasedValue: '${(hue - 5).clamp(0, 360).round()} degrees',
           onIncrease: () => onChanged((hue + 5).clamp(0, 360)),
           onDecrease: () => onChanged((hue - 5).clamp(0, 360)),
           child: MouseRegion(
@@ -453,6 +455,8 @@ class _AlphaPicker extends StatelessWidget {
           slider: true,
           label: 'Alpha',
           value: '${(alpha * 100).round()}%',
+          increasedValue: '${((alpha + 0.05).clamp(0, 1) * 100).round()}%',
+          decreasedValue: '${((alpha - 0.05).clamp(0, 1) * 100).round()}%',
           onIncrease: () => onChanged((alpha + 0.05).clamp(0, 1)),
           onDecrease: () => onChanged((alpha - 0.05).clamp(0, 1)),
           child: MouseRegion(

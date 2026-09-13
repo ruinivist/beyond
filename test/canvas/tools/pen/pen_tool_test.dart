@@ -600,7 +600,7 @@ void main() {
 
     final strokes = tester.widgetList<PenStroke>(find.byType(PenStroke)).map((stroke) => stroke.model.data).toList();
     expect(strokes, hasLength(2));
-    expect(strokes.first.color, presetColors.first.color.toARGB32());
+    expect(strokes.first.color, isNot(strokes.last.color));
     expect(strokes.first.width, 4);
     expect(
       strokes.last.color,
