@@ -78,11 +78,15 @@ class TextTool extends StatelessWidget {
           return Semantics(
             container: true,
             selected: model.selected,
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                color: model.selected ? colors.accentSoft : Colors.transparent,
-                border: model.selected ? Border.all(color: colors.accent, width: 2) : null,
-                borderRadius: theme.geo.radiusSmall,
+            child: Material(
+              color: model.selected ? colors.accentSoft : colors.surface,
+              elevation: theme.geo.elevationLow,
+              shadowColor: colors.shadow,
+              shape: RoundedRectangleBorder(
+                borderRadius: theme.geo.radiusLarge,
+                side: model.selected
+                    ? BorderSide(color: colors.accent, width: 2)
+                    : BorderSide(color: colors.borderSubtle),
               ),
               child: CompositedTransformTarget(
                 link: model.layerLink,
@@ -94,33 +98,6 @@ class TextTool extends StatelessWidget {
                     child: Stack(
                       children: [
                         if (model.node.height != null) Positioned.fill(child: visibleBody) else visibleBody,
-                        Positioned.fill(
-                          child: IgnorePointer(
-                            child: AnimatedSwitcher(
-                              duration: const Duration(milliseconds: 260),
-                              reverseDuration: const Duration(milliseconds: 180),
-                              switchInCurve: Curves.easeOutCubic,
-                              switchOutCurve: Curves.easeOutCubic,
-                              transitionBuilder: (child, animation) => FadeTransition(
-                                opacity: animation,
-                                child: child,
-                              ),
-                              child: model.editing
-                                  ? SizedBox.expand(
-                                      key: const ValueKey('text-block-editing-border'),
-                                      child: DecoratedBox(
-                                        decoration: BoxDecoration(
-                                          borderRadius: theme.geo.radiusSmall,
-                                          border: Border.all(color: colors.border),
-                                        ),
-                                      ),
-                                    )
-                                  : const SizedBox(
-                                      key: ValueKey('text-block-editing-border-hidden'),
-                                    ),
-                            ),
-                          ),
-                        ),
                         Positioned(
                           right: 0,
                           bottom: 0,

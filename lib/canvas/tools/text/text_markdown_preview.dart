@@ -81,8 +81,12 @@ class _TextMarkdownPreviewState extends State<TextMarkdownPreview> {
       onPanEnd: (_) => _dragPosition = null,
       onPanCancel: () => _dragPosition = null,
       child: widget.scrollController == null
-          ? content
-          : SingleChildScrollView(controller: widget.scrollController, child: content),
+          ? Padding(padding: const EdgeInsets.all(24), child: content)
+          : SingleChildScrollView(
+              controller: widget.scrollController,
+              padding: const EdgeInsets.all(24),
+              child: content,
+            ),
     );
   }
 }
@@ -97,17 +101,11 @@ class _EmptyTextMarkdownPreview extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = BTheme.of(context);
-    return SizedBox(
-      height: 52,
-      child: Align(
-        alignment: Alignment.centerLeft,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12),
-          child: Text(
-            'Click to edit',
-            style: _fontStyle(style).copyWith(color: theme.colors.textMuted),
-          ),
-        ),
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Text(
+        'Click to edit',
+        style: _fontStyle(style).copyWith(color: theme.colors.textMuted),
       ),
     );
   }

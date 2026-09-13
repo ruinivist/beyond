@@ -2,7 +2,6 @@
 // Used by canvas controls that start pointer transformations.
 
 import 'package:beyond/theme/sizes.dart';
-import 'package:beyond/ui/common/b_container.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
@@ -26,28 +25,26 @@ class IconDrag extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BContainer(
-      child: MouseRegion(
-        cursor: SystemMouseCursors.grab,
-        child: Semantics(
-          button: true,
-          label: semanticLabel,
-          child: RawGestureDetector(
-            behavior: HitTestBehavior.opaque,
-            gestures: {
-              ImmediateMultiDragGestureRecognizer:
-                  GestureRecognizerFactoryWithHandlers<ImmediateMultiDragGestureRecognizer>(
-                    ImmediateMultiDragGestureRecognizer.new,
-                    (recognizer) => recognizer.onStart = onDragStart,
-                  ),
-            },
-            child: SizedBox.square(
-              dimension: BSizes.defaultIconButtonSize.width,
-              child: Center(
-                child: IconTheme.merge(
-                  data: const IconThemeData(size: BSizes.defaultIconSize),
-                  child: icon,
+    return MouseRegion(
+      cursor: SystemMouseCursors.grab,
+      child: Semantics(
+        button: true,
+        label: semanticLabel,
+        child: RawGestureDetector(
+          behavior: HitTestBehavior.opaque,
+          gestures: {
+            ImmediateMultiDragGestureRecognizer:
+                GestureRecognizerFactoryWithHandlers<ImmediateMultiDragGestureRecognizer>(
+                  ImmediateMultiDragGestureRecognizer.new,
+                  (recognizer) => recognizer.onStart = onDragStart,
                 ),
+          },
+          child: SizedBox.square(
+            dimension: BSizes.defaultIconButtonSize.width,
+            child: Center(
+              child: IconTheme.merge(
+                data: const IconThemeData(size: BSizes.defaultIconSize),
+                child: icon,
               ),
             ),
           ),

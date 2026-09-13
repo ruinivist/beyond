@@ -99,9 +99,9 @@ class _TextMarkdownEditorState extends State<TextMarkdownEditor> {
         cursorColor: colors.accent,
         decoration: InputDecoration(
           border: InputBorder.none,
-          contentPadding: const EdgeInsets.all(12),
-          hintText: 'Type something',
-          hintStyle: code.copyWith(color: colors.textMuted),
+          contentPadding: const EdgeInsets.all(24),
+          hintText: 'Type something...',
+          hintStyle: theme.typo.body.copyWith(color: colors.textMuted),
           floatingLabelBehavior: FloatingLabelBehavior.never,
         ),
         style: code.copyWith(color: colors.textPrimary),

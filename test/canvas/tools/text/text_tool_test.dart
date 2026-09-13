@@ -62,6 +62,10 @@ void main() {
       find.byKey(const ValueKey('text-block-rotate-control')),
       findsOneWidget,
     );
+    expect(
+      find.byKey(const ValueKey('text-block-delete-control')),
+      findsOneWidget,
+    );
     expect(model.focusNode.hasFocus, isTrue);
     await tester.enterText(editor, 'focused typing');
     await tester.pump();
@@ -79,10 +83,6 @@ void main() {
       find.byKey(const ValueKey('text-block-resize-handle')),
       findsOneWidget,
     );
-    expect(
-      find.byKey(const ValueKey('text-block-editing-border')),
-      findsOneWidget,
-    );
 
     model.selected = true;
     await tester.sendKeyEvent(LogicalKeyboardKey.escape);
@@ -93,10 +93,6 @@ void main() {
     expect(find.byType(TextField), findsNothing);
     expect(find.byKey(const ValueKey('text-markdown-preview')), findsOneWidget);
     expect(
-      find.byKey(const ValueKey('text-block-editing-border')),
-      findsOneWidget,
-    );
-    expect(
       find.byKey(const ValueKey('text-block-handle')).hitTestable(),
       findsNothing,
     );
@@ -106,10 +102,6 @@ void main() {
     );
     expect(find.byType(TextBlockControls), findsOneWidget);
     await tester.pumpAndSettle();
-    expect(
-      find.byKey(const ValueKey('text-block-editing-border')),
-      findsNothing,
-    );
     expect(
       find.byKey(const ValueKey('text-block-resize-handle')),
       findsNothing,
@@ -235,11 +227,20 @@ void main() {
     expect(find.byKey(const ValueKey('text-markdown-preview')), findsNothing);
   });
 
+  testWidgets('text blocks delete from their controls', (tester) async {
+    await _addTextBlock(tester, const Offset(120, 200));
+
+    await tester.tap(find.byKey(const ValueKey('text-block-delete-control')));
+    await tester.pump();
+
+    expect(find.byType(TextTool), findsNothing);
+  });
+
   testWidgets('text blocks move from their unfocused preview when zoomed', (
     tester,
   ) async {
     await _addTextBlock(tester, const Offset(120, 200));
-    await tester.tapAt(const Offset(400, 300));
+    await tester.tapAt(const Offset(700, 500));
     await tester.pump();
 
     final canvas = tester.widget<LazyCanvas>(find.byType(LazyCanvas));
@@ -292,7 +293,7 @@ void main() {
     final block = find.byType(TextTool);
     final model = tester.widget<TextTool>(block).model..rotate(math.pi / 2);
     await tester.pump();
-    await tester.tapAt(const Offset(400, 300));
+    await tester.tapAt(const Offset(700, 500));
     await tester.pump();
 
     final originalPosition = model.node.position;
@@ -375,7 +376,7 @@ void main() {
   );
 
   testWidgets(
-    'text resizing enters manual mode, clamps, and scrolls overflow',
+    'text resizing clamps and scrolls overflow',
     (tester) async {
       await _addTextBlock(
         tester,
@@ -390,7 +391,7 @@ void main() {
       );
       final position = model.node.position;
       final style = model.node.style;
-      final automaticHeight = tester.getSize(block).height;
+      final originalHeight = tester.getSize(block).height;
       const source =
           'word word word word word word word word word word word word word '
           'word word word word word word word';
@@ -402,11 +403,9 @@ void main() {
       FocusManager.instance.primaryFocus?.unfocus();
       await tester.pump();
 
-      final originalHeight = tester.getSize(block).height;
       final originalWidth = model.node.width;
-      expect(originalHeight, greaterThan(automaticHeight));
-      expect(model.node.height, isNull);
-      expect(scrollbars, findsNothing);
+      expect(model.node.height, textNodeDefaultHeight);
+      expect(scrollbars, findsOneWidget);
       final resizeHandle = find.byKey(
         const ValueKey('text-block-resize-handle'),
       );
@@ -439,7 +438,7 @@ void main() {
       expect(model.node.markdown, source);
       expect(model.node.style, same(style));
 
-      await tester.tapAt(const Offset(400, 300));
+      await tester.tapAt(const Offset(700, 500));
       await tester.pump();
       expect(tester.getSize(block).height, textNodeMinimumHeight);
       expect(model.scrollController.position.maxScrollExtent, greaterThan(0));
@@ -511,7 +510,7 @@ void main() {
     final model = tester.widget<TextTool>(find.byType(TextTool)).model;
     expect(model.node.markdown, source);
 
-    await tester.tapAt(const Offset(400, 300));
+    await tester.tapAt(const Offset(700, 500));
     await tester.pump();
     final preview = tester.widget<MarkdownBody>(
       find.byKey(const ValueKey('text-markdown-preview')),
@@ -539,7 +538,7 @@ void main() {
     await tester.pump();
     expect(model.node.markdown, editedSource);
 
-    await tester.tapAt(const Offset(400, 300));
+    await tester.tapAt(const Offset(700, 500));
     await tester.pump();
     expect(
       tester
@@ -572,7 +571,7 @@ Inline $x^2$''';
       find.byKey(const ValueKey('text-markdown-editor')),
       source,
     );
-    await tester.tapAt(const Offset(400, 300));
+    await tester.tapAt(const Offset(700, 500));
     await tester.pump();
 
     expect(find.text('Heading', findRichText: true), findsOneWidget);
@@ -602,7 +601,7 @@ Inline $x^2$''';
       find.byKey(const ValueKey('text-markdown-editor')),
       source,
     );
-    await tester.tapAt(const Offset(400, 300));
+    await tester.tapAt(const Offset(700, 500));
     await tester.pump();
 
     final preview = tester.widget<MarkdownBody>(
@@ -654,7 +653,7 @@ Inline $x^2$''';
       find.byKey(const ValueKey('text-markdown-editor')),
       '![failed](https://example.com/fails.png)',
     );
-    await tester.tapAt(const Offset(400, 300));
+    await tester.tapAt(const Offset(700, 500));
     await tester.pump();
 
     final preview = tester.widget<MarkdownBody>(
@@ -702,7 +701,7 @@ Inline $x^2$''';
       '![stored]($path)',
     );
 
-    await tester.tapAt(const Offset(400, 300));
+    await tester.tapAt(const Offset(700, 500));
     await tester.pump();
     await tester.pump();
 
@@ -727,7 +726,7 @@ Inline $x^2$''';
       '![missing]($path)',
     );
 
-    await tester.tapAt(const Offset(400, 300));
+    await tester.tapAt(const Offset(700, 500));
     await tester.pump();
     await tester.pump();
 
@@ -747,7 +746,7 @@ Inline $x^2$''';
       find.byKey(const ValueKey('text-markdown-editor')),
       '[safe](https://example.com) [unsafe](javascript:alert(1))',
     );
-    await tester.tapAt(const Offset(400, 300));
+    await tester.tapAt(const Offset(700, 500));
     await tester.pump();
 
     final model = tester.widget<TextTool>(find.byType(TextTool)).model;
@@ -789,7 +788,7 @@ Inline $x^2$''';
       find.byKey(const ValueKey('text-markdown-editor')),
       '[![linked](https://example.com/image.png "title")](https://example.com/image)',
     );
-    await tester.tapAt(const Offset(400, 300));
+    await tester.tapAt(const Offset(700, 500));
     await tester.pump();
 
     final model = tester.widget<TextTool>(find.byType(TextTool)).model;
@@ -812,7 +811,7 @@ Inline $x^2$''';
     tester,
   ) async {
     await _addTextBlock(tester, const Offset(120, 200));
-    await tester.tapAt(const Offset(400, 300));
+    await tester.tapAt(const Offset(700, 500));
     await tester.pump();
 
     final block = find.byType(TextTool);
@@ -923,7 +922,9 @@ Inline $x^2$''';
     expect(second.style.fontFamily, 'Inter');
     expect(first.style.fontFamily, 'Source Serif 4');
 
-    await tester.tapAt(const Offset(120, 200));
+    await tester.tap(
+      find.byKey(const ValueKey('text-markdown-preview-surface')).first,
+    );
     await tester.pumpAndSettle();
     expect(
       find.byKey(const ValueKey('text-settings-panel')).hitTestable(),
@@ -948,7 +949,7 @@ Inline $x^2$''';
     );
     await tester.pump();
 
-    final second = await _placeTextBlock(tester, const Offset(400, 360));
+    final second = await _placeTextBlock(tester, const Offset(300, 360));
     const secondSource = '- second\n\n\$x^2\$';
     await tester.enterText(
       find.byKey(const ValueKey('text-markdown-editor')),
@@ -962,6 +963,7 @@ Inline $x^2$''';
       kind: PointerDeviceKind.mouse,
     );
     await tester.pump();
+
     await tester.drag(
       find.byKey(const ValueKey('text-block-resize-handle')).hitTestable(),
       const Offset(40, 0),
@@ -1005,7 +1007,6 @@ Inline $x^2$''';
       savedNodes.first.style.color,
       isNot(savedNodes.last.style.color),
     );
-
     await tester.pumpWidget(const SizedBox());
     await tester.pump();
     await tester.pumpWidget(const BeyondApp());

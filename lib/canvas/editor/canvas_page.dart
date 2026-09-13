@@ -783,7 +783,7 @@ class _CanvasPageState extends State<CanvasPage> {
       id: const Uuid().v4(),
       position: position,
       width: textNodeDefaultWidth,
-      height: null,
+      height: textNodeDefaultHeight,
       markdown: '',
       style: TextNodeStyle(
         fontFamily: 'Source Serif 4',
@@ -1804,14 +1804,8 @@ class _CanvasPageState extends State<CanvasPage> {
               builder: (context, _) => CompositedTransformFollower(
                 link: anchor.layerLink,
                 showWhenUnlinked: false,
-                targetAnchor: Alignment.center,
-                followerAnchor: Alignment.center,
-                offset:
-                    TextBlockControls.followerOffset +
-                    Offset(
-                      TextBlockControls.size.width / 2 - anchor.node.width / 2,
-                      0,
-                    ),
+                followerAnchor: Alignment.topRight,
+                offset: const Offset(-10, 0),
                 child: SizedBox.fromSize(
                   size: TextBlockControls.size,
                   child: Overlay.wrap(
@@ -1835,6 +1829,7 @@ class _CanvasPageState extends State<CanvasPage> {
                             model: editing,
                             onMove: (delta) => _moveSelectedChildren(editing, delta),
                             onRotate: (angle) => _rotateTextBlock(editing, angle),
+                            onDelete: () => _removeElements([editing]),
                             onTransformStart: _finishHistoryOperation,
                             onTransformEnd: _finishHistoryOperation,
                             rotationCenter: () => _textBlockCenter(editing),

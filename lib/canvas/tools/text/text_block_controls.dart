@@ -4,6 +4,7 @@
 import 'dart:math' as math;
 
 import 'package:beyond/canvas/tools/text/text_block_model.dart';
+import 'package:beyond/theme/theme.dart';
 import 'package:beyond/ui/common/icon_drag.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
@@ -17,6 +18,7 @@ class TextBlockControls extends StatelessWidget {
     required this.model,
     required this.onMove,
     required this.onRotate,
+    required this.onDelete,
     required this.onTransformStart,
     required this.onTransformEnd,
     required this.rotationCenter,
@@ -26,12 +28,12 @@ class TextBlockControls extends StatelessWidget {
   final TextBlockModel model;
   final ValueChanged<Offset> onMove;
   final ValueChanged<double> onRotate;
+  final VoidCallback onDelete;
   final VoidCallback onTransformStart;
   final VoidCallback onTransformEnd;
   final ValueGetter<Offset> rotationCenter;
 
-  static const size = Size(40, 88);
-  static const followerOffset = Offset(-50, 24);
+  static const size = Size(40, 120);
 
   @override
   Widget build(BuildContext context) {
@@ -40,7 +42,6 @@ class TextBlockControls extends StatelessWidget {
       height: size.height,
       child: TextFieldTapRegion(
         child: Column(
-          spacing: 8,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             IconDrag(
@@ -50,7 +51,7 @@ class TextBlockControls extends StatelessWidget {
                 onTransformStart();
                 return _TextBlockDrag(onMove, onTransformEnd);
               },
-              icon: const Icon(Icons.drag_indicator),
+              icon: const Icon(Icons.drag_indicator, size: 20),
             ),
             IconDrag(
               key: const ValueKey('text-block-rotate-control'),
@@ -65,7 +66,27 @@ class TextBlockControls extends StatelessWidget {
                   onEnd: onTransformEnd,
                 );
               },
-              icon: const Icon(Icons.rotate_right),
+              icon: const Icon(Icons.rotate_right, size: 20),
+            ),
+            MouseRegion(
+              key: const ValueKey('text-block-delete-control'),
+              cursor: SystemMouseCursors.click,
+              child: Semantics(
+                button: true,
+                label: 'Delete text block',
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: onDelete,
+                  child: SizedBox.fromSize(
+                    size: BSizes.defaultIconButtonSize,
+                    child: Icon(
+                      Icons.delete_outline,
+                      size: 20,
+                      color: BTheme.of(context).colors.textSecondary,
+                    ),
+                  ),
+                ),
+              ),
             ),
           ],
         ),
