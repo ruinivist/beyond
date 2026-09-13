@@ -74,9 +74,7 @@ class MediaModel extends CanvasElementModel<MediaElementData> {
     if (!const {'png', 'jpg', 'gif', 'webp'}.contains(normalizedExtension)) {
       throw const FormatException('Unsupported image type');
     }
-    if (bytes.length > attachmentMaximumBytes) {
-      throw const FormatException('Image exceeds 10 MiB');
-    }
+    validateAttachmentSize(bytes.length, 'Image exceeds 10 MiB');
 
     final path = 'attachments/${const Uuid().v4()}.$normalizedExtension';
     final ratio = await _imageAspectRatio(bytes);

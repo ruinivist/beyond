@@ -29,8 +29,7 @@ class PlatformAttachmentStore implements AttachmentStore {
   @override
   Future<Uint8List?> readIfExists(String path) async {
     try {
-      final file = await (await _file(path, create: false)).getFile().toDart;
-      return (await file.arrayBuffer().toDart).toDart.asUint8List();
+      return await read(path);
     } catch (error) {
       if (error.isA<DOMException>()) {
         final exception = error as DOMException;

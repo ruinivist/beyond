@@ -315,8 +315,6 @@ class TextNodeStyle {
     );
   }
 
-  TextNodeStyle copy() => copyWith();
-
   // ---------- Serialization ----------
 
   Map<String, Object?> toJson() => _$TextNodeStyleToJson(this);
@@ -393,7 +391,7 @@ class TextElementData extends CanvasElementData {
     width: width,
     height: height,
     markdown: markdown,
-    style: style.copy(),
+    style: style.copyWith(),
     rotation: rotation,
   );
 }

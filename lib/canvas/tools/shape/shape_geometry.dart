@@ -41,6 +41,25 @@ Path shapePath(ShapeKind kind, Rect rect) => switch (kind) {
       ..close(),
 };
 
+void paintShape(
+  Canvas canvas, {
+  required Path path,
+  required Color color,
+  required Color? fillColor,
+  required double strokeWidth,
+}) {
+  if (fillColor case final fillColor?) {
+    canvas.drawPath(path, Paint()..color = fillColor);
+  }
+  canvas.drawPath(
+    path,
+    Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = strokeWidth,
+  );
+}
+
 // ---------- Labels ----------
 
 /// Maps persisted shape kinds to concise user-facing labels.

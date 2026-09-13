@@ -63,9 +63,7 @@ Future<Uint8List> encodeCanvasProject(
 
   for (final path in paths) {
     final bytes = await store.read(path);
-    if (bytes.length > attachmentMaximumBytes) {
-      throw FormatException('Attachment exceeds 10 MiB: $path');
-    }
+    validateAttachmentSize(bytes.length, 'Attachment exceeds 10 MiB: $path');
     attachments[path] = base64Encode(bytes);
   }
 
@@ -123,9 +121,10 @@ Future<CanvasProject> decodeCanvasProject(Uint8List bytes) async {
     } on FormatException {
       throw FormatException('Invalid base64 attachment: ${entry.key}');
     }
-    if (attachment.length > attachmentMaximumBytes) {
-      throw FormatException('Attachment exceeds 10 MiB: ${entry.key}');
-    }
+    validateAttachmentSize(
+      attachment.length,
+      'Attachment exceeds 10 MiB: ${entry.key}',
+    );
     if (base64Encode(attachment) != encoded) {
       throw FormatException('Invalid base64 attachment: ${entry.key}');
     }

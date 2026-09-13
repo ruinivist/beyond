@@ -61,6 +61,23 @@ class ArrowGeometry {
   );
 }
 
+void paintArrow(
+  Canvas canvas, {
+  required ArrowGeometry geometry,
+  required Color color,
+  required double strokeWidth,
+}) {
+  canvas.drawPath(
+    geometry.path,
+    Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round
+      ..strokeWidth = strokeWidth,
+  );
+}
+
 // ---------- Control geometry ----------
 
 /// Places the control point that gives a new arrow its default bend.

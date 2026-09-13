@@ -45,15 +45,12 @@ class ShapePreviewPainter extends CustomPainter {
       (preview.rect.bottomRight - canvasOffset) * canvasScale,
     );
     final path = shapePath(preview.kind, rect);
-    if (preview.fillColor case final fill?) {
-      canvas.drawPath(path, Paint()..color = fill);
-    }
-    canvas.drawPath(
-      path,
-      Paint()
-        ..color = preview.strokeColor
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = preview.strokeWidth * canvasScale,
+    paintShape(
+      canvas,
+      path: path,
+      color: preview.strokeColor,
+      fillColor: preview.fillColor,
+      strokeWidth: preview.strokeWidth * canvasScale,
     );
   }
 

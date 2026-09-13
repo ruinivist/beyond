@@ -7,6 +7,12 @@ import 'dart:typed_data';
 
 const int attachmentMaximumBytes = 10 * 1024 * 1024;
 
+void validateAttachmentSize(int byteLength, String errorMessage) {
+  if (byteLength > attachmentMaximumBytes) {
+    throw FormatException(errorMessage);
+  }
+}
+
 // ---------- Storage contract ----------
 
 /// Defines persistence operations for editor-owned attachment bytes.

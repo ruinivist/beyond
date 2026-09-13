@@ -32,13 +32,7 @@ class Shape extends StatelessWidget {
           selected: model.selected,
           child: RawGestureDetector(
             gestures: {
-              ImmediateMultiDragGestureRecognizer:
-                  GestureRecognizerFactoryWithHandlers<ImmediateMultiDragGestureRecognizer>(
-                    ImmediateMultiDragGestureRecognizer.new,
-                    (recognizer) {
-                      recognizer.onStart = (_) => _ShapeDrag(onMove);
-                    },
-                  ),
+              ImmediateMultiDragGestureRecognizer: immediateDragGestureFactory((_) => CallbackDrag(onMove)),
             },
             child: Stack(
               children: [
@@ -63,13 +57,7 @@ class Shape extends StatelessWidget {
                       key: const ValueKey('shape-resize-handle'),
                       semanticLabel: 'Resize shape',
                       gestures: {
-                        ImmediateMultiDragGestureRecognizer:
-                            GestureRecognizerFactoryWithHandlers<ImmediateMultiDragGestureRecognizer>(
-                              ImmediateMultiDragGestureRecognizer.new,
-                              (recognizer) {
-                                recognizer.onStart = (_) => _ShapeDrag(onResize);
-                              },
-                            ),
+                        ImmediateMultiDragGestureRecognizer: immediateDragGestureFactory((_) => CallbackDrag(onResize)),
                       },
                     ),
                   ),
@@ -99,15 +87,12 @@ class _ShapePainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    if (fillColor case final fillColor?) {
-      canvas.drawPath(path, Paint()..color = fillColor);
-    }
-    canvas.drawPath(
-      path,
-      Paint()
-        ..color = color
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = strokeWidth,
+    paintShape(
+      canvas,
+      path: path,
+      color: color,
+      fillColor: fillColor,
+      strokeWidth: strokeWidth,
     );
   }
 

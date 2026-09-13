@@ -27,7 +27,7 @@ class ToolbarButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = BTheme.of(context);
-    final height = iconOnly ? 40.0 : 48.0;
+    final height = iconOnly ? BSizes.defaultIconButtonSize.height : 48.0;
     return Semantics(
       selected: selected,
       child: TextButton(
@@ -65,11 +65,11 @@ class ToolbarButton extends StatelessWidget {
             ),
           ),
           minimumSize: WidgetStatePropertyAll(Size(iconOnly ? 0 : 88, height)),
-          fixedSize: iconOnly ? WidgetStatePropertyAll(Size.square(height)) : null,
+          fixedSize: iconOnly ? const WidgetStatePropertyAll(BSizes.defaultIconButtonSize) : null,
           tapTargetSize: MaterialTapTargetSize.shrinkWrap,
         ),
         child: IconTheme.merge(
-          data: IconThemeData(size: iconOnly ? 18 : 16),
+          data: IconThemeData(size: iconOnly ? BSizes.defaultIconSize : 16),
           child: child,
         ),
       ),

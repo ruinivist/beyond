@@ -9,6 +9,7 @@ import 'package:beyond/canvas/tools/text/text_block_model.dart';
 import 'package:beyond/canvas/tools/text/text_markdown_editor.dart';
 import 'package:beyond/canvas/tools/text/text_markdown_preview.dart';
 import 'package:beyond/theme/theme.dart';
+import 'package:beyond/ui/common/icon_drag.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
@@ -66,13 +67,8 @@ class TextTool extends StatelessWidget {
                   thumbVisibility: true,
                   child: PointerScrollBoundary(child: configuredBody),
                 );
-          final resizeGestureFactory = GestureRecognizerFactoryWithHandlers<ImmediateMultiDragGestureRecognizer>(
-            ImmediateMultiDragGestureRecognizer.new,
-            (recognizer) {
-              recognizer.onStart = (_) => _TextBlockResizeDrag(
-                (delta) => onResize(context.size!, delta),
-              );
-            },
+          final resizeGestureFactory = immediateDragGestureFactory(
+            (_) => CallbackDrag((delta) => onResize(context.size!, delta)),
           );
           const resizeRecognizer = ImmediateMultiDragGestureRecognizer;
           return Semantics(
@@ -154,15 +150,4 @@ Widget _resizeHandleTransition(Widget child, Animation<double> animation) {
       child: child,
     ),
   );
-}
-
-// ---------- Gestures ----------
-
-class _TextBlockResizeDrag extends Drag {
-  _TextBlockResizeDrag(this.onResize);
-
-  final ValueChanged<Offset> onResize;
-
-  @override
-  void update(DragUpdateDetails details) => onResize(details.delta);
 }

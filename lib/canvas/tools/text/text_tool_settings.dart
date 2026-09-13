@@ -1,6 +1,7 @@
 // Renders the settings panel for the canvas text tool.
 // Used by the editor's tool-options overlay for the active text element.
 
+import 'package:beyond/canvas/document/canvas_document.dart';
 import 'package:beyond/canvas/tools/text/text_block_model.dart';
 import 'package:beyond/theme/preset_colors.dart';
 import 'package:beyond/theme/theme.dart';
@@ -9,10 +10,8 @@ import 'package:flutter/material.dart';
 
 // ---------- Font options ----------
 
-const textFontOptions = <SelectOption<String>>[
-  SelectOption(value: 'Source Serif 4', label: 'Source Serif 4'),
-  SelectOption(value: 'Inter', label: 'Inter'),
-  SelectOption(value: 'Roboto Mono', label: 'Roboto Mono'),
+final List<SelectOption<String>> textFontOptions = [
+  for (final fontFamily in textNodeFontFamilies) SelectOption(value: fontFamily, label: fontFamily),
 ];
 
 // ---------- Settings ----------
@@ -79,7 +78,7 @@ class TextToolSettings extends StatelessWidget {
                             onChangeBoundary();
                           },
                           style: IconButton.styleFrom(
-                            minimumSize: const Size.square(40),
+                            minimumSize: BSizes.defaultIconButtonSize,
                             padding: const EdgeInsets.all(8),
                             shape: const CircleBorder(),
                             side: BorderSide(

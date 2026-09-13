@@ -62,13 +62,7 @@ class _MediaUrlPanel extends StatelessWidget {
                     key: const ValueKey('media-panel-drag-strip'),
                     behavior: HitTestBehavior.opaque,
                     gestures: {
-                      ImmediateMultiDragGestureRecognizer:
-                          GestureRecognizerFactoryWithHandlers<ImmediateMultiDragGestureRecognizer>(
-                            ImmediateMultiDragGestureRecognizer.new,
-                            (recognizer) {
-                              recognizer.onStart = (_) => _MediaDrag(move);
-                            },
-                          ),
+                      ImmediateMultiDragGestureRecognizer: immediateDragGestureFactory((_) => CallbackDrag(move)),
                     },
                   ),
                 ),

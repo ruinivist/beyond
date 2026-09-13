@@ -34,3 +34,17 @@ abstract class CanvasElementModel<T extends CanvasElementData> extends ChangeNot
 
   void moveBy(Offset delta);
 }
+
+// ---------- Geometry helpers ----------
+
+double distanceToSegmentSquared(Offset point, Offset start, Offset end) {
+  final segment = end - start;
+  final lengthSquared = segment.distanceSquared;
+  if (lengthSquared == 0) return (point - start).distanceSquared;
+  final offset = point - start;
+  final ratio = ((offset.dx * segment.dx + offset.dy * segment.dy) / lengthSquared).clamp(
+    0.0,
+    1.0,
+  );
+  return (point - (start + segment * ratio)).distanceSquared;
+}

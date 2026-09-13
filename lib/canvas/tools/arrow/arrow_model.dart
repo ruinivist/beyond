@@ -10,8 +10,6 @@ part of 'arrow_tool.dart';
 class ArrowModel extends CanvasElementModel<ArrowElementData> {
   ArrowModel(super.data);
 
-  String get id => data.id;
-
   ArrowGeometry get geometry => ArrowGeometry(
     start: data.start,
     control: data.control,

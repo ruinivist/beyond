@@ -17,17 +17,6 @@ Widget _mediaUrlPanelTransition(
   ),
 );
 
-// ---------- Gestures ----------
-
-class _MediaDrag extends Drag {
-  _MediaDrag(this.onUpdate);
-
-  final ValueChanged<Offset> onUpdate;
-
-  @override
-  void update(DragUpdateDetails details) => onUpdate(details.delta);
-}
-
 // ---------- Image decoding ----------
 
 Future<double> _imageAspectRatio(Uint8List bytes) async {

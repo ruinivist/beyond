@@ -7,6 +7,7 @@ import 'package:beyond/canvas/document/canvas_document.dart';
 import 'package:beyond/canvas/editor/canvas_element_model.dart';
 import 'package:beyond/canvas/editor/widgets/resize_handle.dart';
 import 'package:beyond/theme/theme.dart';
+import 'package:beyond/ui/common/icon_drag.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
@@ -138,15 +139,4 @@ class ShapeTool extends ChangeNotifier {
     _end = null;
     notifyListeners();
   }
-}
-
-// ---------- Gestures ----------
-
-class _ShapeDrag extends Drag {
-  _ShapeDrag(this.onUpdate);
-
-  final ValueChanged<Offset> onUpdate;
-
-  @override
-  void update(DragUpdateDetails details) => onUpdate(details.delta);
 }

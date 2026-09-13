@@ -33,18 +33,14 @@ class ArrowTool extends ChangeNotifier {
 
   bool get isDrawing => _pointer != null;
 
-  ArrowPreview? get preview {
-    final id = _id;
+  ArrowGeometry? get preview {
     final start = _start;
     final end = _end;
-    if (id == null || start == null || end == null) return null;
-    return ArrowPreview(
-      id: id,
-      geometry: ArrowGeometry(
-        start: start,
-        control: arrowControlPoint(start: start, end: end),
-        end: end,
-      ),
+    if (start == null || end == null) return null;
+    return ArrowGeometry(
+      start: start,
+      control: arrowControlPoint(start: start, end: end),
+      end: end,
     );
   }
 

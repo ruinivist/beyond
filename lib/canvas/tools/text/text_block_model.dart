@@ -89,9 +89,7 @@ class TextBlockModel extends CanvasElementModel<TextElementData> {
     String extension,
     AttachmentStore store,
   ) async {
-    if (bytes.length > attachmentMaximumBytes) {
-      throw const FormatException('Image exceeds 10 MiB');
-    }
+    validateAttachmentSize(bytes.length, 'Image exceeds 10 MiB');
     final path = 'attachments/${const Uuid().v4()}.$extension';
     await store.write(path, bytes);
     _insertText('![pasted image]($path)');

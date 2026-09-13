@@ -306,6 +306,8 @@ class _CanvasPageState extends State<CanvasPage> {
     return true;
   }
 
+  Offset _screenToCanvas(Offset screenPosition) => _canvasController.offset + screenPosition / _canvasController.scale;
+
   void _handleCanvasPointerDown(PointerDownEvent event) {
     if (!_documentLoaded) return;
     _canvasPointerPosition.value = event.localPosition;
@@ -324,7 +326,7 @@ class _CanvasPageState extends State<CanvasPage> {
     final onInteractiveChild = _interactiveCanvasPointerIds.remove(
       event.pointer,
     );
-    final position = _canvasController.offset + event.localPosition / _canvasController.scale;
+    final position = _screenToCanvas(event.localPosition);
     if (_tryPlaceActiveTool(position)) return;
     if (onInteractiveChild) {
       if (!_selectionModifierPressed.value) {
@@ -373,14 +375,14 @@ class _CanvasPageState extends State<CanvasPage> {
     if (_arrowTool.ownsPointer(event.pointer)) {
       _arrowTool.onPointerMove(
         event,
-        _canvasController.offset + event.localPosition / _canvasController.scale,
+        _screenToCanvas(event.localPosition),
       );
       return;
     }
     if (_shapeTool.ownsPointer(event.pointer)) {
       _shapeTool.onPointerMove(
         event,
-        _canvasController.offset + event.localPosition / _canvasController.scale,
+        _screenToCanvas(event.localPosition),
       );
       return;
     }
@@ -407,14 +409,14 @@ class _CanvasPageState extends State<CanvasPage> {
     if (_arrowTool.ownsPointer(event.pointer)) {
       _arrowTool.onPointerUp(
         event,
-        _canvasController.offset + event.localPosition / _canvasController.scale,
+        _screenToCanvas(event.localPosition),
       );
       return;
     }
     if (_shapeTool.ownsPointer(event.pointer)) {
       _shapeTool.onPointerUp(
         event,
-        _canvasController.offset + event.localPosition / _canvasController.scale,
+        _screenToCanvas(event.localPosition),
       );
       return;
     }
@@ -512,6 +514,12 @@ class _CanvasPageState extends State<CanvasPage> {
     _finishHistoryOperation();
   }
 
+  bool _toggleSelectionIfModifierPressed(CanvasElementModel model) {
+    if (!_selectionModifierPressed.value) return false;
+    model.selected = !model.selected;
+    return true;
+  }
+
   void _handleCodeBlockPointerDown(
     CodeBlockModel model,
     PointerDownEvent event,
@@ -521,10 +529,7 @@ class _CanvasPageState extends State<CanvasPage> {
     }
     _interactiveCanvasPointerIds.add(event.pointer);
     if (!_elements.contains(model)) return;
-    if (_selectionModifierPressed.value) {
-      model.selected = !model.selected;
-      return;
-    }
+    if (_toggleSelectionIfModifierPressed(model)) return;
     if (model.focusNode.hasFocus) _finishHistoryOperation();
     _clearTextEditing();
     _clearActiveShapes();
@@ -540,10 +545,7 @@ class _CanvasPageState extends State<CanvasPage> {
     }
     _interactiveCanvasPointerIds.add(event.pointer);
     if (!_elements.contains(model)) return;
-    if (_selectionModifierPressed.value) {
-      model.selected = !model.selected;
-      return;
-    }
+    if (_toggleSelectionIfModifierPressed(model)) return;
     if (model.focusNode.hasFocus) _finishHistoryOperation();
     if (!model.editing) {
       FocusManager.instance.primaryFocus?.unfocus();
@@ -564,10 +566,7 @@ class _CanvasPageState extends State<CanvasPage> {
       return;
     }
     _interactiveCanvasPointerIds.add(event.pointer);
-    if (_selectionModifierPressed.value) {
-      model.selected = !model.selected;
-      return;
-    }
+    if (_toggleSelectionIfModifierPressed(model)) return;
     FocusManager.instance.primaryFocus?.unfocus();
     _clearTextEditing();
     _clearActiveShapes();
@@ -586,10 +585,7 @@ class _CanvasPageState extends State<CanvasPage> {
       return;
     }
     _interactiveCanvasPointerIds.add(event.pointer);
-    if (_selectionModifierPressed.value) {
-      model.selected = !model.selected;
-      return;
-    }
+    if (_toggleSelectionIfModifierPressed(model)) return;
     FocusManager.instance.primaryFocus?.unfocus();
     _clearTextEditing();
     _clearActiveMedia();
@@ -999,10 +995,7 @@ class _CanvasPageState extends State<CanvasPage> {
       return;
     }
     _interactiveCanvasPointerIds.add(event.pointer);
-    if (_selectionModifierPressed.value) {
-      model.selected = !model.selected;
-      return;
-    }
+    if (_toggleSelectionIfModifierPressed(model)) return;
     _bringElementToFront(model);
     _clearTextEditing();
     _clearActiveShapes();
@@ -1030,10 +1023,7 @@ class _CanvasPageState extends State<CanvasPage> {
       return;
     }
     _interactiveCanvasPointerIds.add(event.pointer);
-    if (_selectionModifierPressed.value) {
-      model.selected = !model.selected;
-      return;
-    }
+    if (_toggleSelectionIfModifierPressed(model)) return;
     _bringElementToFront(model);
     _clearActiveShapes();
   }
@@ -1199,7 +1189,7 @@ class _CanvasPageState extends State<CanvasPage> {
 
   void _placePastedMedia(MediaModel model) {
     final screenPosition = _canvasPointerPosition.value ?? _canvasController.canvasSize.center(Offset.zero);
-    final center = _canvasController.offset + screenPosition / _canvasController.scale;
+    final center = _screenToCanvas(screenPosition);
     model
       ..data.position = center - model.canvasSize.center(Offset.zero)
       ..active = false;
@@ -1247,9 +1237,7 @@ class _CanvasPageState extends State<CanvasPage> {
       setState(() => _editingChromeModel = null);
     }
     for (final model in modelsToDispose) {
-      if (model case final TextBlockModel text) text.focusNode.unfocus();
-      if (model case final CodeBlockModel code) code.focusNode.unfocus();
-      if (model case final MediaModel media) media.focusNode.unfocus();
+      _editorFocusNode(model)?.unfocus();
       _editorFocusNode(model)?.removeListener(_finishHistoryOperation);
       _canvasController.removeChild(model.data.id);
       _elements.remove(model);
@@ -1730,7 +1718,7 @@ class _CanvasPageState extends State<CanvasPage> {
                 child: CustomPaint(
                   key: const ValueKey('arrow-preview'),
                   painter: ArrowPreviewPainter(
-                    geometry: preview.geometry,
+                    geometry: preview,
                     canvasOffset: _canvasController.offset,
                     canvasScale: _canvasController.scale,
                     color: colors.accent,
@@ -1967,7 +1955,13 @@ class _CanvasPageState extends State<CanvasPage> {
                         key: const ValueKey('settings-button'),
                         tooltip: 'Settings',
                         onPressed: _showSettingsDialog,
-                        style: _toolbarIconButtonStyle(colors, geo),
+                        style:
+                            _toolbarButtonStyle(
+                              colors,
+                              geo,
+                            ).copyWith(
+                              padding: const WidgetStatePropertyAll(EdgeInsets.all(8)),
+                            ),
                         icon: const Icon(LucideIcons.settings),
                       ),
                     ),
@@ -2271,11 +2265,4 @@ ButtonStyle _toolbarButtonStyle(BColors colors, BGeo geo) {
       RoundedRectangleBorder(borderRadius: geo.radiusSmall),
     ),
   );
-}
-
-ButtonStyle _toolbarIconButtonStyle(BColors colors, BGeo geo) {
-  return _toolbarButtonStyle(
-    colors,
-    geo,
-  ).copyWith(padding: const WidgetStatePropertyAll(EdgeInsets.all(8)));
 }

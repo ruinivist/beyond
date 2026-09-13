@@ -5,6 +5,26 @@ import 'package:beyond/theme/sizes.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
+// ---------- Gestures ----------
+
+GestureRecognizerFactoryWithHandlers<ImmediateMultiDragGestureRecognizer> immediateDragGestureFactory(
+  GestureMultiDragStartCallback onStart,
+) {
+  return GestureRecognizerFactoryWithHandlers<ImmediateMultiDragGestureRecognizer>(
+    ImmediateMultiDragGestureRecognizer.new,
+    (recognizer) => recognizer.onStart = onStart,
+  );
+}
+
+class CallbackDrag extends Drag {
+  CallbackDrag(this.onUpdate);
+
+  final ValueChanged<Offset> onUpdate;
+
+  @override
+  void update(DragUpdateDetails details) => onUpdate(details.delta);
+}
+
 // ---------- Widgets ----------
 
 class IconDrag extends StatelessWidget {
@@ -33,11 +53,7 @@ class IconDrag extends StatelessWidget {
         child: RawGestureDetector(
           behavior: HitTestBehavior.opaque,
           gestures: {
-            ImmediateMultiDragGestureRecognizer:
-                GestureRecognizerFactoryWithHandlers<ImmediateMultiDragGestureRecognizer>(
-                  ImmediateMultiDragGestureRecognizer.new,
-                  (recognizer) => recognizer.onStart = onDragStart,
-                ),
+            ImmediateMultiDragGestureRecognizer: immediateDragGestureFactory(onDragStart),
           },
           child: SizedBox.square(
             dimension: BSizes.defaultIconButtonSize.width,

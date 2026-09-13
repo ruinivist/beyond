@@ -26,13 +26,7 @@ class _MediaImage extends StatelessWidget {
       child: RawGestureDetector(
         behavior: HitTestBehavior.opaque,
         gestures: {
-          ImmediateMultiDragGestureRecognizer:
-              GestureRecognizerFactoryWithHandlers<ImmediateMultiDragGestureRecognizer>(
-                ImmediateMultiDragGestureRecognizer.new,
-                (recognizer) {
-                  recognizer.onStart = (_) => _MediaDrag(onMove);
-                },
-              ),
+          ImmediateMultiDragGestureRecognizer: immediateDragGestureFactory((_) => CallbackDrag(onMove)),
         },
         child: Stack(
           children: [
@@ -65,13 +59,7 @@ class _MediaImage extends StatelessWidget {
                   key: const ValueKey('media-resize-handle'),
                   semanticLabel: 'Resize media',
                   gestures: {
-                    ImmediateMultiDragGestureRecognizer:
-                        GestureRecognizerFactoryWithHandlers<ImmediateMultiDragGestureRecognizer>(
-                          ImmediateMultiDragGestureRecognizer.new,
-                          (recognizer) {
-                            recognizer.onStart = (_) => _MediaDrag(onResize);
-                          },
-                        ),
+                    ImmediateMultiDragGestureRecognizer: immediateDragGestureFactory((_) => CallbackDrag(onResize)),
                   },
                 ),
               ),

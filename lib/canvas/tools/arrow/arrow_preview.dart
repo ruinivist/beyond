@@ -3,17 +3,6 @@
 
 part of 'arrow_tool.dart';
 
-// ---------- Preview model ----------
-
-/// Describes an in-progress arrow before it becomes a persisted model.
-/// Produced by [ArrowTool] and consumed by the canvas preview painter.
-class ArrowPreview {
-  const ArrowPreview({required this.id, required this.geometry});
-
-  final String id;
-  final ArrowGeometry geometry;
-}
-
 // ---------- Painters ----------
 
 /// Paints an in-progress arrow in screen coordinates.
@@ -38,14 +27,11 @@ class ArrowPreviewPainter extends CustomPainter {
       control: _toScreen(geometry.control),
       end: _toScreen(geometry.end),
     );
-    canvas.drawPath(
-      screenGeometry.path,
-      Paint()
-        ..color = color
-        ..style = PaintingStyle.stroke
-        ..strokeCap = StrokeCap.round
-        ..strokeJoin = StrokeJoin.round
-        ..strokeWidth = _arrowStrokeWidth * canvasScale,
+    paintArrow(
+      canvas,
+      geometry: screenGeometry,
+      color: color,
+      strokeWidth: _arrowStrokeWidth * canvasScale,
     );
   }
 

@@ -48,14 +48,11 @@ class _ArrowPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    canvas.drawPath(
-      geometry.path,
-      Paint()
-        ..color = color
-        ..style = PaintingStyle.stroke
-        ..strokeCap = StrokeCap.round
-        ..strokeJoin = StrokeJoin.round
-        ..strokeWidth = _arrowStrokeWidth,
+    paintArrow(
+      canvas,
+      geometry: geometry,
+      color: color,
+      strokeWidth: _arrowStrokeWidth,
     );
   }
 
@@ -71,18 +68,18 @@ class _ArrowPainter extends CustomPainter {
     var previous = geometry.start;
     for (var index = 1; index <= 24; index++) {
       final current = curvePoint(index / 24);
-      if (_distanceToSegmentSquared(position, previous, current) <= radiusSquared) {
+      if (distanceToSegmentSquared(position, previous, current) <= radiusSquared) {
         return true;
       }
       previous = current;
     }
-    return _distanceToSegmentSquared(
+    return distanceToSegmentSquared(
               position,
               geometry.arrowheadLeft,
               geometry.end,
             ) <=
             radiusSquared ||
-        _distanceToSegmentSquared(
+        distanceToSegmentSquared(
               position,
               geometry.end,
               geometry.arrowheadRight,
@@ -97,18 +94,4 @@ class _ArrowPainter extends CustomPainter {
         oldDelegate.geometry.end != geometry.end ||
         oldDelegate.color != color;
   }
-}
-
-// ---------- Hit testing ----------
-
-double _distanceToSegmentSquared(Offset point, Offset start, Offset end) {
-  final segment = end - start;
-  final lengthSquared = segment.distanceSquared;
-  if (lengthSquared == 0) return (point - start).distanceSquared;
-  final offset = point - start;
-  final ratio = ((offset.dx * segment.dx + offset.dy * segment.dy) / lengthSquared).clamp(
-    0.0,
-    1.0,
-  );
-  return (point - (start + segment * ratio)).distanceSquared;
 }

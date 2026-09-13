@@ -12,6 +12,7 @@ import 'package:beyond/canvas/editor/widgets/resize_handle.dart';
 import 'package:beyond/canvas/persistence/attachments/store.dart';
 import 'package:beyond/theme/theme.dart';
 import 'package:beyond/ui/common/b_container.dart';
+import 'package:beyond/ui/common/icon_drag.dart';
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
@@ -66,9 +67,7 @@ class _MediaToolState extends State<MediaTool> {
       if (file == null) return;
       final separator = file.name.lastIndexOf('.');
       if (separator < 0) throw const FormatException('Missing image type');
-      if (await file.length() > attachmentMaximumBytes) {
-        throw const FormatException('Image exceeds 10 MiB');
-      }
+      validateAttachmentSize(await file.length(), 'Image exceeds 10 MiB');
       await widget.model.setDeviceImage(
         await file.readAsBytes(),
         file.name.substring(separator + 1),

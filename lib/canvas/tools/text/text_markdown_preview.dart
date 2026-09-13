@@ -160,6 +160,8 @@ TextStyle _fontStyle(TextNodeStyle style) {
 
 // ---------- Images ----------
 
+const _imagePadding = EdgeInsets.symmetric(horizontal: 12);
+
 Widget _buildImage(Uri uri, String? alt, AttachmentStore attachmentStore) {
   final path = uri.toString();
   if (attachmentPathPattern.hasMatch(path)) {
@@ -167,7 +169,7 @@ Widget _buildImage(Uri uri, String? alt, AttachmentStore attachmentStore) {
       future: attachmentStore.read(path),
       builder: (_, snapshot) => switch (snapshot) {
         AsyncSnapshot(hasData: true, data: final bytes?) => Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12),
+          padding: _imagePadding,
           child: Image.memory(
             bytes,
             width: double.infinity,
@@ -184,7 +186,7 @@ Widget _buildImage(Uri uri, String? alt, AttachmentStore attachmentStore) {
     return _TextImageError(alt: alt);
   }
   return Padding(
-    padding: const EdgeInsets.symmetric(horizontal: 12),
+    padding: _imagePadding,
     child: Image.network(
       uri.toString(),
       width: double.infinity,

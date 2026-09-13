@@ -100,7 +100,7 @@ class _PenStrokePainter extends CustomPainter {
       return (position - points.single.position).distanceSquared <= radiusSquared;
     }
     for (var index = 1; index < points.length; index++) {
-      if (_distanceToSegmentSquared(
+      if (distanceToSegmentSquared(
             position,
             points[index - 1].position,
             points[index].position,
@@ -118,16 +118,4 @@ class _PenStrokePainter extends CustomPainter {
       oldDelegate.color != color ||
       oldDelegate.selected != selected ||
       oldDelegate.accent != accent;
-}
-
-double _distanceToSegmentSquared(Offset point, Offset start, Offset end) {
-  final segment = end - start;
-  final lengthSquared = segment.distanceSquared;
-  if (lengthSquared == 0) return (point - start).distanceSquared;
-  final offset = point - start;
-  final ratio = ((offset.dx * segment.dx + offset.dy * segment.dy) / lengthSquared).clamp(
-    0.0,
-    1.0,
-  );
-  return (point - (start + segment * ratio)).distanceSquared;
 }

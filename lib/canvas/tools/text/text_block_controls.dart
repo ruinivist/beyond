@@ -33,7 +33,7 @@ class TextBlockControls extends StatelessWidget {
   final VoidCallback onTransformEnd;
   final ValueGetter<Offset> rotationCenter;
 
-  static const size = Size(40, 120);
+  static final size = Size(BSizes.defaultIconButtonSize.width, 120);
 
   @override
   Widget build(BuildContext context) {

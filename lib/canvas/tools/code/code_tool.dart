@@ -9,6 +9,7 @@ import 'package:beyond/canvas/editor/widgets/pointer_scroll_boundary.dart';
 import 'package:beyond/canvas/editor/widgets/resize_handle.dart';
 import 'package:beyond/canvas/tools/code/code_language.dart';
 import 'package:beyond/theme/theme.dart';
+import 'package:beyond/ui/common/icon_drag.dart';
 import 'package:beyond/ui/common/select.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';

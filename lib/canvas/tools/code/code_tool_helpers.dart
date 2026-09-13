@@ -21,26 +21,20 @@ class _CodeBlockHeader extends StatelessWidget {
     final theme = BTheme.of(context);
     final colors = theme.colors;
     return SizedBox(
-      height: 40,
+      height: BSizes.defaultIconButtonSize.height,
       child: MouseRegion(
         cursor: SystemMouseCursors.grab,
         child: RawGestureDetector(
           key: const ValueKey('code-block-header'),
           behavior: HitTestBehavior.opaque,
           gestures: {
-            ImmediateMultiDragGestureRecognizer:
-                GestureRecognizerFactoryWithHandlers<ImmediateMultiDragGestureRecognizer>(
-                  ImmediateMultiDragGestureRecognizer.new,
-                  (recognizer) {
-                    recognizer.onStart = (_) => _CodeBlockDrag(onMove);
-                  },
-                ),
+            ImmediateMultiDragGestureRecognizer: immediateDragGestureFactory((_) => CallbackDrag(onMove)),
           },
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12),
             child: Row(
               children: [
-                Icon(Icons.code, size: 18, color: colors.textMuted),
+                Icon(Icons.code, size: BSizes.defaultIconSize, color: colors.textMuted),
                 const SizedBox(width: 8),
                 SearchableSelect<CodeLanguage>(
                   value: model.language,
@@ -63,15 +57,4 @@ class _CodeBlockHeader extends StatelessWidget {
       ),
     );
   }
-}
-
-// ---------- Gestures ----------
-
-class _CodeBlockDrag extends Drag {
-  _CodeBlockDrag(this.onMove);
-
-  final ValueChanged<Offset> onMove;
-
-  @override
-  void update(DragUpdateDetails details) => onMove(details.delta);
 }

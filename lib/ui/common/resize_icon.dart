@@ -16,8 +16,8 @@ class ResizeIcon extends StatelessWidget {
       opacity: 0.8,
       child: SvgPicture.asset(
         'assets/icons/resize.svg',
-        width: 18,
-        height: 18,
+        width: BSizes.defaultIconSize,
+        height: BSizes.defaultIconSize,
         colorFilter: ColorFilter.mode(
           BTheme.of(context).colors.resizeHandle,
           BlendMode.srcIn,

@@ -94,10 +94,9 @@ Future<Uint8List?> _readClipboardFile(
     format,
     (file) async {
       try {
-        if ((file.fileSize ?? 0) > attachmentMaximumBytes) {
-          throw const FormatException('Image exceeds 10 MiB');
-        }
+        validateAttachmentSize(file.fileSize ?? 0, 'Image exceeds 10 MiB');
         final bytes = await file.readAll();
+        validateAttachmentSize(bytes.length, 'Image exceeds 10 MiB');
         if (!result.isCompleted) result.complete(bytes);
       } on Object catch (error, stackTrace) {
         if (!result.isCompleted) result.completeError(error, stackTrace);
