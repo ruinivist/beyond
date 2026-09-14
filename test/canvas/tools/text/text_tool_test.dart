@@ -926,13 +926,12 @@ Inline $x^2$''';
     expect(tester.getSize(panel), collapsedSize);
   });
 
-  testWidgets('no fill removes the preview surface', (tester) async {
+  testWidgets('no fill keeps editing and selection borders', (tester) async {
     await _addTextBlock(tester, const Offset(120, 200));
     final model = tester.widget<TextTool>(find.byType(TextTool)).model;
     final surface = find.byKey(const ValueKey('text-block-surface'));
-    final editingBorder = find.byKey(
-      const ValueKey('text-no-fill-editing-border'),
-    );
+
+    BorderSide border() => (tester.widget<Material>(surface).shape! as RoundedRectangleBorder).side;
 
     expect(model.style.noFill, isFalse);
     tester
@@ -951,13 +950,20 @@ Inline $x^2$''';
       ),
       findsNothing,
     );
-    expect(tester.widget<AnimatedOpacity>(editingBorder).opacity, 1);
+    expect(border(), isNot(BorderSide.none));
 
     await tester.tapAt(const Offset(700, 500));
     await tester.pump();
 
     expect(model.editing, isFalse);
-    expect(tester.widget<AnimatedOpacity>(editingBorder).opacity, 0);
+    expect(border(), BorderSide.none);
+
+    model.selected = true;
+    await tester.pump();
+
+    expect(border(), isNot(BorderSide.none));
+    expect(tester.widget<Material>(surface).type, MaterialType.canvas);
+    expect(tester.widget<Material>(surface).color, isNotNull);
   });
 
   testWidgets('text editing is cleared by other blocks and empty canvas', (

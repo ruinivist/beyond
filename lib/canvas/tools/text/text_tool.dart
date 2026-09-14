@@ -78,20 +78,20 @@ class TextTool extends StatelessWidget {
             selected: model.selected,
             child: Material(
               key: const ValueKey('text-block-surface'),
-              type: noFill ? MaterialType.transparency : MaterialType.canvas,
-              color: noFill
-                  ? null
-                  : model.selected
+              type: noFill && !model.selected ? MaterialType.transparency : MaterialType.canvas,
+              color: model.selected
                   ? colors.accentSoft
+                  : noFill
+                  ? null
                   : colors.surface,
               elevation: noFill ? 0 : theme.geo.elevationLow,
               shadowColor: colors.shadow,
               shape: RoundedRectangleBorder(
                 borderRadius: theme.geo.radiusLarge,
-                side: noFill
-                    ? BorderSide.none
-                    : model.selected
+                side: model.selected
                     ? BorderSide(color: colors.accent, width: 2)
+                    : noFill && !model.editing
+                    ? BorderSide.none
                     : BorderSide(color: colors.borderSubtle),
               ),
               child: CompositedTransformTarget(
@@ -129,22 +129,6 @@ class TextTool extends StatelessWidget {
                             ),
                           ),
                         ),
-                        if (noFill)
-                          Positioned.fill(
-                            child: IgnorePointer(
-                              child: AnimatedOpacity(
-                                key: const ValueKey('text-no-fill-editing-border'),
-                                opacity: model.editing ? 1 : 0,
-                                duration: const Duration(milliseconds: 200),
-                                child: DecoratedBox(
-                                  decoration: BoxDecoration(
-                                    border: Border.all(color: colors.borderSubtle),
-                                    borderRadius: theme.geo.radiusLarge,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
                       ],
                     ),
                   ),
