@@ -37,7 +37,7 @@ class ToolOptions extends StatelessWidget {
           child: Padding(
             padding: const EdgeInsets.only(top: 8),
             child: BContainer(
-              child: Padding(
+              child: SingleChildScrollView(
                 padding: const EdgeInsets.all(12),
                 child: SizedBox(width: BSizes.toolOptionsWidth, child: child),
               ),

@@ -142,6 +142,7 @@ class _CanvasPageState extends State<CanvasPage> {
   var _noIcons = false;
   var _noIconsChanged = false;
   var _penColorPickerExpanded = false;
+  var _shapeOutlineColorPickerExpanded = false;
   var _textColorPickerExpanded = false;
 
   Color get _penColor => _customPenColor ?? BTheme.of(context).colors.textPrimary;
@@ -1981,41 +1982,47 @@ class _CanvasPageState extends State<CanvasPage> {
                         icon: const Icon(LucideIcons.settings),
                       ),
                     ),
-                    ToolOptions(
-                      child: activeTextBlock != null
-                          ? Listener(
-                              onPointerDown: (_) => _clearTextEditing(),
-                              child: TextToolSettings(
-                                key: ValueKey(
-                                  'text-settings-${activeTextBlock.node.id}',
+                    Flexible(
+                      child: ToolOptions(
+                        child: activeTextBlock != null
+                            ? Listener(
+                                onPointerDown: (_) => _clearTextEditing(),
+                                child: TextToolSettings(
+                                  key: ValueKey(
+                                    'text-settings-${activeTextBlock.node.id}',
+                                  ),
+                                  model: activeTextBlock,
+                                  onChangeBoundary: _finishHistoryOperation,
+                                  colorPickerExpanded: _textColorPickerExpanded,
+                                  onColorPickerExpandedChanged: (expanded) => setState(
+                                    () => _textColorPickerExpanded = expanded,
+                                  ),
                                 ),
-                                model: activeTextBlock,
-                                onChangeBoundary: _finishHistoryOperation,
-                                colorPickerExpanded: _textColorPickerExpanded,
+                              )
+                            : _penEnabled
+                            ? _DrawSettings(
+                                key: const ValueKey('draw-settings-panel'),
+                                color: _penColor,
+                                width: _penWidth,
+                                colorPickerExpanded: _penColorPickerExpanded,
+                                onColorChanged: _setPenColor,
                                 onColorPickerExpandedChanged: (expanded) => setState(
-                                  () => _textColorPickerExpanded = expanded,
+                                  () => _penColorPickerExpanded = expanded,
                                 ),
-                              ),
-                            )
-                          : _penEnabled
-                          ? _DrawSettings(
-                              key: const ValueKey('draw-settings-panel'),
-                              color: _penColor,
-                              width: _penWidth,
-                              colorPickerExpanded: _penColorPickerExpanded,
-                              onColorChanged: _setPenColor,
-                              onColorPickerExpandedChanged: (expanded) => setState(
-                                () => _penColorPickerExpanded = expanded,
-                              ),
-                              onWidthChanged: _setPenWidth,
-                            )
-                          : _shapeEnabled
-                          ? _ShapeSettings(
-                              key: const ValueKey('shape-settings-panel'),
-                              tool: _shapeTool,
-                              onStrokeColorChanged: _setShapeStrokeColor,
-                            )
-                          : null,
+                                onWidthChanged: _setPenWidth,
+                              )
+                            : _shapeEnabled
+                            ? _ShapeSettings(
+                                key: const ValueKey('shape-settings-panel'),
+                                tool: _shapeTool,
+                                outlineColorPickerExpanded: _shapeOutlineColorPickerExpanded,
+                                onStrokeColorChanged: _setShapeStrokeColor,
+                                onOutlineColorPickerExpandedChanged: (expanded) => setState(
+                                  () => _shapeOutlineColorPickerExpanded = expanded,
+                                ),
+                              )
+                            : null,
+                      ),
                     ),
                   ],
                 ),
@@ -2036,12 +2043,16 @@ class _CanvasPageState extends State<CanvasPage> {
 class _ShapeSettings extends StatelessWidget {
   const _ShapeSettings({
     required this.tool,
+    required this.outlineColorPickerExpanded,
     required this.onStrokeColorChanged,
+    required this.onOutlineColorPickerExpandedChanged,
     super.key,
   });
 
   final ShapeTool tool;
+  final bool outlineColorPickerExpanded;
   final ValueChanged<Color> onStrokeColorChanged;
+  final ValueChanged<bool> onOutlineColorPickerExpandedChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -2076,10 +2087,11 @@ class _ShapeSettings extends StatelessWidget {
         const SizedBox(height: 10),
         Text('Outline', style: theme.typo.label),
         const SizedBox(height: 6),
-        _ColorSwatches(
-          selectedColor: tool.strokeColor,
-          keyPrefix: 'shape-outline',
-          onColorChanged: (color) => onStrokeColorChanged(color!),
+        ColorControl(
+          color: tool.strokeColor,
+          expanded: outlineColorPickerExpanded,
+          onChanged: onStrokeColorChanged,
+          onExpandedChanged: onOutlineColorPickerExpandedChanged,
         ),
         const SizedBox(height: 10),
         Text('Fill', style: theme.typo.label),

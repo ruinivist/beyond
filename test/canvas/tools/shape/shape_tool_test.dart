@@ -4,7 +4,9 @@
 import 'package:beyond/canvas/document/canvas_document.dart';
 import 'package:beyond/canvas/editor/widgets/toolbar_button.dart';
 import 'package:beyond/canvas/tools/shape/shape_tool.dart';
+import 'package:beyond/theme/preset_colors.dart';
 import 'package:beyond/theme/starless.dart';
+import 'package:beyond/ui/common/color_picker.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -150,6 +152,11 @@ void main() {
     final toolbar = find.byKey(const ValueKey('toolbar-shape'));
     expect(tester.widget<ToolbarButton>(toolbar).selected, isTrue);
     expect(find.byKey(const ValueKey('shape-settings-panel')), findsOneWidget);
+    final colorControl = tester.widget<ColorControl>(find.byType(ColorControl));
+    final blue = presetColors.firstWhere((swatch) => swatch.label == 'Blue').color;
+    expect(colorControl.enableAlpha, isTrue);
+    colorControl.onChanged(blue);
+    await tester.pump();
     expect(
       tester
           .widget<ToolbarButton>(
@@ -174,6 +181,10 @@ void main() {
     expect(
       tester.widget<Shape>(find.byType(Shape)).model.data.kind,
       ShapeKind.roundedRectangle,
+    );
+    expect(
+      tester.widget<Shape>(find.byType(Shape)).model.data.strokeColor,
+      blue.toARGB32(),
     );
     expect(tester.widget<ToolbarButton>(toolbar).selected, isFalse);
     expect(find.byKey(const ValueKey('shape-settings-panel')), findsNothing);
@@ -200,6 +211,11 @@ void main() {
           .selected,
       isTrue,
     );
+    tester.widget<ColorControl>(find.byType(ColorControl)).onExpandedChanged(true);
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('color-picker-custom')), findsOneWidget);
+    tester.widget<ColorControl>(find.byType(ColorControl)).onExpandedChanged(false);
+    await tester.pumpAndSettle();
     final thirdDrag = await tester.startGesture(
       const Offset(500, 180),
       kind: PointerDeviceKind.mouse,
