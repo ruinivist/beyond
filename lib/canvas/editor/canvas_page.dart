@@ -26,6 +26,7 @@ import 'package:beyond/settings/settings_dialog.dart';
 import 'package:beyond/theme/preset_colors.dart';
 import 'package:beyond/theme/theme.dart';
 import 'package:beyond/ui/common/b_container.dart';
+import 'package:beyond/ui/common/color_picker.dart';
 import 'package:beyond/ui/common/discrete_slider.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
@@ -140,6 +141,7 @@ class _CanvasPageState extends State<CanvasPage> {
   var _historyOperationActive = false;
   var _noIcons = false;
   var _noIconsChanged = false;
+  var _penColorPickerExpanded = false;
   var _textColorPickerExpanded = false;
 
   Color get _penColor => _customPenColor ?? BTheme.of(context).colors.textPrimary;
@@ -2000,7 +2002,11 @@ class _CanvasPageState extends State<CanvasPage> {
                               key: const ValueKey('draw-settings-panel'),
                               color: _penColor,
                               width: _penWidth,
+                              colorPickerExpanded: _penColorPickerExpanded,
                               onColorChanged: _setPenColor,
+                              onColorPickerExpandedChanged: (expanded) => setState(
+                                () => _penColorPickerExpanded = expanded,
+                              ),
                               onWidthChanged: _setPenWidth,
                             )
                           : _shapeEnabled
@@ -2108,14 +2114,18 @@ class _DrawSettings extends StatelessWidget {
   const _DrawSettings({
     required this.color,
     required this.width,
+    required this.colorPickerExpanded,
     required this.onColorChanged,
+    required this.onColorPickerExpandedChanged,
     required this.onWidthChanged,
     super.key,
   });
 
   final Color color;
   final double width;
+  final bool colorPickerExpanded;
   final ValueChanged<Color> onColorChanged;
+  final ValueChanged<bool> onColorPickerExpandedChanged;
   final ValueChanged<double> onWidthChanged;
 
   @override
@@ -2127,10 +2137,11 @@ class _DrawSettings extends StatelessWidget {
       children: [
         Text('Color', style: theme.typo.label),
         const SizedBox(height: 6),
-        _ColorSwatches(
-          selectedColor: color,
-          keyPrefix: 'draw-color',
-          onColorChanged: (color) => onColorChanged(color!),
+        ColorControl(
+          color: color,
+          expanded: colorPickerExpanded,
+          onChanged: onColorChanged,
+          onExpandedChanged: onColorPickerExpandedChanged,
         ),
         const SizedBox(height: 10),
         Text('Width', style: theme.typo.label),

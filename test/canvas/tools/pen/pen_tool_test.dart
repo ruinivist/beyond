@@ -13,6 +13,7 @@ import 'package:beyond/canvas/tools/pen/pen_tool.dart';
 import 'package:beyond/canvas/tools/text/text_tool.dart';
 import 'package:beyond/main.dart';
 import 'package:beyond/theme/preset_colors.dart';
+import 'package:beyond/ui/common/color_picker.dart';
 import 'package:beyond/ui/common/select.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
@@ -591,7 +592,8 @@ void main() {
 
     await tester.dragFrom(const Offset(100, 300), const Offset(80, 40));
     await tester.pump();
-    await tester.tap(find.byKey(const ValueKey('draw-color-red')));
+    expect(tester.widget<ColorControl>(find.byType(ColorControl)).enableAlpha, isTrue);
+    await tester.tap(find.byKey(const ValueKey('color-preset-Red')));
     tester.widget<Slider>(find.byKey(const ValueKey('discrete-slider'))).onChanged!(2.25);
     await tester.pump();
     expect(
@@ -629,7 +631,7 @@ void main() {
           .widget<Semantics>(
             find
                 .ancestor(
-                  of: find.byKey(const ValueKey('draw-color-red')),
+                  of: find.byKey(const ValueKey('color-preset-Red')),
                   matching: find.byType(Semantics),
                 )
                 .first,
@@ -638,6 +640,10 @@ void main() {
           .selected,
       isTrue,
     );
+
+    await tester.tap(find.byKey(const ValueKey('color-picker-toggle')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('color-picker-custom')), findsOneWidget);
   });
 
   testWidgets('toolbar and settings island avoid overlap', (tester) async {
