@@ -222,6 +222,7 @@ void main() {
     final originalSize = first.data.size;
     await tester.tapAt(tester.getCenter(firstFinder));
     await tester.pump();
+    expect(first.active, isTrue);
     expect(first.selected, isTrue);
     expect(
       find.byKey(const ValueKey('shape-resize-handle')),

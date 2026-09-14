@@ -53,6 +53,7 @@ void main() {
     final editor = find.byKey(const ValueKey('text-markdown-editor'));
 
     expect(find.byType(TextField), findsOneWidget);
+    expect(model.active, isTrue);
     expect(model.editing, isTrue);
     expect(find.byType(TextBlockControls), findsOneWidget);
     expect(
@@ -90,6 +91,7 @@ void main() {
     await tester.pump();
 
     expect(model.focusNode.hasFocus, isFalse);
+    expect(model.active, isFalse);
     expect(model.selected, isFalse);
     expect(find.byType(TextField), findsNothing);
     expect(find.byKey(const ValueKey('text-markdown-preview')), findsOneWidget);
@@ -264,26 +266,23 @@ void main() {
 
     expect(canvas.controller.scale, 2);
     expect(model.node.position, originalPosition + delta / 2);
+    expect(model.active, isTrue);
     expect(model.editing, isFalse);
     expect(model.focusNode.hasFocus, isFalse);
     expect(find.byKey(const ValueKey('text-markdown-preview')), findsOneWidget);
-    expect(
-      find.byKey(const ValueKey('text-block-handle')).hitTestable(),
-      findsNothing,
-    );
-    expect(
-      find.byKey(const ValueKey('text-block-resize-handle')).hitTestable(),
-      findsNothing,
-    );
     await tester.pumpAndSettle();
-    expect(find.byType(TextBlockControls), findsNothing);
+    expect(find.byType(TextBlockControls), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('text-block-resize-handle')),
+      findsOneWidget,
+    );
 
     await gesture.up();
     await tester.pump();
 
     expect(model.editing, isFalse);
     expect(find.byKey(const ValueKey('text-markdown-preview')), findsOneWidget);
-    expect(find.byType(TextBlockControls), findsNothing);
+    expect(find.byType(TextBlockControls), findsOneWidget);
   });
 
   testWidgets('rotated preview movement stays in screen coordinates', (
@@ -829,6 +828,7 @@ Inline $x^2$''';
 
       expect(model.style.fontFamily, 'Inter');
       expect(model.node.markdown, source);
+      expect(model.active, isTrue);
       expect(model.editing, isTrue);
       expect(model.focusNode.hasFocus, isFalse);
       expect(

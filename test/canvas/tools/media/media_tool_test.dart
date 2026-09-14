@@ -70,6 +70,7 @@ void main() {
     await tester.pump();
     await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
     expect(model.selected, isTrue);
+    await tester.pumpAndSettle();
   });
 
   testWidgets('escape dismisses a focused media editor', (tester) async {

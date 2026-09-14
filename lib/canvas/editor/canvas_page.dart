@@ -94,6 +94,7 @@ class _CanvasPageState extends State<CanvasPage> {
   late final AttachmentStore _attachmentStore = widget.attachmentStore ?? createAttachmentStore();
   late final CanvasProjectFiles _projectFiles = widget.projectFiles ?? createCanvasProjectFiles();
   final _elements = <CanvasElementModel>[];
+  CanvasElementModel? _activeElement;
   TextBlockModel? _editingTextBlock;
   TextBlockModel? _editingChromeModel;
   final ValueNotifier<bool> _selectionModifierPressed = ValueNotifier(false);
@@ -159,6 +160,11 @@ class _CanvasPageState extends State<CanvasPage> {
   bool get _placementEnabled => _placementAction != null;
 
   bool get _eraserEnabled => _activeTool.value == _CanvasTool.eraser;
+
+  TextBlockModel? get _activeTextBlock => switch (_activeElement) {
+    final TextBlockModel model => model,
+    _ => null,
+  };
 
   // ---------- Lifecycle ----------
 
@@ -268,19 +274,12 @@ class _CanvasPageState extends State<CanvasPage> {
   void _toggleTool(_CanvasTool tool) {
     if (!_documentLoaded) return;
     final enabling = _activeTool.value != tool;
-    if (enabling) {
-      _clearTextEditing();
-      _clearActiveMedia();
-      _clearActiveShapes();
-    }
+    _clearElementEditing();
     setState(() {
       _activeTool.value = enabling ? tool : _CanvasTool.select;
       _eraserPointer = null;
       _spaceHeld = false;
     });
-    if (enabling) {
-      FocusManager.instance.primaryFocus?.unfocus();
-    }
   }
 
   void _setPenColor(Color color) {
@@ -532,9 +531,9 @@ class _CanvasPageState extends State<CanvasPage> {
     _interactiveCanvasPointerIds.add(event.pointer);
     if (!_elements.contains(model)) return;
     if (_toggleSelectionIfModifierPressed(model)) return;
+    _setActiveElement(model);
     if (model.focusNode.hasFocus) _finishHistoryOperation();
     _clearTextEditing();
-    _clearActiveShapes();
     _bringElementToFront(model);
   }
 
@@ -548,12 +547,12 @@ class _CanvasPageState extends State<CanvasPage> {
     _interactiveCanvasPointerIds.add(event.pointer);
     if (!_elements.contains(model)) return;
     if (_toggleSelectionIfModifierPressed(model)) return;
+    _setActiveElement(model);
     if (model.focusNode.hasFocus) _finishHistoryOperation();
     if (!model.editing) {
       FocusManager.instance.primaryFocus?.unfocus();
       _clearTextEditing();
     }
-    _clearActiveShapes();
     _bringElementToFront(model);
   }
 
@@ -569,10 +568,9 @@ class _CanvasPageState extends State<CanvasPage> {
     }
     _interactiveCanvasPointerIds.add(event.pointer);
     if (_toggleSelectionIfModifierPressed(model)) return;
+    _setActiveElement(model);
     FocusManager.instance.primaryFocus?.unfocus();
     _clearTextEditing();
-    _clearActiveShapes();
-    model.active = true;
     _bringElementToFront(model);
   }
 
@@ -588,11 +586,9 @@ class _CanvasPageState extends State<CanvasPage> {
     }
     _interactiveCanvasPointerIds.add(event.pointer);
     if (_toggleSelectionIfModifierPressed(model)) return;
+    _setActiveElement(model);
     FocusManager.instance.primaryFocus?.unfocus();
     _clearTextEditing();
-    _clearActiveMedia();
-    _clearActiveShapes();
-    model.active = true;
     _dragShapePointer = event.pointer;
     _dragShape = model;
     _bringElementToFront(model);
@@ -602,7 +598,6 @@ class _CanvasPageState extends State<CanvasPage> {
     final shape = _dragShape;
     if (shape != null && _elements.contains(shape)) {
       if (select) shape.selected = true;
-      shape.active = false;
     }
     _dragShapePointer = null;
     _dragShape = null;
@@ -627,6 +622,7 @@ class _CanvasPageState extends State<CanvasPage> {
   }
 
   void _startTextEditing(TextBlockModel editing) {
+    _setActiveElement(editing);
     setState(() {
       _editingTextBlock = editing;
       _editingChromeModel = editing;
@@ -649,20 +645,17 @@ class _CanvasPageState extends State<CanvasPage> {
   void _clearElementEditing() {
     FocusManager.instance.primaryFocus?.unfocus();
     _clearTextEditing();
-    _clearActiveMedia();
-    _clearActiveShapes();
+    _setActiveElement(null);
   }
 
-  void _clearActiveMedia() {
-    for (final model in _elements.whereType<MediaModel>()) {
-      model.active = false;
-    }
-  }
-
-  void _clearActiveShapes() {
-    for (final model in _elements.whereType<ShapeModel>()) {
-      model.active = false;
-    }
+  void _setActiveElement(CanvasElementModel? model) {
+    if (identical(_activeElement, model)) return;
+    setState(() {
+      _activeElement?.active = false;
+      _activeElement = model;
+      model?.active = true;
+      if (model is TextBlockModel) _editingChromeModel = model;
+    });
   }
 
   void _clearSelection() {
@@ -800,6 +793,7 @@ class _CanvasPageState extends State<CanvasPage> {
     if (!_documentLoaded) return;
     final model = _newMediaModel('')..data.position = position;
     _mountElement(model, requestFocus: true);
+    _setActiveElement(model);
     _scheduleDocumentSave();
     _finishHistoryOperation();
   }
@@ -856,6 +850,9 @@ class _CanvasPageState extends State<CanvasPage> {
           model: media,
           onMove: (delta) => _moveSelectedChildren(media, delta),
           onResize: (delta) => _resizeMedia(media, delta),
+          onDeactivate: () {
+            if (identical(_activeElement, media)) _setActiveElement(null);
+          },
         ),
       ),
       final ShapeModel shape => _SelectionPointerRegion(
@@ -933,6 +930,7 @@ class _CanvasPageState extends State<CanvasPage> {
       ),
     );
     _mountElement(model, requestFocus: true);
+    _setActiveElement(model);
     _scheduleDocumentSave();
     _finishHistoryOperation();
   }
@@ -963,6 +961,7 @@ class _CanvasPageState extends State<CanvasPage> {
       ),
     );
     _mountElement(model);
+    _setActiveElement(model);
     _scheduleDocumentSave();
     _finishHistoryOperation();
   }
@@ -971,6 +970,7 @@ class _CanvasPageState extends State<CanvasPage> {
     if (!_documentLoaded) return;
     if (_arrowEnabled) setState(() => _activeTool.value = _CanvasTool.select);
     _mountElement(model);
+    _setActiveElement(model);
     _scheduleDocumentSave();
     _finishHistoryOperation();
   }
@@ -979,6 +979,7 @@ class _CanvasPageState extends State<CanvasPage> {
     if (!_documentLoaded) return;
     if (_shapeEnabled) setState(() => _activeTool.value = _CanvasTool.select);
     _mountElement(model);
+    _setActiveElement(model);
     _scheduleDocumentSave();
     _finishHistoryOperation();
   }
@@ -998,9 +999,9 @@ class _CanvasPageState extends State<CanvasPage> {
     }
     _interactiveCanvasPointerIds.add(event.pointer);
     if (_toggleSelectionIfModifierPressed(model)) return;
+    _setActiveElement(model);
     _bringElementToFront(model);
     _clearTextEditing();
-    _clearActiveShapes();
     _dragArrowPointer = event.pointer;
     _dragArrow = model;
   }
@@ -1026,8 +1027,8 @@ class _CanvasPageState extends State<CanvasPage> {
     }
     _interactiveCanvasPointerIds.add(event.pointer);
     if (_toggleSelectionIfModifierPressed(model)) return;
+    _setActiveElement(model);
     _bringElementToFront(model);
-    _clearActiveShapes();
   }
 
   // ---------- Editing commands ----------
@@ -1040,7 +1041,9 @@ class _CanvasPageState extends State<CanvasPage> {
   }
 
   void _deleteSelected() {
-    _removeElements(_elements.where((model) => model.selected));
+    final targets = _elements.where((model) => model.selected).toList();
+    if (targets.isEmpty && _activeElement != null) targets.add(_activeElement!);
+    _removeElements(targets);
   }
 
   // ---------- Clipboard ----------
@@ -1148,6 +1151,7 @@ class _CanvasPageState extends State<CanvasPage> {
         _mountElement(model);
       }
       _clearTextEditing();
+      _setActiveElement(null);
       _setSelection(pasted.toSet());
       _scheduleDocumentSave();
       _finishHistoryOperation();
@@ -1192,12 +1196,9 @@ class _CanvasPageState extends State<CanvasPage> {
   void _placePastedMedia(MediaModel model) {
     final screenPosition = _canvasPointerPosition.value ?? _canvasController.canvasSize.center(Offset.zero);
     final center = _screenToCanvas(screenPosition);
-    model
-      ..data.position = center - model.canvasSize.center(Offset.zero)
-      ..active = false;
+    model.data.position = center - model.canvasSize.center(Offset.zero);
     _clearTextEditing();
-    _clearActiveMedia();
-    _clearActiveShapes();
+    _setActiveElement(null);
     _clearSelection();
     model.selected = true;
     _mountElement(model);
@@ -1238,6 +1239,7 @@ class _CanvasPageState extends State<CanvasPage> {
       _clearTextEditing();
       setState(() => _editingChromeModel = null);
     }
+    if (modelsToDispose.contains(_activeElement)) _setActiveElement(null);
     for (final model in modelsToDispose) {
       _editorFocusNode(model)?.unfocus();
       _editorFocusNode(model)?.removeListener(_finishHistoryOperation);
@@ -1391,6 +1393,7 @@ class _CanvasPageState extends State<CanvasPage> {
     _arrowTool.cancel();
     _shapeTool.cancel();
     _activeTool.value = _CanvasTool.select;
+    _activeElement = null;
     _eraserPointer = null;
     _spaceHeld = false;
     _interactiveCanvasPointerIds.clear();
@@ -1461,7 +1464,7 @@ class _CanvasPageState extends State<CanvasPage> {
         !HardwareKeyboard.instance.isAltPressed &&
         !HardwareKeyboard.instance.isShiftPressed;
     if (unmodifiedKeyDown && event.logicalKey == LogicalKeyboardKey.escape) {
-      if (_editingElement) {
+      if (_editingElement || _activeElement != null) {
         _clearElementEditing();
         _clearSelection();
       } else {
@@ -1692,6 +1695,7 @@ class _CanvasPageState extends State<CanvasPage> {
     final colors = theme.colors;
     final geo = theme.geo;
     final editingChromeModel = _editingChromeModel;
+    final activeTextBlock = _activeTextBlock;
     return Scaffold(
       body: Stack(
         children: [
@@ -1806,12 +1810,12 @@ class _CanvasPageState extends State<CanvasPage> {
                       switchInCurve: Curves.easeOutCubic,
                       switchOutCurve: Curves.easeOutCubic,
                       transitionBuilder: _textEditingChromeTransition,
-                      child: switch (_editingTextBlock) {
+                      child: switch (activeTextBlock) {
                         final editing? => ListenableBuilder(
                           key: ValueKey(editing.node.id),
                           listenable: editing,
                           builder: (context, child) => IgnorePointer(
-                            ignoring: !editing.editing,
+                            ignoring: !editing.active,
                             child: child,
                           ),
                           child: TextBlockControls(
@@ -1977,12 +1981,12 @@ class _CanvasPageState extends State<CanvasPage> {
                       ),
                     ),
                     ToolOptions(
-                      child: _editingTextBlock != null
+                      child: activeTextBlock != null
                           ? TextToolSettings(
                               key: ValueKey(
-                                'text-settings-${_editingTextBlock!.node.id}',
+                                'text-settings-${activeTextBlock.node.id}',
                               ),
-                              model: _editingTextBlock!,
+                              model: activeTextBlock,
                               onChangeBoundary: _finishHistoryOperation,
                               colorPickerExpanded: _textColorPickerExpanded,
                               onColorPickerExpandedChanged: (expanded) => setState(

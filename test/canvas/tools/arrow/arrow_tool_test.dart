@@ -142,6 +142,7 @@ void main() {
         );
     await tester.tapAt(startPoint);
     await tester.pump();
+    expect(first.active, isTrue);
     expect(first.selected, isTrue);
 
     const moveDelta = Offset(40, 30);

@@ -10,16 +10,6 @@ part of 'shape_tool.dart';
 class ShapeModel extends CanvasElementModel<ShapeElementData> {
   ShapeModel(super.data);
 
-  bool _active = false;
-
-  bool get active => _active;
-
-  set active(bool value) {
-    if (_active == value) return;
-    _active = value;
-    notifyListeners();
-  }
-
   @override
   Offset get canvasPosition => data.position;
 

@@ -10,7 +10,6 @@ class _MediaUrlPanel extends StatelessWidget {
     required this.model,
     required this.onPickImage,
     this.onMove,
-    super.key,
   });
 
   final MediaModel model;

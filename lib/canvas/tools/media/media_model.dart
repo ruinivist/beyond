@@ -23,7 +23,6 @@ class MediaModel extends CanvasElementModel<MediaElementData> {
   ImageStreamListener? _imageListener;
   Object? _attachmentLoad;
   double? _aspectRatio;
-  var _active = false;
 
   // ---------- State and geometry ----------
 
@@ -32,15 +31,6 @@ class MediaModel extends CanvasElementModel<MediaElementData> {
   bool get hasImage => _image != null && _aspectRatio != null;
 
   double get urlPanelWidth => hasImage ? math.max(mediaUrlPanelMinimumWidth, data.width) : mediaUrlPanelMinimumWidth;
-
-  bool get active => _active;
-
-  set active(bool value) {
-    final next = value && hasImage;
-    if (_active == next) return;
-    _active = next;
-    notifyListeners();
-  }
 
   @override
   Offset get canvasPosition => data.position;
@@ -85,7 +75,6 @@ class MediaModel extends CanvasElementModel<MediaElementData> {
     _detachImage();
     _image = MemoryImage(bytes);
     _aspectRatio = ratio;
-    _active = true;
     notifyListeners();
   }
 
@@ -94,7 +83,6 @@ class MediaModel extends CanvasElementModel<MediaElementData> {
   void _syncUrl() {
     if (data.url == controller.text) return;
     data.url = controller.text;
-    _active = false;
     _loadImage();
     notifyListeners();
   }
@@ -120,7 +108,6 @@ class MediaModel extends CanvasElementModel<MediaElementData> {
       _attachImage(MemoryImage(bytes));
     } on Object {
       if (_attachmentLoad != load) return;
-      _active = false;
       notifyListeners();
     }
   }
@@ -133,13 +120,11 @@ class MediaModel extends CanvasElementModel<MediaElementData> {
         if (_aspectRatio == ratio && _image == image) return;
         _image = image;
         _aspectRatio = ratio;
-        _active = focusNode.hasFocus;
         notifyListeners();
       },
       onError: (_, _) {
         _image = null;
         _aspectRatio = null;
-        _active = false;
         notifyListeners();
       },
     );

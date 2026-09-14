@@ -17,12 +17,21 @@ abstract class CanvasElementModel<T extends CanvasElementData> extends ChangeNot
 
   final T data;
   bool _selected = false;
+  bool _active = false;
 
   bool get selected => _selected;
 
   set selected(bool value) {
     if (_selected == value) return;
     _selected = value;
+    notifyListeners();
+  }
+
+  bool get active => _active;
+
+  set active(bool value) {
+    if (_active == value) return;
+    _active = value;
     notifyListeners();
   }
 

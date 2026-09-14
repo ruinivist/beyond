@@ -529,6 +529,7 @@ void main() {
     await tester.tapAt(tester.getCenter(penFinder));
     await tester.pump();
     expect(elementIds(), ['arrow', 'pen']);
+    expect(pen.active, isTrue);
     expect(pen.selected, isFalse);
 
     final arrowStart =
@@ -540,6 +541,8 @@ void main() {
     await tester.tapAt(arrowStart);
     await tester.pump();
     expect(elementIds(), ['pen', 'arrow']);
+    expect(pen.active, isFalse);
+    expect(arrow.active, isTrue);
     expect(arrow.selected, isTrue);
 
     await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
@@ -748,15 +751,41 @@ void main() {
     await tester.pump();
     final code = tester.widget<CodeTool>(find.byType(CodeTool)).model;
     expect(tester.getTopLeft(find.byType(CodeTool)), const Offset(120, 200));
+    expect(code.active, isTrue);
     expect(code.focusNode.hasFocus, isTrue);
 
     code.selected = true;
     await tester.sendKeyEvent(LogicalKeyboardKey.escape);
     await tester.pump();
     expect(find.byType(CodeTool), findsOneWidget);
+    expect(code.active, isFalse);
     expect(code.focusNode.hasFocus, isFalse);
     expect(code.selected, isFalse);
     await tester.pump(const Duration(milliseconds: 100));
+  });
+
+  testWidgets('delete removes an active unselected code block', (
+    tester,
+  ) async {
+    await tester.pumpWidget(const BeyondApp());
+    await tester.pump();
+    await _placeCodeBlock(tester, const Offset(120, 100));
+
+    final block = find.byType(CodeTool);
+    final code = tester.widget<CodeTool>(block).model;
+    code.focusNode.unfocus();
+    await tester.pump();
+    await tester.drag(
+      find.byKey(const ValueKey('code-block-header')),
+      const Offset(30, 20),
+    );
+    await tester.pump();
+
+    expect(code.active, isTrue);
+    expect(code.selected, isFalse);
+    await tester.sendKeyEvent(LogicalKeyboardKey.delete);
+    await tester.pumpAndSettle();
+    expect(block, findsNothing);
   });
 
   testWidgets('primary+A selects and deletes offscreen mixed children', (
@@ -976,6 +1005,7 @@ void main() {
     );
     FocusManager.instance.primaryFocus?.unfocus();
     await tester.pump();
+    expect(code.active, isTrue);
 
     await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
     await tester.pump();
@@ -985,6 +1015,8 @@ void main() {
     await tester.pump();
     expect(text.selected, isTrue);
     expect(code.selected, isTrue);
+    expect(text.active, isFalse);
+    expect(code.active, isTrue);
     await tester.tapAt(codeHeaderCenter);
     await tester.pump();
     expect(text.selected, isTrue);
@@ -1015,6 +1047,8 @@ void main() {
       find.byKey(const ValueKey('text-markdown-preview-surface')),
     );
     await tester.pump();
+    expect(text.active, isTrue);
+    expect(code.active, isFalse);
     expect(text.editing, isTrue);
     expect(text.selected, isFalse);
     expect(code.selected, isFalse);

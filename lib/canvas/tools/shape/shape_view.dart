@@ -43,13 +43,13 @@ class Shape extends StatelessWidget {
                         model.data.kind,
                         Offset.zero & model.canvasSize,
                       ),
-                      color: model.selected || model.active ? colors.accent : Color(model.data.strokeColor),
+                      color: model.selected ? colors.accent : Color(model.data.strokeColor),
                       fillColor: model.data.fillColor == null ? null : Color(model.data.fillColor!),
                       strokeWidth: model.data.strokeWidth,
                     ),
                   ),
                 ),
-                if (model.selected || model.active)
+                if (model.active)
                   Positioned(
                     right: 0,
                     bottom: 0,

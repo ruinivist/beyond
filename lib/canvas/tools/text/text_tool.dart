@@ -107,14 +107,14 @@ class TextTool extends StatelessWidget {
                           right: 2,
                           bottom: 2,
                           child: IgnorePointer(
-                            ignoring: !model.editing,
+                            ignoring: !model.active,
                             child: AnimatedSwitcher(
                               duration: const Duration(milliseconds: 260),
                               reverseDuration: const Duration(milliseconds: 180),
                               switchInCurve: Curves.easeOutCubic,
                               switchOutCurve: Curves.easeOutCubic,
                               transitionBuilder: _resizeHandleTransition,
-                              child: model.editing
+                              child: model.active
                                   ? TextFieldTapRegion(
                                       child: ResizeHandle(
                                         key: const ValueKey('text-block-resize-handle'),

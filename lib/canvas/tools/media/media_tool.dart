@@ -34,12 +34,14 @@ class MediaTool extends StatefulWidget {
     required this.model,
     required this.onMove,
     required this.onResize,
+    required this.onDeactivate,
     super.key,
   });
 
   final MediaModel model;
   final ValueChanged<Offset> onMove;
   final ValueChanged<Offset> onResize;
+  final VoidCallback onDeactivate;
 
   @override
   State<MediaTool> createState() => _MediaToolState();
@@ -49,7 +51,6 @@ class _MediaToolState extends State<MediaTool> {
   // ---------- State ----------
 
   final _portalController = OverlayPortalController();
-  final Key _panelKey = GlobalKey();
 
   // ---------- Lifecycle and actions ----------
 
@@ -111,18 +112,17 @@ class _MediaToolState extends State<MediaTool> {
                     child: SizedBox(
                       width: panelWidth,
                       child: IgnorePointer(
-                        ignoring: !model.active,
+                        ignoring: !model.active || !model.hasImage,
                         child: AnimatedSwitcher(
                           duration: const Duration(milliseconds: 260),
                           reverseDuration: const Duration(milliseconds: 180),
                           switchInCurve: Curves.easeOutCubic,
                           switchOutCurve: Curves.easeOutCubic,
                           transitionBuilder: _mediaUrlPanelTransition,
-                          child: model.active
+                          child: model.active && model.hasImage
                               ? TapRegion(
                                   groupId: model,
                                   child: _MediaUrlPanel(
-                                    key: _panelKey,
                                     model: model,
                                     onPickImage: _pickImage,
                                   ),
@@ -140,7 +140,7 @@ class _MediaToolState extends State<MediaTool> {
             child: model.hasImage
                 ? TapRegion(
                     groupId: model,
-                    onTapOutside: (_) => model.active = false,
+                    onTapOutside: (_) => widget.onDeactivate(),
                     child: _MediaImage(
                       model: model,
                       onMove: widget.onMove,
@@ -148,7 +148,6 @@ class _MediaToolState extends State<MediaTool> {
                     ),
                   )
                 : _MediaUrlPanel(
-                    key: _panelKey,
                     model: model,
                     onMove: widget.onMove,
                     onPickImage: _pickImage,
