@@ -125,7 +125,6 @@ TextBlockModel _model(String markdown) => TextBlockModel(
     markdown: markdown,
     style: const TextNodeStyle(
       fontFamily: 'Inter',
-      fontSize: textNodeDefaultFontSize,
       color: '#201C1A',
     ),
   ),

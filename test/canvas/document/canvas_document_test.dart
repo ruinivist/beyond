@@ -33,7 +33,6 @@ void main() {
           rotation: math.pi * 3,
           style: const TextNodeStyle(
             fontFamily: 'Inter',
-            fontSize: 20,
             color: '#201C1A',
             noFill: true,
           ),
@@ -102,7 +101,6 @@ void main() {
     expect(node.rotation, math.pi * 3);
     expect(node.markdown, source);
     expect(node.style.fontFamily, 'Inter');
-    expect(node.style.fontSize, 20);
     expect(node.style.color, '#201C1A');
     expect(node.style.noFill, isTrue);
 
@@ -239,7 +237,6 @@ void main() {
         _encodedText(
           style: {
             'fontFamily': 'Source Serif 4',
-            'fontSize': 20.0,
             'color': '#201C1A',
             'extra': true,
           },
@@ -287,12 +284,6 @@ void main() {
     expect(
       () => CanvasDocument.fromJson(
         _document(elements: [_encodedText(height: double.nan)]),
-      ),
-      throwsA(isA<FormatException>()),
-    );
-    expect(
-      () => CanvasDocument.fromJson(
-        _document(elements: [_encodedText(fontSize: double.infinity)]),
       ),
       throwsA(isA<FormatException>()),
     );
@@ -414,7 +405,6 @@ Map<String, Object?> _encodedText({
   Object? height,
   Object rotation = 0.0,
   String fontFamily = 'Source Serif 4',
-  Object fontSize = textNodeDefaultFontSize,
   String color = '#201C1A',
   Map<String, Object?>? style,
 }) {
@@ -429,7 +419,6 @@ Map<String, Object?> _encodedText({
         style ??
         {
           'fontFamily': fontFamily,
-          'fontSize': fontSize,
           'color': color,
           'noFill': false,
         },

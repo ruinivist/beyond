@@ -778,7 +778,6 @@ class _CanvasPageState extends State<CanvasPage> {
       markdown: '',
       style: TextNodeStyle(
         fontFamily: 'Source Serif 4',
-        fontSize: textNodeDefaultFontSize,
         color: colorToHex(BTheme.of(context).colors.textPrimary),
       ),
     );

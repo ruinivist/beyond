@@ -1079,10 +1079,6 @@ Inline $x^2$''';
     expect(savedNodes.first.height, second.node.height);
     expect(savedNodes.first.style.fontFamily, 'Inter');
     expect(
-      savedNodes.first.style.fontSize,
-      second.node.style.fontSize,
-    );
-    expect(
       savedNodes.first.style.color,
       isNot(savedNodes.last.style.color),
     );
@@ -1119,10 +1115,6 @@ Inline $x^2$''';
     expect(restoredNodes.map((node) => node.style.fontFamily).toList(), [
       second.node.style.fontFamily,
       first.node.style.fontFamily,
-    ]);
-    expect(restoredNodes.map((node) => node.style.fontSize).toList(), [
-      second.node.style.fontSize,
-      first.node.style.fontSize,
     ]);
     expect(restoredNodes.map((node) => node.style.color).toList(), [
       second.node.style.color,

@@ -308,7 +308,6 @@ final _document = CanvasDocument(
       markdown: 'hello',
       style: const TextNodeStyle(
         fontFamily: 'Inter',
-        fontSize: 20,
         color: '#201C1A',
       ),
     ),

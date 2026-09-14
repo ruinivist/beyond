@@ -1424,7 +1424,6 @@ void main() {
           markdown: 'overlap',
           style: const TextNodeStyle(
             fontFamily: 'Source Serif 4',
-            fontSize: 20,
             color: '#201C1A',
           ),
         ),
@@ -1450,7 +1449,6 @@ void main() {
           markdown: 'drag',
           style: const TextNodeStyle(
             fontFamily: 'Source Serif 4',
-            fontSize: 20,
             color: '#201C1A',
           ),
         ),

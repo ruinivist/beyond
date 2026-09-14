@@ -123,11 +123,10 @@ TextNodeStyle _$TextNodeStyleFromJson(Map<String, dynamic> json) =>
     $checkedCreate('TextNodeStyle', json, ($checkedConvert) {
       $checkKeys(
         json,
-        allowedKeys: const ['fontFamily', 'fontSize', 'color', 'noFill'],
+        allowedKeys: const ['fontFamily', 'color', 'noFill'],
       );
       final val = TextNodeStyle._json(
         fontFamily: $checkedConvert('fontFamily', (v) => v as String),
-        fontSize: $checkedConvert('fontSize', (v) => (v as num).toDouble()),
         color: $checkedConvert('color', (v) => v as String),
         noFill: $checkedConvert('noFill', (v) => v as bool),
       );
@@ -136,7 +135,6 @@ TextNodeStyle _$TextNodeStyleFromJson(Map<String, dynamic> json) =>
 
 Map<String, dynamic> _$TextNodeStyleToJson(TextNodeStyle instance) => <String, dynamic>{
   'fontFamily': instance.fontFamily,
-  'fontSize': instance.fontSize,
   'color': instance.color,
   'noFill': instance.noFill,
 };

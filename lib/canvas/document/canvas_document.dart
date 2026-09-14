@@ -16,7 +16,6 @@ const textNodeDefaultWidth = 420.0;
 const textNodeDefaultHeight = 108.0;
 const textNodeMinimumWidth = 160.0;
 const textNodeMinimumHeight = 52.0;
-const textNodeDefaultFontSize = 20.0;
 
 const textNodeFontFamilies = <String>{
   'Source Serif 4',
@@ -62,7 +61,7 @@ class CanvasDocument {
   factory CanvasDocument.fromJson(Object? json) {
     final document = _decode(json, 'document', _$CanvasDocumentFromJson);
     if (document.schemaVersion != version) {
-      throw const FormatException('document.version must be 2');
+      throw const FormatException('document.version must be 3');
     }
     final ids = <String>{};
     for (final element in document.elements) {
@@ -75,7 +74,7 @@ class CanvasDocument {
 
   // ---------- Constants ----------
 
-  static const version = 2;
+  static const version = 3;
 
   // ---------- State ----------
 
@@ -273,14 +272,12 @@ class TextNodeStyle {
 
   const TextNodeStyle({
     required this.fontFamily,
-    required this.fontSize,
     required this.color,
     this.noFill = false,
   });
 
   const TextNodeStyle._json({
     required this.fontFamily,
-    required this.fontSize,
     required this.color,
     required this.noFill,
   });
@@ -290,7 +287,6 @@ class TextNodeStyle {
     if (!textNodeFontFamilies.contains(style.fontFamily)) {
       throw const FormatException('style.fontFamily is not supported');
     }
-    _validatePositive(style.fontSize, 'style.fontSize');
     if (!_canonicalColor.hasMatch(style.color)) {
       throw const FormatException('style.color must be uppercase #RRGGBB');
     }
@@ -300,7 +296,6 @@ class TextNodeStyle {
   // ---------- State ----------
 
   final String fontFamily;
-  final double fontSize;
   final String color;
   final bool noFill;
 
@@ -308,13 +303,11 @@ class TextNodeStyle {
 
   TextNodeStyle copyWith({
     String? fontFamily,
-    double? fontSize,
     String? color,
     bool? noFill,
   }) {
     return TextNodeStyle(
       fontFamily: fontFamily ?? this.fontFamily,
-      fontSize: fontSize ?? this.fontSize,
       color: color ?? this.color,
       noFill: noFill ?? this.noFill,
     );

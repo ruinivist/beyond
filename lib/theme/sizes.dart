@@ -7,5 +7,6 @@ abstract final class BSizes {
   static const defaultTextButtonSize = Size(160, 36);
   static const defaultIconSize = 18.0;
   static const defaultIconButtonSize = Size.square(40);
+  static const markdownBodyFontSize = 14.0;
   static const toolOptionsWidth = 160.0;
 }

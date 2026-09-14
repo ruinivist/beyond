@@ -178,7 +178,6 @@ CanvasDocument _document({required String markdown}) => CanvasDocument(
       markdown: markdown,
       style: const TextNodeStyle(
         fontFamily: 'Inter',
-        fontSize: 20,
         color: '#201C1A',
       ),
     ),

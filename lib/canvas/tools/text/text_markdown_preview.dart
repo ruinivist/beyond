@@ -117,23 +117,22 @@ MarkdownStyleSheet _styleSheet(BuildContext context, TextNodeStyle style) {
   final theme = BTheme.of(context);
   final colors = theme.colors;
   final base = _fontStyle(style).copyWith(height: 1.5);
-  double scaled(double ratio) => style.fontSize * ratio;
   final code = theme.typo.code.copyWith(
     color: colors.textPrimary,
-    fontSize: scaled(0.85),
+    fontSize: BSizes.markdownBodyFontSize - 1,
     backgroundColor: colors.surfaceSubtle,
   );
-  final table = base.copyWith(fontSize: scaled(0.875), height: 1.45);
+  final table = base.copyWith(fontSize: BSizes.markdownBodyFontSize - 1, height: 1.45);
 
   return MarkdownStyleSheet.fromTheme(Theme.of(context)).copyWith(
     a: base.copyWith(color: colors.accent),
     p: base,
     code: code,
-    h1: base.copyWith(fontSize: scaled(1.50), fontWeight: FontWeight.w600, height: 1.2),
-    h2: base.copyWith(fontSize: scaled(1.375), fontWeight: FontWeight.w600, height: 1.25),
-    h3: base.copyWith(fontSize: scaled(1.25), fontWeight: FontWeight.w600, height: 1.3),
-    h4: base.copyWith(fontSize: scaled(1.125), fontWeight: FontWeight.w600, height: 1.35),
-    h5: base.copyWith(fontSize: scaled(1.0625), fontWeight: FontWeight.w600, height: 1.35),
+    h1: base.copyWith(fontSize: BSizes.markdownBodyFontSize + 10, fontWeight: FontWeight.w600, height: 1.2),
+    h2: base.copyWith(fontSize: BSizes.markdownBodyFontSize + 8, fontWeight: FontWeight.w600, height: 1.25),
+    h3: base.copyWith(fontSize: BSizes.markdownBodyFontSize + 6, fontWeight: FontWeight.w600, height: 1.3),
+    h4: base.copyWith(fontSize: BSizes.markdownBodyFontSize + 4, fontWeight: FontWeight.w600, height: 1.35),
+    h5: base.copyWith(fontSize: BSizes.markdownBodyFontSize + 2, fontWeight: FontWeight.w600, height: 1.35),
     h6: base.copyWith(fontWeight: FontWeight.w600, height: 1.4),
     em: base.copyWith(fontStyle: FontStyle.italic),
     strong: base.copyWith(fontWeight: FontWeight.w600),
@@ -149,7 +148,7 @@ MarkdownStyleSheet _styleSheet(BuildContext context, TextNodeStyle style) {
 }
 
 TextStyle _fontStyle(TextNodeStyle style) {
-  final base = TextStyle(fontSize: style.fontSize, color: colorFromHex(style.color));
+  final base = TextStyle(fontSize: BSizes.markdownBodyFontSize, color: colorFromHex(style.color));
   return switch (style.fontFamily) {
     'Source Serif 4' => GoogleFonts.sourceSerif4(textStyle: base),
     'Inter' => GoogleFonts.inter(textStyle: base),
