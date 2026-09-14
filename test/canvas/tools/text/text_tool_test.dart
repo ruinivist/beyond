@@ -217,25 +217,25 @@ void main() {
     expect(tester.getTopLeft(textBlock), originalTopLeft + delta);
     expect(model.node.position, const Offset(200, 260));
     expect(model.node.width, originalWidth);
-    expect(model.focusNode.hasFocus, isTrue);
+    expect(model.editing, isFalse);
 
-    FocusManager.instance.primaryFocus?.unfocus();
-    await tester.pump();
     expect(find.byKey(const ValueKey('text-block-handle')), findsOneWidget);
     expect(
       find.byKey(const ValueKey('text-block-resize-handle')),
       findsOneWidget,
     );
-    expect(find.byKey(const ValueKey('text-markdown-editor')), findsOneWidget);
-    expect(find.byKey(const ValueKey('text-markdown-preview')), findsNothing);
+    expect(find.byKey(const ValueKey('text-markdown-editor')), findsNothing);
+    expect(find.byKey(const ValueKey('text-markdown-preview')), findsOneWidget);
   });
 
   testWidgets('text blocks delete from their controls', (tester) async {
     await _addTextBlock(tester, const Offset(120, 200));
+    final model = tester.widget<TextTool>(find.byType(TextTool)).model;
 
     await tester.tap(find.byKey(const ValueKey('text-block-delete-control')));
     await tester.pump();
 
+    expect(model.editing, isFalse);
     expect(find.byType(TextTool), findsNothing);
   });
 
@@ -353,6 +353,8 @@ void main() {
       await tester.pump();
 
       expect(model.node.rotation.abs(), closeTo(math.pi * 1.5, 0.01));
+      expect(model.editing, isFalse);
+      expect(find.byKey(const ValueKey('text-markdown-preview')), findsOneWidget);
     },
   );
 
@@ -829,15 +831,15 @@ Inline $x^2$''';
       expect(model.style.fontFamily, 'Inter');
       expect(model.node.markdown, source);
       expect(model.active, isTrue);
-      expect(model.editing, isTrue);
+      expect(model.editing, isFalse);
       expect(model.focusNode.hasFocus, isFalse);
       expect(
         find.byKey(const ValueKey('text-markdown-editor')),
-        findsOneWidget,
+        findsNothing,
       );
       expect(
         find.byKey(const ValueKey('text-markdown-preview')),
-        findsNothing,
+        findsOneWidget,
       );
       expect(find.byType(TextBlockControls), findsOneWidget);
 
@@ -861,7 +863,7 @@ Inline $x^2$''';
       );
       expect(model.style.color, colorToHex(orange.color));
       expect(model.node.markdown, source);
-      expect(model.editing, isTrue);
+      expect(model.editing, isFalse);
     },
   );
 

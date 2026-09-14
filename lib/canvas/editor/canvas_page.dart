@@ -1824,7 +1824,7 @@ class _CanvasPageState extends State<CanvasPage> {
                             onMove: (delta) => _moveSelectedChildren(editing, delta),
                             onRotate: (angle) => _rotateTextBlock(editing, angle),
                             onDelete: () => _removeElements([editing]),
-                            onTransformStart: _finishHistoryOperation,
+                            onTransformStart: _clearTextEditing,
                             onTransformEnd: _finishHistoryOperation,
                             rotationCenter: () => _textBlockCenter(editing),
                           ),
@@ -1982,15 +1982,18 @@ class _CanvasPageState extends State<CanvasPage> {
                     ),
                     ToolOptions(
                       child: activeTextBlock != null
-                          ? TextToolSettings(
-                              key: ValueKey(
-                                'text-settings-${activeTextBlock.node.id}',
-                              ),
-                              model: activeTextBlock,
-                              onChangeBoundary: _finishHistoryOperation,
-                              colorPickerExpanded: _textColorPickerExpanded,
-                              onColorPickerExpandedChanged: (expanded) => setState(
-                                () => _textColorPickerExpanded = expanded,
+                          ? Listener(
+                              onPointerDown: (_) => _clearTextEditing(),
+                              child: TextToolSettings(
+                                key: ValueKey(
+                                  'text-settings-${activeTextBlock.node.id}',
+                                ),
+                                model: activeTextBlock,
+                                onChangeBoundary: _finishHistoryOperation,
+                                colorPickerExpanded: _textColorPickerExpanded,
+                                onColorPickerExpandedChanged: (expanded) => setState(
+                                  () => _textColorPickerExpanded = expanded,
+                                ),
                               ),
                             )
                           : _penEnabled

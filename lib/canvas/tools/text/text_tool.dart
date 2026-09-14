@@ -46,6 +46,7 @@ class TextTool extends StatelessWidget {
       child: ListenableBuilder(
         listenable: model,
         builder: (context, _) {
+          assert(model.active || !model.editing, 'An inactive text block cannot be editing.');
           final noFill = model.style.noFill;
           final body = model.editing
               ? TextMarkdownEditor(model: model, attachmentStore: attachmentStore)
