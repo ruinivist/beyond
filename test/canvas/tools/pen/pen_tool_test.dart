@@ -791,13 +791,32 @@ void main() {
     expect(find.byKey(const ValueKey('code-block-resize-handle')), findsOneWidget);
     expect(find.byKey(const ValueKey('code-line-numbers')), findsOneWidget);
     expect(find.byKey(const ValueKey('code-show-line-numbers')), findsOneWidget);
-
+    final codeArea = tester.getRect(
+      find.byKey(const ValueKey('code-block-surface')),
+    );
+    final languagePicker = tester.getRect(
+      find.byKey(const ValueKey('code-language-picker')),
+    );
+    expect(codeArea.contains(languagePicker.topLeft), isTrue);
+    expect(codeArea.contains(languagePicker.bottomRight), isTrue);
+    expect(
+      tester
+          .getBottomLeft(
+            find.byKey(const ValueKey('code-title-input-tab')),
+          )
+          .dy,
+      codeArea.top,
+    );
     await tester.sendKeyEvent(LogicalKeyboardKey.escape);
-    await tester.pump();
+    await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('code-title-tab')), findsNothing);
     expect(find.byKey(const ValueKey('code-title-input')), findsNothing);
     expect(find.byKey(const ValueKey('code-language-picker')), findsNothing);
     expect(find.byKey(const ValueKey('code-line-numbers')), findsOneWidget);
+    expect(
+      tester.getRect(find.byKey(const ValueKey('code-block-surface'))),
+      codeArea,
+    );
 
     await tester.tap(find.byKey(const ValueKey('code-block-preview-surface')));
     await tester.pump();
@@ -825,6 +844,8 @@ void main() {
 
     await tester.sendKeyEvent(LogicalKeyboardKey.escape);
     await tester.pump();
+    expect(find.byKey(const ValueKey('code-title-input')), findsNothing);
+    await tester.pumpAndSettle();
     expect(code.active, isFalse);
     expect(find.byKey(const ValueKey('code-title-tab')), findsOneWidget);
     expect(find.byKey(const ValueKey('code-title-input')), findsNothing);
@@ -835,6 +856,7 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('code-block-preview-surface')));
     await tester.pump();
     expect(code.active, isTrue);
+    expect(find.byKey(const ValueKey('code-title-tab')), findsNothing);
     expect(find.byKey(const ValueKey('code-title-input')), findsOneWidget);
     expect(find.byKey(const ValueKey('code-line-numbers')), findsNothing);
 
@@ -977,7 +999,10 @@ void main() {
     await tester.drag(handle, const Offset(-1000, -1000));
     await tester.pump();
 
-    expect(tester.getSize(block), codeBlockMinimumSize);
+    expect(
+      tester.getSize(find.byKey(const ValueKey('code-block-surface'))),
+      codeBlockMinimumSize,
+    );
 
     FocusManager.instance.primaryFocus?.unfocus();
     await tester.pump();

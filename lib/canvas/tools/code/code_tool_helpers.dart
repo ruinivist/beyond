@@ -8,6 +8,17 @@ part of 'code_tool.dart';
 const _codeTitleHeight = 34.0;
 const _codeControlInset = 8.0;
 const _codeEditorPadding = 10.0;
+const _codeControlAnimationDuration = Duration(milliseconds: 220);
+
+Widget _codeControlTransition(Widget child, Animation<double> animation) {
+  return FadeTransition(
+    opacity: animation,
+    child: SlideTransition(
+      position: Tween<Offset>(begin: const Offset(0, 0.2), end: Offset.zero).animate(animation),
+      child: child,
+    ),
+  );
+}
 
 // ---------- Title ----------
 
@@ -15,12 +26,10 @@ class _CodeTitleTab extends StatelessWidget {
   const _CodeTitleTab({
     required this.model,
     required this.editing,
-    required this.maxWidth,
   });
 
   final CodeBlockModel model;
   final bool editing;
-  final double maxWidth;
 
   @override
   Widget build(BuildContext context) {
@@ -34,7 +43,7 @@ class _CodeTitleTab extends StatelessWidget {
       textScaler: MediaQuery.textScalerOf(context),
       locale: Localizations.maybeLocaleOf(context),
     );
-    final width = (labelWidth + 24).clamp(76.0, maxWidth);
+    final width = (labelWidth + 24).clamp(76.0, model.size.width);
     final border = BorderSide(
       color: model.selected ? colors.accent : colors.borderSubtle,
       width: model.selected ? 2 : 1,
@@ -52,30 +61,35 @@ class _CodeTitleTab extends StatelessWidget {
         ),
       ),
       alignment: Alignment.centerLeft,
-      child: editing
-          ? TextFormField(
-              key: const ValueKey('code-title-input'),
-              initialValue: model.title,
-              style: style,
-              cursorColor: colors.accent,
-              onChanged: (title) => model.title = title,
-              decoration: InputDecoration(
-                hintText: 'Untitled',
-                hintStyle: style.copyWith(color: colors.textMuted),
-                border: InputBorder.none,
-                isDense: true,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 12),
-              ),
-            )
-          : Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              child: Text(
-                model.title,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        child: Semantics(
+          label: editing ? null : model.title,
+          child: ExcludeSemantics(
+            excluding: !editing,
+            child: IgnorePointer(
+              ignoring: !editing,
+              child: TextFormField(
+                key: ValueKey(editing ? 'code-title-input' : 'code-title-text'),
+                initialValue: model.title,
                 style: style,
+                cursorColor: colors.accent,
+                readOnly: !editing,
+                canRequestFocus: editing,
+                showCursor: editing,
+                enableInteractiveSelection: editing,
+                onChanged: (title) => model.title = title,
+                decoration: InputDecoration(
+                  hintText: 'Untitled',
+                  hintStyle: style.copyWith(color: colors.textMuted),
+                  border: InputBorder.none,
+                  isCollapsed: true,
+                ),
               ),
             ),
+          ),
+        ),
+      ),
     );
   }
 }
