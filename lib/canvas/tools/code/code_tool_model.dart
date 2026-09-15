@@ -28,6 +28,12 @@ class CodeBlockModel extends CanvasElementModel<CodeElementData> {
     ),
   );
 
+  @override
+  set active(bool value) {
+    if (active && !value) controller.cancelSelection();
+    super.active = value;
+  }
+
   // ---------- Geometry and language ----------
 
   @override

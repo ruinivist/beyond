@@ -5,7 +5,7 @@ part of 'code_tool.dart';
 
 // ---------- Geometry ----------
 
-const _codeTitleTabOverlap = 14.0;
+const _codeTitleHeight = 34.0;
 const _codeControlInset = 8.0;
 const _codeEditorPadding = 10.0;
 

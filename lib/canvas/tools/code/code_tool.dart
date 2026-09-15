@@ -49,7 +49,7 @@ class CodeTool extends StatelessWidget {
         final background = model.selected ? colors.accentSoft : colors.surface;
         final editing = model.active;
         final showTitle = editing || model.title.trim().isNotEmpty;
-        final bodyTop = showTitle ? _codeTitleTabOverlap : 0.0;
+        final bodyTop = showTitle ? _codeTitleHeight : 0.0;
         return Semantics(
           container: true,
           selected: model.selected,
@@ -85,11 +85,7 @@ class CodeTool extends StatelessWidget {
                               showCursorWhenReadOnly: false,
                               padding: EdgeInsets.fromLTRB(
                                 _codeEditorPadding,
-                                editing
-                                    ? 42
-                                    : showTitle
-                                    ? 34 - _codeTitleTabOverlap
-                                    : _codeEditorPadding,
+                                _codeEditorPadding,
                                 editing ? 116 : _codeEditorPadding,
                                 _codeEditorPadding,
                               ),

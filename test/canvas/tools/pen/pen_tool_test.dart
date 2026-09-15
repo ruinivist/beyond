@@ -762,12 +762,17 @@ void main() {
     expect(code.active, isTrue);
     expect(code.focusNode.hasFocus, isTrue);
 
+    code.controller
+      ..text = 'final answer = 42;'
+      ..selectAll();
+    expect(code.controller.selection.isCollapsed, isFalse);
     code.selected = true;
     await tester.sendKeyEvent(LogicalKeyboardKey.escape);
     await tester.pump();
     expect(find.byType(CodeTool), findsOneWidget);
     expect(code.active, isFalse);
     expect(code.focusNode.hasFocus, isFalse);
+    expect(code.controller.selection.isCollapsed, isTrue);
     expect(code.selected, isFalse);
     await tester.pump(const Duration(milliseconds: 100));
   });
