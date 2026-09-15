@@ -6,6 +6,9 @@ fmt:
 run:
 	flutter run -d chrome
 
+run-release:
+	flutter run --release -d chrome
+
 preview:
 	flutter widget-preview start
 
