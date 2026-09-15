@@ -169,6 +169,11 @@ class _CanvasPageState extends State<CanvasPage> {
     _ => null,
   };
 
+  CodeBlockModel? get _activeCodeBlock => switch (_activeElement) {
+    final CodeBlockModel model => model,
+    _ => null,
+  };
+
   // ---------- Lifecycle ----------
 
   @override
@@ -534,10 +539,19 @@ class _CanvasPageState extends State<CanvasPage> {
     _interactiveCanvasPointerIds.add(event.pointer);
     if (!_elements.contains(model)) return;
     if (_toggleSelectionIfModifierPressed(model)) return;
-    _setActiveElement(model);
+    if (!model.active) _setActiveElement(null);
     if (model.focusNode.hasFocus) _finishHistoryOperation();
     _clearTextEditing();
     _bringElementToFront(model);
+  }
+
+  void _editCodeBlock(CodeBlockModel model) {
+    if (!_documentLoaded || _placementEnabled || _penEnabled || _eraserEnabled || !_elements.contains(model)) {
+      return;
+    }
+    _clearTextEditing();
+    _setActiveElement(model);
+    model.focusNode.requestFocus();
   }
 
   void _handleTextBlockPointerDown(
@@ -839,6 +853,7 @@ class _CanvasPageState extends State<CanvasPage> {
         onPointerDown: (event) => _handleCodeBlockPointerDown(code, event),
         child: CodeTool(
           model: code,
+          onEdit: () => _editCodeBlock(code),
           onMove: (delta) => _moveSelectedChildren(code, delta),
           onChangeBoundary: _finishHistoryOperation,
         ),
@@ -929,6 +944,8 @@ class _CanvasPageState extends State<CanvasPage> {
         size: size,
         language: CodeLanguage.dart,
         source: '',
+        title: '',
+        showLineNumbers: true,
       ),
     );
     _mountElement(model, requestFocus: true);
@@ -1698,6 +1715,7 @@ class _CanvasPageState extends State<CanvasPage> {
     final geo = theme.geo;
     final editingChromeModel = _editingChromeModel;
     final activeTextBlock = _activeTextBlock;
+    final activeCodeBlock = _activeCodeBlock;
     return Scaffold(
       body: Stack(
         children: [
@@ -1998,6 +2016,14 @@ class _CanvasPageState extends State<CanvasPage> {
                                     () => _textColorPickerExpanded = expanded,
                                   ),
                                 ),
+                              )
+                            : activeCodeBlock != null
+                            ? CodeToolSettings(
+                                key: ValueKey(
+                                  'code-settings-${activeCodeBlock.data.id}',
+                                ),
+                                model: activeCodeBlock,
+                                onChangeBoundary: _finishHistoryOperation,
                               )
                             : _penEnabled
                             ? _DrawSettings(

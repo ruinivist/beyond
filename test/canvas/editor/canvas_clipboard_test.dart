@@ -281,6 +281,8 @@ void _expectShifted(
       expect(result.position, source.position + delta);
       expect(result.source, source.source);
       expect(result.language, source.language);
+      expect(result.title, source.title);
+      expect(result.showLineNumbers, source.showLineNumbers);
     case (final PenElementData source, final PenElementData result):
       expect(result.position, source.position + delta);
       expect(result.toJson()['points'], source.toJson()['points']);
@@ -317,6 +319,8 @@ final _document = CanvasDocument(
       size: const Size(280, 240),
       language: CodeLanguage.dart,
       source: 'void main() {}',
+      title: 'main.dart',
+      showLineNumbers: true,
     ),
     PenElementData(
       id: 'pen',

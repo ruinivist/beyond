@@ -54,6 +54,8 @@ void main() {
           size: const Size(600, 400),
           language: CodeLanguage.dart,
           source: 'void main() {}',
+          title: 'main.dart',
+          showLineNumbers: true,
         ),
         MediaElementData(
           id: 'media-1',
@@ -114,6 +116,8 @@ void main() {
     expect(code.size, const Size(600, 400));
     expect(code.language, CodeLanguage.dart);
     expect(code.source, 'void main() {}');
+    expect(code.title, 'main.dart');
+    expect(code.showLineNumbers, isTrue);
 
     final media = elements[4] as MediaElementData;
     expect(media.position, const Offset(220, -80));
@@ -432,6 +436,8 @@ Map<String, Object?> _encodedCode({String id = 'code-1'}) => {
   'size': {'width': 280.0, 'height': 240.0},
   'language': 'dart',
   'source': '',
+  'title': '',
+  'showLineNumbers': true,
 };
 
 Map<String, Object?> _encodedPen({String id = 'pen-1'}) => {

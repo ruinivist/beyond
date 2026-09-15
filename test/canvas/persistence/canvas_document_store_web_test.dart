@@ -19,7 +19,7 @@ void main() {
     await SharedPreferencesAsync().remove(CanvasDocumentStore.key);
   });
 
-  test('persists the v3 canvas document in browser storage', () async {
+  test('persists the v4 canvas document in browser storage', () async {
     const document = CanvasDocument(
       background: CanvasBackgroundKind.plain,
       elements: [],

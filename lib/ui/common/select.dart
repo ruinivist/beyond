@@ -73,6 +73,7 @@ ButtonStyle _selectTriggerStyle({
   required BTheme theme,
   required bool showBorder,
   required double width,
+  required bool compact,
 }) {
   final colors = theme.colors;
   return ButtonStyle(
@@ -97,13 +98,15 @@ ButtonStyle _selectTriggerStyle({
       RoundedRectangleBorder(borderRadius: theme.geo.radiusMedium),
     ),
     textStyle: WidgetStatePropertyAll(theme.typo.body),
-    padding: const WidgetStatePropertyAll(
+    padding: WidgetStatePropertyAll(
       EdgeInsets.symmetric(
-        horizontal: _selectTriggerHorizontalPadding,
+        horizontal: compact ? 8 : _selectTriggerHorizontalPadding,
         vertical: 6,
       ),
     ),
-    fixedSize: WidgetStatePropertyAll(Size(width, _selectTriggerHeight)),
+    fixedSize: WidgetStatePropertyAll(
+      Size(width, compact ? 32 : _selectTriggerHeight),
+    ),
     tapTargetSize: MaterialTapTargetSize.shrinkWrap,
     alignment: Alignment.centerLeft,
   );
@@ -189,6 +192,7 @@ Widget _buildSelectTrigger({
   required BTheme theme,
   required bool showBorder,
   required double width,
+  required bool compact,
 }) {
   return Semantics(
     key: triggerKey,
@@ -213,6 +217,7 @@ Widget _buildSelectTrigger({
           theme: theme,
           showBorder: showBorder,
           width: width,
+          compact: compact,
         ),
         child: Row(
           children: [
@@ -383,6 +388,7 @@ class _SelectState<T> extends State<Select<T>> {
         theme: _theme,
         showBorder: widget.showBorder,
         width: _preferredWidth,
+        compact: false,
       ),
     );
   }
@@ -442,6 +448,17 @@ class _SearchableSelectState<T> extends State<SearchableSelect<T>> {
   BColors get _colors => _theme.colors;
   TextStyle get _textStyle => _theme.typo.body;
   double get _preferredWidth => _selectPreferredWidth(context, widget.options, _textStyle);
+
+  double get _compactTriggerWidth {
+    final label = _selectedOption?.label ?? '';
+    return TextPainter.computeWidth(
+          text: TextSpan(text: label, style: _textStyle),
+          textDirection: Directionality.of(context),
+          textScaler: MediaQuery.textScalerOf(context),
+          locale: Localizations.maybeLocaleOf(context),
+        ) +
+        32;
+  }
 
   double get _triggerWidth {
     final renderBox = _triggerKey.currentContext?.findRenderObject();
@@ -525,7 +542,8 @@ class _SearchableSelectState<T> extends State<SearchableSelect<T>> {
   @override
   Widget build(BuildContext context) {
     final selected = _selectedOption;
-    final menuWidth = _triggerWidth - 8;
+    final compact = !widget.showBorder;
+    final menuWidth = (compact ? _preferredWidth : _triggerWidth) - 8;
     final visibleOptions = _visibleOptions;
     return MenuAnchor(
       key: const ValueKey('searchable-select-menu'),
@@ -534,7 +552,10 @@ class _SearchableSelectState<T> extends State<SearchableSelect<T>> {
       onOpen: _prepareSearch,
       alignmentOffset: const Offset(0, 4),
       crossAxisUnconstrained: false,
-      style: _selectMenuStyle(theme: _theme, width: () => _triggerWidth),
+      style: _selectMenuStyle(
+        theme: _theme,
+        width: () => compact ? _preferredWidth : _triggerWidth,
+      ),
       menuChildren: [
         SizedBox(
           width: menuWidth,
@@ -601,7 +622,8 @@ class _SearchableSelectState<T> extends State<SearchableSelect<T>> {
         keyPrefix: 'searchable-select',
         theme: _theme,
         showBorder: widget.showBorder,
-        width: _preferredWidth,
+        width: compact ? _compactTriggerWidth : _preferredWidth,
+        compact: compact,
       ),
     );
   }

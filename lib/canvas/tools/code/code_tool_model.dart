@@ -53,6 +53,22 @@ class CodeBlockModel extends CanvasElementModel<CodeElementData> {
     notifyListeners();
   }
 
+  String get title => data.title;
+
+  set title(String value) {
+    if (data.title == value) return;
+    data.title = value;
+    notifyListeners();
+  }
+
+  bool get showLineNumbers => data.showLineNumbers;
+
+  set showLineNumbers(bool value) {
+    if (data.showLineNumbers == value) return;
+    data.showLineNumbers = value;
+    notifyListeners();
+  }
+
   @override
   void moveBy(Offset delta) {
     if (delta == Offset.zero) return;

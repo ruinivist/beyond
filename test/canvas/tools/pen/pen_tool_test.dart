@@ -266,6 +266,8 @@ void main() {
         size: const Size(280, 240),
         language: CodeLanguage.dart,
         source: '',
+        title: '',
+        showLineNumbers: true,
       ),
     );
 
@@ -720,7 +722,7 @@ void main() {
 
     await _placeCodeBlock(tester, const Offset(120, 100));
     await tester.tapAt(
-      tester.getCenter(find.byKey(const ValueKey('code-block-header'))),
+      tester.getCenter(find.byKey(const ValueKey('code-block-surface'))),
     );
     await tester.pump();
     final code = tester.widget<CodeTool>(find.byType(CodeTool)).model;
@@ -770,6 +772,71 @@ void main() {
     await tester.pump(const Duration(milliseconds: 100));
   });
 
+  testWidgets('code controls follow editing and persisted display settings', (
+    tester,
+  ) async {
+    await tester.pumpWidget(const BeyondApp());
+    await tester.pump();
+    await _placeCodeBlock(tester, const Offset(120, 100));
+    await tester.pump();
+
+    final code = tester.widget<CodeTool>(find.byType(CodeTool)).model;
+    expect(find.byKey(const ValueKey('code-title-input')), findsOneWidget);
+    expect(find.byKey(const ValueKey('code-language-picker')), findsOneWidget);
+    expect(find.byKey(const ValueKey('code-block-resize-handle')), findsOneWidget);
+    expect(find.byKey(const ValueKey('code-line-numbers')), findsOneWidget);
+    expect(find.byKey(const ValueKey('code-show-line-numbers')), findsOneWidget);
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await tester.pump();
+    expect(find.byKey(const ValueKey('code-title-tab')), findsNothing);
+    expect(find.byKey(const ValueKey('code-title-input')), findsNothing);
+    expect(find.byKey(const ValueKey('code-language-picker')), findsNothing);
+    expect(find.byKey(const ValueKey('code-line-numbers')), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('code-block-preview-surface')));
+    await tester.pump();
+    await tester.enterText(
+      find.byKey(const ValueKey('code-title-input')),
+      'main.dart',
+    );
+    tester
+        .widget<CheckboxListTile>(
+          find.byKey(const ValueKey('code-show-line-numbers')),
+        )
+        .onChanged!(false);
+    await tester.pump();
+    expect(code.title, 'main.dart');
+    expect(code.showLineNumbers, isFalse);
+    expect(
+      tester
+          .widget<CheckboxListTile>(
+            find.byKey(const ValueKey('code-show-line-numbers')),
+          )
+          .value,
+      isFalse,
+    );
+    expect(find.byKey(const ValueKey('code-line-numbers')), findsNothing);
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await tester.pump();
+    expect(code.active, isFalse);
+    expect(find.byKey(const ValueKey('code-title-tab')), findsOneWidget);
+    expect(find.byKey(const ValueKey('code-title-input')), findsNothing);
+    expect(find.byKey(const ValueKey('code-language-picker')), findsNothing);
+    expect(find.byKey(const ValueKey('code-block-resize-handle')), findsNothing);
+    expect(find.byKey(const ValueKey('code-show-line-numbers')), findsNothing);
+
+    await tester.tap(find.byKey(const ValueKey('code-block-preview-surface')));
+    await tester.pump();
+    expect(code.active, isTrue);
+    expect(find.byKey(const ValueKey('code-title-input')), findsOneWidget);
+    expect(find.byKey(const ValueKey('code-line-numbers')), findsNothing);
+
+    FocusManager.instance.primaryFocus?.unfocus();
+    await tester.pump(const Duration(milliseconds: 100));
+  });
+
   testWidgets('delete removes an active unselected code block', (
     tester,
   ) async {
@@ -780,11 +847,6 @@ void main() {
     final block = find.byType(CodeTool);
     final code = tester.widget<CodeTool>(block).model;
     code.focusNode.unfocus();
-    await tester.pump();
-    await tester.drag(
-      find.byKey(const ValueKey('code-block-header')),
-      const Offset(30, 20),
-    );
     await tester.pump();
 
     expect(code.active, isTrue);
@@ -951,7 +1013,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 100));
   });
 
-  testWidgets('code blocks move from the header without selecting', (
+  testWidgets('inactive code blocks move from the surface without selecting', (
     tester,
   ) async {
     await tester.pumpWidget(const BeyondApp());
@@ -959,21 +1021,19 @@ void main() {
 
     await _placeCodeBlock(tester, const Offset(120, 100));
     await tester.pump(const Duration(milliseconds: 100));
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await tester.pump();
 
     final block = find.byType(CodeTool);
-    final header = find.byKey(const ValueKey('code-block-header'));
+    final preview = find.byKey(const ValueKey('code-block-preview-surface'));
     final canvas = tester.widget<LazyCanvas>(find.byType(LazyCanvas));
     final originalTopLeft = tester.getTopLeft(block);
     final originalCanvasOffset = canvas.controller.offset;
 
     expect(tester.widget<CodeTool>(block).model.selected, isFalse);
 
-    await tester.tap(header);
-    await tester.pump();
-    expect(tester.widget<CodeTool>(block).model.selected, isFalse);
-
     const delta = Offset(80, 60);
-    await tester.drag(header, delta);
+    await tester.drag(preview, delta);
     await tester.pump();
 
     expect(tester.getTopLeft(block), originalTopLeft + delta);
@@ -1006,8 +1066,8 @@ void main() {
     final textCenter = tester.getCenter(
       find.byKey(const ValueKey('text-markdown-preview-surface')),
     );
-    final codeHeaderCenter = tester.getCenter(
-      find.byKey(const ValueKey('code-block-header')),
+    final codeSurfaceCenter = tester.getCenter(
+      find.byKey(const ValueKey('code-block-surface')),
     );
     FocusManager.instance.primaryFocus?.unfocus();
     await tester.pump();
@@ -1017,17 +1077,17 @@ void main() {
     await tester.pump();
     await tester.tapAt(textCenter);
     await tester.pump();
-    await tester.tapAt(codeHeaderCenter);
+    await tester.tapAt(codeSurfaceCenter);
     await tester.pump();
     expect(text.selected, isTrue);
     expect(code.selected, isTrue);
     expect(text.active, isFalse);
     expect(code.active, isTrue);
-    await tester.tapAt(codeHeaderCenter);
+    await tester.tapAt(codeSurfaceCenter);
     await tester.pump();
     expect(text.selected, isTrue);
     expect(code.selected, isFalse);
-    await tester.tapAt(codeHeaderCenter);
+    await tester.tapAt(codeSurfaceCenter);
     await tester.pump();
     await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
     await tester.pump();
@@ -1107,7 +1167,7 @@ void main() {
     );
     await tester.pump();
     await tester.tapAt(
-      tester.getCenter(find.byKey(const ValueKey('code-block-header'))),
+      tester.getCenter(find.byKey(const ValueKey('code-block-surface'))),
     );
     await tester.pump();
     await tester.tapAt(tester.getCenter(strokeFinder));
@@ -1159,7 +1219,7 @@ void main() {
     );
     await tester.pump();
     await tester.tapAt(
-      tester.getCenter(find.byKey(const ValueKey('code-block-header'))),
+      tester.getCenter(find.byKey(const ValueKey('code-block-surface'))),
     );
     await tester.pump();
     await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
@@ -1195,12 +1255,14 @@ void main() {
     await tester.pump();
     await _placeCodeBlock(tester, const Offset(120, 100));
     await tester.pump(const Duration(milliseconds: 100));
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await tester.pump();
 
     final textFinder = find.byType(TextTool);
     final codeFinder = find.byType(CodeTool);
     final text = tester.widget<TextTool>(textFinder).model;
     final code = tester.widget<CodeTool>(codeFinder).model;
-    final header = find.byKey(const ValueKey('code-block-header'));
+    final preview = find.byKey(const ValueKey('code-block-preview-surface'));
 
     await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
     await tester.pump();
@@ -1217,7 +1279,7 @@ void main() {
     final textPosition = tester.getTopLeft(textFinder);
     final codePosition = tester.getTopLeft(codeFinder);
     const delta = Offset(72, 44);
-    await tester.drag(header, delta, kind: PointerDeviceKind.mouse);
+    await tester.drag(preview, delta, kind: PointerDeviceKind.mouse);
     await tester.pump();
 
     expect(tester.getTopLeft(textFinder), textPosition);
@@ -1325,7 +1387,7 @@ void main() {
     final originalGridPosition = canvas.controller.widgetsWithScreenPositions().single.gsPosition;
 
     final rightDrag = await tester.startGesture(
-      tester.getCenter(find.byKey(const ValueKey('code-block-header'))),
+      tester.getCenter(find.byKey(const ValueKey('code-block-surface'))),
       kind: PointerDeviceKind.mouse,
       buttons: kSecondaryMouseButton,
     );
@@ -1439,6 +1501,8 @@ void main() {
           size: const Size(280, 240),
           language: CodeLanguage.dart,
           source: '',
+          title: '',
+          showLineNumbers: true,
         ),
         stroke('pen-overlap', const Offset(100, 250)),
         ArrowElementData(

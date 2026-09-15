@@ -61,7 +61,7 @@ class CanvasDocument {
   factory CanvasDocument.fromJson(Object? json) {
     final document = _decode(json, 'document', _$CanvasDocumentFromJson);
     if (document.schemaVersion != version) {
-      throw const FormatException('document.version must be 3');
+      throw const FormatException('document.version must be 4');
     }
     final ids = <String>{};
     for (final element in document.elements) {
@@ -74,7 +74,7 @@ class CanvasDocument {
 
   // ---------- Constants ----------
 
-  static const version = 3;
+  static const version = 4;
 
   // ---------- State ----------
 
@@ -394,7 +394,7 @@ class TextElementData extends CanvasElementData {
   );
 }
 
-/// Stores source code, language, position, and size for a code block.
+/// Stores code content, presentation settings, position, and size.
 /// Used by code block models and document serialization.
 @_strictJson
 class CodeElementData extends CanvasElementData {
@@ -406,6 +406,8 @@ class CodeElementData extends CanvasElementData {
     required this.size,
     required this.language,
     required this.source,
+    required this.title,
+    required this.showLineNumbers,
   }) : super(id, 'code');
 
   CodeElementData._json({
@@ -415,6 +417,8 @@ class CodeElementData extends CanvasElementData {
     required this.size,
     required this.language,
     required this.source,
+    required this.title,
+    required this.showLineNumbers,
   }) : super(id, type);
 
   factory CodeElementData.fromJson(Object? json) {
@@ -433,6 +437,8 @@ class CodeElementData extends CanvasElementData {
   Size size;
   CodeLanguage language;
   String source;
+  String title;
+  bool showLineNumbers;
 
   // ---------- Serialization ----------
 
@@ -448,6 +454,8 @@ class CodeElementData extends CanvasElementData {
     size: size,
     language: language,
     source: source,
+    title: title,
+    showLineNumbers: showLineNumbers,
   );
 }
 

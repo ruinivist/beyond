@@ -402,6 +402,8 @@ CanvasDocument _document({
       size: const Size(280, 240),
       language: CodeLanguage.dart,
       source: 'void main() {}',
+      title: 'main.dart',
+      showLineNumbers: true,
     ),
     PenElementData(
       id: 'pen$idSuffix',
