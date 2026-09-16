@@ -552,7 +552,15 @@ class _CanvasPageState extends State<CanvasPage> {
     }
     _clearTextEditing();
     _setActiveElement(model);
-    model.focusNode.requestFocus();
+    // re_editor does not restart cursor/input state when readOnly changes while focused.
+    // Refocus after the editable frame so the first click shows a working caret.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && model.active && _elements.contains(model)) {
+        model.focusNode.unfocus();
+        FocusManager.instance.applyFocusChangesIfNeeded();
+        model.focusNode.requestFocus();
+      }
+    });
   }
 
   void _handleTextBlockPointerDown(

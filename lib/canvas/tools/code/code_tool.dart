@@ -46,6 +46,11 @@ class CodeTool extends StatefulWidget {
 
 class _CodeToolState extends State<CodeTool> {
   final _portalController = OverlayPortalController();
+  int? _previewPointer;
+  Offset? _previewPointerStart;
+  Offset? _previewPointerPosition;
+  double _previewDragSlop = 0;
+  bool _previewDragging = false;
 
   @override
   void initState() {
@@ -53,6 +58,76 @@ class _CodeToolState extends State<CodeTool> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) _portalController.show();
     });
+  }
+
+  void _handlePreviewPointerDown(PointerDownEvent event) {
+    if (widget.model.active || event.buttons != kPrimaryButton || _previewPointer != null) return;
+    _previewPointer = event.pointer;
+    _previewPointerStart = event.position;
+    _previewPointerPosition = event.position;
+    _previewDragSlop = computePanSlop(
+      event.kind,
+      MediaQuery.maybeGestureSettingsOf(context),
+    );
+    _previewDragging = false;
+  }
+
+  void _handlePreviewPointerMove(PointerMoveEvent event) {
+    if (event.pointer != _previewPointer) return;
+    final start = _previewPointerStart!;
+    final previous = _previewPointerPosition!;
+    if (!_previewDragging) {
+      if ((event.position - start).distance <= _previewDragSlop) return;
+      _previewDragging = true;
+      widget.model.focusNode.unfocus();
+      widget.onMove(event.position - start);
+    } else {
+      widget.onMove(event.position - previous);
+    }
+    // re_editor still performs text-selection drags while read-only.
+    // Collapse that transient selection after every canvas drag update.
+    widget.model.controller.cancelSelection();
+    _previewPointerPosition = event.position;
+  }
+
+  void _handlePreviewPointerUp(PointerUpEvent event) {
+    if (event.pointer != _previewPointer) return;
+    final dragging = _previewDragging;
+    _clearPreviewPointer();
+    if (dragging) {
+      widget.model
+        ..focusNode.unfocus()
+        ..controller.cancelSelection();
+    } else {
+      widget.onEdit();
+    }
+  }
+
+  void _handlePreviewPointerCancel(PointerCancelEvent event) {
+    if (event.pointer != _previewPointer) return;
+    _clearPreviewPointer();
+    widget.model
+      ..focusNode.unfocus()
+      ..controller.cancelSelection();
+  }
+
+  void _clearPreviewPointer() {
+    _previewPointer = null;
+    _previewPointerStart = null;
+    _previewPointerPosition = null;
+    _previewDragging = false;
+  }
+
+  Widget _previewInteraction(Widget editor) {
+    return Listener(
+      key: const ValueKey('code-block-preview-surface'),
+      behavior: HitTestBehavior.translucent,
+      onPointerDown: _handlePreviewPointerDown,
+      onPointerMove: _handlePreviewPointerMove,
+      onPointerUp: _handlePreviewPointerUp,
+      onPointerCancel: _handlePreviewPointerCancel,
+      child: editor,
+    );
   }
 
   @override
@@ -127,47 +202,49 @@ class _CodeToolState extends State<CodeTool> {
                         child: Stack(
                           children: [
                             Positioned.fill(
-                              child: PointerScrollBoundary(
-                                child: CodeEditor(
-                                  controller: model.controller,
-                                  scrollController: model.scrollController,
-                                  focusNode: model.focusNode,
-                                  autofocus: false,
-                                  readOnly: !editing,
-                                  showCursorWhenReadOnly: false,
-                                  padding: const EdgeInsets.fromLTRB(
-                                    _codeEditorPadding,
-                                    _codeEditorPadding,
-                                    _codeEditorPadding,
-                                    _codeEditorPadding,
-                                  ),
-                                  style: CodeEditorStyle(
-                                    fontFamily: codeStyle.fontFamily,
-                                    fontFamilyFallback: codeStyle.fontFamilyFallback,
-                                    fontSize: codeStyle.fontSize,
-                                    fontHeight: codeStyle.height,
-                                    textColor: colors.textPrimary,
-                                    backgroundColor: background,
-                                    cursorColor: colors.accent,
-                                    selectionColor: colors.accentSubtle,
-                                    codeTheme: model.language.theme(theme.syntaxTheme),
-                                  ),
-                                  indicatorBuilder: model.showLineNumbers
-                                      ? (context, controller, chunkController, notifier) => ColoredBox(
-                                          key: const ValueKey('code-line-numbers'),
-                                          color: colors.surfaceSubtle,
-                                          child: Padding(
-                                            padding: const EdgeInsets.symmetric(horizontal: 6),
-                                            child: DefaultCodeLineNumber(
-                                              controller: controller,
-                                              notifier: notifier,
-                                              minNumberCount: 1,
-                                              textStyle: codeStyle.copyWith(color: colors.textMuted),
-                                              focusedTextStyle: codeStyle.copyWith(color: colors.textSecondary),
+                              child: _previewInteraction(
+                                PointerScrollBoundary(
+                                  child: CodeEditor(
+                                    controller: model.controller,
+                                    scrollController: model.scrollController,
+                                    focusNode: model.focusNode,
+                                    autofocus: false,
+                                    readOnly: !editing,
+                                    showCursorWhenReadOnly: false,
+                                    padding: const EdgeInsets.fromLTRB(
+                                      _codeEditorPadding,
+                                      _codeEditorPadding,
+                                      _codeEditorPadding,
+                                      _codeEditorPadding,
+                                    ),
+                                    style: CodeEditorStyle(
+                                      fontFamily: codeStyle.fontFamily,
+                                      fontFamilyFallback: codeStyle.fontFamilyFallback,
+                                      fontSize: codeStyle.fontSize,
+                                      fontHeight: codeStyle.height,
+                                      textColor: colors.textPrimary,
+                                      backgroundColor: background,
+                                      cursorColor: colors.accent,
+                                      selectionColor: colors.accentSubtle,
+                                      codeTheme: model.language.theme(theme.syntaxTheme),
+                                    ),
+                                    indicatorBuilder: model.showLineNumbers
+                                        ? (context, controller, chunkController, notifier) => ColoredBox(
+                                            key: const ValueKey('code-line-numbers'),
+                                            color: colors.surfaceSubtle,
+                                            child: Padding(
+                                              padding: const EdgeInsets.symmetric(horizontal: 6),
+                                              child: DefaultCodeLineNumber(
+                                                controller: controller,
+                                                notifier: notifier,
+                                                minNumberCount: 1,
+                                                textStyle: codeStyle.copyWith(color: colors.textMuted),
+                                                focusedTextStyle: codeStyle.copyWith(color: colors.textSecondary),
+                                              ),
                                             ),
-                                          ),
-                                        )
-                                      : null,
+                                          )
+                                        : null,
+                                  ),
                                 ),
                               ),
                             ),
@@ -228,13 +305,12 @@ class _CodeToolState extends State<CodeTool> {
                     ),
                   ),
                   if (!editing)
-                    Positioned.fill(
-                      child: GestureDetector(
-                        key: const ValueKey('code-block-preview-surface'),
-                        behavior: HitTestBehavior.opaque,
-                        dragStartBehavior: DragStartBehavior.down,
-                        onTap: widget.onEdit,
-                        onPanUpdate: (details) => widget.onMove(details.delta),
+                    // re_editor hardcodes a text cursor in its code-field renderer.
+                    // Keep inactive blocks on the normal canvas pointer instead.
+                    const Positioned.fill(
+                      child: MouseRegion(
+                        cursor: SystemMouseCursors.basic,
+                        opaque: false,
                       ),
                     ),
                 ],
