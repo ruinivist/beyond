@@ -7,7 +7,7 @@ part of 'code_tool.dart';
 
 /// Owns code editor controllers and keeps them synchronized with element data.
 /// Used by code block rendering and canvas persistence.
-class CodeBlockModel extends CanvasElementModel<CodeElementData> {
+class CodeBlockModel extends RotatableCanvasElementModel<CodeElementData> {
   // ---------- Construction ----------
 
   CodeBlockModel(CodeElementData data) : super(data) {
@@ -48,6 +48,16 @@ class CodeBlockModel extends CanvasElementModel<CodeElementData> {
     final nextSize = _clampSize(value);
     if (data.size == nextSize) return;
     data.size = nextSize;
+    notifyListeners();
+  }
+
+  @override
+  double get rotation => data.rotation;
+
+  @override
+  void rotate(double angle) {
+    if (data.rotation == angle) return;
+    data.rotation = angle;
     notifyListeners();
   }
 

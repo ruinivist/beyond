@@ -5,6 +5,7 @@ import 'dart:convert';
 import 'dart:math' as math;
 
 import 'package:beyond/canvas/document/canvas_document.dart';
+import 'package:beyond/canvas/editor/widgets/element_transform_controls.dart';
 import 'package:beyond/canvas/persistence/attachments/store.dart';
 import 'package:beyond/canvas/persistence/canvas_document_store.dart';
 import 'package:beyond/canvas/tools/code/code_tool.dart';
@@ -55,7 +56,7 @@ void main() {
     expect(find.byType(TextField), findsOneWidget);
     expect(model.active, isTrue);
     expect(model.editing, isTrue);
-    expect(find.byType(TextBlockControls), findsOneWidget);
+    expect(find.byType(ElementTransformControls), findsOneWidget);
     expect(
       find.byKey(const ValueKey('text-settings-panel')).hitTestable(),
       findsOneWidget,
@@ -103,13 +104,13 @@ void main() {
       find.byKey(const ValueKey('text-block-resize-handle')).hitTestable(),
       findsNothing,
     );
-    expect(find.byType(TextBlockControls), findsOneWidget);
+    expect(find.byType(ElementTransformControls), findsOneWidget);
     await tester.pumpAndSettle();
     expect(
       find.byKey(const ValueKey('text-block-resize-handle')),
       findsNothing,
     );
-    expect(find.byType(TextBlockControls), findsNothing);
+    expect(find.byType(ElementTransformControls), findsNothing);
   });
 
   testWidgets('text editor keeps native select and delete actions', (
@@ -184,7 +185,7 @@ void main() {
     await tester.pump();
     final text = tester.widget<TextTool>(find.byType(TextTool)).model;
     expect(text.editing, isTrue);
-    expect(find.byType(TextBlockControls), findsOneWidget);
+    expect(find.byKey(const ValueKey('text-block-handle')), findsOneWidget);
 
     FocusManager.instance.primaryFocus?.unfocus();
     await tester.pump(const Duration(milliseconds: 100));
@@ -195,7 +196,7 @@ void main() {
     expect(find.byType(CodeTool), findsNothing);
     expect(find.byType(TextTool), findsOneWidget);
     expect(text.editing, isTrue);
-    expect(find.byType(TextBlockControls), findsOneWidget);
+    expect(find.byKey(const ValueKey('text-block-handle')), findsOneWidget);
     expect(code.selected, isTrue);
     FocusManager.instance.primaryFocus?.unfocus();
     await tester.pump(const Duration(milliseconds: 100));
@@ -271,7 +272,7 @@ void main() {
     expect(model.focusNode.hasFocus, isFalse);
     expect(find.byKey(const ValueKey('text-markdown-preview')), findsOneWidget);
     await tester.pumpAndSettle();
-    expect(find.byType(TextBlockControls), findsOneWidget);
+    expect(find.byType(ElementTransformControls), findsOneWidget);
     expect(
       find.byKey(const ValueKey('text-block-resize-handle')),
       findsOneWidget,
@@ -282,7 +283,7 @@ void main() {
 
     expect(model.editing, isFalse);
     expect(find.byKey(const ValueKey('text-markdown-preview')), findsOneWidget);
-    expect(find.byType(TextBlockControls), findsOneWidget);
+    expect(find.byType(ElementTransformControls), findsOneWidget);
   });
 
   testWidgets('rotated preview movement stays in screen coordinates', (
@@ -509,7 +510,7 @@ void main() {
     expect(model.editing, isTrue);
     expect(find.byKey(const ValueKey('text-markdown-editor')), findsOneWidget);
     expect(find.byKey(const ValueKey('text-block-handle')), findsOneWidget);
-    expect(find.byType(TextBlockControls), findsOneWidget);
+    expect(find.byType(ElementTransformControls), findsOneWidget);
     expect(model.controller.text, source);
     expect(model.node.markdown, source);
 
@@ -817,7 +818,7 @@ Inline $x^2$''';
       await tester.pumpAndSettle();
 
       final model = tester.widget<TextTool>(find.byType(TextTool)).model;
-      expect(find.byType(TextBlockControls), findsOneWidget);
+      expect(find.byType(ElementTransformControls), findsOneWidget);
       expect(
         find.byKey(const ValueKey('text-settings-panel')).hitTestable(),
         findsOneWidget,
@@ -841,7 +842,7 @@ Inline $x^2$''';
         find.byKey(const ValueKey('text-markdown-preview')),
         findsOneWidget,
       );
-      expect(find.byType(TextBlockControls), findsOneWidget);
+      expect(find.byType(ElementTransformControls), findsOneWidget);
 
       expect(
         find.byKey(const ValueKey('color-preset-Black')),
@@ -972,18 +973,18 @@ Inline $x^2$''';
     await _addTextBlock(tester, const Offset(120, 200));
     final model = tester.widget<TextTool>(find.byType(TextTool)).model;
     expect(model.editing, isTrue);
-    expect(find.byType(TextBlockControls), findsOneWidget);
+    expect(find.byType(ElementTransformControls), findsOneWidget);
 
     await _placeCodeBlock(tester, const Offset(300, 200));
     await tester.pumpAndSettle();
     expect(model.editing, isFalse);
-    expect(find.byType(TextBlockControls), findsNothing);
+    expect(find.byKey(const ValueKey('code-block-handle')), findsOneWidget);
 
     await tester.tapAt(const Offset(24, 550));
     await tester.pump();
     await tester.pumpAndSettle();
     expect(model.editing, isFalse);
-    expect(find.byType(TextBlockControls), findsNothing);
+    expect(find.byType(ElementTransformControls), findsNothing);
   });
 
   testWidgets('editing a second text rebinds top-right settings', (
@@ -1124,7 +1125,7 @@ Inline $x^2$''';
       expect(block.model.editing, isFalse);
       expect(block.model.focusNode.hasFocus, isFalse);
     }
-    expect(find.byType(TextBlockControls), findsNothing);
+    expect(find.byType(ElementTransformControls), findsNothing);
     await tester.pump(const Duration(milliseconds: 100));
   });
 

@@ -394,7 +394,7 @@ class TextElementData extends CanvasElementData {
   );
 }
 
-/// Stores code content, presentation settings, position, and size.
+/// Stores code content, presentation settings, position, size, and rotation.
 /// Used by code block models and document serialization.
 @_strictJson
 class CodeElementData extends CanvasElementData {
@@ -408,6 +408,7 @@ class CodeElementData extends CanvasElementData {
     required this.source,
     required this.title,
     required this.showLineNumbers,
+    this.rotation = 0,
   }) : super(id, 'code');
 
   CodeElementData._json({
@@ -419,6 +420,7 @@ class CodeElementData extends CanvasElementData {
     required this.source,
     required this.title,
     required this.showLineNumbers,
+    required this.rotation,
   }) : super(id, type);
 
   factory CodeElementData.fromJson(Object? json) {
@@ -426,6 +428,7 @@ class CodeElementData extends CanvasElementData {
     if (code.size.width < codeBlockMinimumSize.width || code.size.height < codeBlockMinimumSize.height) {
       throw const FormatException('element.size is below the minimum');
     }
+    _validateFinite(code.rotation, 'element.rotation');
     return code;
   }
 
@@ -439,6 +442,8 @@ class CodeElementData extends CanvasElementData {
   String source;
   String title;
   bool showLineNumbers;
+  @JsonKey(defaultValue: 0.0)
+  double rotation;
 
   // ---------- Serialization ----------
 
@@ -456,6 +461,7 @@ class CodeElementData extends CanvasElementData {
     source: source,
     title: title,
     showLineNumbers: showLineNumbers,
+    rotation: rotation,
   );
 }
 

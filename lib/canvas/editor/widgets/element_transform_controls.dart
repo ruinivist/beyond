@@ -1,9 +1,8 @@
-// Renders movement and rotation controls for an edited text block.
-// Used by the canvas overlay while a text tool element is being edited.
+// Renders shared movement, rotation, and deletion controls for canvas elements.
+// Used by the canvas overlay for active rotatable elements.
 
 import 'dart:math' as math;
 
-import 'package:beyond/canvas/tools/text/text_block_model.dart';
 import 'package:beyond/theme/theme.dart';
 import 'package:beyond/ui/common/icon_drag.dart';
 import 'package:flutter/gestures.dart';
@@ -11,11 +10,10 @@ import 'package:flutter/material.dart';
 
 // ---------- Controls ----------
 
-/// Presents drag handles for moving and rotating the active text element.
-/// Used by the editor's composited text-controls overlay.
-class TextBlockControls extends StatelessWidget {
-  const TextBlockControls({
-    required this.model,
+class ElementTransformControls extends StatelessWidget {
+  const ElementTransformControls({
+    required this.elementName,
+    required this.rotation,
     required this.onMove,
     required this.onRotate,
     required this.onDelete,
@@ -25,7 +23,8 @@ class TextBlockControls extends StatelessWidget {
     super.key,
   });
 
-  final TextBlockModel model;
+  final String elementName;
+  final double rotation;
   final ValueChanged<Offset> onMove;
   final ValueChanged<double> onRotate;
   final VoidCallback onDelete;
@@ -45,23 +44,23 @@ class TextBlockControls extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             IconDrag(
-              key: const ValueKey('text-block-handle'),
-              semanticLabel: 'Move text block',
+              key: ValueKey('$elementName-block-handle'),
+              semanticLabel: 'Move $elementName block',
               onDragStart: (_) {
                 onTransformStart();
-                return _TextBlockDrag(onMove, onTransformEnd);
+                return _ElementDrag(onMove, onTransformEnd);
               },
               icon: const Icon(Icons.drag_indicator, size: 20),
             ),
             IconDrag(
-              key: const ValueKey('text-block-rotate-control'),
-              semanticLabel: 'Rotate text block',
+              key: ValueKey('$elementName-block-rotate-control'),
+              semanticLabel: 'Rotate $elementName block',
               onDragStart: (position) {
                 onTransformStart();
-                return _TextBlockRotateDrag(
+                return _ElementRotateDrag(
                   startPosition: position,
                   center: rotationCenter(),
-                  rotation: model.node.rotation,
+                  rotation: rotation,
                   onRotate: onRotate,
                   onEnd: onTransformEnd,
                 );
@@ -69,11 +68,11 @@ class TextBlockControls extends StatelessWidget {
               icon: const Icon(Icons.rotate_right, size: 20),
             ),
             MouseRegion(
-              key: const ValueKey('text-block-delete-control'),
+              key: ValueKey('$elementName-block-delete-control'),
               cursor: SystemMouseCursors.click,
               child: Semantics(
                 button: true,
-                label: 'Delete text block',
+                label: 'Delete $elementName block',
                 child: GestureDetector(
                   behavior: HitTestBehavior.opaque,
                   onTap: onDelete,
@@ -97,8 +96,8 @@ class TextBlockControls extends StatelessWidget {
 
 // ---------- Gestures ----------
 
-class _TextBlockDrag extends Drag {
-  _TextBlockDrag(this.onMove, this.onEnd);
+class _ElementDrag extends Drag {
+  _ElementDrag(this.onMove, this.onEnd);
 
   final ValueChanged<Offset> onMove;
   final VoidCallback onEnd;
@@ -113,8 +112,8 @@ class _TextBlockDrag extends Drag {
   void cancel() => onEnd();
 }
 
-class _TextBlockRotateDrag extends Drag {
-  _TextBlockRotateDrag({
+class _ElementRotateDrag extends Drag {
+  _ElementRotateDrag({
     required Offset startPosition,
     required this.center,
     required this._rotation,
@@ -145,7 +144,5 @@ class _TextBlockRotateDrag extends Drag {
   @override
   void cancel() => onEnd();
 }
-
-// ---------- Helpers ----------
 
 double _pointerAngle(Offset pointer, Offset center) => math.atan2(pointer.dy - center.dy, pointer.dx - center.dx);

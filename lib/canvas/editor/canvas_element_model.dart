@@ -44,6 +44,18 @@ abstract class CanvasElementModel<T extends CanvasElementData> extends ChangeNot
   void moveBy(Offset delta);
 }
 
+/// Adds center rotation and a composited anchor to canvas element models.
+/// Used by elements that share the editor's floating transform controls.
+abstract class RotatableCanvasElementModel<T extends CanvasElementData> extends CanvasElementModel<T> {
+  RotatableCanvasElementModel(super.data);
+
+  final layerLink = LayerLink();
+
+  double get rotation;
+
+  void rotate(double angle);
+}
+
 // ---------- Geometry helpers ----------
 
 double distanceToSegmentSquared(Offset point, Offset start, Offset end) {

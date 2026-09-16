@@ -13,7 +13,6 @@ import 'package:beyond/ui/common/icon_drag.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
-export 'text_block_controls.dart';
 export 'text_block_model.dart';
 export 'text_tool_settings.dart';
 

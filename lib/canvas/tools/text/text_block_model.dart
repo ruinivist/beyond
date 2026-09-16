@@ -15,7 +15,7 @@ import 'package:uuid/uuid.dart';
 
 /// Owns controllers and mutable state for a persisted text element.
 /// Used by the text tool, Markdown surfaces, controls, and persistence.
-class TextBlockModel extends CanvasElementModel<TextElementData> {
+class TextBlockModel extends RotatableCanvasElementModel<TextElementData> {
   // ---------- Construction ----------
 
   TextBlockModel(TextElementData data) : super(data) {
@@ -31,8 +31,10 @@ class TextBlockModel extends CanvasElementModel<TextElementData> {
   final scrollController = AnimatedScrollController(
     animationFactory: const ChromiumEaseInOut(),
   );
-  final layerLink = LayerLink();
   bool _editing = false;
+
+  @override
+  double get rotation => node.rotation;
 
   @override
   Offset get canvasPosition => data.position;
@@ -76,6 +78,7 @@ class TextBlockModel extends CanvasElementModel<TextElementData> {
     notifyListeners();
   }
 
+  @override
   void rotate(double angle) {
     if (node.rotation == angle) return;
     node.rotation = angle;

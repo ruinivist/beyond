@@ -9,6 +9,7 @@ import 'package:beyond/canvas/document/canvas_document.dart';
 import 'package:beyond/canvas/editor/canvas_background.dart';
 import 'package:beyond/canvas/editor/canvas_clipboard.dart';
 import 'package:beyond/canvas/editor/canvas_element_model.dart';
+import 'package:beyond/canvas/editor/widgets/element_transform_controls.dart';
 import 'package:beyond/canvas/editor/widgets/tool_options.dart';
 import 'package:beyond/canvas/editor/widgets/toolbar_button.dart';
 import 'package:beyond/canvas/editor/widgets/zoom_control.dart';
@@ -97,7 +98,7 @@ class _CanvasPageState extends State<CanvasPage> {
   final _elements = <CanvasElementModel>[];
   CanvasElementModel? _activeElement;
   TextBlockModel? _editingTextBlock;
-  TextBlockModel? _editingChromeModel;
+  RotatableCanvasElementModel? _editingChromeModel;
   final ValueNotifier<bool> _selectionModifierPressed = ValueNotifier(false);
   final _interactiveCanvasPointerIds = <int>{};
   final _selectionBeforeWidgetPointer = <Object>{};
@@ -671,7 +672,7 @@ class _CanvasPageState extends State<CanvasPage> {
       _activeElement?.active = false;
       _activeElement = model;
       model?.active = true;
-      if (model is TextBlockModel) _editingChromeModel = model;
+      if (model is RotatableCanvasElementModel) _editingChromeModel = model;
     });
   }
 
@@ -737,16 +738,17 @@ class _CanvasPageState extends State<CanvasPage> {
       return;
     }
     if (!_elements.contains(model)) return;
-    final delta = screenDelta / _canvasController.scale;
-    final angle = -model.data.rotation;
-    final cosine = math.cos(angle);
-    final sine = math.sin(angle);
-    model.resize(
-      renderedSize,
-      Offset(
-        delta.dx * cosine - delta.dy * sine,
-        delta.dx * sine + delta.dy * cosine,
-      ),
+    model.resize(renderedSize, _localTransformDelta(model.rotation, screenDelta));
+  }
+
+  void _resizeCodeBlock(CodeBlockModel model, Offset localDelta) {
+    if (!_documentLoaded || _placementEnabled || _penEnabled || _eraserEnabled) {
+      return;
+    }
+    if (!_elements.contains(model)) return;
+    model.size = Size(
+      model.size.width + localDelta.dx,
+      model.size.height + localDelta.dy,
     );
   }
 
@@ -767,7 +769,18 @@ class _CanvasPageState extends State<CanvasPage> {
     model.resizeBy(screenDelta / _canvasController.scale);
   }
 
-  void _rotateTextBlock(TextBlockModel model, double angle) {
+  Offset _localTransformDelta(double rotation, Offset screenDelta) {
+    final delta = screenDelta / _canvasController.scale;
+    final angle = -rotation;
+    final cosine = math.cos(angle);
+    final sine = math.sin(angle);
+    return Offset(
+      delta.dx * cosine - delta.dy * sine,
+      delta.dx * sine + delta.dy * cosine,
+    );
+  }
+
+  void _rotateElement(RotatableCanvasElementModel model, double angle) {
     if (!_documentLoaded || _placementEnabled || _penEnabled || _eraserEnabled) {
       return;
     }
@@ -775,7 +788,7 @@ class _CanvasPageState extends State<CanvasPage> {
     model.rotate(angle);
   }
 
-  Offset _textBlockCenter(TextBlockModel model) {
+  Offset _elementCenter(RotatableCanvasElementModel model) {
     final renderObject = _selectionKey(
       model,
     ).currentContext?.findRenderObject();
@@ -850,11 +863,13 @@ class _CanvasPageState extends State<CanvasPage> {
         key: _selectionKey(code),
         activeTool: _activeTool,
         modifierPressed: _selectionModifierPressed,
+        rotationModel: code,
         onPointerDown: (event) => _handleCodeBlockPointerDown(code, event),
         child: CodeTool(
           model: code,
           onEdit: () => _editCodeBlock(code),
           onMove: (delta) => _moveSelectedChildren(code, delta),
+          onResize: (delta) => _resizeCodeBlock(code, delta),
           onChangeBoundary: _finishHistoryOperation,
         ),
       ),
@@ -1250,11 +1265,10 @@ class _CanvasPageState extends State<CanvasPage> {
     final modelsToDispose = models.where(_elements.contains).toList();
     if (modelsToDispose.isEmpty) return;
 
-    final removesEditingText = modelsToDispose.any(
-      (model) =>
-          model is TextBlockModel && (identical(model, _editingTextBlock) || identical(model, _editingChromeModel)),
+    final removesEditingElement = modelsToDispose.any(
+      (model) => identical(model, _editingTextBlock) || identical(model, _editingChromeModel),
     );
-    if (removesEditingText) {
+    if (removesEditingElement) {
       _clearTextEditing();
       setState(() => _editingChromeModel = null);
     }
@@ -1821,7 +1835,7 @@ class _CanvasPageState extends State<CanvasPage> {
                 followerAnchor: Alignment.topRight,
                 offset: const Offset(-10, 0),
                 child: SizedBox.fromSize(
-                  size: TextBlockControls.size,
+                  size: ElementTransformControls.size,
                   child: Overlay.wrap(
                     clipBehavior: Clip.none,
                     child: AnimatedSwitcher(
@@ -1830,26 +1844,33 @@ class _CanvasPageState extends State<CanvasPage> {
                       switchInCurve: Curves.easeOutCubic,
                       switchOutCurve: Curves.easeOutCubic,
                       transitionBuilder: _textEditingChromeTransition,
-                      child: switch (activeTextBlock) {
-                        final editing? => ListenableBuilder(
-                          key: ValueKey(editing.node.id),
+                      child: switch (_activeElement) {
+                        final RotatableCanvasElementModel editing => ListenableBuilder(
+                          key: ValueKey(editing.data.id),
                           listenable: editing,
                           builder: (context, child) => IgnorePointer(
                             ignoring: !editing.active,
                             child: child,
                           ),
-                          child: TextBlockControls(
-                            key: ValueKey(editing.node.id),
-                            model: editing,
+                          child: ElementTransformControls(
+                            key: ValueKey(editing.data.id),
+                            elementName: editing is TextBlockModel ? 'text' : 'code',
+                            rotation: editing.rotation,
                             onMove: (delta) => _moveSelectedChildren(editing, delta),
-                            onRotate: (angle) => _rotateTextBlock(editing, angle),
+                            onRotate: (angle) => _rotateElement(editing, angle),
                             onDelete: () => _removeElements([editing]),
-                            onTransformStart: _clearTextEditing,
+                            onTransformStart: () {
+                              if (editing is TextBlockModel) {
+                                _clearTextEditing();
+                              } else {
+                                _finishHistoryOperation();
+                              }
+                            },
                             onTransformEnd: _finishHistoryOperation,
-                            rotationCenter: () => _textBlockCenter(editing),
+                            rotationCenter: () => _elementCenter(editing),
                           ),
                         ),
-                        null => const SizedBox(
+                        _ => const SizedBox(
                           key: ValueKey('text-editing-chrome-hidden'),
                         ),
                       },
@@ -2270,7 +2291,7 @@ class _SelectionPointerRegion extends StatelessWidget {
   final ValueListenable<bool> modifierPressed;
   final ValueChanged<PointerDownEvent> onPointerDown;
   final Widget child;
-  final TextBlockModel? rotationModel;
+  final RotatableCanvasElementModel? rotationModel;
 
   @override
   Widget build(BuildContext context) {
@@ -2290,7 +2311,7 @@ class _SelectionPointerRegion extends StatelessWidget {
         : ListenableBuilder(
             listenable: rotationModel!,
             builder: (context, child) => Transform.rotate(
-              angle: rotationModel!.node.rotation,
+              angle: rotationModel!.rotation,
               child: child,
             ),
             child: listener,

@@ -56,6 +56,7 @@ void main() {
           source: 'void main() {}',
           title: 'main.dart',
           showLineNumbers: true,
+          rotation: math.pi / 2,
         ),
         MediaElementData(
           id: 'media-1',
@@ -118,6 +119,7 @@ void main() {
     expect(code.source, 'void main() {}');
     expect(code.title, 'main.dart');
     expect(code.showLineNumbers, isTrue);
+    expect(code.rotation, math.pi / 2);
 
     final media = elements[4] as MediaElementData;
     expect(media.position, const Offset(220, -80));
@@ -154,6 +156,17 @@ void main() {
       () => CanvasDocument.fromJson(_document()..['version'] = 2.5),
       throwsA(isA<FormatException>()),
     );
+  });
+
+  test('code rotation defaults to zero when omitted', () {
+    final code = _encodedCode()..remove('rotation');
+    final restored =
+        CanvasDocument.fromJson(
+              _document(elements: [code]),
+            ).elements.single
+            as CodeElementData;
+
+    expect(restored.rotation, 0);
   });
 
   test('shape kinds and minimum dimensions are validated', () {
@@ -297,6 +310,12 @@ void main() {
       ),
       throwsA(isA<FormatException>()),
     );
+    expect(
+      () => CanvasDocument.fromJson(
+        _document(elements: [_encodedCode(rotation: double.infinity)]),
+      ),
+      throwsA(isA<FormatException>()),
+    );
   });
 
   test('text dimensions and styles are validated', () {
@@ -429,7 +448,7 @@ Map<String, Object?> _encodedText({
   };
 }
 
-Map<String, Object?> _encodedCode({String id = 'code-1'}) => {
+Map<String, Object?> _encodedCode({String id = 'code-1', Object rotation = 0.0}) => {
   'id': id,
   'type': 'code',
   'position': {'x': 0.0, 'y': 0.0},
@@ -438,6 +457,7 @@ Map<String, Object?> _encodedCode({String id = 'code-1'}) => {
   'source': '',
   'title': '',
   'showLineNumbers': true,
+  'rotation': rotation,
 };
 
 Map<String, Object?> _encodedPen({String id = 'pen-1'}) => {

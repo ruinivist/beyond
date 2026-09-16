@@ -194,6 +194,7 @@ CodeElementData _$CodeElementDataFromJson(Map<String, dynamic> json) =>
           'source',
           'title',
           'showLineNumbers',
+          'rotation',
         ],
       );
       final val = CodeElementData._json(
@@ -214,6 +215,7 @@ CodeElementData _$CodeElementDataFromJson(Map<String, dynamic> json) =>
         source: $checkedConvert('source', (v) => v as String),
         title: $checkedConvert('title', (v) => v as String),
         showLineNumbers: $checkedConvert('showLineNumbers', (v) => v as bool),
+        rotation: $checkedConvert('rotation', (v) => v == null ? 0.0 : (v as num).toDouble()),
       );
       return val;
     });
@@ -227,6 +229,7 @@ Map<String, dynamic> _$CodeElementDataToJson(CodeElementData instance) => <Strin
   'source': instance.source,
   'title': instance.title,
   'showLineNumbers': instance.showLineNumbers,
+  'rotation': instance.rotation,
 };
 
 const _$CodeLanguageEnumMap = {

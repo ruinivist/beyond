@@ -2,9 +2,11 @@
 // Exercises the pen tool through model and canvas widget flows.
 
 import 'dart:convert';
+import 'dart:math' as math;
 
 import 'package:beyond/canvas/document/canvas_document.dart';
 import 'package:beyond/canvas/editor/canvas_background.dart';
+import 'package:beyond/canvas/editor/widgets/element_transform_controls.dart';
 import 'package:beyond/canvas/editor/widgets/toolbar_button.dart';
 import 'package:beyond/canvas/persistence/canvas_document_store.dart';
 import 'package:beyond/canvas/tools/arrow/arrow_tool.dart';
@@ -791,6 +793,9 @@ void main() {
     expect(find.byKey(const ValueKey('code-block-resize-handle')), findsOneWidget);
     expect(find.byKey(const ValueKey('code-line-numbers')), findsOneWidget);
     expect(find.byKey(const ValueKey('code-show-line-numbers')), findsOneWidget);
+    expect(find.byKey(const ValueKey('code-block-handle')), findsOneWidget);
+    expect(find.byKey(const ValueKey('code-block-rotate-control')), findsOneWidget);
+    expect(find.byKey(const ValueKey('code-block-delete-control')), findsOneWidget);
     final codeArea = tester.getRect(
       find.byKey(const ValueKey('code-block-surface')),
     );
@@ -852,6 +857,7 @@ void main() {
     expect(find.byKey(const ValueKey('code-language-picker')), findsNothing);
     expect(find.byKey(const ValueKey('code-block-resize-handle')), findsNothing);
     expect(find.byKey(const ValueKey('code-show-line-numbers')), findsNothing);
+    expect(find.byKey(const ValueKey('code-block-handle')), findsNothing);
 
     await tester.tap(find.byKey(const ValueKey('code-block-preview-surface')));
     await tester.pump();
@@ -860,6 +866,57 @@ void main() {
     expect(find.byKey(const ValueKey('code-title-input')), findsOneWidget);
     expect(find.byKey(const ValueKey('code-line-numbers')), findsNothing);
 
+    FocusManager.instance.primaryFocus?.unfocus();
+    await tester.pump(const Duration(milliseconds: 100));
+    await tester.tap(find.byKey(const ValueKey('code-block-delete-control')));
+    await tester.pumpAndSettle();
+    expect(find.byType(CodeTool), findsNothing);
+    expect(find.byType(ElementTransformControls), findsNothing);
+  });
+
+  testWidgets('active code blocks move and rotate from floating controls', (
+    tester,
+  ) async {
+    await tester.pumpWidget(const BeyondApp());
+    await tester.pump();
+    await _placeCodeBlock(tester, const Offset(120, 100));
+    await tester.pump();
+
+    final block = find.byType(CodeTool);
+    final model = tester.widget<CodeTool>(block).model;
+    final originalPosition = model.data.position;
+    const moveDelta = Offset(80, 60);
+
+    await tester.drag(
+      find.byKey(const ValueKey('code-block-handle')),
+      moveDelta,
+      kind: PointerDeviceKind.mouse,
+    );
+    await tester.pump();
+
+    expect(model.data.position, originalPosition + moveDelta);
+    expect(model.active, isTrue);
+    expect(find.byKey(const ValueKey('code-title-input')), findsOneWidget);
+
+    final rotate = find.byKey(const ValueKey('code-block-rotate-control'));
+    final center = tester.getCenter(block);
+    final start = tester.getCenter(rotate);
+    final radius = (start - center).distance;
+    final startAngle = math.atan2(start.dy - center.dy, start.dx - center.dx);
+    final gesture = await tester.startGesture(
+      start,
+      kind: PointerDeviceKind.mouse,
+    );
+    await gesture.moveTo(
+      center + Offset.fromDirection(startAngle + math.pi / 2, radius),
+    );
+    await tester.pump();
+    await gesture.up();
+    await tester.pump();
+
+    expect(model.rotation.abs(), closeTo(math.pi / 2, 0.01));
+    expect(model.active, isTrue);
+    expect(find.byKey(const ValueKey('code-title-input')), findsOneWidget);
     FocusManager.instance.primaryFocus?.unfocus();
     await tester.pump(const Duration(milliseconds: 100));
   });
@@ -965,14 +1022,14 @@ void main() {
 
     final model = tester.widget<TextTool>(find.byType(TextTool)).model;
     expect(model.editing, isTrue);
-    expect(find.byType(TextBlockControls), findsOneWidget);
+    expect(find.byType(ElementTransformControls), findsOneWidget);
 
     await tester.tap(find.byKey(const ValueKey('toolbar-draw')));
     await tester.pump();
     await tester.pumpAndSettle();
 
     expect(model.editing, isFalse);
-    expect(find.byType(TextBlockControls), findsNothing);
+    expect(find.byType(ElementTransformControls), findsNothing);
   });
 
   testWidgets('code blocks resize from the bottom-right handle', (
@@ -985,6 +1042,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 100));
 
     final block = find.byType(CodeTool);
+    final model = tester.widget<CodeTool>(block).model;
     final handle = find.byKey(const ValueKey('code-block-resize-handle'));
     final originalSize = tester.getSize(block);
 
@@ -1004,8 +1062,21 @@ void main() {
       codeBlockMinimumSize,
     );
 
-    FocusManager.instance.primaryFocus?.unfocus();
+    final clampedSize = model.size;
+    model.rotate(-math.pi / 4);
     await tester.pump();
+
+    await tester.drag(
+      find.byKey(const ValueKey('code-block-resize-handle')),
+      Offset.fromDirection(-math.pi / 4, 80),
+      kind: PointerDeviceKind.mouse,
+    );
+    await tester.pump();
+
+    expect(model.size.width, closeTo(clampedSize.width + 80, 0.01));
+    expect(model.size.height, closeTo(clampedSize.height, 0.01));
+    FocusManager.instance.primaryFocus?.unfocus();
+    await tester.pump(const Duration(milliseconds: 100));
   });
 
   testWidgets('code scroll boundary does not pan canvas', (tester) async {
