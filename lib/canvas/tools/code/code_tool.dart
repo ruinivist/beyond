@@ -91,15 +91,12 @@ class _CodeToolState extends State<CodeTool> {
                       child: showTitle
                           ? editing
                                 ? titleTab
-                                : MouseRegion(
-                                    cursor: SystemMouseCursors.grab,
-                                    child: GestureDetector(
-                                      behavior: HitTestBehavior.opaque,
-                                      dragStartBehavior: DragStartBehavior.down,
-                                      onTap: widget.onEdit,
-                                      onPanUpdate: (details) => widget.onMove(details.delta),
-                                      child: titleTab,
-                                    ),
+                                : GestureDetector(
+                                    behavior: HitTestBehavior.opaque,
+                                    dragStartBehavior: DragStartBehavior.down,
+                                    onTap: widget.onEdit,
+                                    onPanUpdate: (details) => widget.onMove(details.delta),
+                                    child: titleTab,
                                   )
                           : const SizedBox(key: ValueKey('code-title-hidden')),
                     ),
@@ -232,15 +229,12 @@ class _CodeToolState extends State<CodeTool> {
                   ),
                   if (!editing)
                     Positioned.fill(
-                      child: MouseRegion(
-                        cursor: SystemMouseCursors.grab,
-                        child: GestureDetector(
-                          key: const ValueKey('code-block-preview-surface'),
-                          behavior: HitTestBehavior.opaque,
-                          dragStartBehavior: DragStartBehavior.down,
-                          onTap: widget.onEdit,
-                          onPanUpdate: (details) => widget.onMove(details.delta),
-                        ),
+                      child: GestureDetector(
+                        key: const ValueKey('code-block-preview-surface'),
+                        behavior: HitTestBehavior.opaque,
+                        dragStartBehavior: DragStartBehavior.down,
+                        onTap: widget.onEdit,
+                        onPanUpdate: (details) => widget.onMove(details.delta),
                       ),
                     ),
                 ],
