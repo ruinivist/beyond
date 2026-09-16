@@ -921,6 +921,31 @@ void main() {
     await tester.pump(const Duration(milliseconds: 100));
   });
 
+  testWidgets('code title grows to the code block width', (
+    tester,
+  ) async {
+    await tester.pumpWidget(const BeyondApp());
+    await tester.pump();
+    await _placeCodeBlock(tester, const Offset(120, 100));
+    await tester.pump();
+
+    final input = find.byKey(const ValueKey('code-title-input'));
+    final tab = find.byKey(const ValueKey('code-title-input-tab'));
+    final surface = find.byKey(const ValueKey('code-block-surface'));
+
+    await tester.tap(input);
+    await tester.enterText(input, 'main.dart');
+    await tester.pumpAndSettle();
+
+    final shortWidth = tester.getSize(tab).width;
+
+    await tester.enterText(input, 'a' * 100);
+    await tester.pumpAndSettle();
+
+    expect(tester.getSize(tab).width, greaterThan(shortWidth));
+    expect(tester.getSize(tab).width, tester.getSize(surface).width);
+  });
+
   testWidgets('delete removes an active unselected code block', (
     tester,
   ) async {

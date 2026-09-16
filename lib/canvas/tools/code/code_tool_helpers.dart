@@ -36,54 +36,48 @@ class _CodeTitleTab extends StatelessWidget {
     final theme = BTheme.of(context);
     final colors = theme.colors;
     final style = theme.typo.body.copyWith(color: colors.textPrimary);
-    final label = model.title.isEmpty ? 'Untitled' : model.title;
-    final labelWidth = TextPainter.computeWidth(
-      text: TextSpan(text: label, style: style),
-      textDirection: Directionality.of(context),
-      textScaler: MediaQuery.textScalerOf(context),
-      locale: Localizations.maybeLocaleOf(context),
-    );
-    final width = (labelWidth + 24).clamp(76.0, model.size.width);
     final border = BorderSide(
       color: model.selected ? colors.accent : colors.borderSubtle,
       width: model.selected ? 2 : 1,
     );
-    return Container(
-      key: ValueKey(editing ? 'code-title-input-tab' : 'code-title-tab'),
-      width: width,
-      height: 34,
-      decoration: BoxDecoration(
-        color: model.selected ? colors.accentSoft : colors.surface,
-        border: Border(top: border, left: border, right: border),
-        borderRadius: const BorderRadius.only(
-          topLeft: Radius.circular(8),
-          topRight: Radius.circular(8),
+    return IntrinsicWidth(
+      child: Container(
+        constraints: BoxConstraints(minWidth: 76, maxWidth: model.size.width),
+        key: ValueKey(editing ? 'code-title-input-tab' : 'code-title-tab'),
+        height: 34,
+        decoration: BoxDecoration(
+          color: model.selected ? colors.accentSoft : colors.surface,
+          border: Border(top: border, left: border, right: border),
+          borderRadius: const BorderRadius.only(
+            topLeft: Radius.circular(8),
+            topRight: Radius.circular(8),
+          ),
         ),
-      ),
-      alignment: Alignment.centerLeft,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12),
-        child: Semantics(
-          label: editing ? null : model.title,
-          child: ExcludeSemantics(
-            excluding: !editing,
-            child: IgnorePointer(
-              ignoring: !editing,
-              child: TextFormField(
-                key: ValueKey(editing ? 'code-title-input' : 'code-title-text'),
-                initialValue: model.title,
-                style: style,
-                cursorColor: colors.accent,
-                readOnly: !editing,
-                canRequestFocus: editing,
-                showCursor: editing,
-                enableInteractiveSelection: editing,
-                onChanged: (title) => model.title = title,
-                decoration: InputDecoration(
-                  hintText: 'Untitled',
-                  hintStyle: style.copyWith(color: colors.textMuted),
-                  border: InputBorder.none,
-                  isCollapsed: true,
+        alignment: Alignment.centerLeft,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          child: Semantics(
+            label: editing ? null : model.title,
+            child: ExcludeSemantics(
+              excluding: !editing,
+              child: IgnorePointer(
+                ignoring: !editing,
+                child: TextFormField(
+                  key: ValueKey(editing ? 'code-title-input' : 'code-title-text'),
+                  initialValue: model.title,
+                  style: style,
+                  cursorColor: colors.accent,
+                  readOnly: !editing,
+                  canRequestFocus: editing,
+                  showCursor: editing,
+                  enableInteractiveSelection: editing,
+                  onChanged: (title) => model.title = title,
+                  decoration: InputDecoration(
+                    hintText: 'Untitled',
+                    hintStyle: style.copyWith(color: colors.textMuted),
+                    border: InputBorder.none,
+                    isCollapsed: true,
+                  ),
                 ),
               ),
             ),
