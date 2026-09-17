@@ -11,20 +11,31 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:re_editor/re_editor.dart';
 
 void main() {
+  test('separates presentation and document changes', () {
+    final model = _codeModel();
+    addTearDown(model.dispose);
+    var rebuilds = 0;
+    var documentChanges = 0;
+    model.addListener(() => rebuilds++);
+    model.documentChanges.addListener(() => documentChanges++);
+
+    model
+      ..selected = true
+      ..active = true;
+    expect((rebuilds, documentChanges), (2, 0));
+
+    rebuilds = 0;
+    model.controller.text = 'void main() {}';
+    expect((rebuilds, documentChanges), (0, 1));
+
+    model.language = CodeLanguage.python;
+    expect((rebuilds, documentChanges), (1, 2));
+  });
+
   testWidgets('inactive code distinguishes editing clicks from drags', (
     tester,
   ) async {
-    final model = CodeBlockModel(
-      CodeElementData(
-        id: 'code',
-        position: Offset.zero,
-        size: const Size(280, 240),
-        language: CodeLanguage.dart,
-        source: 'first line\nsecond line',
-        title: '',
-        showLineNumbers: false,
-      ),
-    );
+    final model = _codeModel(source: 'first line\nsecond line');
     addTearDown(model.dispose);
     var movement = Offset.zero;
     await tester.pumpWidget(
@@ -109,3 +120,15 @@ void main() {
     await tester.pump(const Duration(milliseconds: 600));
   });
 }
+
+CodeBlockModel _codeModel({String source = ''}) => CodeBlockModel(
+  CodeElementData(
+    id: 'code',
+    position: Offset.zero,
+    size: const Size(280, 240),
+    language: CodeLanguage.dart,
+    source: source,
+    title: '',
+    showLineNumbers: false,
+  ),
+);

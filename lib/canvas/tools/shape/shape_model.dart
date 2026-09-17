@@ -20,7 +20,7 @@ class ShapeModel extends CanvasElementModel<ShapeElementData> {
   void moveBy(Offset delta) {
     if (delta == Offset.zero) return;
     data.position += delta;
-    notifyListeners();
+    notifyDocumentChanged();
   }
 
   void resizeBy(Offset delta) {
@@ -30,6 +30,6 @@ class ShapeModel extends CanvasElementModel<ShapeElementData> {
     );
     if (size == data.size) return;
     data.size = size;
-    notifyListeners();
+    notifyDocumentChanged();
   }
 }

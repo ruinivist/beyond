@@ -17,6 +17,20 @@ import '../test_helpers.dart';
 void main() {
   setUp(() => SharedPreferencesAsyncWeb.registerWith(null));
 
+  testWidgets('transient model state does not persist', (tester) async {
+    final store = TestCanvasDocumentStore(_document());
+    await pumpCanvas(tester, store);
+    final model = _stroke(tester)
+      ..selected = true
+      ..active = true;
+    await pumpPastSave(tester);
+    expect(store.persisted, isNull);
+
+    model.moveBy(const Offset(10, 10));
+    await pumpPastSave(tester);
+    expect(store.persisted, isNotNull);
+  });
+
   testWidgets('undo and redo restore and persist canvas operations', (
     tester,
   ) async {

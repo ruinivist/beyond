@@ -223,9 +223,8 @@ class _CanvasPageState extends State<CanvasPage> {
     unawaited(_saveQueue);
     for (final model in _elements) {
       _editorFocusNode(model)?.removeListener(_finishHistoryOperation);
-      model
-        ..removeListener(_scheduleDocumentSave)
-        ..dispose();
+      model.documentChanges.removeListener(_scheduleDocumentSave);
+      model.dispose();
     }
     HardwareKeyboard.instance.removeHandler(_handleKeyEvent);
     _clipboardEvents
@@ -851,7 +850,7 @@ class _CanvasPageState extends State<CanvasPage> {
     bool requestFocus = false,
   }) {
     _elements.add(model);
-    model.addListener(_scheduleDocumentSave);
+    model.documentChanges.addListener(_scheduleDocumentSave);
     final child = switch (model) {
       final TextBlockModel text => _SelectionPointerRegion(
         key: _selectionKey(text),
@@ -1289,7 +1288,7 @@ class _CanvasPageState extends State<CanvasPage> {
       _selectionKeys.remove(model);
       _selectionBeforeDrag.remove(model);
       _selectionBeforeWidgetPointer.remove(model);
-      model.removeListener(_scheduleDocumentSave);
+      model.documentChanges.removeListener(_scheduleDocumentSave);
     }
     if (_selectionBeforeWidgetPointer.isEmpty) _widgetPointer = null;
     if (modelsToDispose.contains(_dragArrow)) _finishArrowDrag();
@@ -1453,7 +1452,7 @@ class _CanvasPageState extends State<CanvasPage> {
     _editingChromeModel = null;
 
     for (final model in oldElements) {
-      model.removeListener(_scheduleDocumentSave);
+      model.documentChanges.removeListener(_scheduleDocumentSave);
       _editorFocusNode(model)?.removeListener(_finishHistoryOperation);
     }
     _elements.clear();

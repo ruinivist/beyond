@@ -22,6 +22,6 @@ class PenStrokeModel extends CanvasElementModel<PenElementData> {
   void moveBy(Offset delta) {
     if (delta == Offset.zero) return;
     data.position += delta;
-    notifyListeners();
+    notifyDocumentChanged();
   }
 }

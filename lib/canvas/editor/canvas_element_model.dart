@@ -16,8 +16,17 @@ abstract class CanvasElementModel<T extends CanvasElementData> extends ChangeNot
   // ---------- State ----------
 
   final T data;
+  final ValueNotifier<int> _documentRevision = ValueNotifier(0);
   bool _selected = false;
   bool _active = false;
+
+  Listenable get documentChanges => _documentRevision;
+
+  @protected
+  void notifyDocumentChanged({bool rebuild = true}) {
+    _documentRevision.value++;
+    if (rebuild) notifyListeners();
+  }
 
   bool get selected => _selected;
 
@@ -42,6 +51,12 @@ abstract class CanvasElementModel<T extends CanvasElementData> extends ChangeNot
   Size get canvasSize;
 
   void moveBy(Offset delta);
+
+  @override
+  void dispose() {
+    _documentRevision.dispose();
+    super.dispose();
+  }
 }
 
 /// Adds center rotation and a composited anchor to canvas element models.

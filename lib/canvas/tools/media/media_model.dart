@@ -43,7 +43,7 @@ class MediaModel extends CanvasElementModel<MediaElementData> {
   void moveBy(Offset delta) {
     if (delta == Offset.zero) return;
     data.position += delta;
-    notifyListeners();
+    notifyDocumentChanged();
   }
 
   void resizeBy(Offset delta) {
@@ -54,7 +54,7 @@ class MediaModel extends CanvasElementModel<MediaElementData> {
     final width = math.max(mediaNodeMinimumWidth, data.width + widthDelta);
     if (width == data.width) return;
     data.width = width;
-    notifyListeners();
+    notifyDocumentChanged();
   }
 
   // ---------- Image updates ----------
@@ -75,7 +75,7 @@ class MediaModel extends CanvasElementModel<MediaElementData> {
     _detachImage();
     _image = MemoryImage(bytes);
     _aspectRatio = ratio;
-    notifyListeners();
+    notifyDocumentChanged();
   }
 
   // ---------- Private helpers ----------
@@ -84,7 +84,7 @@ class MediaModel extends CanvasElementModel<MediaElementData> {
     if (data.url == controller.text) return;
     data.url = controller.text;
     _loadImage();
-    notifyListeners();
+    notifyDocumentChanged();
   }
 
   void _loadImage() {

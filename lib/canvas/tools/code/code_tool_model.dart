@@ -48,7 +48,7 @@ class CodeBlockModel extends RotatableCanvasElementModel<CodeElementData> {
     final nextSize = _clampSize(value);
     if (data.size == nextSize) return;
     data.size = nextSize;
-    notifyListeners();
+    notifyDocumentChanged();
   }
 
   @override
@@ -58,7 +58,7 @@ class CodeBlockModel extends RotatableCanvasElementModel<CodeElementData> {
   void rotate(double angle) {
     if (data.rotation == angle) return;
     data.rotation = angle;
-    notifyListeners();
+    notifyDocumentChanged();
   }
 
   CodeLanguage get language => data.language;
@@ -66,7 +66,7 @@ class CodeBlockModel extends RotatableCanvasElementModel<CodeElementData> {
   set language(CodeLanguage value) {
     if (data.language == value) return;
     data.language = value;
-    notifyListeners();
+    notifyDocumentChanged();
   }
 
   String get title => data.title;
@@ -74,7 +74,7 @@ class CodeBlockModel extends RotatableCanvasElementModel<CodeElementData> {
   set title(String value) {
     if (data.title == value) return;
     data.title = value;
-    notifyListeners();
+    notifyDocumentChanged();
   }
 
   bool get showLineNumbers => data.showLineNumbers;
@@ -82,14 +82,14 @@ class CodeBlockModel extends RotatableCanvasElementModel<CodeElementData> {
   set showLineNumbers(bool value) {
     if (data.showLineNumbers == value) return;
     data.showLineNumbers = value;
-    notifyListeners();
+    notifyDocumentChanged();
   }
 
   @override
   void moveBy(Offset delta) {
     if (delta == Offset.zero) return;
     data.position += delta;
-    notifyListeners();
+    notifyDocumentChanged();
   }
 
   // ---------- Synchronization ----------
@@ -97,7 +97,7 @@ class CodeBlockModel extends RotatableCanvasElementModel<CodeElementData> {
   void _syncSource() {
     if (data.source == controller.text) return;
     data.source = controller.text;
-    notifyListeners();
+    notifyDocumentChanged(rebuild: false);
   }
 
   // ---------- Lifecycle ----------

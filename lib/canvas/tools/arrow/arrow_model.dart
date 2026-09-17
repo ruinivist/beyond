@@ -39,6 +39,6 @@ class ArrowModel extends CanvasElementModel<ArrowElementData> {
       ..start += delta
       ..control += delta
       ..end += delta;
-    notifyListeners();
+    notifyDocumentChanged();
   }
 }
