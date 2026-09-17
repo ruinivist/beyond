@@ -233,7 +233,7 @@ class _CodeToolState extends State<CodeTool> {
                                             key: const ValueKey('code-line-numbers'),
                                             color: colors.surfaceSubtle,
                                             child: Padding(
-                                              padding: const EdgeInsets.symmetric(horizontal: 6),
+                                              padding: const EdgeInsets.symmetric(horizontal: 10),
                                               child: DefaultCodeLineNumber(
                                                 controller: controller,
                                                 notifier: notifier,
