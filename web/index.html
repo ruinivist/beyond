@@ -32,6 +32,11 @@
 
   <title>beyond</title>
   <link rel="manifest" href="manifest.json">
+
+  <style>
+    /* Work around https://github.com/flutter/flutter/issues/184524. */
+    flt-text-editing-host { pointer-events: none !important; }
+  </style>
 </head>
 <body>
   <!--
