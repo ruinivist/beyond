@@ -15,6 +15,7 @@ import 'package:beyond/canvas/tools/pen/pen_tool.dart';
 import 'package:beyond/canvas/tools/text/text_tool.dart';
 import 'package:beyond/main.dart';
 import 'package:beyond/theme/preset_colors.dart';
+import 'package:beyond/ui/common/b_switch_button.dart';
 import 'package:beyond/ui/common/color_picker.dart';
 import 'package:beyond/ui/common/select.dart';
 import 'package:flutter/gestures.dart';
@@ -830,19 +831,18 @@ void main() {
       'main.dart',
     );
     tester
-        .widget<CheckboxListTile>(
-          find.byKey(const ValueKey('code-show-line-numbers')),
+        .widget<TextButton>(
+          find.descendant(
+            of: find.byKey(const ValueKey('code-show-line-numbers')),
+            matching: find.byType(TextButton),
+          ),
         )
-        .onChanged!(false);
+        .onPressed!();
     await tester.pump();
     expect(code.title, 'main.dart');
     expect(code.showLineNumbers, isFalse);
     expect(
-      tester
-          .widget<CheckboxListTile>(
-            find.byKey(const ValueKey('code-show-line-numbers')),
-          )
-          .value,
+      tester.widget<BSwitchButton>(find.byKey(const ValueKey('code-show-line-numbers'))).value,
       isFalse,
     );
     expect(find.byKey(const ValueKey('code-line-numbers')), findsNothing);

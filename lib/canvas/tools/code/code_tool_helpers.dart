@@ -103,21 +103,20 @@ class CodeToolSettings extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = BTheme.of(context);
     return ListenableBuilder(
       listenable: model,
-      builder: (context, _) => CheckboxListTile(
+      builder: (context, _) => BSwitchButton(
         key: const ValueKey('code-show-line-numbers'),
+        label: 'Line numbers',
         value: model.showLineNumbers,
-        contentPadding: EdgeInsets.zero,
-        controlAffinity: ListTileControlAffinity.leading,
-        title: Text('Show line numbers', style: theme.typo.label),
-        onChanged: (showLineNumbers) {
-          onChangeBoundary();
-          model.showLineNumbers = showLineNumbers!;
-          onChangeBoundary();
-        },
+        onChanged: _setShowLineNumbers,
       ),
     );
+  }
+
+  void _setShowLineNumbers(bool value) {
+    onChangeBoundary();
+    model.showLineNumbers = value;
+    onChangeBoundary();
   }
 }

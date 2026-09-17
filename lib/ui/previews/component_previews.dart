@@ -4,6 +4,7 @@
 import 'package:beyond/theme/theme.dart';
 import 'package:beyond/ui/common/b_container.dart';
 import 'package:beyond/ui/common/b_icon_button.dart';
+import 'package:beyond/ui/common/b_switch_button.dart';
 import 'package:beyond/ui/common/b_text_button.dart';
 import 'package:beyond/ui/common/color_picker.dart';
 import 'package:beyond/ui/common/context_menu.dart';
@@ -70,6 +71,14 @@ Widget bTextButtonPreview() => _surface(
     onPressed: () {},
   ),
 );
+
+@Preview(
+  name: 'BSwitchButton',
+  size: Size(400, 240),
+  theme: previewTheme,
+  brightness: Brightness.light,
+)
+Widget bSwitchButtonPreview() => const _BSwitchButtonPreview();
 
 @Preview(
   name: 'IconDrag',
@@ -170,6 +179,50 @@ Widget _surface(Widget child) => Builder(
     child: Center(child: child),
   ),
 );
+
+class _BSwitchButtonPreview extends StatefulWidget {
+  const _BSwitchButtonPreview();
+
+  @override
+  State<_BSwitchButtonPreview> createState() => _BSwitchButtonPreviewState();
+}
+
+class _BSwitchButtonPreviewState extends State<_BSwitchButtonPreview> {
+  var _value = true;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = BTheme.of(context);
+    return _surface(
+      Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          Icon(
+            Icons.settings_outlined,
+            size: 17,
+            color: theme.colors.textSecondary,
+          ),
+          const SizedBox(height: 8),
+          SizedBox(
+            width: 200,
+            height: 46,
+            child: BContainer(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                child: BSwitchButton(
+                  label: 'Show line numbers',
+                  value: _value,
+                  onChanged: (value) => setState(() => _value = value),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
 
 class _ColorPickerPreview extends StatefulWidget {
   const _ColorPickerPreview();
