@@ -63,6 +63,7 @@ void main() {
           position: const Offset(220, -80),
           width: 400,
           url: 'https://example.com/image.png',
+          rotation: math.pi / 4,
         ),
         ShapeElementData(
           id: 'shape-1',
@@ -125,6 +126,7 @@ void main() {
     expect(media.position, const Offset(220, -80));
     expect(media.width, 400);
     expect(media.url, 'https://example.com/image.png');
+    expect(media.rotation, math.pi / 4);
 
     final shape = elements[5] as ShapeElementData;
     expect(shape.kind, ShapeKind.ellipse);
@@ -165,6 +167,17 @@ void main() {
               _document(elements: [code]),
             ).elements.single
             as CodeElementData;
+
+    expect(restored.rotation, 0);
+  });
+
+  test('media rotation defaults to zero when omitted', () {
+    final media = _encodedMedia()..remove('rotation');
+    final restored =
+        CanvasDocument.fromJson(
+              _document(elements: [media]),
+            ).elements.single
+            as MediaElementData;
 
     expect(restored.rotation, 0);
   });
@@ -316,6 +329,12 @@ void main() {
       ),
       throwsA(isA<FormatException>()),
     );
+    expect(
+      () => CanvasDocument.fromJson(
+        _document(elements: [_encodedMedia(rotation: double.infinity)]),
+      ),
+      throwsA(isA<FormatException>()),
+    );
   });
 
   test('text dimensions and styles are validated', () {
@@ -391,17 +410,7 @@ void main() {
 
     expect(
       () => CanvasDocument.fromJson(
-        _document(
-          elements: [
-            {
-              'id': 'media',
-              'type': 'media',
-              'position': {'x': 0.0, 'y': 0.0},
-              'width': mediaNodeMinimumWidth - 1,
-              'url': '',
-            },
-          ],
-        ),
+        _document(elements: [_encodedMedia(width: mediaNodeMinimumWidth - 1)]),
       ),
       throwsA(isA<FormatException>()),
     );
@@ -457,6 +466,15 @@ Map<String, Object?> _encodedCode({String id = 'code-1', Object rotation = 0.0})
   'source': '',
   'title': '',
   'showLineNumbers': true,
+  'rotation': rotation,
+};
+
+Map<String, Object?> _encodedMedia({Object width = mediaNodeDefaultWidth, Object rotation = 0.0}) => {
+  'id': 'media',
+  'type': 'media',
+  'position': {'x': 0.0, 'y': 0.0},
+  'width': width,
+  'url': '',
   'rotation': rotation,
 };
 

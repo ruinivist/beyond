@@ -7,7 +7,7 @@ part of 'media_tool.dart';
 
 /// Owns media loading state and synchronizes it with persisted element data.
 /// Used by media rendering, editing, resizing, and attachment storage.
-class MediaModel extends CanvasElementModel<MediaElementData> {
+class MediaModel extends RotatableCanvasElementModel<MediaElementData> {
   // ---------- Construction ----------
 
   MediaModel(MediaElementData data, this.attachmentStore) : super(data) {
@@ -29,6 +29,9 @@ class MediaModel extends CanvasElementModel<MediaElementData> {
   ImageProvider<Object>? get image => _image;
 
   bool get hasImage => _image != null && _aspectRatio != null;
+
+  @override
+  double get rotation => data.rotation;
 
   double get urlPanelWidth => hasImage ? math.max(mediaUrlPanelMinimumWidth, data.width) : mediaUrlPanelMinimumWidth;
 
@@ -54,6 +57,13 @@ class MediaModel extends CanvasElementModel<MediaElementData> {
     final width = math.max(mediaNodeMinimumWidth, data.width + widthDelta);
     if (width == data.width) return;
     data.width = width;
+    notifyDocumentChanged();
+  }
+
+  @override
+  void rotate(double angle) {
+    if (data.rotation == angle) return;
+    data.rotation = angle;
     notifyDocumentChanged();
   }
 

@@ -20,6 +20,8 @@ class ElementTransformControls extends StatelessWidget {
     required this.onTransformStart,
     required this.onTransformEnd,
     required this.rotationCenter,
+    this.showRotate = true,
+    this.tapRegionGroupId,
     super.key,
   });
 
@@ -31,12 +33,14 @@ class ElementTransformControls extends StatelessWidget {
   final VoidCallback onTransformStart;
   final VoidCallback onTransformEnd;
   final ValueGetter<Offset> rotationCenter;
+  final bool showRotate;
+  final Object? tapRegionGroupId;
 
   static final size = Size(BSizes.defaultIconButtonSize.width, 120);
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
+    final controls = SizedBox(
       width: size.width,
       height: size.height,
       child: TextFieldTapRegion(
@@ -52,21 +56,22 @@ class ElementTransformControls extends StatelessWidget {
               },
               icon: const Icon(Icons.drag_indicator, size: 20),
             ),
-            IconDrag(
-              key: ValueKey('$elementName-block-rotate-control'),
-              semanticLabel: 'Rotate $elementName block',
-              onDragStart: (position) {
-                onTransformStart();
-                return _ElementRotateDrag(
-                  startPosition: position,
-                  center: rotationCenter(),
-                  rotation: rotation,
-                  onRotate: onRotate,
-                  onEnd: onTransformEnd,
-                );
-              },
-              icon: const Icon(Icons.rotate_right, size: 20),
-            ),
+            if (showRotate)
+              IconDrag(
+                key: ValueKey('$elementName-block-rotate-control'),
+                semanticLabel: 'Rotate $elementName block',
+                onDragStart: (position) {
+                  onTransformStart();
+                  return _ElementRotateDrag(
+                    startPosition: position,
+                    center: rotationCenter(),
+                    rotation: rotation,
+                    onRotate: onRotate,
+                    onEnd: onTransformEnd,
+                  );
+                },
+                icon: const Icon(Icons.rotate_right, size: 20),
+              ),
             MouseRegion(
               key: ValueKey('$elementName-block-delete-control'),
               cursor: SystemMouseCursors.click,
@@ -91,6 +96,8 @@ class ElementTransformControls extends StatelessWidget {
         ),
       ),
     );
+    final groupId = tapRegionGroupId;
+    return groupId == null ? controls : TapRegion(groupId: groupId, child: controls);
   }
 }
 

@@ -8,11 +8,13 @@ part of 'media_tool.dart';
 class _MediaUrlPanel extends StatelessWidget {
   const _MediaUrlPanel({
     required this.model,
+    required this.onActivate,
     required this.onPickImage,
     this.onMove,
   });
 
   final MediaModel model;
+  final VoidCallback onActivate;
   final VoidCallback onPickImage;
   final ValueChanged<Offset>? onMove;
 
@@ -31,6 +33,7 @@ class _MediaUrlPanel extends StatelessWidget {
               key: const ValueKey('media-url-field'),
               controller: model.controller,
               focusNode: model.focusNode,
+              onTap: onActivate,
               minLines: 1,
               maxLines: 3,
               textAlignVertical: TextAlignVertical.center,
@@ -38,7 +41,7 @@ class _MediaUrlPanel extends StatelessWidget {
               cursorColor: colors.accent,
               style: theme.typo.body.copyWith(color: colors.textPrimary),
               decoration: InputDecoration(
-                hintText: 'Image URL',
+                hintText: 'Paste link',
                 border: InputBorder.none,
                 contentPadding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
                 suffixIcon: IconButton(

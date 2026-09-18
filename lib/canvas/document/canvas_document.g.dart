@@ -96,7 +96,7 @@ MediaElementData _$MediaElementDataFromJson(Map<String, dynamic> json) =>
     $checkedCreate('MediaElementData', json, ($checkedConvert) {
       $checkKeys(
         json,
-        allowedKeys: const ['id', 'type', 'position', 'width', 'url'],
+        allowedKeys: const ['id', 'type', 'position', 'width', 'url', 'rotation'],
       );
       final val = MediaElementData._json(
         id: $checkedConvert('id', (v) => v as String),
@@ -107,6 +107,7 @@ MediaElementData _$MediaElementDataFromJson(Map<String, dynamic> json) =>
         ),
         width: $checkedConvert('width', (v) => (v as num).toDouble()),
         url: $checkedConvert('url', (v) => v as String),
+        rotation: $checkedConvert('rotation', (v) => v == null ? 0.0 : (v as num).toDouble()),
       );
       return val;
     });
@@ -117,6 +118,7 @@ Map<String, dynamic> _$MediaElementDataToJson(MediaElementData instance) => <Str
   'position': const _OffsetConverter().toJson(instance.position),
   'width': instance.width,
   'url': instance.url,
+  'rotation': instance.rotation,
 };
 
 TextNodeStyle _$TextNodeStyleFromJson(Map<String, dynamic> json) =>

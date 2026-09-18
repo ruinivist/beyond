@@ -15,6 +15,7 @@
 - Keep concrete Starless Light palette, typography, syntax theme, and reusable geometry in the app theme; keep component-specific geometry local to each componen. Example: instead of hardcoding random number sizes that we are using repeatedly across the app as a "preferred size" make it owned
   by the app. Example something like an icon should be consistent unless component-specific override is needed, so an icons size belongs some place
   in theme but a widget specific larger icon size can be hardcoded inline.
+- For interaction model that MUST be followed for the app globally, look at `docs/Interaction model.md`
 
 # Testing guidance
 

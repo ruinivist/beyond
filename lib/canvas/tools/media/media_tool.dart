@@ -34,6 +34,7 @@ class MediaTool extends StatefulWidget {
     required this.model,
     required this.onMove,
     required this.onResize,
+    required this.onActivate,
     required this.onDeactivate,
     super.key,
   });
@@ -41,6 +42,7 @@ class MediaTool extends StatefulWidget {
   final MediaModel model;
   final ValueChanged<Offset> onMove;
   final ValueChanged<Offset> onResize;
+  final VoidCallback onActivate;
   final VoidCallback onDeactivate;
 
   @override
@@ -124,6 +126,7 @@ class _MediaToolState extends State<MediaTool> {
                                   groupId: model,
                                   child: _MediaUrlPanel(
                                     model: model,
+                                    onActivate: widget.onActivate,
                                     onPickImage: _pickImage,
                                   ),
                                 )
@@ -137,21 +140,26 @@ class _MediaToolState extends State<MediaTool> {
                 ),
               );
             },
-            child: model.hasImage
-                ? TapRegion(
-                    groupId: model,
-                    onTapOutside: (_) => widget.onDeactivate(),
-                    child: _MediaImage(
+            child: CompositedTransformTarget(
+              link: model.layerLink,
+              child: model.hasImage
+                  ? TapRegion(
+                      groupId: model,
+                      onTapOutside: (_) => widget.onDeactivate(),
+                      child: _MediaImage(
+                        model: model,
+                        onActivate: widget.onActivate,
+                        onMove: widget.onMove,
+                        onResize: widget.onResize,
+                      ),
+                    )
+                  : _MediaUrlPanel(
                       model: model,
+                      onActivate: widget.onActivate,
                       onMove: widget.onMove,
-                      onResize: widget.onResize,
+                      onPickImage: _pickImage,
                     ),
-                  )
-                : _MediaUrlPanel(
-                    model: model,
-                    onMove: widget.onMove,
-                    onPickImage: _pickImage,
-                  ),
+            ),
           ),
         );
       },

@@ -211,7 +211,7 @@ class ShapeElementData extends CanvasElementData {
   );
 }
 
-/// Stores the position, width, and source URL of a media element.
+/// Stores the position, width, rotation, and source URL of a media element.
 /// Used by media nodes and document attachment handling.
 @_strictJson
 class MediaElementData extends CanvasElementData {
@@ -222,6 +222,7 @@ class MediaElementData extends CanvasElementData {
     required this.position,
     required this.width,
     required this.url,
+    this.rotation = 0,
   }) : super(id, 'media');
 
   MediaElementData._json({
@@ -230,6 +231,7 @@ class MediaElementData extends CanvasElementData {
     required this.position,
     required this.width,
     required this.url,
+    required this.rotation,
   }) : super(id, type);
 
   factory MediaElementData.fromJson(Object? json) {
@@ -238,6 +240,7 @@ class MediaElementData extends CanvasElementData {
     if (media.width < mediaNodeMinimumWidth) {
       throw const FormatException('element.width is below the minimum');
     }
+    _validateFinite(media.rotation, 'element.rotation');
     return media;
   }
 
@@ -247,6 +250,8 @@ class MediaElementData extends CanvasElementData {
   Offset position;
   double width;
   String url;
+  @JsonKey(defaultValue: 0.0)
+  double rotation;
 
   // ---------- Serialization ----------
 
@@ -261,6 +266,7 @@ class MediaElementData extends CanvasElementData {
     position: position,
     width: width,
     url: url,
+    rotation: rotation,
   );
 }
 

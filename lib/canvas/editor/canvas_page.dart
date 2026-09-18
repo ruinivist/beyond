@@ -593,10 +593,16 @@ class _CanvasPageState extends State<CanvasPage> {
     }
     _interactiveCanvasPointerIds.add(event.pointer);
     if (_toggleSelectionIfModifierPressed(model)) return;
-    _setActiveElement(model);
+    if (!model.active) _setActiveElement(null);
     FocusManager.instance.primaryFocus?.unfocus();
     _clearTextEditing();
     _bringElementToFront(model);
+  }
+
+  void _activateMedia(MediaModel model) {
+    if (!_documentLoaded || _activeTool.value != _CanvasTool.select || !_elements.contains(model)) return;
+    _clearTextEditing();
+    _setActiveElement(model);
   }
 
   void _handleShapePointerDown(
@@ -763,7 +769,7 @@ class _CanvasPageState extends State<CanvasPage> {
     if (!_documentLoaded || _activeTool.value != _CanvasTool.select || !_elements.contains(model)) {
       return;
     }
-    model.resizeBy(screenDelta / _canvasController.scale);
+    model.resizeBy(_localTransformDelta(model.rotation, screenDelta));
   }
 
   void _resizeShape(ShapeModel model, Offset screenDelta) {
@@ -884,9 +890,11 @@ class _CanvasPageState extends State<CanvasPage> {
         key: _selectionKey(media),
         activeTool: _activeTool,
         modifierPressed: _selectionModifierPressed,
+        rotationModel: media,
         onPointerDown: (event) => _handleMediaPointerDown(media, event),
         child: MediaTool(
           model: media,
+          onActivate: () => _activateMedia(media),
           onMove: (delta) => _moveSelectedChildren(media, delta),
           onResize: (delta) => _resizeMedia(media, delta),
           onDeactivate: () {
@@ -1861,8 +1869,14 @@ class _CanvasPageState extends State<CanvasPage> {
                           ),
                           child: ElementTransformControls(
                             key: ValueKey(editing.data.id),
-                            elementName: editing is TextBlockModel ? 'text' : 'code',
+                            elementName: switch (editing) {
+                              TextBlockModel() => 'text',
+                              CodeBlockModel() => 'code',
+                              _ => 'media',
+                            },
                             rotation: editing.rotation,
+                            showRotate: editing is! MediaModel || editing.hasImage,
+                            tapRegionGroupId: editing is MediaModel ? editing : null,
                             onMove: (delta) => _moveSelectedChildren(editing, delta),
                             onRotate: (angle) => _rotateElement(editing, angle),
                             onDelete: () => _removeElements([editing]),

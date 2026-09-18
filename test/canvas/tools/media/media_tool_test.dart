@@ -1,6 +1,7 @@
 // Verifies media creation, loading, resizing, and persistence behavior.
 // Exercises the media tool through model and canvas widget flows.
 
+import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:beyond/canvas/document/canvas_document.dart';
@@ -37,6 +38,9 @@ void main() {
     expect(model.hasImage, isFalse);
     expect(find.byKey(const ValueKey('media-url-field')), findsOneWidget);
     expect(find.byKey(const ValueKey('media-device-picker')), findsOneWidget);
+    expect(find.byKey(const ValueKey('media-block-handle')), findsOneWidget);
+    expect(find.byKey(const ValueKey('media-block-rotate-control')), findsNothing);
+    expect(find.byKey(const ValueKey('media-block-delete-control')), findsOneWidget);
     expect(model.focusNode.hasFocus, isTrue);
     final field = tester.widget<TextField>(
       find.byKey(const ValueKey('media-url-field')),
@@ -63,6 +67,7 @@ void main() {
     expect(model.active, isTrue);
     expect(find.byKey(const ValueKey('media-image')), findsOneWidget);
     expect(find.byKey(const ValueKey('media-url-field')), findsOneWidget);
+    expect(find.byKey(const ValueKey('media-block-rotate-control')), findsOneWidget);
 
     await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
     await tester.pump();
@@ -159,12 +164,27 @@ void main() {
     expect(model.canvasSize, const Size(400, 200));
     expect(find.byKey(const ValueKey('media-url-field')), findsNothing);
 
+    final inactivePosition = model.data.position;
+    await tester.drag(
+      find.byKey(const ValueKey('media-image')),
+      const Offset(30, 20),
+      kind: PointerDeviceKind.mouse,
+    );
+    await tester.pump();
+    expect(model.data.position, inactivePosition + const Offset(30, 20));
+    expect(model.active, isFalse);
+    expect(find.byKey(const ValueKey('media-url-field')), findsNothing);
+    expect(find.byKey(const ValueKey('media-block-handle')), findsNothing);
+
     await tester.tap(find.byKey(const ValueKey('media-image')));
     await tester.pumpAndSettle();
     expect(model.active, isTrue);
     expect(model.selected, isFalse);
     expect(find.byKey(const ValueKey('media-url-field')), findsOneWidget);
     expect(find.byKey(const ValueKey('media-resize-handle')), findsOneWidget);
+    expect(find.byKey(const ValueKey('media-block-handle')), findsOneWidget);
+    expect(find.byKey(const ValueKey('media-block-rotate-control')), findsOneWidget);
+    expect(find.byKey(const ValueKey('media-block-delete-control')), findsOneWidget);
     expect(
       tester.getTopLeft(find.byKey(const ValueKey('media-url-panel'))).dy -
           tester.getBottomLeft(find.byKey(const ValueKey('media-image'))).dy,
@@ -206,13 +226,34 @@ void main() {
       closeTo(model.data.width, 0.01),
     );
 
+    await tester.drag(
+      find.byKey(const ValueKey('media-block-rotate-control')),
+      const Offset(0, 40),
+      kind: PointerDeviceKind.mouse,
+    );
+    await tester.pump();
+    expect(model.rotation, isNot(0));
+
+    final rotatedResizeDelta = Offset(
+      50 * math.cos(model.rotation) - 25 * math.sin(model.rotation),
+      50 * math.sin(model.rotation) + 25 * math.cos(model.rotation),
+    );
+    await tester.drag(
+      find.byKey(const ValueKey('media-resize-handle')),
+      rotatedResizeDelta,
+      kind: PointerDeviceKind.mouse,
+    );
+    await tester.pump();
+    expect(model.data.width, closeTo(550, 0.01));
+
     final position = model.data.position;
     await tester.drag(
       find.byKey(const ValueKey('media-image')),
       const Offset(30, 20),
     );
     await tester.pump();
-    expect(model.data.position, position + const Offset(30, 20));
+    expect(model.data.position.dx, closeTo(position.dx + 30, 0.01));
+    expect(model.data.position.dy, closeTo(position.dy + 20, 0.01));
 
     final clickAway = await tester.startGesture(
       const Offset(700, 500),
@@ -228,8 +269,24 @@ void main() {
     await tester.pump(const Duration(milliseconds: 320));
     await tester.pump();
     final persisted = store.persisted!.elements.single as MediaElementData;
-    expect(persisted.width, closeTo(500, 0.01));
-    expect(persisted.position, position + const Offset(30, 20));
+    expect(persisted.width, closeTo(550, 0.01));
+    expect(persisted.position.dx, closeTo(position.dx + 30, 0.01));
+    expect(persisted.position.dy, closeTo(position.dy + 20, 0.01));
+    expect(persisted.rotation, model.rotation);
+  });
+
+  testWidgets('URL-only media can be deleted from its controls', (tester) async {
+    await pumpCanvas(tester, TestCanvasDocumentStore(_document()));
+
+    await tester.tap(find.byKey(const ValueKey('toolbar-media')));
+    await tester.pump();
+    await tester.tapAt(const Offset(120, 180));
+    await tester.pump();
+
+    expect(find.byType(MediaTool), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('media-block-delete-control')));
+    await tester.pump();
+    expect(find.byType(MediaTool), findsNothing);
   });
 }
 
