@@ -240,7 +240,7 @@ void main() {
     expect(find.byType(TextTool), findsNothing);
   });
 
-  testWidgets('text blocks move from their unfocused preview when zoomed', (
+  testWidgets('inactive text blocks move without activating when zoomed', (
     tester,
   ) async {
     await _addTextBlock(tester, const Offset(120, 200));
@@ -267,15 +267,15 @@ void main() {
 
     expect(canvas.controller.scale, 2);
     expect(model.node.position, originalPosition + delta / 2);
-    expect(model.active, isTrue);
+    expect(model.active, isFalse);
     expect(model.editing, isFalse);
     expect(model.focusNode.hasFocus, isFalse);
     expect(find.byKey(const ValueKey('text-markdown-preview')), findsOneWidget);
     await tester.pumpAndSettle();
-    expect(find.byType(ElementTransformControls), findsOneWidget);
+    expect(find.byType(ElementTransformControls), findsNothing);
     expect(
       find.byKey(const ValueKey('text-block-resize-handle')),
-      findsOneWidget,
+      findsNothing,
     );
 
     await gesture.up();
@@ -283,7 +283,7 @@ void main() {
 
     expect(model.editing, isFalse);
     expect(find.byKey(const ValueKey('text-markdown-preview')), findsOneWidget);
-    expect(find.byType(ElementTransformControls), findsOneWidget);
+    expect(find.byType(ElementTransformControls), findsNothing);
   });
 
   testWidgets('rotated preview movement stays in screen coordinates', (

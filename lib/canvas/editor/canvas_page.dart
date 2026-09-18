@@ -572,7 +572,7 @@ class _CanvasPageState extends State<CanvasPage> {
     _interactiveCanvasPointerIds.add(event.pointer);
     if (!_elements.contains(model)) return;
     if (_toggleSelectionIfModifierPressed(model)) return;
-    _setActiveElement(model);
+    if (!model.active) _setActiveElement(null);
     if (model.focusNode.hasFocus) _finishHistoryOperation();
     if (!model.editing) {
       FocusManager.instance.primaryFocus?.unfocus();
