@@ -25,12 +25,12 @@ class BContainer extends StatelessWidget {
     final theme = BTheme.of(context);
     final colors = theme.colors;
     return Material(
-      color: selected ? colors.surfacePressed : colors.surfaceRaised,
+      color: selected ? colors.accentSoft : colors.surfaceRaised,
       elevation: selected ? 0 : theme.geo.elevationLow,
       shadowColor: colors.shadow,
       shape: RoundedRectangleBorder(
         borderRadius: theme.geo.radiusLarge,
-        side: BorderSide(color: colors.borderSubtle),
+        side: selected ? BorderSide(color: colors.accent, width: 2) : BorderSide(color: colors.borderSubtle),
       ),
       clipBehavior: Clip.antiAlias,
       child: child,
