@@ -537,6 +537,9 @@ void main() {
     expect(elementIds(), ['arrow', 'pen']);
     expect(pen.active, isTrue);
     expect(pen.selected, isFalse);
+    expect(find.byKey(const ValueKey('pen-block-handle')), findsOneWidget);
+    expect(find.byKey(const ValueKey('pen-block-delete-control')), findsOneWidget);
+    expect(find.byKey(const ValueKey('pen-block-rotate-control')), findsNothing);
 
     final arrowStart =
         tester.getTopLeft(arrowFinder) +
@@ -1151,10 +1154,9 @@ void main() {
     await tester.pump();
 
     final block = find.byType(CodeTool);
+    final model = tester.widget<CodeTool>(block).model;
+    final originalPosition = model.data.position;
     final preview = find.byKey(const ValueKey('code-block-preview-surface'));
-    final canvas = tester.widget<LazyCanvas>(find.byType(LazyCanvas));
-    final originalTopLeft = tester.getTopLeft(block);
-    final originalCanvasOffset = canvas.controller.offset;
 
     expect(tester.widget<CodeTool>(block).model.selected, isFalse);
 
@@ -1162,8 +1164,7 @@ void main() {
     await tester.drag(preview, delta);
     await tester.pump();
 
-    expect(tester.getTopLeft(block), originalTopLeft + delta);
-    expect(canvas.controller.offset, originalCanvasOffset);
+    expect(model.data.position, originalPosition + delta);
 
     await tester.tapAt(const Offset(24, 200));
     await tester.pump();

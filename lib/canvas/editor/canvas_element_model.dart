@@ -16,6 +16,7 @@ abstract class CanvasElementModel<T extends CanvasElementData> extends ChangeNot
   // ---------- State ----------
 
   final T data;
+  final layerLink = LayerLink();
   final ValueNotifier<int> _documentRevision = ValueNotifier(0);
   bool _selected = false;
   bool _active = false;
@@ -64,7 +65,7 @@ abstract class CanvasElementModel<T extends CanvasElementData> extends ChangeNot
 abstract class RotatableCanvasElementModel<T extends CanvasElementData> extends CanvasElementModel<T> {
   RotatableCanvasElementModel(super.data);
 
-  final layerLink = LayerLink();
+  bool get canRotate => true;
 
   double get rotation;
 

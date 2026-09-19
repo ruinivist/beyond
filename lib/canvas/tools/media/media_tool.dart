@@ -140,26 +140,23 @@ class _MediaToolState extends State<MediaTool> {
                 ),
               );
             },
-            child: CompositedTransformTarget(
-              link: model.layerLink,
-              child: model.hasImage
-                  ? TapRegion(
-                      groupId: model,
-                      onTapOutside: (_) => widget.onDeactivate(),
-                      child: _MediaImage(
-                        model: model,
-                        onActivate: widget.onActivate,
-                        onMove: widget.onMove,
-                        onResize: widget.onResize,
-                      ),
-                    )
-                  : _MediaUrlPanel(
+            child: model.hasImage
+                ? TapRegion(
+                    groupId: model,
+                    onTapOutside: (_) => widget.onDeactivate(),
+                    child: _MediaImage(
                       model: model,
                       onActivate: widget.onActivate,
                       onMove: widget.onMove,
-                      onPickImage: _pickImage,
+                      onResize: widget.onResize,
                     ),
-            ),
+                  )
+                : _MediaUrlPanel(
+                    model: model,
+                    onActivate: widget.onActivate,
+                    onMove: widget.onMove,
+                    onPickImage: _pickImage,
+                  ),
           ),
         );
       },

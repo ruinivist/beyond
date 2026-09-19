@@ -31,6 +31,9 @@ class MediaModel extends RotatableCanvasElementModel<MediaElementData> {
   bool get hasImage => _image != null && _aspectRatio != null;
 
   @override
+  bool get canRotate => hasImage;
+
+  @override
   double get rotation => data.rotation;
 
   double get urlPanelWidth => hasImage ? math.max(mediaUrlPanelMinimumWidth, data.width) : mediaUrlPanelMinimumWidth;

@@ -1,5 +1,5 @@
 // Renders shared movement, rotation, and deletion controls for canvas elements.
-// Used by the canvas overlay for active rotatable elements.
+// Used by the canvas overlay for active elements.
 
 import 'dart:math' as math;
 
@@ -15,12 +15,11 @@ class ElementTransformControls extends StatelessWidget {
     required this.elementName,
     required this.rotation,
     required this.onMove,
-    required this.onRotate,
     required this.onDelete,
     required this.onTransformStart,
     required this.onTransformEnd,
     required this.rotationCenter,
-    this.showRotate = true,
+    this.onRotate,
     this.tapRegionGroupId,
     super.key,
   });
@@ -28,12 +27,11 @@ class ElementTransformControls extends StatelessWidget {
   final String elementName;
   final double rotation;
   final ValueChanged<Offset> onMove;
-  final ValueChanged<double> onRotate;
+  final ValueChanged<double>? onRotate;
   final VoidCallback onDelete;
   final VoidCallback onTransformStart;
   final VoidCallback onTransformEnd;
   final ValueGetter<Offset> rotationCenter;
-  final bool showRotate;
   final Object? tapRegionGroupId;
 
   static final size = Size(BSizes.defaultIconButtonSize.width, 120);
@@ -56,7 +54,7 @@ class ElementTransformControls extends StatelessWidget {
               },
               icon: const Icon(Icons.drag_indicator, size: 20),
             ),
-            if (showRotate)
+            if (onRotate case final onRotate?)
               IconDrag(
                 key: ValueKey('$elementName-block-rotate-control'),
                 semanticLabel: 'Rotate $elementName block',

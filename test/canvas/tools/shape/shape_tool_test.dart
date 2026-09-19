@@ -240,13 +240,14 @@ void main() {
     await tester.pump();
     expect(first.active, isTrue);
     expect(first.selected, isTrue);
+    expect(find.byKey(const ValueKey('shape-block-rotate-control')), findsNothing);
     expect(
       find.byKey(const ValueKey('shape-resize-handle')),
       findsOneWidget,
     );
 
     await tester.drag(
-      firstFinder,
+      find.byKey(const ValueKey('shape-block-handle')),
       const Offset(30, 20),
       kind: PointerDeviceKind.mouse,
     );
@@ -260,5 +261,9 @@ void main() {
     );
     await tester.pump();
     expect(first.data.size, originalSize + const Offset(40, 30));
+
+    await tester.tap(find.byKey(const ValueKey('shape-block-delete-control')));
+    await tester.pump();
+    expect(firstFinder, findsNothing);
   });
 }

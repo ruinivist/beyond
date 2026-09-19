@@ -93,43 +93,40 @@ class TextTool extends StatelessWidget {
                     ? BorderSide.none
                     : BorderSide(color: colors.borderSubtle),
               ),
-              child: CompositedTransformTarget(
-                link: model.layerLink,
-                child: SizedBox(
-                  width: model.node.width,
-                  height: model.node.height,
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(minHeight: textNodeMinimumHeight),
-                    child: Stack(
-                      children: [
-                        if (model.node.height != null) Positioned.fill(child: visibleBody) else visibleBody,
-                        Positioned(
-                          right: 2,
-                          bottom: 2,
-                          child: IgnorePointer(
-                            ignoring: !model.active,
-                            child: AnimatedSwitcher(
-                              duration: const Duration(milliseconds: 260),
-                              reverseDuration: const Duration(milliseconds: 180),
-                              switchInCurve: Curves.easeOutCubic,
-                              switchOutCurve: Curves.easeOutCubic,
-                              transitionBuilder: _resizeHandleTransition,
-                              child: model.active
-                                  ? TextFieldTapRegion(
-                                      child: ResizeHandle(
-                                        key: const ValueKey('text-block-resize-handle'),
-                                        semanticLabel: 'Resize text block',
-                                        gestures: {resizeRecognizer: resizeGestureFactory},
-                                      ),
-                                    )
-                                  : const SizedBox(
-                                      key: ValueKey('text-block-resize-handle-hidden'),
+              child: SizedBox(
+                width: model.node.width,
+                height: model.node.height,
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(minHeight: textNodeMinimumHeight),
+                  child: Stack(
+                    children: [
+                      if (model.node.height != null) Positioned.fill(child: visibleBody) else visibleBody,
+                      Positioned(
+                        right: 2,
+                        bottom: 2,
+                        child: IgnorePointer(
+                          ignoring: !model.active,
+                          child: AnimatedSwitcher(
+                            duration: const Duration(milliseconds: 260),
+                            reverseDuration: const Duration(milliseconds: 180),
+                            switchInCurve: Curves.easeOutCubic,
+                            switchOutCurve: Curves.easeOutCubic,
+                            transitionBuilder: _resizeHandleTransition,
+                            child: model.active
+                                ? TextFieldTapRegion(
+                                    child: ResizeHandle(
+                                      key: const ValueKey('text-block-resize-handle'),
+                                      semanticLabel: 'Resize text block',
+                                      gestures: {resizeRecognizer: resizeGestureFactory},
                                     ),
-                            ),
+                                  )
+                                : const SizedBox(
+                                    key: ValueKey('text-block-resize-handle-hidden'),
+                                  ),
                           ),
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                 ),
               ),

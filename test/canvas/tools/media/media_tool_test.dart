@@ -226,13 +226,24 @@ void main() {
       closeTo(model.data.width, 0.01),
     );
 
+    final rotate = find.byKey(const ValueKey('media-block-rotate-control'));
+    final center = tester.getCenter(find.byKey(const ValueKey('media-image')));
+    final controlOffset = tester.getCenter(rotate) - center;
     await tester.drag(
-      find.byKey(const ValueKey('media-block-rotate-control')),
+      rotate,
       const Offset(0, 40),
       kind: PointerDeviceKind.mouse,
     );
     await tester.pump();
     expect(model.rotation, isNot(0));
+    final cosine = math.cos(model.rotation);
+    final sine = math.sin(model.rotation);
+    final rotatedControlOffset = Offset(
+      controlOffset.dx * cosine - controlOffset.dy * sine,
+      controlOffset.dx * sine + controlOffset.dy * cosine,
+    );
+    expect(tester.getCenter(rotate).dx, closeTo((center + rotatedControlOffset).dx, 1));
+    expect(tester.getCenter(rotate).dy, closeTo((center + rotatedControlOffset).dy, 1));
 
     final rotatedResizeDelta = Offset(
       50 * math.cos(model.rotation) - 25 * math.sin(model.rotation),

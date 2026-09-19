@@ -98,7 +98,7 @@ class _CanvasPageState extends State<CanvasPage> {
   final _elements = <CanvasElementModel>[];
   CanvasElementModel? _activeElement;
   TextBlockModel? _editingTextBlock;
-  RotatableCanvasElementModel? _editingChromeModel;
+  CanvasElementModel? _editingChromeModel;
   final ValueNotifier<bool> _selectionModifierPressed = ValueNotifier(false);
   final _interactiveCanvasPointerIds = <int>{};
   final _selectionBeforeWidgetPointer = <Object>{};
@@ -708,7 +708,7 @@ class _CanvasPageState extends State<CanvasPage> {
       _activeElement?.active = false;
       _activeElement = model;
       model?.active = true;
-      if (model is RotatableCanvasElementModel) _editingChromeModel = model;
+      if (model != null) _editingChromeModel = model;
     });
   }
 
@@ -824,7 +824,7 @@ class _CanvasPageState extends State<CanvasPage> {
     model.rotate(angle);
   }
 
-  Offset _elementCenter(RotatableCanvasElementModel model) {
+  Offset _elementCenter(CanvasElementModel model) {
     final renderObject = _selectionKey(
       model,
     ).currentContext?.findRenderObject();
@@ -881,11 +881,11 @@ class _CanvasPageState extends State<CanvasPage> {
     _elements.add(model);
     model.documentChanges.addListener(_scheduleDocumentSave);
     final child = switch (model) {
-      final TextBlockModel text => _SelectionPointerRegion(
+      final TextBlockModel text => _CanvasElementHost(
         key: _selectionKey(text),
+        model: text,
         activeTool: _activeTool,
         modifierPressed: _selectionModifierPressed,
-        rotationModel: text,
         onPointerDown: (event) => _handleTextBlockPointerDown(text, event),
         child: TextTool(
           model: text,
@@ -895,11 +895,11 @@ class _CanvasPageState extends State<CanvasPage> {
           onResize: (size, delta) => _resizeTextBlock(text, size, delta),
         ),
       ),
-      final CodeBlockModel code => _SelectionPointerRegion(
+      final CodeBlockModel code => _CanvasElementHost(
         key: _selectionKey(code),
+        model: code,
         activeTool: _activeTool,
         modifierPressed: _selectionModifierPressed,
-        rotationModel: code,
         onPointerDown: (event) => _handleCodeBlockPointerDown(code, event),
         child: CodeTool(
           model: code,
@@ -909,11 +909,11 @@ class _CanvasPageState extends State<CanvasPage> {
           onChangeBoundary: _finishHistoryOperation,
         ),
       ),
-      final MediaModel media => _SelectionPointerRegion(
+      final MediaModel media => _CanvasElementHost(
         key: _selectionKey(media),
+        model: media,
         activeTool: _activeTool,
         modifierPressed: _selectionModifierPressed,
-        rotationModel: media,
         onPointerDown: (event) => _handleMediaPointerDown(media, event),
         child: MediaTool(
           model: media,
@@ -925,8 +925,9 @@ class _CanvasPageState extends State<CanvasPage> {
           },
         ),
       ),
-      final ShapeModel shape => _SelectionPointerRegion(
+      final ShapeModel shape => _CanvasElementHost(
         key: _selectionKey(shape),
+        model: shape,
         activeTool: _activeTool,
         modifierPressed: _selectionModifierPressed,
         onPointerDown: (event) => _handleShapePointerDown(shape, event),
@@ -936,14 +937,20 @@ class _CanvasPageState extends State<CanvasPage> {
           onResize: (delta) => _resizeShape(shape, delta),
         ),
       ),
-      final PenStrokeModel pen => PenStroke(
+      final PenStrokeModel pen => _CanvasElementHost(
         key: _selectionKey(pen),
         model: pen,
+        activeTool: _activeTool,
+        modifierPressed: _selectionModifierPressed,
         onPointerDown: (event) => _handleStrokePointerDown(pen, event),
-        onMove: (delta) => _moveSelectedChildren(pen, delta),
+        child: PenStroke(
+          model: pen,
+          onMove: (delta) => _moveSelectedChildren(pen, delta),
+        ),
       ),
-      final ArrowModel arrow => _SelectionPointerRegion(
+      final ArrowModel arrow => _CanvasElementHost(
         key: _selectionKey(arrow),
+        model: arrow,
         activeTool: _activeTool,
         modifierPressed: _selectionModifierPressed,
         onPointerDown: (event) => _handleArrowPointerDown(arrow, event),
@@ -951,19 +958,9 @@ class _CanvasPageState extends State<CanvasPage> {
       ),
       _ => throw StateError('Unknown canvas element model'),
     };
-    final canvasChild = model is PenStrokeModel
-        ? ListenableBuilder(
-            listenable: _activeTool,
-            builder: (context, child) => AbsorbPointer(
-              absorbing: _activeTool.value != _CanvasTool.select,
-              child: child,
-            ),
-            child: child,
-          )
-        : child;
     _canvasController.addChild(
       model.canvasPosition,
-      canvasChild,
+      child,
       id: model.data.id,
       childSize: model.canvasSize,
     );
@@ -1883,7 +1880,7 @@ class _CanvasPageState extends State<CanvasPage> {
                       switchOutCurve: Curves.easeOutCubic,
                       transitionBuilder: _textEditingChromeTransition,
                       child: switch (_activeElement) {
-                        final RotatableCanvasElementModel editing => ListenableBuilder(
+                        final CanvasElementModel editing => ListenableBuilder(
                           key: ValueKey(editing.data.id),
                           listenable: editing,
                           builder: (context, child) => IgnorePointer(
@@ -1892,16 +1889,20 @@ class _CanvasPageState extends State<CanvasPage> {
                           ),
                           child: ElementTransformControls(
                             key: ValueKey(editing.data.id),
-                            elementName: switch (editing) {
-                              TextBlockModel() => 'text',
-                              CodeBlockModel() => 'code',
-                              _ => 'media',
+                            elementName: editing.data.type,
+                            rotation: switch (editing) {
+                              final RotatableCanvasElementModel model => model.rotation,
+                              _ => 0,
                             },
-                            rotation: editing.rotation,
-                            showRotate: editing is! MediaModel || editing.hasImage,
                             tapRegionGroupId: editing is MediaModel ? editing : null,
                             onMove: (delta) => _moveSelectedChildren(editing, delta),
-                            onRotate: (angle) => _rotateElement(editing, angle),
+                            onRotate: switch (editing) {
+                              final RotatableCanvasElementModel model when model.canRotate => (angle) => _rotateElement(
+                                model,
+                                angle,
+                              ),
+                              _ => null,
+                            },
                             onDelete: () => _removeElements([editing]),
                             onTransformStart: () {
                               if (editing is TextBlockModel) {
@@ -2321,47 +2322,47 @@ class _ColorSwatches extends StatelessWidget {
 
 // ---------- Selection chrome ----------
 
-class _SelectionPointerRegion extends StatelessWidget {
-  const _SelectionPointerRegion({
+class _CanvasElementHost extends StatelessWidget {
+  const _CanvasElementHost({
+    required this.model,
     required this.activeTool,
     required this.modifierPressed,
     required this.onPointerDown,
     required this.child,
-    this.rotationModel,
     super.key,
   });
 
+  final CanvasElementModel model;
   final ValueListenable<_CanvasTool> activeTool;
   final ValueListenable<bool> modifierPressed;
   final ValueChanged<PointerDownEvent> onPointerDown;
   final Widget child;
-  final RotatableCanvasElementModel? rotationModel;
 
   @override
   Widget build(BuildContext context) {
+    final target = CompositedTransformTarget(link: model.layerLink, child: child);
     final listener = Listener(
       onPointerDown: onPointerDown,
       child: ListenableBuilder(
         listenable: Listenable.merge([activeTool, modifierPressed]),
         builder: (context, child) => AbsorbPointer(
-          absorbing: activeTool.value != _CanvasTool.select || modifierPressed.value,
+          absorbing: activeTool.value != _CanvasTool.select || modifierPressed.value && model is! PenStrokeModel,
           child: child,
         ),
-        child: child,
+        child: target,
       ),
     );
-    return rotationModel == null
-        ? listener
-        : ListenableBuilder(
-            listenable: rotationModel!,
-            builder: (context, child) => Transform.rotate(
-              angle: rotationModel!.rotation,
-              // otherwise I get those ugly jagged edges
-              filterQuality: rotationModel is MediaModel ? FilterQuality.high : null,
-              child: child,
-            ),
-            child: listener,
-          );
+    return switch (model) {
+      final RotatableCanvasElementModel rotationModel => ListenableBuilder(
+        listenable: rotationModel,
+        builder: (context, child) => Transform.rotate(
+          angle: rotationModel.rotation,
+          child: child,
+        ),
+        child: listener,
+      ),
+      _ => listener,
+    };
   }
 }
 

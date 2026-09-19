@@ -49,5 +49,6 @@ Text can remain active without being edited. For code, active currently also mea
 - Ctrl-click, or Cmd-click on macOS, toggles selection without activating the block.
 - Resizing affects one block and clears group selection.
 - Movement remains aligned with screen direction under canvas zoom and element rotation. Screen deltas are converted to canvas coordinates before persistence.
+- Transform controls rotate with their block and remain anchored to its top-left corner.
 - Scrolling inside bounded text or code content does not pan the canvas.
 - Only the primary mouse button performs block interactions; other pointer gestures retain their canvas behavior.

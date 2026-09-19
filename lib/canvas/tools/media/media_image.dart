@@ -50,6 +50,7 @@ class _MediaImageState extends State<_MediaImage> {
             Positioned.fill(
               child: ClipRRect(
                 borderRadius: theme.geo.radiusSmall,
+                clipBehavior: Clip.antiAliasWithSaveLayer,
                 child: Image(
                   key: const ValueKey('media-image'),
                   image: image,

@@ -10,13 +10,11 @@ part of 'pen_tool.dart';
 class PenStroke extends StatelessWidget {
   const PenStroke({
     required this.model,
-    required this.onPointerDown,
     required this.onMove,
     super.key,
   });
 
   final PenStrokeModel model;
-  final ValueChanged<PointerDownEvent> onPointerDown;
   final ValueChanged<Offset> onMove;
 
   @override
@@ -24,26 +22,23 @@ class PenStroke extends StatelessWidget {
     final accent = BTheme.of(context).colors.accent;
     return SizedBox.fromSize(
       size: model.canvasSize,
-      child: Listener(
-        onPointerDown: onPointerDown,
-        child: ListenableBuilder(
-          listenable: model,
-          builder: (context, _) => Semantics(
-            container: true,
-            label: 'Drawing stroke',
-            selected: model.selected,
-            child: GestureDetector(
-              onPanUpdate: (details) => onMove(details.delta),
-              child: CustomPaint(
-                painter: _PenStrokePainter(
-                  path: model.path,
-                  points: model.data.points,
-                  color: Color(model.data.color),
-                  width: model.data.width,
-                  hitSlop: model.data.hitSlop,
-                  selected: model.selected,
-                  accent: accent,
-                ),
+      child: ListenableBuilder(
+        listenable: model,
+        builder: (context, _) => Semantics(
+          container: true,
+          label: 'Drawing stroke',
+          selected: model.selected,
+          child: GestureDetector(
+            onPanUpdate: (details) => onMove(details.delta),
+            child: CustomPaint(
+              painter: _PenStrokePainter(
+                path: model.path,
+                points: model.data.points,
+                color: Color(model.data.color),
+                width: model.data.width,
+                hitSlop: model.data.hitSlop,
+                selected: model.selected,
+                accent: accent,
               ),
             ),
           ),

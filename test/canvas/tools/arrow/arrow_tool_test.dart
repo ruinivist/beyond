@@ -144,6 +144,9 @@ void main() {
     await tester.pump();
     expect(first.active, isTrue);
     expect(first.selected, isTrue);
+    expect(find.byKey(const ValueKey('arrow-block-handle')), findsWidgets);
+    expect(find.byKey(const ValueKey('arrow-block-delete-control')), findsWidgets);
+    expect(find.byKey(const ValueKey('arrow-block-rotate-control')), findsNothing);
 
     const moveDelta = Offset(40, 30);
     final move = await tester.startGesture(
