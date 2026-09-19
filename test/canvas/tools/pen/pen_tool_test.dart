@@ -1502,6 +1502,50 @@ void main() {
     await tester.pump(const Duration(milliseconds: 100));
   });
 
+  testWidgets('marquee uses rotated bounds after pointer drag threshold', (
+    tester,
+  ) async {
+    await tester.pumpWidget(const BeyondApp());
+    await tester.pump();
+    await _placeCodeBlock(tester, const Offset(200, 200));
+
+    final model = tester.widget<CodeTool>(find.byType(CodeTool)).model
+      ..size = const Size(400, 200)
+      ..rotate(math.pi / 4);
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await tester.pump();
+
+    final tinyDrag = await tester.startGesture(
+      const Offset(700, 500),
+      kind: PointerDeviceKind.mouse,
+    );
+    await tinyDrag.moveBy(const Offset(1, 0));
+    await tester.pump();
+    expect(find.byKey(const ValueKey('drag-selection-marquee')), findsNothing);
+    await tinyDrag.up();
+
+    final unrotatedCorner = await tester.startGesture(
+      const Offset(560, 210),
+      kind: PointerDeviceKind.mouse,
+    );
+    await unrotatedCorner.moveTo(const Offset(590, 240));
+    await tester.pump();
+    expect(model.selected, isFalse);
+    await unrotatedCorner.up();
+
+    final rotatedCorner = await tester.startGesture(
+      const Offset(350, 100),
+      kind: PointerDeviceKind.mouse,
+    );
+    await rotatedCorner.moveTo(const Offset(390, 160));
+    await tester.pump();
+    expect(model.selected, isTrue);
+    await rotatedCorner.up();
+
+    FocusManager.instance.primaryFocus?.unfocus();
+    await tester.pump(const Duration(milliseconds: 100));
+  });
+
   testWidgets('right and middle drag pan over block controls', (tester) async {
     await tester.pumpWidget(const BeyondApp());
     await tester.pump();

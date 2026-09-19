@@ -367,7 +367,7 @@ class _CanvasPageState extends State<CanvasPage> {
     setState(() {
       _dragSelectionPointer = event.pointer;
       _dragSelectionStart = event.localPosition;
-      _dragSelectionEnd = event.localPosition;
+      _dragSelectionEnd = null;
     });
   }
 
@@ -481,6 +481,9 @@ class _CanvasPageState extends State<CanvasPage> {
   void _updateDragSelection(Offset end) {
     final start = _dragSelectionStart;
     if (start == null) return;
+    if (_dragSelectionEnd == null && (end - start).distance <= kPrecisePointerPanSlop) {
+      return;
+    }
     setState(() => _dragSelectionEnd = end);
     final rect = Rect.fromPoints(start, end);
     final positions = {
@@ -496,8 +499,10 @@ class _CanvasPageState extends State<CanvasPage> {
       final overlaps =
           position != null &&
           renderObject is RenderBox &&
-          rect.overlaps(
+          _selectionRectOverlaps(
+            rect,
             position & (renderObject.size * _canvasController.scale),
+            model is RotatableCanvasElementModel ? model.rotation : 0,
           );
       return _toggleDragSelection ? _selectionBeforeDrag.contains(model) != overlaps : overlaps;
     }
@@ -505,6 +510,24 @@ class _CanvasPageState extends State<CanvasPage> {
     for (final model in _elements) {
       model.selected = selected(model);
     }
+  }
+
+  bool _selectionRectOverlaps(Rect selection, Rect element, double rotation) {
+    if (rotation == 0) return selection.overlaps(element);
+    final center = element.center;
+    final transform = Matrix4.identity()
+      ..translateByDouble(center.dx, center.dy, 0, 1)
+      ..rotateZ(rotation)
+      ..translateByDouble(-center.dx, -center.dy, 0, 1);
+    final elementPath = (Path()..addRect(element)).transform(
+      transform.storage,
+    );
+    final overlap = Path.combine(
+      PathOperation.intersect,
+      Path()..addRect(selection),
+      elementPath,
+    ).getBounds();
+    return !overlap.isEmpty;
   }
 
   void _finishDragSelection() {
