@@ -93,6 +93,16 @@ class MediaModel extends RotatableCanvasElementModel<MediaElementData> {
 
   // ---------- Private helpers ----------
 
+  void _insertPastedText(String text) {
+    final selection = controller.selection;
+    controller.value = controller.value
+        .replaced(selection, text)
+        .copyWith(
+          selection: TextSelection.collapsed(offset: selection.start + text.length),
+          composing: TextRange.empty,
+        );
+  }
+
   void _syncUrl() {
     if (data.url == controller.text) return;
     data.url = controller.text;

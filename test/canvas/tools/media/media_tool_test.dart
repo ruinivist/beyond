@@ -1,6 +1,7 @@
 // Verifies media creation, loading, resizing, and persistence behavior.
 // Exercises the media tool through model and canvas widget flows.
 
+import 'dart:js_interop';
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 
@@ -15,6 +16,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:infinite_lazy_grid/infinite_lazy_grid.dart';
 import 'package:shared_preferences_web/shared_preferences_web.dart';
+import 'package:web/web.dart' as web;
 
 import '../../test_helpers.dart';
 
@@ -139,6 +141,81 @@ void main() {
     expect(model.canvasSize, const Size.square(mediaNodeDefaultWidth));
     expect(find.byKey(const ValueKey('media-image')), findsOneWidget);
     expect(model.active, isTrue);
+  });
+
+  testWidgets('focused media editor consumes browser paste', (tester) async {
+    final attachments = TestAttachmentStore();
+    await pumpCanvas(
+      tester,
+      TestCanvasDocumentStore(
+        _document(
+          MediaElementData(
+            id: 'media',
+            position: const Offset(120, 150),
+            width: 400,
+            url: 'replace me',
+          ),
+        ),
+      ),
+      attachmentStore: attachments,
+    );
+
+    final field = find.byKey(const ValueKey('media-url-field'));
+    final model = tester.widget<MediaTool>(find.byType(MediaTool)).model;
+    await tester.tap(field);
+    model.controller.selection = const TextSelection(baseOffset: 0, extentOffset: 7);
+
+    await tester.runAsync(() async {
+      _dispatchTextPaste('keep');
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+    });
+    await tester.pump();
+    expect(model.controller.text, 'keep me');
+
+    await tester.runAsync(() async {
+      _dispatchImagePaste(onePixelPngBytes);
+      await Future<void>.delayed(const Duration(milliseconds: 100));
+    });
+    await tester.pumpAndSettle();
+
+    expect(find.byType(MediaTool), findsOneWidget);
+    expect(model.data.url, matches(attachmentPathPattern));
+    expect(attachments.files[model.data.url], onePixelPngBytes);
+    expect(model.image, isA<MemoryImage>());
+  });
+
+  testWidgets('unfocused active media leaves paste to the canvas', (
+    tester,
+  ) async {
+    final attachments = TestAttachmentStore();
+    await pumpCanvas(
+      tester,
+      TestCanvasDocumentStore(_document()),
+      attachmentStore: attachments,
+      readClipboard: () async => (
+        text: null,
+        image: (bytes: onePixelPngBytes, extension: 'png'),
+      ),
+    );
+
+    await tester.tap(find.byKey(const ValueKey('toolbar-media')));
+    await tester.pump();
+    await tester.tapAt(const Offset(120, 180));
+    await tester.pump();
+
+    final model = tester.widget<MediaTool>(find.byType(MediaTool)).model;
+    model.focusNode.unfocus();
+    await tester.pump();
+    expect(model.active, isTrue);
+    expect(model.focusNode.hasFocus, isFalse);
+
+    await tester.runAsync(() async {
+      await _shortcut(tester, LogicalKeyboardKey.keyV);
+      await Future<void>.delayed(const Duration(milliseconds: 100));
+    });
+    await tester.pumpAndSettle();
+
+    expect(find.byType(MediaTool), findsNWidgets(2));
   });
 
   testWidgets('loaded media activates, moves, and resizes to its ratio', (
@@ -317,6 +394,35 @@ Future<void> _cacheImage(String url) async {
     ),
   );
 }
+
+Future<void> _shortcut(WidgetTester tester, LogicalKeyboardKey key) async {
+  await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+  await tester.sendKeyDownEvent(key);
+  await tester.sendKeyUpEvent(key);
+  await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+  await tester.pump();
+}
+
+void _dispatchTextPaste(String text) => _dispatchPaste(web.DataTransfer()..setData('text/plain', text));
+
+void _dispatchImagePaste(Uint8List bytes) {
+  final data = web.DataTransfer();
+  data.items.add(
+    web.File(
+      <web.BlobPart>[bytes.toJS].toJS,
+      'pasted.png',
+      web.FilePropertyBag(type: 'image/png'),
+    ),
+  );
+  _dispatchPaste(data);
+}
+
+void _dispatchPaste(web.DataTransfer data) => web.window.dispatchEvent(
+  web.ClipboardEvent(
+    'paste',
+    web.ClipboardEventInit(clipboardData: data),
+  ),
+);
 
 CanvasDocument _document([MediaElementData? media]) => CanvasDocument(
   background: CanvasBackgroundKind.plain,

@@ -7,6 +7,7 @@ import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:beyond/canvas/document/canvas_document.dart';
+import 'package:beyond/canvas/editor/canvas_clipboard.dart';
 import 'package:beyond/canvas/editor/canvas_element_model.dart';
 import 'package:beyond/canvas/editor/widgets/resize_handle.dart';
 import 'package:beyond/canvas/persistence/attachments/store.dart';
@@ -17,6 +18,7 @@ import 'package:file_selector/file_selector.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:super_clipboard/super_clipboard.dart';
 import 'package:uuid/uuid.dart';
 
 part 'media_image.dart';
@@ -53,15 +55,44 @@ class _MediaToolState extends State<MediaTool> {
   // ---------- State ----------
 
   final _portalController = OverlayPortalController();
+  ClipboardEvents? get _clipboardEvents => ClipboardEvents.instance;
 
   // ---------- Lifecycle and actions ----------
 
   @override
   void initState() {
     super.initState();
+    _clipboardEvents?.registerPasteEventListener(_onWebPaste);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) _portalController.show();
     });
+  }
+
+  @override
+  void dispose() {
+    _clipboardEvents?.unregisterPasteEventListener(_onWebPaste);
+    super.dispose();
+  }
+
+  void _onWebPaste(ClipboardReadEvent event) {
+    if (!widget.model.focusNode.hasFocus) return;
+    unawaited(_paste(event.getClipboardReader()));
+  }
+
+  Future<void> _paste(Future<ClipboardReader> readerFuture) async {
+    try {
+      final clipboard = await readCanvasClipboard(await readerFuture);
+      if (clipboard.image case final image?) {
+        await widget.model.setDeviceImage(image.bytes, image.extension);
+      } else if (clipboard.text case final text?) {
+        widget.model._insertPastedText(text);
+      }
+    } on Object {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not paste image')),
+      );
+    }
   }
 
   Future<void> _pickImage() async {
