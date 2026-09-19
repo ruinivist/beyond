@@ -68,20 +68,34 @@ class _MediaImageState extends State<_MediaImage> {
                   ),
                 ),
               ),
-            if (model.active)
-              Positioned(
-                right: 0,
-                bottom: 0,
-                child: ResizeHandle(
-                  key: const ValueKey('media-resize-handle'),
-                  semanticLabel: 'Resize media',
-                  gestures: {
-                    ImmediateMultiDragGestureRecognizer: immediateDragGestureFactory(
-                      (_) => CallbackDrag(widget.onResize),
-                    ),
-                  },
+            Positioned(
+              right: 0,
+              bottom: 0,
+              child: IgnorePointer(
+                ignoring: !model.active,
+                child: AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 260),
+                  reverseDuration: const Duration(milliseconds: 180),
+                  switchInCurve: Curves.easeOutCubic,
+                  switchOutCurve: Curves.easeOutCubic,
+                  transitionBuilder: (child, animation) => _mediaTransition(child, animation, Alignment.bottomRight),
+                  child: model.active
+                      ? ResizeHandle(
+                          key: const ValueKey('media-resize-handle'),
+                          semanticLabel: 'Resize media',
+                          showCornerSurface: true,
+                          gestures: {
+                            ImmediateMultiDragGestureRecognizer: immediateDragGestureFactory(
+                              (_) => CallbackDrag(widget.onResize),
+                            ),
+                          },
+                        )
+                      : const SizedBox(
+                          key: ValueKey('media-resize-handle-hidden'),
+                        ),
                 ),
               ),
+            ),
           ],
         ),
       ),

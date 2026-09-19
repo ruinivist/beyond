@@ -120,7 +120,7 @@ class _MediaToolState extends State<MediaTool> {
                           reverseDuration: const Duration(milliseconds: 180),
                           switchInCurve: Curves.easeOutCubic,
                           switchOutCurve: Curves.easeOutCubic,
-                          transitionBuilder: _mediaUrlPanelTransition,
+                          transitionBuilder: _mediaTransition,
                           child: model.active && model.hasImage
                               ? TapRegion(
                                   groupId: model,

@@ -5,14 +5,15 @@ part of 'media_tool.dart';
 
 // ---------- Transitions ----------
 
-Widget _mediaUrlPanelTransition(
+Widget _mediaTransition(
   Widget child,
-  Animation<double> animation,
-) => FadeTransition(
+  Animation<double> animation, [
+  Alignment alignment = Alignment.topCenter,
+]) => FadeTransition(
   opacity: animation,
   child: ScaleTransition(
     scale: Tween<double>(begin: 0.94, end: 1).animate(animation),
-    alignment: Alignment.topCenter,
+    alignment: alignment,
     child: child,
   ),
 );

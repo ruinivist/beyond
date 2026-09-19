@@ -263,8 +263,10 @@ void main() {
     await tester.pump();
     expect(model.active, isFalse);
     expect(find.byKey(const ValueKey('media-url-field')), findsOneWidget);
+    expect(find.byKey(const ValueKey('media-resize-handle')), findsOneWidget);
     await tester.pump(const Duration(milliseconds: 200));
     expect(find.byKey(const ValueKey('media-url-field')), findsNothing);
+    expect(find.byKey(const ValueKey('media-resize-handle')), findsNothing);
 
     await tester.pump(const Duration(milliseconds: 320));
     await tester.pump();
