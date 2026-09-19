@@ -2333,6 +2333,8 @@ class _SelectionPointerRegion extends StatelessWidget {
             listenable: rotationModel!,
             builder: (context, child) => Transform.rotate(
               angle: rotationModel!.rotation,
+              // otherwise I get those ugly jagged edges
+              filterQuality: rotationModel is MediaModel ? FilterQuality.high : null,
               child: child,
             ),
             child: listener,
