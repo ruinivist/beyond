@@ -16,6 +16,8 @@ The important distinction is:
 
 Text can remain active without being edited. For code, active currently also means editable.
 
+For canvas objects without a distinct primary action, such as shapes, selection is the primary action. A normal click therefore makes the object both active and selected. The states remain independent for group selection: Ctrl-click, Cmd-click, or marquee selection can select an object without making it active.
+
 ## Text blocks
 
 - Clicking the preview makes the block active, opens the Markdown source editor, and focuses it.

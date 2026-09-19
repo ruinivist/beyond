@@ -10,6 +10,43 @@ part of 'shape_tool.dart';
 class ShapeModel extends CanvasElementModel<ShapeElementData> {
   ShapeModel(super.data);
 
+  ShapeKind get kind => data.kind;
+
+  set kind(ShapeKind value) {
+    if (data.kind == value) return;
+    data.kind = value;
+    notifyDocumentChanged();
+  }
+
+  Color get strokeColor => Color(data.strokeColor);
+
+  set strokeColor(Color value) {
+    final color = value.toARGB32();
+    if (data.strokeColor == color) return;
+    data.strokeColor = color;
+    notifyDocumentChanged();
+  }
+
+  Color? get fillColor {
+    final color = data.fillColor;
+    return color == null ? null : Color(color);
+  }
+
+  set fillColor(Color? value) {
+    final color = value?.toARGB32();
+    if (data.fillColor == color) return;
+    data.fillColor = color;
+    notifyDocumentChanged();
+  }
+
+  double get strokeWidth => data.strokeWidth;
+
+  set strokeWidth(double value) {
+    if (data.strokeWidth == value) return;
+    data.strokeWidth = value;
+    notifyDocumentChanged();
+  }
+
   @override
   Offset get canvasPosition => data.position;
 

@@ -175,6 +175,11 @@ class _CanvasPageState extends State<CanvasPage> {
     _ => null,
   };
 
+  ShapeModel? get _activeShape => switch (_activeElement) {
+    final ShapeModel model => model,
+    _ => null,
+  };
+
   // ---------- Lifecycle ----------
 
   @override
@@ -303,6 +308,13 @@ class _CanvasPageState extends State<CanvasPage> {
   void _setShapeStrokeColor(Color color) {
     _customShapeStrokeColor = color;
     _shapeTool.setStrokeColor(color);
+  }
+
+  void _editShape(ShapeModel model, VoidCallback edit) {
+    if (!_elements.contains(model)) return;
+    _finishHistoryOperation();
+    edit();
+    _finishHistoryOperation();
   }
 
   // ---------- Canvas pointer events ----------
@@ -549,6 +561,9 @@ class _CanvasPageState extends State<CanvasPage> {
   bool _toggleSelectionIfModifierPressed(CanvasElementModel model) {
     if (!_selectionModifierPressed.value) return false;
     model.selected = !model.selected;
+    if (model is ShapeModel && !model.selected && identical(_activeElement, model)) {
+      _setActiveElement(null);
+    }
     return true;
   }
 
@@ -651,7 +666,11 @@ class _CanvasPageState extends State<CanvasPage> {
   void _finishShapeDrag({bool select = false}) {
     final shape = _dragShape;
     if (shape != null && _elements.contains(shape)) {
-      if (select) shape.selected = true;
+      if (select) {
+        shape.selected = true;
+      } else if (!shape.selected && identical(_activeElement, shape)) {
+        _setActiveElement(null);
+      }
     }
     _dragShapePointer = null;
     _dragShape = null;
@@ -1048,6 +1067,7 @@ class _CanvasPageState extends State<CanvasPage> {
     if (!_documentLoaded) return;
     if (_shapeEnabled) setState(() => _activeTool.value = _CanvasTool.select);
     _mountElement(model);
+    model.selected = true;
     _setActiveElement(model);
     _scheduleDocumentSave();
     _finishHistoryOperation();
@@ -1765,6 +1785,7 @@ class _CanvasPageState extends State<CanvasPage> {
     final editingChromeModel = _editingChromeModel;
     final activeTextBlock = _activeTextBlock;
     final activeCodeBlock = _activeCodeBlock;
+    final activeShape = _activeShape;
     return Scaffold(
       body: Stack(
         children: [
@@ -2091,6 +2112,28 @@ class _CanvasPageState extends State<CanvasPage> {
                                 model: activeCodeBlock,
                                 onChangeBoundary: _finishHistoryOperation,
                               )
+                            : activeShape != null
+                            ? ListenableBuilder(
+                                key: ValueKey('shape-settings-${activeShape.data.id}'),
+                                listenable: activeShape,
+                                builder: (context, _) => _ShapeSettings(
+                                  kind: activeShape.kind,
+                                  strokeColor: activeShape.strokeColor,
+                                  fillColor: activeShape.fillColor,
+                                  strokeWidth: activeShape.strokeWidth,
+                                  outlineColorPickerExpanded: _shapeOutlineColorPickerExpanded,
+                                  onKindChanged: (kind) => _editShape(activeShape, () => activeShape.kind = kind),
+                                  onStrokeColorChanged: (color) =>
+                                      _editShape(activeShape, () => activeShape.strokeColor = color),
+                                  onFillColorChanged: (color) =>
+                                      _editShape(activeShape, () => activeShape.fillColor = color),
+                                  onStrokeWidthChanged: (width) =>
+                                      _editShape(activeShape, () => activeShape.strokeWidth = width),
+                                  onOutlineColorPickerExpandedChanged: (expanded) => setState(
+                                    () => _shapeOutlineColorPickerExpanded = expanded,
+                                  ),
+                                ),
+                              )
                             : _penEnabled
                             ? _DrawSettings(
                                 key: const ValueKey('draw-settings-panel'),
@@ -2106,9 +2149,15 @@ class _CanvasPageState extends State<CanvasPage> {
                             : _shapeEnabled
                             ? _ShapeSettings(
                                 key: const ValueKey('shape-settings-panel'),
-                                tool: _shapeTool,
+                                kind: _shapeTool.kind,
+                                strokeColor: _shapeTool.strokeColor,
+                                fillColor: _shapeTool.fillColor,
+                                strokeWidth: _shapeTool.strokeWidth,
                                 outlineColorPickerExpanded: _shapeOutlineColorPickerExpanded,
+                                onKindChanged: _shapeTool.setKind,
                                 onStrokeColorChanged: _setShapeStrokeColor,
+                                onFillColorChanged: _shapeTool.setFillColor,
+                                onStrokeWidthChanged: _shapeTool.setStrokeWidth,
                                 onOutlineColorPickerExpandedChanged: (expanded) => setState(
                                   () => _shapeOutlineColorPickerExpanded = expanded,
                                 ),
@@ -2134,16 +2183,28 @@ class _CanvasPageState extends State<CanvasPage> {
 
 class _ShapeSettings extends StatelessWidget {
   const _ShapeSettings({
-    required this.tool,
+    required this.kind,
+    required this.strokeColor,
+    required this.fillColor,
+    required this.strokeWidth,
     required this.outlineColorPickerExpanded,
+    required this.onKindChanged,
     required this.onStrokeColorChanged,
+    required this.onFillColorChanged,
+    required this.onStrokeWidthChanged,
     required this.onOutlineColorPickerExpandedChanged,
     super.key,
   });
 
-  final ShapeTool tool;
+  final ShapeKind kind;
+  final Color strokeColor;
+  final Color? fillColor;
+  final double strokeWidth;
   final bool outlineColorPickerExpanded;
+  final ValueChanged<ShapeKind> onKindChanged;
   final ValueChanged<Color> onStrokeColorChanged;
+  final ValueChanged<Color?> onFillColorChanged;
+  final ValueChanged<double> onStrokeWidthChanged;
   final ValueChanged<bool> onOutlineColorPickerExpandedChanged;
 
   @override
@@ -2165,8 +2226,8 @@ class _ShapeSettings extends StatelessWidget {
                   child: ToolbarButton(
                     key: ValueKey('shape-option-${option.name}'),
                     iconOnly: true,
-                    selected: option == tool.kind,
-                    onPressed: () => tool.setKind(option),
+                    selected: option == kind,
+                    onPressed: () => onKindChanged(option),
                     child: Icon(
                       _shapeIcon(option),
                       semanticLabel: option.label,
@@ -2180,7 +2241,7 @@ class _ShapeSettings extends StatelessWidget {
         Text('Outline', style: theme.typo.label),
         const SizedBox(height: 6),
         ColorControl(
-          color: tool.strokeColor,
+          color: strokeColor,
           expanded: outlineColorPickerExpanded,
           onChanged: onStrokeColorChanged,
           onExpandedChanged: onOutlineColorPickerExpandedChanged,
@@ -2189,16 +2250,16 @@ class _ShapeSettings extends StatelessWidget {
         Text('Fill', style: theme.typo.label),
         const SizedBox(height: 6),
         _ColorSwatches(
-          selectedColor: tool.fillColor,
+          selectedColor: fillColor,
           keyPrefix: 'shape-fill',
           allowNone: true,
-          onColorChanged: tool.setFillColor,
+          onColorChanged: onFillColorChanged,
         ),
         const SizedBox(height: 10),
         Text('Width', style: theme.typo.label),
         DiscreteSlider(
-          value: tool.strokeWidth,
-          onChanged: tool.setStrokeWidth,
+          value: strokeWidth,
+          onChanged: onStrokeWidthChanged,
         ),
       ],
     );

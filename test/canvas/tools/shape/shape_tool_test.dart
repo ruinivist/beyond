@@ -2,11 +2,13 @@
 // Exercises the shape tool through model and canvas widget flows.
 
 import 'package:beyond/canvas/document/canvas_document.dart';
+import 'package:beyond/canvas/editor/canvas_background.dart';
 import 'package:beyond/canvas/editor/widgets/toolbar_button.dart';
 import 'package:beyond/canvas/tools/shape/shape_tool.dart';
 import 'package:beyond/theme/preset_colors.dart';
 import 'package:beyond/theme/starless.dart';
 import 'package:beyond/ui/common/color_picker.dart';
+import 'package:beyond/ui/common/discrete_slider.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -186,8 +188,15 @@ void main() {
       tester.widget<Shape>(find.byType(Shape)).model.data.strokeColor,
       blue.toARGB32(),
     );
+    final first = tester.widget<Shape>(find.byType(Shape)).model;
+    expect(first.active, isTrue);
+    expect(first.selected, isTrue);
     expect(tester.widget<ToolbarButton>(toolbar).selected, isFalse);
     expect(find.byKey(const ValueKey('shape-settings-panel')), findsNothing);
+    expect(
+      find.byKey(ValueKey('shape-settings-${first.data.id}')),
+      findsOneWidget,
+    );
 
     final secondDrag = await tester.startGesture(
       const Offset(320, 180),
@@ -230,7 +239,6 @@ void main() {
     );
     expect(tester.widget<ToolbarButton>(toolbar).selected, isFalse);
 
-    final first = tester.widget<Shape>(find.byType(Shape).first).model;
     final firstFinder = find.byWidgetPredicate(
       (widget) => widget is Shape && identical(widget.model, first),
     );
@@ -265,5 +273,86 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('shape-block-delete-control')));
     await tester.pump();
     expect(firstFinder, findsNothing);
+  });
+
+  testWidgets('active shape options edit, persist, undo, and follow selection rules', (tester) async {
+    final store = TestCanvasDocumentStore(
+      CanvasDocument(
+        background: CanvasBackgroundKind.plain,
+        elements: [
+          ShapeElementData(
+            id: 'shape',
+            kind: ShapeKind.rectangle,
+            position: const Offset(140, 180),
+            size: const Size(120, 80),
+            strokeColor: 0xff000000,
+            fillColor: null,
+            strokeWidth: 2,
+          ),
+        ],
+      ),
+    );
+    await pumpCanvas(tester, store);
+
+    ShapeModel model() => tester.widget<Shape>(find.byType(Shape)).model;
+
+    await tester.tap(find.byType(Shape));
+    await tester.pump();
+    expect(model().active, isTrue);
+    expect(model().selected, isTrue);
+    expect(
+      find.byKey(const ValueKey('shape-settings-shape')),
+      findsOneWidget,
+    );
+
+    tester.widget<ToolbarButton>(find.byKey(const ValueKey('shape-option-ellipse'))).onPressed?.call();
+    await tester.pump();
+    final green = presetColors.firstWhere((swatch) => swatch.label == 'Green').color;
+    final red = presetColors.firstWhere((swatch) => swatch.label == 'Red').color;
+    tester.widget<ColorControl>(find.byType(ColorControl)).onChanged(green);
+    await tester.pump();
+    tester.widget<InkWell>(find.byKey(const ValueKey('shape-fill-red'))).onTap!();
+    await tester.pump();
+    tester.widget<DiscreteSlider>(find.byType(DiscreteSlider)).onChanged!(4);
+    await tester.pump();
+
+    final edited = model();
+    expect(edited.kind, ShapeKind.ellipse);
+    expect(edited.strokeColor, green);
+    expect(edited.fillColor, red);
+    expect(edited.strokeWidth, 4);
+    expect(
+      tester.widget<ToolbarButton>(find.byKey(const ValueKey('shape-option-ellipse'))).selected,
+      isTrue,
+    );
+    await pumpPastSave(tester);
+    expect(store.persisted!.elements.single.toJson(), edited.data.toJson());
+
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+    await tester.tap(find.byType(Shape));
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+    await tester.pumpAndSettle();
+    expect(model().active, isFalse);
+    expect(model().selected, isFalse);
+    expect(find.byKey(const ValueKey('shape-settings-shape')), findsNothing);
+
+    final marquee = await tester.startGesture(
+      const Offset(100, 140),
+      kind: PointerDeviceKind.mouse,
+    );
+    await marquee.moveTo(const Offset(300, 300));
+    await marquee.up();
+    await tester.pumpAndSettle();
+    expect(model().selected, isTrue);
+    expect(model().active, isFalse);
+    expect(find.byKey(const ValueKey('shape-settings-shape')), findsNothing);
+
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.keyZ);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.keyZ);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+    await tester.pump();
+    expect(model().strokeWidth, 2);
+    expect(model().kind, ShapeKind.ellipse);
   });
 }
