@@ -1,5 +1,5 @@
-// Provides Beyond's themed raised container.
-// Used by floating editor controls and tool option panels.
+// Provides Beyond's themed surface container.
+// Used by canvas editors, floating controls, and tool option panels.
 
 import 'package:beyond/theme/theme.dart';
 import 'package:flutter/material.dart';
@@ -12,11 +12,13 @@ class BContainer extends StatelessWidget {
   const BContainer({
     required this.child,
     this.selected = false,
+    this.raised = true,
     super.key,
   });
 
   final Widget child;
   final bool selected;
+  final bool raised;
 
   // ---------- Rendering ----------
 
@@ -25,7 +27,11 @@ class BContainer extends StatelessWidget {
     final theme = BTheme.of(context);
     final colors = theme.colors;
     return Material(
-      color: selected ? colors.accentSoft : colors.surfaceRaised,
+      color: selected
+          ? colors.accentSoft
+          : raised
+          ? colors.surfaceRaised
+          : colors.surface,
       elevation: selected ? 0 : theme.geo.elevationLow,
       shadowColor: colors.shadow,
       shape: RoundedRectangleBorder(

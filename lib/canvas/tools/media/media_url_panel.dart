@@ -27,6 +27,7 @@ class _MediaUrlPanel extends StatelessWidget {
       width: model.urlPanelWidth,
       child: BContainer(
         selected: model.selected,
+        raised: false,
         child: Stack(
           children: [
             TextField(
