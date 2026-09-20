@@ -44,6 +44,13 @@ Shapes follow the same state separation: clicking or creating a shape makes it a
 - Moving, rotating, or resizing keeps the block active. Resizing preserves the image aspect ratio and follows the element's rotated axes.
 - Clicking empty canvas or another block, changing tools, or pressing Escape deactivates the block and hides its active controls.
 
+## Pen strokes
+
+- The pen remains enabled after each stroke until it is toggled off, another tool is chosen, or Escape is pressed.
+- Persisted strokes have no active state, options, or transform controls. Pen options apply only to newly drawn strokes.
+- Primary-button dragging moves a stroke directly. Modifier-click and marquee selection are the only ways to select strokes.
+- Selected strokes participate in group movement and keyboard deletion.
+
 ## Drag and selection rules
 
 - Dragging an inactive, unselected block moves only that block and clears any unrelated selection.

@@ -1003,7 +1003,6 @@ class _CanvasPageState extends State<CanvasPage> {
       ),
     );
     _mountElement(model);
-    _setActiveElement(model);
     _scheduleDocumentSave();
     _finishHistoryOperation();
   }
@@ -1069,7 +1068,7 @@ class _CanvasPageState extends State<CanvasPage> {
     }
     _interactiveCanvasPointerIds.add(event.pointer);
     if (_toggleSelectionIfModifierPressed(model)) return;
-    _setActiveElement(model);
+    _clearElementEditing();
     _bringElementToFront(model);
   }
 

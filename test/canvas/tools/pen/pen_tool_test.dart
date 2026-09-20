@@ -459,17 +459,24 @@ void main() {
     expect(restoredArrow.geometry.end, arrowGeometry.end);
   });
 
-  testWidgets('pen commits strokes and stays active', (tester) async {
+  testWidgets('pen commits inactive strokes and stays enabled', (tester) async {
     await tester.pumpWidget(const BeyondApp());
     await tester.pump();
 
     await tester.tap(find.byKey(const ValueKey('toolbar-draw')));
     await tester.pump();
     await tester.dragFrom(const Offset(100, 200), const Offset(80, 40));
+    await tester.dragFrom(const Offset(100, 300), const Offset(80, 40));
     await tester.pump();
 
-    expect(find.byType(PenStroke), findsOneWidget);
+    expect(find.byType(PenStroke), findsNWidgets(2));
+    expect(
+      tester.widgetList<PenStroke>(find.byType(PenStroke)).map((stroke) => stroke.model.active),
+      everyElement(isFalse),
+    );
     expect(find.byKey(const ValueKey('pen-preview')), findsOneWidget);
+    expect(find.byKey(const ValueKey('pen-block-handle')), findsNothing);
+    expect(find.byKey(const ValueKey('pen-block-delete-control')), findsNothing);
   });
 
   testWidgets('inactive pen does not draw', (tester) async {
@@ -535,11 +542,19 @@ void main() {
     await tester.tapAt(tester.getCenter(penFinder));
     await tester.pump();
     expect(elementIds(), ['arrow', 'pen']);
-    expect(pen.active, isTrue);
+    expect(pen.active, isFalse);
     expect(pen.selected, isFalse);
-    expect(find.byKey(const ValueKey('pen-block-handle')), findsOneWidget);
-    expect(find.byKey(const ValueKey('pen-block-delete-control')), findsOneWidget);
+    expect(find.byKey(const ValueKey('pen-block-handle')), findsNothing);
+    expect(find.byKey(const ValueKey('pen-block-delete-control')), findsNothing);
     expect(find.byKey(const ValueKey('pen-block-rotate-control')), findsNothing);
+
+    final penPosition = tester.getTopLeft(penFinder);
+    const penDelta = Offset(32, 18);
+    await tester.drag(penFinder, penDelta, kind: PointerDeviceKind.mouse);
+    await tester.pump();
+    expect(tester.getTopLeft(penFinder), penPosition + penDelta);
+    expect(pen.active, isFalse);
+    expect(pen.selected, isFalse);
 
     final arrowStart =
         tester.getTopLeft(arrowFinder) +
