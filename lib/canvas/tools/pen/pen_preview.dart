@@ -16,7 +16,7 @@ class PenPreviewPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     canvas.drawPath(
-      createPenPath(tool._points, tool._strokeWidth),
+      createPenPath(tool._points, tool._strokeWidth, tool._streamline),
       Paint()
         ..color = tool._color
         ..style = PaintingStyle.fill,

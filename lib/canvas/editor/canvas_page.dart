@@ -124,6 +124,7 @@ class _CanvasPageState extends State<CanvasPage> {
   Color? _customShapeStrokeColor;
   Color? _customArrowColor;
   double _penWidth = 4;
+  double _penStreamline = penStreamlineDefault;
   final ValueNotifier<_CanvasTool> _activeTool = ValueNotifier(
     _CanvasTool.select,
   );
@@ -312,6 +313,11 @@ class _CanvasPageState extends State<CanvasPage> {
   void _setPenWidth(double width) {
     setState(() => _penWidth = width);
     _penTool.setStrokeWidth(width);
+  }
+
+  void _setPenStreamline(double streamline) {
+    setState(() => _penStreamline = streamline);
+    _penTool.setStreamline(streamline);
   }
 
   void _setShapeStrokeColor(Color color) {
@@ -2151,12 +2157,14 @@ class _CanvasPageState extends State<CanvasPage> {
                                 key: const ValueKey('draw-settings-panel'),
                                 color: _penColor,
                                 width: _penWidth,
+                                streamline: _penStreamline,
                                 colorPickerExpanded: _penColorPickerExpanded,
                                 onColorChanged: _setPenColor,
                                 onColorPickerExpandedChanged: (expanded) => setState(
                                   () => _penColorPickerExpanded = expanded,
                                 ),
                                 onWidthChanged: _setPenWidth,
+                                onStreamlineChanged: _setPenStreamline,
                               )
                             : _shapeEnabled
                             ? ListenableBuilder(
@@ -2372,15 +2380,19 @@ class _StrokeSettings extends StatelessWidget {
     required this.onColorChanged,
     required this.onColorPickerExpandedChanged,
     required this.onWidthChanged,
+    this.streamline,
+    this.onStreamlineChanged,
     super.key,
   });
 
   final Color color;
   final double width;
+  final double? streamline;
   final bool colorPickerExpanded;
   final ValueChanged<Color> onColorChanged;
   final ValueChanged<bool> onColorPickerExpandedChanged;
   final ValueChanged<double> onWidthChanged;
+  final ValueChanged<double>? onStreamlineChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -2400,9 +2412,21 @@ class _StrokeSettings extends StatelessWidget {
         const SizedBox(height: 10),
         Text('Width', style: theme.typo.label),
         DiscreteSlider(
+          key: const ValueKey('pen-width-slider'),
           value: width,
           onChanged: onWidthChanged,
         ),
+        if ((streamline, onStreamlineChanged) case (final streamline?, final onStreamlineChanged?)) ...[
+          const SizedBox(height: 10),
+          Text('Smoothing', style: theme.typo.label),
+          DiscreteSlider(
+            key: const ValueKey('pen-smoothing-slider'),
+            value: streamline,
+            min: penStreamlineMinimum,
+            max: penStreamlineMaximum,
+            onChanged: onStreamlineChanged,
+          ),
+        ],
       ],
     );
   }

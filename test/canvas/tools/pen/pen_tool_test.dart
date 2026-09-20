@@ -152,6 +152,7 @@ void main() {
         ],
         color: 0xff000000,
         width: 5.0,
+        streamline: 0.75,
       ),
       id: 'pen',
       canvasOffset: const Offset(50, -20),
@@ -162,6 +163,7 @@ void main() {
     expect(stroke.size, const Size(61, 61));
     expect(stroke.hitSlop, 3);
     expect(stroke.width, 2.5);
+    expect(stroke.streamline, 0.75);
     expect(stroke.points.first.position.dx, 5.5);
     expect(stroke.points.first.position.dy, 5.5);
   });
@@ -216,6 +218,19 @@ void main() {
     expect(strokes.single.points.first.pressure, closeTo(0.5, 0.0001));
     expect(strokes.single.points[1].pressure, closeTo(1, 0.0001));
     expect(strokes.single.points.last.pressure, 0.5);
+    tool.dispose();
+  });
+
+  test('pen defers smoothing changes until the active stroke finishes', () {
+    final strokes = <RawPenStroke>[];
+    final tool = PenTool(onStroke: strokes.add)
+      ..onPointerDown(const PointerDownEvent(pointer: 1))
+      ..setStreamline(1)
+      ..onPointerUp(const PointerUpEvent(pointer: 1, position: Offset(4, 0)))
+      ..onPointerDown(const PointerDownEvent(pointer: 2))
+      ..onPointerUp(const PointerUpEvent(pointer: 2, position: Offset(4, 0)));
+
+    expect(strokes.map((stroke) => stroke.streamline), [penStreamlineDefault, 1]);
     tool.dispose();
   });
 
@@ -610,12 +625,29 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('draw-settings-panel')), findsOneWidget);
     expect(find.textContaining('px'), findsNothing);
-    expect(
-      tester.widget<Slider>(find.byKey(const ValueKey('discrete-slider'))).label,
-      '16',
+    final widthSlider = find.descendant(
+      of: find.byKey(const ValueKey('pen-width-slider')),
+      matching: find.byType(Slider),
+    );
+    final smoothingSlider = find.descendant(
+      of: find.byKey(const ValueKey('pen-smoothing-slider')),
+      matching: find.byType(Slider),
     );
     expect(
-      tester.widget<SliderTheme>(find.byType(SliderTheme)).data.showValueIndicator,
+      tester.widget<Slider>(widthSlider).label,
+      '16',
+    );
+    expect(tester.widget<Slider>(smoothingSlider).label, '2');
+    expect(
+      tester
+          .widget<SliderTheme>(
+            find.descendant(
+              of: find.byKey(const ValueKey('pen-width-slider')),
+              matching: find.byType(SliderTheme),
+            ),
+          )
+          .data
+          .showValueIndicator,
       ShowValueIndicator.onDrag,
     );
 
@@ -623,12 +655,14 @@ void main() {
     await tester.pump();
     expect(tester.widget<ColorControl>(find.byType(ColorControl)).enableAlpha, isTrue);
     await tester.tap(find.byKey(const ValueKey('color-preset-Red')));
-    tester.widget<Slider>(find.byKey(const ValueKey('discrete-slider'))).onChanged!(2.25);
+    tester.widget<Slider>(widthSlider).onChanged!(2.25);
+    tester.widget<Slider>(smoothingSlider).onChanged!(0.75);
     await tester.pump();
     expect(
-      tester.widget<Slider>(find.byKey(const ValueKey('discrete-slider'))).label,
+      tester.widget<Slider>(widthSlider).label,
       '9',
     );
+    expect(tester.widget<Slider>(smoothingSlider).label, '3');
     await tester.dragFrom(const Offset(100, 450), const Offset(80, 40));
     await tester.pump();
 
@@ -636,11 +670,13 @@ void main() {
     expect(strokes, hasLength(2));
     expect(strokes.first.color, isNot(strokes.last.color));
     expect(strokes.first.width, 4);
+    expect(strokes.first.streamline, penStreamlineDefault);
     expect(
       strokes.last.color,
       presetColors.firstWhere((swatch) => swatch.label == 'Red').color.toARGB32(),
     );
     expect(strokes.last.width, 2.25);
+    expect(strokes.last.streamline, 0.75);
 
     await tester.tap(find.byKey(const ValueKey('toolbar-erase')));
     await tester.pumpAndSettle();
@@ -648,13 +684,14 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('toolbar-draw')));
     await tester.pumpAndSettle();
     expect(
-      tester.widget<Slider>(find.byKey(const ValueKey('discrete-slider'))).value,
+      tester.widget<Slider>(widthSlider).value,
       2.25,
     );
     expect(
-      tester.widget<Slider>(find.byKey(const ValueKey('discrete-slider'))).label,
+      tester.widget<Slider>(widthSlider).label,
       '9',
     );
+    expect(tester.widget<Slider>(smoothingSlider).value, 0.75);
     expect(
       tester
           .widget<Semantics>(

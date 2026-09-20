@@ -8,7 +8,7 @@ part of 'pen_tool.dart';
 /// Adapts persisted pen data to a rendered path and canvas movement.
 /// Used by selection, hit testing, and stroke rendering.
 class PenStrokeModel extends CanvasElementModel<PenElementData> {
-  PenStrokeModel(super.data) : path = createPenPath(data.points, data.width);
+  PenStrokeModel(super.data) : path = createPenPath(data.points, data.width, data.streamline);
 
   final Path path;
 

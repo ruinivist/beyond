@@ -28,8 +28,10 @@ class PenTool extends ChangeNotifier {
   Offset? _pointerPosition;
   Color _color = Colors.black;
   double _strokeWidth = 4;
+  double _streamline = penStreamlineDefault;
   Color? _pendingColor;
   double? _pendingStrokeWidth;
+  double? _pendingStreamline;
 
   // ---------- Options ----------
 
@@ -49,6 +51,15 @@ class PenTool extends ChangeNotifier {
       _pendingStrokeWidth = strokeWidth;
     } else {
       _strokeWidth = strokeWidth;
+      notifyListeners();
+    }
+  }
+
+  void setStreamline(double streamline) {
+    if (active) {
+      _pendingStreamline = streamline;
+    } else {
+      _streamline = streamline;
       notifyListeners();
     }
   }
@@ -122,16 +133,20 @@ class PenTool extends ChangeNotifier {
       points: List<PenPointData>.of(_points),
       color: _color.toARGB32(),
       width: _strokeWidth,
+      streamline: _streamline,
     );
     _activePointer = null;
     _points.clear();
     final pendingColor = _pendingColor;
     final pendingWidth = _pendingStrokeWidth;
+    final pendingStreamline = _pendingStreamline;
     _pendingColor = null;
     _pendingStrokeWidth = null;
+    _pendingStreamline = null;
     onStroke(stroke);
     if (pendingColor != null) _color = pendingColor;
     if (pendingWidth != null) _strokeWidth = pendingWidth;
+    if (pendingStreamline != null) _streamline = pendingStreamline;
     notifyListeners();
   }
 }

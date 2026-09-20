@@ -47,6 +47,7 @@ void main() {
           hitSlop: 6,
           color: 0xff000000,
           width: 3,
+          streamline: 0.75,
           points: const [
             PenPointData(Offset(6, 6), pressure: 0.4),
           ],
@@ -113,6 +114,7 @@ void main() {
 
     final pen = elements[2] as PenElementData;
     expect(pen.size, const Size(180, 90));
+    expect(pen.streamline, 0.75);
     expect(pen.hitSlop, 6);
     expect(pen.points.single.pressure, 0.4);
 
@@ -401,6 +403,14 @@ void main() {
       ),
       throwsA(isA<FormatException>()),
     );
+    for (final streamline in [-0.25, 1.25, double.nan]) {
+      expect(
+        () => CanvasDocument.fromJson(
+          _document(elements: [_encodedPen()..['streamline'] = streamline]),
+        ),
+        throwsA(isA<FormatException>()),
+      );
+    }
 
     final arrow = _encodedArrow();
     expect(
@@ -503,6 +513,7 @@ Map<String, Object?> _encodedPen({String id = 'pen-1'}) => {
   'hitSlop': 0.0,
   'color': 0,
   'width': 1.0,
+  'streamline': penStreamlineDefault,
   'points': [
     {'x': 0.0, 'y': 0.0, 'pressure': 0.0},
   ],

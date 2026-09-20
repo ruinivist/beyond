@@ -11,6 +11,7 @@ typedef RawPenStroke = ({
   List<PenPointData> points,
   int color,
   double width,
+  double streamline,
 });
 
 const _strokeHitSlop = 6.0;
@@ -18,7 +19,7 @@ const _minimumPointDistanceSquared = 4.0;
 
 /// Builds the filled freehand outline for sampled pen points.
 /// Used by live previews and persisted stroke rendering.
-Path createPenPath(List<PenPointData> points, double width) {
+Path createPenPath(List<PenPointData> points, double width, double streamline) {
   final simulatePressure = points.isNotEmpty && points.every((point) => point.pressure == points.first.pressure);
   final outline = pf.getStroke(
     [
@@ -31,6 +32,7 @@ Path createPenPath(List<PenPointData> points, double width) {
     ],
     options: pf.StrokeOptions(
       size: width * 2,
+      streamline: streamline,
       simulatePressure: simulatePressure,
     ),
   );
@@ -84,5 +86,6 @@ PenElementData positionStroke(
     ],
     color: stroke.color,
     width: stroke.width / canvasScale,
+    streamline: stroke.streamline,
   );
 }

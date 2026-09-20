@@ -30,6 +30,9 @@ const arrowMinimumLength = 4.0;
 const arrowStrokeWidthMinimum = 0.25;
 const arrowStrokeWidthMaximum = 5.0;
 const shapeMinimumSize = Size.square(32);
+const penStreamlineMinimum = 0.0;
+const penStreamlineMaximum = 1.0;
+const penStreamlineDefault = 0.5;
 
 // ---------- Types ----------
 
@@ -67,7 +70,7 @@ class CanvasDocument {
   factory CanvasDocument.fromJson(Object? json) {
     final document = _decode(json, 'document', _$CanvasDocumentFromJson);
     if (document.schemaVersion != version) {
-      throw const FormatException('document.version must be 5');
+      throw const FormatException('document.version must be 6');
     }
     final ids = <String>{};
     for (final element in document.elements) {
@@ -80,7 +83,7 @@ class CanvasDocument {
 
   // ---------- Constants ----------
 
-  static const version = 5;
+  static const version = 6;
 
   // ---------- State ----------
 
@@ -530,6 +533,7 @@ class PenElementData extends CanvasElementData {
     required this.points,
     required this.color,
     required this.width,
+    this.streamline = penStreamlineDefault,
   }) : super(id, 'pen');
 
   PenElementData._json({
@@ -541,6 +545,7 @@ class PenElementData extends CanvasElementData {
     required this.points,
     required this.color,
     required this.width,
+    required this.streamline,
   }) : super(id, type);
 
   factory PenElementData.fromJson(Object? json) {
@@ -554,6 +559,10 @@ class PenElementData extends CanvasElementData {
     }
     _validateArgb(pen.color, 'element.color');
     _validatePositive(pen.width, 'element.width');
+    _validateFinite(pen.streamline, 'element.streamline');
+    if (pen.streamline < penStreamlineMinimum || pen.streamline > penStreamlineMaximum) {
+      throw const FormatException('element.streamline is outside the supported range');
+    }
     return pen;
   }
 
@@ -568,6 +577,7 @@ class PenElementData extends CanvasElementData {
   @JsonKey(fromJson: _jsonInt)
   int color;
   double width;
+  double streamline;
 
   // ---------- Serialization ----------
 
@@ -585,6 +595,7 @@ class PenElementData extends CanvasElementData {
     points: List.of(points),
     color: color,
     width: width,
+    streamline: streamline,
   );
 }
 
