@@ -103,6 +103,7 @@ void main() {
                   onPointerDown: (_) => shapeTaps++,
                   child: Shape(
                     model: model,
+                    onActivate: () {},
                     onMove: (_) {},
                     onResize: (_) {},
                   ),
@@ -144,7 +145,7 @@ void main() {
     model.dispose();
   });
 
-  testWidgets('toolbar places one shape, then selects, moves, and resizes', (
+  testWidgets('toolbar places one shape, then activates, moves, and resizes', (
     tester,
   ) async {
     await pumpCanvas(tester, TestCanvasDocumentStore());
@@ -190,7 +191,7 @@ void main() {
     );
     final first = tester.widget<Shape>(find.byType(Shape)).model;
     expect(first.active, isTrue);
-    expect(first.selected, isTrue);
+    expect(first.selected, isFalse);
     expect(tester.widget<ToolbarButton>(toolbar).selected, isFalse);
     expect(find.byKey(const ValueKey('shape-settings-panel')), findsOneWidget);
     expect(
@@ -247,7 +248,7 @@ void main() {
     await tester.tapAt(tester.getCenter(firstFinder));
     await tester.pump();
     expect(first.active, isTrue);
-    expect(first.selected, isTrue);
+    expect(first.selected, isFalse);
     expect(find.byKey(const ValueKey('shape-block-rotate-control')), findsNothing);
     expect(
       find.byKey(const ValueKey('shape-resize-handle')),
@@ -296,10 +297,18 @@ void main() {
 
     ShapeModel model() => tester.widget<Shape>(find.byType(Shape)).model;
 
+    final originalPosition = model().data.position;
+    await tester.drag(find.byType(Shape), const Offset(60, 40));
+    await tester.pump();
+    expect(model().data.position, isNot(originalPosition));
+    expect(model().active, isFalse);
+    expect(model().selected, isFalse);
+    expect(find.byKey(const ValueKey('shape-settings-panel')), findsNothing);
+
     await tester.tap(find.byType(Shape));
     await tester.pump();
     expect(model().active, isTrue);
-    expect(model().selected, isTrue);
+    expect(model().selected, isFalse);
     expect(
       find.byKey(const ValueKey('shape-settings-panel')),
       findsOneWidget,
@@ -332,9 +341,21 @@ void main() {
     await tester.tap(find.byType(Shape));
     await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
     await tester.pumpAndSettle();
-    expect(model().active, isFalse);
+    expect(model().active, isTrue);
+    expect(model().selected, isTrue);
+    expect(find.byKey(const ValueKey('shape-settings-panel')), findsOneWidget);
+
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+    await tester.tap(find.byType(Shape));
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+    await tester.pumpAndSettle();
+    expect(model().active, isTrue);
     expect(model().selected, isFalse);
-    expect(find.byKey(const ValueKey('shape-settings-panel')), findsNothing);
+    expect(find.byKey(const ValueKey('shape-settings-panel')), findsOneWidget);
+
+    await tester.tapAt(const Offset(40, 40));
+    await tester.pumpAndSettle();
+    expect(model().active, isFalse);
 
     final marquee = await tester.startGesture(
       const Offset(100, 140),

@@ -110,8 +110,6 @@ class _CanvasPageState extends State<CanvasPage> {
   Offset? _dragSelectionEnd;
   int? _dragArrowPointer;
   ArrowModel? _dragArrow;
-  int? _dragShapePointer;
-  ShapeModel? _dragShape;
   var _toggleDragSelection = false;
   Timer? _saveTimer;
   Future<void> _saveQueue = Future<void>.value();
@@ -441,10 +439,6 @@ class _CanvasPageState extends State<CanvasPage> {
       );
       return;
     }
-    if (event.pointer == _dragShapePointer) {
-      _finishShapeDrag(select: true);
-      return;
-    }
     if (event.pointer == _dragArrowPointer) {
       _finishArrowDrag(select: true);
       return;
@@ -471,10 +465,6 @@ class _CanvasPageState extends State<CanvasPage> {
     }
     if (_shapeTool.ownsPointer(event.pointer)) {
       _shapeTool.onPointerCancel(event);
-      return;
-    }
-    if (event.pointer == _dragShapePointer) {
-      _finishShapeDrag();
       return;
     }
     if (event.pointer == _dragArrowPointer) {
@@ -561,9 +551,6 @@ class _CanvasPageState extends State<CanvasPage> {
   bool _toggleSelectionIfModifierPressed(CanvasElementModel model) {
     if (!_selectionModifierPressed.value) return false;
     model.selected = !model.selected;
-    if (model is ShapeModel && !model.selected && identical(_activeElement, model)) {
-      _setActiveElement(null);
-    }
     return true;
   }
 
@@ -619,8 +606,8 @@ class _CanvasPageState extends State<CanvasPage> {
     _bringElementToFront(model);
   }
 
-  void _handleMediaPointerDown(
-    MediaModel model,
+  void _handleSelectableElementPointerDown(
+    CanvasElementModel model,
     PointerDownEvent event,
   ) {
     if (event.buttons != kPrimaryButton ||
@@ -637,44 +624,10 @@ class _CanvasPageState extends State<CanvasPage> {
     _bringElementToFront(model);
   }
 
-  void _activateMedia(MediaModel model) {
+  void _activateElement(CanvasElementModel model) {
     if (!_documentLoaded || _activeTool.value != _CanvasTool.select || !_elements.contains(model)) return;
     _clearTextEditing();
     _setActiveElement(model);
-  }
-
-  void _handleShapePointerDown(
-    ShapeModel model,
-    PointerDownEvent event,
-  ) {
-    if (event.buttons != kPrimaryButton ||
-        !_documentLoaded ||
-        _activeTool.value != _CanvasTool.select ||
-        !_elements.contains(model)) {
-      return;
-    }
-    _interactiveCanvasPointerIds.add(event.pointer);
-    if (_toggleSelectionIfModifierPressed(model)) return;
-    _setActiveElement(model);
-    FocusManager.instance.primaryFocus?.unfocus();
-    _clearTextEditing();
-    _dragShapePointer = event.pointer;
-    _dragShape = model;
-    _bringElementToFront(model);
-  }
-
-  void _finishShapeDrag({bool select = false}) {
-    final shape = _dragShape;
-    if (shape != null && _elements.contains(shape)) {
-      if (select) {
-        shape.selected = true;
-      } else if (!shape.selected && identical(_activeElement, shape)) {
-        _setActiveElement(null);
-      }
-    }
-    _dragShapePointer = null;
-    _dragShape = null;
-    _finishHistoryOperation();
   }
 
   void _editTextBlock(TextBlockModel model) {
@@ -933,10 +886,10 @@ class _CanvasPageState extends State<CanvasPage> {
         model: media,
         activeTool: _activeTool,
         modifierPressed: _selectionModifierPressed,
-        onPointerDown: (event) => _handleMediaPointerDown(media, event),
+        onPointerDown: (event) => _handleSelectableElementPointerDown(media, event),
         child: MediaTool(
           model: media,
-          onActivate: () => _activateMedia(media),
+          onActivate: () => _activateElement(media),
           onMove: (delta) => _moveSelectedChildren(media, delta),
           onResize: (delta) => _resizeMedia(media, delta),
           onDeactivate: () {
@@ -949,9 +902,10 @@ class _CanvasPageState extends State<CanvasPage> {
         model: shape,
         activeTool: _activeTool,
         modifierPressed: _selectionModifierPressed,
-        onPointerDown: (event) => _handleShapePointerDown(shape, event),
+        onPointerDown: (event) => _handleSelectableElementPointerDown(shape, event),
         child: Shape(
           model: shape,
+          onActivate: () => _activateElement(shape),
           onMove: (delta) => _moveSelectedChildren(shape, delta),
           onResize: (delta) => _resizeShape(shape, delta),
         ),
@@ -1067,7 +1021,6 @@ class _CanvasPageState extends State<CanvasPage> {
     if (!_documentLoaded) return;
     if (_shapeEnabled) setState(() => _activeTool.value = _CanvasTool.select);
     _mountElement(model);
-    model.selected = true;
     _setActiveElement(model);
     _scheduleDocumentSave();
     _finishHistoryOperation();
@@ -1340,7 +1293,6 @@ class _CanvasPageState extends State<CanvasPage> {
     }
     if (_selectionBeforeWidgetPointer.isEmpty) _widgetPointer = null;
     if (modelsToDispose.contains(_dragArrow)) _finishArrowDrag();
-    if (modelsToDispose.contains(_dragShape)) _finishShapeDrag();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       for (final model in modelsToDispose) {
         model.dispose();
@@ -1494,8 +1446,6 @@ class _CanvasPageState extends State<CanvasPage> {
     _dragSelectionEnd = null;
     _dragArrowPointer = null;
     _dragArrow = null;
-    _dragShapePointer = null;
-    _dragShape = null;
     _editingTextBlock = null;
     _editingChromeModel = null;
 

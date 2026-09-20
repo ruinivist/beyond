@@ -10,12 +10,14 @@ part of 'shape_tool.dart';
 class Shape extends StatelessWidget {
   const Shape({
     required this.model,
+    required this.onActivate,
     required this.onMove,
     required this.onResize,
     super.key,
   });
 
   final ShapeModel model;
+  final VoidCallback onActivate;
   final ValueChanged<Offset> onMove;
   final ValueChanged<Offset> onResize;
 
@@ -30,10 +32,10 @@ class Shape extends StatelessWidget {
           container: true,
           label: model.data.kind.label,
           selected: model.selected,
-          child: RawGestureDetector(
-            gestures: {
-              ImmediateMultiDragGestureRecognizer: immediateDragGestureFactory((_) => CallbackDrag(onMove)),
-            },
+          child: GestureDetector(
+            dragStartBehavior: DragStartBehavior.down,
+            onTap: onActivate,
+            onPanUpdate: (details) => onMove(details.delta),
             child: Stack(
               children: [
                 Positioned.fill(
