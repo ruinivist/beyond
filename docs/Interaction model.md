@@ -51,6 +51,13 @@ Shapes follow the same state separation: clicking or creating a shape makes it a
 - Primary-button dragging moves a stroke directly. Modifier-click and marquee selection are the only ways to select strokes.
 - Selected strokes participate in group movement and keyboard deletion.
 
+## Arrows
+
+- Drawing an arrow makes it active and returns to the select tool.
+- Arrow options set the color, solid or dashed shaft style, and width for newly drawn arrows.
+- Activating an existing arrow exposes the same options; edits affect only that arrow and keep its arrowhead solid.
+- Dashed gaps remain part of the arrow's pointer target.
+
 ## Drag and selection rules
 
 - Dragging an inactive, unselected block moves only that block and clears any unrelated selection.

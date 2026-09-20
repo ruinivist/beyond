@@ -289,6 +289,9 @@ void main() {
         start: Offset.zero,
         control: const Offset(20, -8),
         end: const Offset(40, 10),
+        color: 0xff000000,
+        strokeStyle: ArrowStrokeStyle.solid,
+        strokeWidth: 2,
       ),
     );
     final before = model.geometry;
@@ -515,6 +518,9 @@ void main() {
           start: const Offset(300, 250),
           control: const Offset(380, 235),
           end: const Offset(460, 250),
+          color: 0xff000000,
+          strokeStyle: ArrowStrokeStyle.solid,
+          strokeWidth: 2,
         ),
       ],
     );
@@ -1696,6 +1702,9 @@ void main() {
           start: const Offset(100, 300),
           control: const Offset(150, 300),
           end: const Offset(200, 300),
+          color: 0xff000000,
+          strokeStyle: ArrowStrokeStyle.solid,
+          strokeWidth: 2,
         ),
         TextElementData(
           id: 'text-drag',

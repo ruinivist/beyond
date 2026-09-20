@@ -5,10 +5,11 @@ part of 'arrow_tool.dart';
 
 // ---------- Geometry ----------
 
-const _arrowStrokeWidth = 2.0;
 const _arrowHeadLength = 12.0;
 const _arrowHeadHalfWidth = 5.0;
 const _arrowHitSlop = 8.0;
+const _arrowDashLength = 8.0;
+const _arrowDashGap = 6.0;
 
 /// Calculates the curve, arrowhead, and interaction bounds of an arrow.
 /// Used by arrow models, painters, and previews.
@@ -41,18 +42,21 @@ class ArrowGeometry {
     return arrowheadBase - Offset(-tangent.dy, tangent.dx) * _arrowHeadHalfWidth;
   }
 
-  Path get path {
+  Path get shaftPath => Path()
+    ..moveTo(start.dx, start.dy)
+    ..quadraticBezierTo(control.dx, control.dy, end.dx, end.dy);
+
+  Path get arrowheadPath {
     return Path()
-      ..moveTo(start.dx, start.dy)
-      ..quadraticBezierTo(control.dx, control.dy, end.dx, end.dy)
       ..moveTo(arrowheadLeft.dx, arrowheadLeft.dy)
       ..lineTo(end.dx, end.dy)
       ..lineTo(arrowheadRight.dx, arrowheadRight.dy);
   }
 
-  Rect get bounds => path.getBounds().inflate(
-    _arrowHitSlop + _arrowStrokeWidth / 2,
-  );
+  Rect get bounds => shaftPath
+      .getBounds()
+      .expandToInclude(arrowheadPath.getBounds())
+      .inflate(_arrowHitSlop + arrowStrokeWidthMaximum / 2);
 
   ArrowGeometry shift(Offset offset) => ArrowGeometry(
     start: start + offset,
@@ -65,17 +69,45 @@ void paintArrow(
   Canvas canvas, {
   required ArrowGeometry geometry,
   required Color color,
+  required ArrowStrokeStyle strokeStyle,
   required double strokeWidth,
+  double dashScale = 1,
 }) {
-  canvas.drawPath(
-    geometry.path,
-    Paint()
-      ..color = color
-      ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round
-      ..strokeJoin = StrokeJoin.round
-      ..strokeWidth = strokeWidth,
-  );
+  final paint = Paint()
+    ..color = color
+    ..style = PaintingStyle.stroke
+    ..strokeCap = StrokeCap.round
+    ..strokeJoin = StrokeJoin.round
+    ..strokeWidth = strokeWidth;
+  canvas
+    ..drawPath(
+      strokeStyle == ArrowStrokeStyle.dashed
+          ? _dashedPath(
+              geometry.shaftPath,
+              dashLength: _arrowDashLength * dashScale,
+              gapLength: _arrowDashGap * dashScale,
+            )
+          : geometry.shaftPath,
+      paint,
+    )
+    ..drawPath(geometry.arrowheadPath, paint);
+}
+
+Path _dashedPath(
+  Path source, {
+  required double dashLength,
+  required double gapLength,
+}) {
+  final result = Path();
+  for (final metric in source.computeMetrics()) {
+    for (var distance = 0.0; distance < metric.length; distance += dashLength + gapLength) {
+      result.addPath(
+        metric.extractPath(distance, math.min(distance + dashLength, metric.length)),
+        Offset.zero,
+      );
+    }
+  }
+  return result;
 }
 
 // ---------- Control geometry ----------

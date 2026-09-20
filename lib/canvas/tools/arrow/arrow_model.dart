@@ -32,6 +32,31 @@ class ArrowModel extends CanvasElementModel<ArrowElementData> {
 
   Offset get end => geometry.end;
 
+  Color get color => Color(data.color);
+
+  set color(Color value) {
+    final color = value.toARGB32();
+    if (data.color == color) return;
+    data.color = color;
+    notifyDocumentChanged();
+  }
+
+  ArrowStrokeStyle get strokeStyle => data.strokeStyle;
+
+  set strokeStyle(ArrowStrokeStyle value) {
+    if (data.strokeStyle == value) return;
+    data.strokeStyle = value;
+    notifyDocumentChanged();
+  }
+
+  double get strokeWidth => data.strokeWidth;
+
+  set strokeWidth(double value) {
+    if (data.strokeWidth == value) return;
+    data.strokeWidth = value;
+    notifyDocumentChanged();
+  }
+
   @override
   void moveBy(Offset delta) {
     if (delta == Offset.zero) return;

@@ -3,35 +3,43 @@
 
 part of 'arrow_tool.dart';
 
+/// Describes an in-progress arrow before it becomes persisted.
+typedef ArrowPreview = ({
+  ArrowGeometry geometry,
+  Color color,
+  ArrowStrokeStyle strokeStyle,
+  double strokeWidth,
+});
+
 // ---------- Painters ----------
 
 /// Paints an in-progress arrow in screen coordinates.
 /// Used by the canvas overlay while [ArrowTool] owns a pointer.
 class ArrowPreviewPainter extends CustomPainter {
   const ArrowPreviewPainter({
-    required this.geometry,
+    required this.preview,
     required this.canvasOffset,
     required this.canvasScale,
-    required this.color,
   });
 
-  final ArrowGeometry geometry;
+  final ArrowPreview preview;
   final Offset canvasOffset;
   final double canvasScale;
-  final Color color;
 
   @override
   void paint(Canvas canvas, Size size) {
     final screenGeometry = ArrowGeometry(
-      start: _toScreen(geometry.start),
-      control: _toScreen(geometry.control),
-      end: _toScreen(geometry.end),
+      start: _toScreen(preview.geometry.start),
+      control: _toScreen(preview.geometry.control),
+      end: _toScreen(preview.geometry.end),
     );
     paintArrow(
       canvas,
       geometry: screenGeometry,
-      color: color,
-      strokeWidth: _arrowStrokeWidth * canvasScale,
+      color: preview.color,
+      strokeStyle: preview.strokeStyle,
+      strokeWidth: preview.strokeWidth * canvasScale,
+      dashScale: canvasScale,
     );
   }
 
@@ -39,11 +47,13 @@ class ArrowPreviewPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(ArrowPreviewPainter oldDelegate) {
-    return oldDelegate.geometry.start != geometry.start ||
-        oldDelegate.geometry.control != geometry.control ||
-        oldDelegate.geometry.end != geometry.end ||
+    return oldDelegate.preview.geometry.start != preview.geometry.start ||
+        oldDelegate.preview.geometry.control != preview.geometry.control ||
+        oldDelegate.preview.geometry.end != preview.geometry.end ||
         oldDelegate.canvasOffset != canvasOffset ||
         oldDelegate.canvasScale != canvasScale ||
-        oldDelegate.color != color;
+        oldDelegate.preview.color != preview.color ||
+        oldDelegate.preview.strokeStyle != preview.strokeStyle ||
+        oldDelegate.preview.strokeWidth != preview.strokeWidth;
   }
 }

@@ -27,6 +27,8 @@ const codeBlockMinimumSize = Size(280, 240);
 const mediaNodeDefaultWidth = 480.0;
 const mediaNodeMinimumWidth = 120.0;
 const arrowMinimumLength = 4.0;
+const arrowStrokeWidthMinimum = 0.25;
+const arrowStrokeWidthMaximum = 5.0;
 const shapeMinimumSize = Size.square(32);
 
 // ---------- Types ----------
@@ -41,6 +43,10 @@ enum ShapeKind {
   triangle,
   hexagon,
 }
+
+/// Identifies how an arrow shaft is rendered.
+/// Used by arrow tools, models, and document serialization.
+enum ArrowStrokeStyle { solid, dashed }
 
 // ---------- Document models ----------
 
@@ -61,7 +67,7 @@ class CanvasDocument {
   factory CanvasDocument.fromJson(Object? json) {
     final document = _decode(json, 'document', _$CanvasDocumentFromJson);
     if (document.schemaVersion != version) {
-      throw const FormatException('document.version must be 4');
+      throw const FormatException('document.version must be 5');
     }
     final ids = <String>{};
     for (final element in document.elements) {
@@ -74,7 +80,7 @@ class CanvasDocument {
 
   // ---------- Constants ----------
 
-  static const version = 4;
+  static const version = 5;
 
   // ---------- State ----------
 
@@ -593,6 +599,9 @@ class ArrowElementData extends CanvasElementData {
     required this.start,
     required this.control,
     required this.end,
+    required this.color,
+    required this.strokeStyle,
+    required this.strokeWidth,
   }) : super(id, 'arrow');
 
   ArrowElementData._json({
@@ -601,12 +610,20 @@ class ArrowElementData extends CanvasElementData {
     required this.start,
     required this.control,
     required this.end,
+    required this.color,
+    required this.strokeStyle,
+    required this.strokeWidth,
   }) : super(id, type);
 
   factory ArrowElementData.fromJson(Object? json) {
     final arrow = _decode(json, 'arrow element', _$ArrowElementDataFromJson)..validateType('arrow');
     if ((arrow.end - arrow.start).distance < arrowMinimumLength) {
       throw const FormatException('element arrow is shorter than the minimum');
+    }
+    _validateArgb(arrow.color, 'element.color');
+    _validateFinite(arrow.strokeWidth, 'element.strokeWidth');
+    if (arrow.strokeWidth < arrowStrokeWidthMinimum || arrow.strokeWidth > arrowStrokeWidthMaximum) {
+      throw const FormatException('element.strokeWidth is outside the supported range');
     }
     return arrow;
   }
@@ -619,6 +636,10 @@ class ArrowElementData extends CanvasElementData {
   Offset control;
   @_OffsetConverter()
   Offset end;
+  @JsonKey(fromJson: _jsonInt)
+  int color;
+  ArrowStrokeStyle strokeStyle;
+  double strokeWidth;
 
   // ---------- Serialization ----------
 
@@ -633,6 +654,9 @@ class ArrowElementData extends CanvasElementData {
     start: start,
     control: control,
     end: end,
+    color: color,
+    strokeStyle: strokeStyle,
+    strokeWidth: strokeWidth,
   );
 }
 

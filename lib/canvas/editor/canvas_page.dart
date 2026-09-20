@@ -121,6 +121,7 @@ class _CanvasPageState extends State<CanvasPage> {
   late final ShapeTool _shapeTool;
   Color? _customPenColor;
   Color? _customShapeStrokeColor;
+  Color? _customArrowColor;
   double _penWidth = 4;
   final ValueNotifier<_CanvasTool> _activeTool = ValueNotifier(
     _CanvasTool.select,
@@ -142,6 +143,7 @@ class _CanvasPageState extends State<CanvasPage> {
   var _noIconsChanged = false;
   var _penColorPickerExpanded = false;
   var _shapeOutlineColorPickerExpanded = false;
+  var _arrowColorPickerExpanded = false;
   var _textColorPickerExpanded = false;
 
   Color get _penColor => _customPenColor ?? BTheme.of(context).colors.textPrimary;
@@ -178,6 +180,11 @@ class _CanvasPageState extends State<CanvasPage> {
     _ => null,
   };
 
+  ArrowModel? get _activeArrow => switch (_activeElement) {
+    final ArrowModel model => model,
+    _ => null,
+  };
+
   // ---------- Lifecycle ----------
 
   @override
@@ -206,6 +213,9 @@ class _CanvasPageState extends State<CanvasPage> {
     if (_customPenColor == null) _penTool.setColor(colors.textPrimary);
     if (_customShapeStrokeColor == null) {
       _shapeTool.setStrokeColor(colors.textSecondary);
+    }
+    if (_customArrowColor == null) {
+      _arrowTool.setColor(colors.textSecondary);
     }
   }
 
@@ -308,7 +318,12 @@ class _CanvasPageState extends State<CanvasPage> {
     _shapeTool.setStrokeColor(color);
   }
 
-  void _editShape(ShapeModel model, VoidCallback edit) {
+  void _setArrowColor(Color color) {
+    _customArrowColor = color;
+    _arrowTool.setColor(color);
+  }
+
+  void _editElement(CanvasElementModel model, VoidCallback edit) {
     if (!_elements.contains(model)) return;
     _finishHistoryOperation();
     edit();
@@ -1735,6 +1750,7 @@ class _CanvasPageState extends State<CanvasPage> {
     final activeTextBlock = _activeTextBlock;
     final activeCodeBlock = _activeCodeBlock;
     final activeShape = _activeShape;
+    final activeArrow = _activeArrow;
     return Scaffold(
       body: Stack(
         children: [
@@ -1763,10 +1779,9 @@ class _CanvasPageState extends State<CanvasPage> {
                 child: CustomPaint(
                   key: const ValueKey('arrow-preview'),
                   painter: ArrowPreviewPainter(
-                    geometry: preview,
+                    preview: preview,
                     canvasOffset: _canvasController.offset,
                     canvasScale: _canvasController.scale,
-                    color: colors.accent,
                   ),
                 ),
               ),
@@ -2071,20 +2086,38 @@ class _CanvasPageState extends State<CanvasPage> {
                                   fillColor: activeShape.fillColor,
                                   strokeWidth: activeShape.strokeWidth,
                                   outlineColorPickerExpanded: _shapeOutlineColorPickerExpanded,
-                                  onKindChanged: (kind) => _editShape(activeShape, () => activeShape.kind = kind),
+                                  onKindChanged: (kind) => _editElement(activeShape, () => activeShape.kind = kind),
                                   onStrokeColorChanged: (color) =>
-                                      _editShape(activeShape, () => activeShape.strokeColor = color),
+                                      _editElement(activeShape, () => activeShape.strokeColor = color),
                                   onFillColorChanged: (color) =>
-                                      _editShape(activeShape, () => activeShape.fillColor = color),
+                                      _editElement(activeShape, () => activeShape.fillColor = color),
                                   onStrokeWidthChanged: (width) =>
-                                      _editShape(activeShape, () => activeShape.strokeWidth = width),
+                                      _editElement(activeShape, () => activeShape.strokeWidth = width),
                                   onOutlineColorPickerExpandedChanged: (expanded) => setState(
                                     () => _shapeOutlineColorPickerExpanded = expanded,
                                   ),
                                 ),
                               )
+                            : activeArrow != null
+                            ? ListenableBuilder(
+                                key: const ValueKey('arrow-settings-panel'),
+                                listenable: activeArrow,
+                                builder: (context, _) => _ArrowSettings(
+                                  color: activeArrow.color,
+                                  strokeStyle: activeArrow.strokeStyle,
+                                  strokeWidth: activeArrow.strokeWidth,
+                                  colorPickerExpanded: _arrowColorPickerExpanded,
+                                  onColorChanged: (color) => _editElement(activeArrow, () => activeArrow.color = color),
+                                  onStrokeStyleChanged: (style) =>
+                                      _editElement(activeArrow, () => activeArrow.strokeStyle = style),
+                                  onStrokeWidthChanged: (width) =>
+                                      _editElement(activeArrow, () => activeArrow.strokeWidth = width),
+                                  onColorPickerExpandedChanged: (expanded) =>
+                                      setState(() => _arrowColorPickerExpanded = expanded),
+                                ),
+                              )
                             : _penEnabled
-                            ? _DrawSettings(
+                            ? _StrokeSettings(
                                 key: const ValueKey('draw-settings-panel'),
                                 color: _penColor,
                                 width: _penWidth,
@@ -2114,6 +2147,22 @@ class _CanvasPageState extends State<CanvasPage> {
                                   ),
                                 ),
                               )
+                            : _arrowEnabled
+                            ? ListenableBuilder(
+                                key: const ValueKey('arrow-settings-panel'),
+                                listenable: _arrowTool,
+                                builder: (context, _) => _ArrowSettings(
+                                  color: _arrowTool.color,
+                                  strokeStyle: _arrowTool.strokeStyle,
+                                  strokeWidth: _arrowTool.strokeWidth,
+                                  colorPickerExpanded: _arrowColorPickerExpanded,
+                                  onColorChanged: _setArrowColor,
+                                  onStrokeStyleChanged: _arrowTool.setStrokeStyle,
+                                  onStrokeWidthChanged: _arrowTool.setStrokeWidth,
+                                  onColorPickerExpandedChanged: (expanded) =>
+                                      setState(() => _arrowColorPickerExpanded = expanded),
+                                ),
+                              )
                             : null,
                       ),
                     ),
@@ -2132,6 +2181,68 @@ class _CanvasPageState extends State<CanvasPage> {
 }
 
 // ---------- Tool settings ----------
+
+class _ArrowSettings extends StatelessWidget {
+  const _ArrowSettings({
+    required this.color,
+    required this.strokeStyle,
+    required this.strokeWidth,
+    required this.colorPickerExpanded,
+    required this.onColorChanged,
+    required this.onStrokeStyleChanged,
+    required this.onStrokeWidthChanged,
+    required this.onColorPickerExpandedChanged,
+  });
+
+  final Color color;
+  final ArrowStrokeStyle strokeStyle;
+  final double strokeWidth;
+  final bool colorPickerExpanded;
+  final ValueChanged<Color> onColorChanged;
+  final ValueChanged<ArrowStrokeStyle> onStrokeStyleChanged;
+  final ValueChanged<double> onStrokeWidthChanged;
+  final ValueChanged<bool> onColorPickerExpandedChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = BTheme.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text('Style', style: theme.typo.label),
+        const SizedBox(height: 6),
+        Wrap(
+          children: [
+            for (final option in ArrowStrokeStyle.values)
+              Tooltip(
+                message: option == ArrowStrokeStyle.solid ? 'Solid' : 'Dashed',
+                child: ToolbarButton(
+                  key: ValueKey('arrow-style-${option.name}'),
+                  iconOnly: true,
+                  selected: option == strokeStyle,
+                  onPressed: () => onStrokeStyleChanged(option),
+                  child: Text(
+                    option == ArrowStrokeStyle.solid ? '—' : '- -',
+                    semanticsLabel: option == ArrowStrokeStyle.solid ? 'Solid' : 'Dashed',
+                  ),
+                ),
+              ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        _StrokeSettings(
+          color: color,
+          width: strokeWidth,
+          colorPickerExpanded: colorPickerExpanded,
+          onColorChanged: onColorChanged,
+          onColorPickerExpandedChanged: onColorPickerExpandedChanged,
+          onWidthChanged: onStrokeWidthChanged,
+        ),
+      ],
+    );
+  }
+}
 
 class _ShapeSettings extends StatelessWidget {
   const _ShapeSettings({
@@ -2226,8 +2337,8 @@ IconData _shapeIcon(ShapeKind kind) => switch (kind) {
   ShapeKind.hexagon => LucideIcons.hexagon,
 };
 
-class _DrawSettings extends StatelessWidget {
-  const _DrawSettings({
+class _StrokeSettings extends StatelessWidget {
+  const _StrokeSettings({
     required this.color,
     required this.width,
     required this.colorPickerExpanded,

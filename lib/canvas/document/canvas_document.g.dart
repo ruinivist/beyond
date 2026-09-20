@@ -328,7 +328,16 @@ ArrowElementData _$ArrowElementDataFromJson(Map<String, dynamic> json) =>
     $checkedCreate('ArrowElementData', json, ($checkedConvert) {
       $checkKeys(
         json,
-        allowedKeys: const ['id', 'type', 'start', 'control', 'end'],
+        allowedKeys: const [
+          'id',
+          'type',
+          'start',
+          'control',
+          'end',
+          'color',
+          'strokeStyle',
+          'strokeWidth',
+        ],
       );
       final val = ArrowElementData._json(
         id: $checkedConvert('id', (v) => v as String),
@@ -345,6 +354,15 @@ ArrowElementData _$ArrowElementDataFromJson(Map<String, dynamic> json) =>
           'end',
           (v) => const _OffsetConverter().fromJson(v as Map<String, dynamic>),
         ),
+        color: $checkedConvert('color', (v) => _jsonInt(v)),
+        strokeStyle: $checkedConvert(
+          'strokeStyle',
+          (v) => $enumDecode(_$ArrowStrokeStyleEnumMap, v),
+        ),
+        strokeWidth: $checkedConvert(
+          'strokeWidth',
+          (v) => (v as num).toDouble(),
+        ),
       );
       return val;
     });
@@ -355,4 +373,12 @@ Map<String, dynamic> _$ArrowElementDataToJson(ArrowElementData instance) => <Str
   'start': const _OffsetConverter().toJson(instance.start),
   'control': const _OffsetConverter().toJson(instance.control),
   'end': const _OffsetConverter().toJson(instance.end),
+  'color': instance.color,
+  'strokeStyle': _$ArrowStrokeStyleEnumMap[instance.strokeStyle]!,
+  'strokeWidth': instance.strokeWidth,
+};
+
+const _$ArrowStrokeStyleEnumMap = {
+  ArrowStrokeStyle.solid: 'solid',
+  ArrowStrokeStyle.dashed: 'dashed',
 };

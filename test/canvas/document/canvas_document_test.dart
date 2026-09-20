@@ -23,6 +23,9 @@ void main() {
           start: const Offset(10, 20),
           control: const Offset(40, 5),
           end: const Offset(80, 60),
+          color: 0xffdc3f3f,
+          strokeStyle: ArrowStrokeStyle.dashed,
+          strokeWidth: 3,
         ),
         TextElementData(
           id: 'text-1',
@@ -140,6 +143,9 @@ void main() {
     expect(arrow.start, const Offset(10, 20));
     expect(arrow.control, const Offset(40, 5));
     expect(arrow.end, const Offset(80, 60));
+    expect(arrow.color, 0xffdc3f3f);
+    expect(arrow.strokeStyle, ArrowStrokeStyle.dashed);
+    expect(arrow.strokeWidth, 3);
 
     final snapshot = document.copy();
     expect(snapshot.elements, isNot(same(document.elements)));
@@ -407,6 +413,17 @@ void main() {
       ),
       throwsA(isA<FormatException>()),
     );
+    for (final invalid in [
+      _encodedArrow()..['color'] = -1,
+      _encodedArrow()..['strokeStyle'] = 'dotted',
+      _encodedArrow()..['strokeWidth'] = 0.0,
+      _encodedArrow()..['strokeWidth'] = 5.25,
+    ]) {
+      expect(
+        () => CanvasDocument.fromJson(_document(elements: [invalid])),
+        throwsA(isA<FormatException>()),
+      );
+    }
 
     expect(
       () => CanvasDocument.fromJson(
@@ -497,4 +514,7 @@ Map<String, Object?> _encodedArrow({String id = 'arrow-1'}) => {
   'start': {'x': 0.0, 'y': 0.0},
   'control': {'x': 2.0, 'y': 2.0},
   'end': {'x': 4.0, 'y': 0.0},
+  'color': 0xff000000,
+  'strokeStyle': 'solid',
+  'strokeWidth': 2.0,
 };

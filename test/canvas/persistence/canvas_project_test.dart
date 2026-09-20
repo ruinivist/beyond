@@ -204,6 +204,9 @@ CanvasDocument _document({required String markdown}) => CanvasDocument(
       start: Offset.zero,
       control: const Offset(2, 2),
       end: const Offset(4, 0),
+      color: 0xff000000,
+      strokeStyle: ArrowStrokeStyle.solid,
+      strokeWidth: 2,
     ),
   ],
 );

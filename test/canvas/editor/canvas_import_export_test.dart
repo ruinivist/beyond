@@ -419,6 +419,9 @@ CanvasDocument _document({
       start: Offset.zero,
       control: const Offset(10, 4),
       end: const Offset(20, 0),
+      color: 0xff000000,
+      strokeStyle: ArrowStrokeStyle.solid,
+      strokeWidth: 2,
     ),
   ],
 );

@@ -292,6 +292,9 @@ void _expectShifted(
       expect(result.start, source.start + delta);
       expect(result.control, source.control + delta);
       expect(result.end, source.end + delta);
+      expect(result.color, source.color);
+      expect(result.strokeStyle, source.strokeStyle);
+      expect(result.strokeWidth, source.strokeWidth);
     default:
       fail('Mismatched element types');
   }
@@ -336,6 +339,9 @@ final _document = CanvasDocument(
       start: const Offset(100, 110),
       control: const Offset(110, 114),
       end: const Offset(120, 110),
+      color: 0xff000000,
+      strokeStyle: ArrowStrokeStyle.solid,
+      strokeWidth: 2,
     ),
   ],
 );

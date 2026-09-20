@@ -27,7 +27,9 @@ class Arrow extends StatelessWidget {
             child: CustomPaint(
               foregroundPainter: _ArrowPainter(
                 geometry: model.localGeometry,
-                color: model.selected ? colors.accent : colors.textSecondary,
+                color: model.selected && !model.active ? colors.accent : model.color,
+                strokeStyle: model.strokeStyle,
+                strokeWidth: model.strokeWidth,
               ),
               child: const IgnorePointer(child: SizedBox.expand()),
             ),
@@ -41,10 +43,17 @@ class Arrow extends StatelessWidget {
 // ---------- Painter ----------
 
 class _ArrowPainter extends CustomPainter {
-  const _ArrowPainter({required this.geometry, required this.color});
+  const _ArrowPainter({
+    required this.geometry,
+    required this.color,
+    required this.strokeStyle,
+    required this.strokeWidth,
+  });
 
   final ArrowGeometry geometry;
   final Color color;
+  final ArrowStrokeStyle strokeStyle;
+  final double strokeWidth;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -52,14 +61,15 @@ class _ArrowPainter extends CustomPainter {
       canvas,
       geometry: geometry,
       color: color,
-      strokeWidth: _arrowStrokeWidth,
+      strokeStyle: strokeStyle,
+      strokeWidth: strokeWidth,
     );
   }
 
   @override
   bool hitTest(Offset position) {
-    const radius = _arrowStrokeWidth / 2 + _arrowHitSlop;
-    const radiusSquared = radius * radius;
+    final radius = strokeWidth / 2 + _arrowHitSlop;
+    final radiusSquared = radius * radius;
     Offset curvePoint(double t) {
       final oneMinusT = 1 - t;
       return geometry.start * (oneMinusT * oneMinusT) + geometry.control * (2 * oneMinusT * t) + geometry.end * (t * t);
@@ -92,6 +102,8 @@ class _ArrowPainter extends CustomPainter {
     return oldDelegate.geometry.start != geometry.start ||
         oldDelegate.geometry.control != geometry.control ||
         oldDelegate.geometry.end != geometry.end ||
-        oldDelegate.color != color;
+        oldDelegate.color != color ||
+        oldDelegate.strokeStyle != strokeStyle ||
+        oldDelegate.strokeWidth != strokeWidth;
   }
 }

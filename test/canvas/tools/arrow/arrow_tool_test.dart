@@ -1,9 +1,11 @@
 // Verifies arrow creation, editing, rendering, and toolbar behavior.
 // Exercises the arrow tool through model and canvas widget flows.
 
+import 'package:beyond/canvas/document/canvas_document.dart';
 import 'package:beyond/canvas/editor/widgets/toolbar_button.dart';
 import 'package:beyond/canvas/persistence/canvas_document_store.dart';
 import 'package:beyond/canvas/tools/arrow/arrow_tool.dart';
+import 'package:beyond/theme/preset_colors.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -58,7 +60,10 @@ void main() {
 
   test('arrow tool previews, commits on up, and discards tiny drags', () {
     final committed = <ArrowModel>[];
-    final tool = ArrowTool(onArrow: committed.add);
+    final tool = ArrowTool(onArrow: committed.add)
+      ..setColor(const Color(0xffd85b5b))
+      ..setStrokeStyle(ArrowStrokeStyle.dashed)
+      ..setStrokeWidth(3);
     final pointer = TestPointer(1, PointerDeviceKind.mouse);
 
     tool.onPointerDown(
@@ -70,8 +75,11 @@ void main() {
       pointer.move(const Offset(120, 80)),
       const Offset(120, 80),
     );
-    expect(tool.preview!.start, const Offset(10, 20));
-    expect(tool.preview!.end, const Offset(120, 80));
+    expect(tool.preview!.geometry.start, const Offset(10, 20));
+    expect(tool.preview!.geometry.end, const Offset(120, 80));
+    expect(tool.preview!.color, const Color(0xffd85b5b));
+    expect(tool.preview!.strokeStyle, ArrowStrokeStyle.dashed);
+    expect(tool.preview!.strokeWidth, 3);
     expect(committed, isEmpty);
 
     tool.onPointerUp(
@@ -81,6 +89,12 @@ void main() {
     expect(committed, hasLength(1));
     expect(committed.single.start, const Offset(10, 20));
     expect(committed.single.end, const Offset(120, 80));
+    expect(committed.single.color, const Color(0xffd85b5b));
+    expect(committed.single.strokeStyle, ArrowStrokeStyle.dashed);
+    expect(committed.single.strokeWidth, 3);
+    final bounds = committed.single.bounds;
+    committed.single.strokeWidth = arrowStrokeWidthMaximum;
+    expect(committed.single.bounds, bounds);
     expect(tool.preview, isNull);
 
     final tinyPointer = TestPointer(2, PointerDeviceKind.mouse);
@@ -104,6 +118,11 @@ void main() {
     await pumpBeyondApp(tester);
 
     await tester.tap(find.byKey(const ValueKey('toolbar-arrow')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('arrow-settings-panel')), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('arrow-style-dashed')));
+    await tester.tap(find.byKey(const ValueKey('color-preset-Red')));
+    tester.widget<Slider>(find.byKey(const ValueKey('discrete-slider'))).onChanged!(3);
     await tester.pump();
     final firstDrag = await tester.startGesture(
       const Offset(120, 200),
@@ -120,6 +139,16 @@ void main() {
     final first = tester.widget<Arrow>(find.byType(Arrow)).model;
     expect(first.start, const Offset(120, 200));
     expect(first.end, const Offset(300, 260));
+    expect(first.strokeStyle, ArrowStrokeStyle.dashed);
+    expect(
+      first.color.toARGB32(),
+      presetColors.firstWhere((swatch) => swatch.label == 'Red').color.toARGB32(),
+    );
+    expect(first.strokeWidth, 3);
+    expect(find.byKey(const ValueKey('arrow-settings-panel')), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('arrow-style-solid')));
+    await tester.pump();
+    expect(first.strokeStyle, ArrowStrokeStyle.solid);
     final toolbar = find.byKey(const ValueKey('toolbar-arrow'));
     expect(tester.widget<ToolbarButton>(toolbar).selected, isFalse);
 

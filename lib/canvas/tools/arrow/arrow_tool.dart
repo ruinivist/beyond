@@ -1,6 +1,8 @@
 // Provides arrow geometry, editing state, rendering, and hit testing.
 // Used by the canvas arrow creation and selection flows.
 
+import 'dart:math' as math;
+
 import 'package:beyond/canvas/document/canvas_document.dart';
 import 'package:beyond/canvas/editor/canvas_element_model.dart';
 import 'package:beyond/theme/theme.dart';
@@ -28,21 +30,52 @@ class ArrowTool extends ChangeNotifier {
   String? _id;
   Offset? _start;
   Offset? _end;
+  Color _color = Colors.black;
+  ArrowStrokeStyle _strokeStyle = ArrowStrokeStyle.solid;
+  double _strokeWidth = 2;
 
-  // ---------- Public API ----------
+  // ---------- Options and preview ----------
 
   bool get isDrawing => _pointer != null;
+  Color get color => _color;
+  ArrowStrokeStyle get strokeStyle => _strokeStyle;
+  double get strokeWidth => _strokeWidth;
 
-  ArrowGeometry? get preview {
+  ArrowPreview? get preview {
     final start = _start;
     final end = _end;
     if (start == null || end == null) return null;
-    return ArrowGeometry(
-      start: start,
-      control: arrowControlPoint(start: start, end: end),
-      end: end,
+    return (
+      geometry: ArrowGeometry(
+        start: start,
+        control: arrowControlPoint(start: start, end: end),
+        end: end,
+      ),
+      color: _color,
+      strokeStyle: _strokeStyle,
+      strokeWidth: _strokeWidth,
     );
   }
+
+  void setColor(Color color) {
+    if (_color == color) return;
+    _color = color;
+    notifyListeners();
+  }
+
+  void setStrokeStyle(ArrowStrokeStyle strokeStyle) {
+    if (_strokeStyle == strokeStyle) return;
+    _strokeStyle = strokeStyle;
+    notifyListeners();
+  }
+
+  void setStrokeWidth(double strokeWidth) {
+    if (_strokeWidth == strokeWidth) return;
+    _strokeWidth = strokeWidth;
+    notifyListeners();
+  }
+
+  // ---------- Pointer events ----------
 
   bool ownsPointer(int pointer) => _pointer == pointer;
 
@@ -92,6 +125,9 @@ class ArrowTool extends ChangeNotifier {
         start: start,
         control: arrowControlPoint(start: start, end: end),
         end: end,
+        color: _color.toARGB32(),
+        strokeStyle: _strokeStyle,
+        strokeWidth: _strokeWidth,
       ),
     );
   }
