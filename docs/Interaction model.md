@@ -56,6 +56,7 @@ Shapes follow the same state separation: clicking or creating a shape makes it a
 - Drawing an arrow makes it active and returns to the select tool.
 - Arrow options set the color, solid or dashed shaft style, and width for newly drawn arrows.
 - Activating an existing arrow exposes the same options; edits affect only that arrow and keep its arrowhead solid.
+- An active arrow shows its start, bend, and arrowhead points with Bézier guides. Dragging a point reshapes only that arrow.
 - Dashed gaps remain part of the arrow's pointer target.
 
 ## Drag and selection rules

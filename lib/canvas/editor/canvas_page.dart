@@ -1069,6 +1069,21 @@ class _CanvasPageState extends State<CanvasPage> {
     _finishHistoryOperation();
   }
 
+  void _startArrowPointEdit() {
+    _finishHistoryOperation();
+    _clearSelection();
+  }
+
+  void _editArrowPoint(
+    ArrowModel model,
+    ArrowPoint point,
+    Offset position,
+  ) {
+    if (!_documentLoaded || !identical(_activeElement, model) || !_elements.contains(model)) return;
+    if (!model.setPoint(point, position)) return;
+    _canvasController.updatePosition(model.data.id, model.canvasPosition);
+  }
+
   void _handleStrokePointerDown(
     PenStrokeModel model,
     PointerDownEvent event,
@@ -1906,6 +1921,20 @@ class _CanvasPageState extends State<CanvasPage> {
                       },
                     ),
                   ),
+                ),
+              ),
+            ),
+          if (activeArrow != null)
+            Positioned.fill(
+              child: ListenableBuilder(
+                listenable: Listenable.merge([activeArrow, _canvasController]),
+                builder: (context, _) => ArrowEditor(
+                  model: activeArrow,
+                  canvasOffset: _canvasController.offset,
+                  canvasScale: _canvasController.scale,
+                  onChangeStart: _startArrowPointEdit,
+                  onPointChanged: (point, position) => _editArrowPoint(activeArrow, point, position),
+                  onChangeEnd: _finishHistoryOperation,
                 ),
               ),
             ),

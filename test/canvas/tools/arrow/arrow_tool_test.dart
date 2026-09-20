@@ -2,13 +2,16 @@
 // Exercises the arrow tool through model and canvas widget flows.
 
 import 'package:beyond/canvas/document/canvas_document.dart';
+import 'package:beyond/canvas/editor/canvas_background.dart';
 import 'package:beyond/canvas/editor/widgets/toolbar_button.dart';
 import 'package:beyond/canvas/persistence/canvas_document_store.dart';
 import 'package:beyond/canvas/tools/arrow/arrow_tool.dart';
 import 'package:beyond/theme/preset_colors.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:infinite_lazy_grid/infinite_lazy_grid.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:shared_preferences_web/shared_preferences_web.dart';
 
@@ -112,6 +115,82 @@ void main() {
     committed.single.dispose();
   });
 
+  test('arrow points edit independently and preserve minimum length', () {
+    final model = ArrowModel(
+      ArrowElementData(
+        id: 'arrow',
+        start: const Offset(10, 20),
+        control: const Offset(60, 5),
+        end: const Offset(110, 40),
+        color: Colors.black.toARGB32(),
+        strokeStyle: ArrowStrokeStyle.solid,
+        strokeWidth: 2,
+      ),
+    );
+
+    expect(model.setPoint(ArrowPoint.control, const Offset(70, 10)), isTrue);
+    expect(model.start, const Offset(10, 20));
+    expect(model.control, const Offset(70, 10));
+    expect(model.end, const Offset(110, 40));
+
+    model.setPoint(ArrowPoint.end, model.start);
+    expect(
+      (model.end - model.start).distance,
+      greaterThanOrEqualTo(arrowMinimumLength),
+    );
+    expect(
+      () => ArrowElementData.fromJson(model.data.toJson()),
+      returnsNormally,
+    );
+    model.dispose();
+  });
+
+  testWidgets('active arrows expose zoom-aware editable points with one-step undo', (tester) async {
+    await pumpCanvas(tester, TestCanvasDocumentStore(_arrowDocument()));
+    final arrowFinder = find.byType(Arrow);
+    var model = tester.widget<Arrow>(arrowFinder).model;
+
+    expect(find.byKey(const ValueKey('arrow-start-handle')), findsNothing);
+    final curvePoint = model.start * 0.25 + model.control * 0.5 + model.end * 0.25;
+    await tester.tapAt(
+      tester.getTopLeft(arrowFinder) + curvePoint - model.bounds.topLeft,
+    );
+    await tester.pump();
+
+    expect(find.byKey(const ValueKey('arrow-bezier-guides')), findsOneWidget);
+    expect(find.byKey(const ValueKey('arrow-start-handle')), findsOneWidget);
+    expect(find.byKey(const ValueKey('arrow-control-handle')), findsOneWidget);
+    expect(find.byKey(const ValueKey('arrow-end-handle')), findsOneWidget);
+
+    final originalEnd = model.end;
+    final canvas = tester.widget<LazyCanvas>(find.byType(LazyCanvas));
+    canvas.controller.updateScalebyDelta(1, focalPoint: Offset.zero);
+    await tester.pump();
+    await tester.drag(
+      find.byKey(const ValueKey('arrow-end-handle')),
+      const Offset(40, 20),
+      kind: PointerDeviceKind.mouse,
+    );
+    await tester.pump();
+
+    expect(model.end, originalEnd + const Offset(20, 10));
+    expect(
+      canvas.controller.widgetsWithScreenPositions().single.gsPosition,
+      model.canvasPosition,
+    );
+
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+    await tester.sendKeyEvent(LogicalKeyboardKey.keyZ);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+    await tester.pump();
+    model = tester.widget<Arrow>(arrowFinder).model;
+    expect(model.end, originalEnd);
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await tester.pump();
+    expect(find.byKey(const ValueKey('arrow-control-handle')), findsNothing);
+  });
+
   testWidgets('arrows place once, select by click and marquee, and move', (
     tester,
   ) async {
@@ -197,3 +276,18 @@ void main() {
     await marquee.up();
   });
 }
+
+CanvasDocument _arrowDocument() => CanvasDocument(
+  background: CanvasBackgroundKind.plain,
+  elements: [
+    ArrowElementData(
+      id: 'arrow',
+      start: const Offset(120, 200),
+      control: const Offset(210, 160),
+      end: const Offset(300, 240),
+      color: Colors.black.toARGB32(),
+      strokeStyle: ArrowStrokeStyle.solid,
+      strokeWidth: 2,
+    ),
+  ],
+);

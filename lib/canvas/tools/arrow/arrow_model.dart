@@ -5,6 +5,9 @@ part of 'arrow_tool.dart';
 
 // ---------- Models ----------
 
+/// Identifies one editable point on a quadratic arrow.
+enum ArrowPoint { start, control, end }
+
 /// Adapts persisted arrow points to canvas geometry and movement.
 /// Used by the canvas selection and arrow rendering flows.
 class ArrowModel extends CanvasElementModel<ArrowElementData> {
@@ -31,6 +34,31 @@ class ArrowModel extends CanvasElementModel<ArrowElementData> {
   Offset get control => geometry.control;
 
   Offset get end => geometry.end;
+
+  Offset point(ArrowPoint point) => switch (point) {
+    ArrowPoint.start => data.start,
+    ArrowPoint.control => data.control,
+    ArrowPoint.end => data.end,
+  };
+
+  bool setPoint(ArrowPoint point, Offset position) {
+    final next = switch (point) {
+      ArrowPoint.start => _minimumLengthPoint(position, data.end, data.start),
+      ArrowPoint.control => position,
+      ArrowPoint.end => _minimumLengthPoint(position, data.start, data.end),
+    };
+    if (next == this.point(point)) return false;
+    switch (point) {
+      case ArrowPoint.start:
+        data.start = next;
+      case ArrowPoint.control:
+        data.control = next;
+      case ArrowPoint.end:
+        data.end = next;
+    }
+    notifyDocumentChanged();
+    return true;
+  }
 
   Color get color => Color(data.color);
 
@@ -66,4 +94,12 @@ class ArrowModel extends CanvasElementModel<ArrowElementData> {
       ..end += delta;
     notifyDocumentChanged();
   }
+}
+
+Offset _minimumLengthPoint(Offset requested, Offset fixed, Offset current) {
+  final vector = requested - fixed;
+  if (vector.distance >= arrowMinimumLength) return requested;
+  final fallback = current - fixed;
+  final direction = vector == Offset.zero ? fallback / fallback.distance : vector / vector.distance;
+  return fixed + direction * (arrowMinimumLength + 1e-6);
 }
