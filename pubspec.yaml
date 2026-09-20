@@ -44,4 +44,6 @@ dev_dependencies:
 flutter:
   uses-material-design: true
   assets:
+    - assets/icons/arrow-dashed.svg
+    - assets/icons/arrow-solid.svg
     - assets/icons/resize.svg

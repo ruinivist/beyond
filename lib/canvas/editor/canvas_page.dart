@@ -9,6 +9,7 @@ import 'package:beyond/canvas/document/canvas_document.dart';
 import 'package:beyond/canvas/editor/canvas_background.dart';
 import 'package:beyond/canvas/editor/canvas_clipboard.dart';
 import 'package:beyond/canvas/editor/canvas_element_model.dart';
+import 'package:beyond/canvas/editor/widgets/arrow_stroke_style_icon.dart';
 import 'package:beyond/canvas/editor/widgets/element_transform_controls.dart';
 import 'package:beyond/canvas/editor/widgets/tool_options.dart';
 import 'package:beyond/canvas/editor/widgets/toolbar_button.dart';
@@ -2251,10 +2252,7 @@ class _ArrowSettings extends StatelessWidget {
                   iconOnly: true,
                   selected: option == strokeStyle,
                   onPressed: () => onStrokeStyleChanged(option),
-                  child: Text(
-                    option == ArrowStrokeStyle.solid ? '—' : '- -',
-                    semanticsLabel: option == ArrowStrokeStyle.solid ? 'Solid' : 'Dashed',
-                  ),
+                  child: ArrowStrokeStyleIcon(style: option),
                 ),
               ),
           ],
