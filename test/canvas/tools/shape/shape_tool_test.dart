@@ -192,9 +192,9 @@ void main() {
     expect(first.active, isTrue);
     expect(first.selected, isTrue);
     expect(tester.widget<ToolbarButton>(toolbar).selected, isFalse);
-    expect(find.byKey(const ValueKey('shape-settings-panel')), findsNothing);
+    expect(find.byKey(const ValueKey('shape-settings-panel')), findsOneWidget);
     expect(
-      find.byKey(ValueKey('shape-settings-${first.data.id}')),
+      find.byKey(const ValueKey('shape-option-roundedRectangle')),
       findsOneWidget,
     );
 
@@ -301,7 +301,7 @@ void main() {
     expect(model().active, isTrue);
     expect(model().selected, isTrue);
     expect(
-      find.byKey(const ValueKey('shape-settings-shape')),
+      find.byKey(const ValueKey('shape-settings-panel')),
       findsOneWidget,
     );
 
@@ -334,7 +334,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(model().active, isFalse);
     expect(model().selected, isFalse);
-    expect(find.byKey(const ValueKey('shape-settings-shape')), findsNothing);
+    expect(find.byKey(const ValueKey('shape-settings-panel')), findsNothing);
 
     final marquee = await tester.startGesture(
       const Offset(100, 140),
@@ -345,7 +345,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(model().selected, isTrue);
     expect(model().active, isFalse);
-    expect(find.byKey(const ValueKey('shape-settings-shape')), findsNothing);
+    expect(find.byKey(const ValueKey('shape-settings-panel')), findsNothing);
 
     await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
     await tester.sendKeyDownEvent(LogicalKeyboardKey.keyZ);

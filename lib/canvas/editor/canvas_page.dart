@@ -2114,7 +2114,7 @@ class _CanvasPageState extends State<CanvasPage> {
                               )
                             : activeShape != null
                             ? ListenableBuilder(
-                                key: ValueKey('shape-settings-${activeShape.data.id}'),
+                                key: const ValueKey('shape-settings-panel'),
                                 listenable: activeShape,
                                 builder: (context, _) => _ShapeSettings(
                                   kind: activeShape.kind,
@@ -2147,19 +2147,22 @@ class _CanvasPageState extends State<CanvasPage> {
                                 onWidthChanged: _setPenWidth,
                               )
                             : _shapeEnabled
-                            ? _ShapeSettings(
+                            ? ListenableBuilder(
                                 key: const ValueKey('shape-settings-panel'),
-                                kind: _shapeTool.kind,
-                                strokeColor: _shapeTool.strokeColor,
-                                fillColor: _shapeTool.fillColor,
-                                strokeWidth: _shapeTool.strokeWidth,
-                                outlineColorPickerExpanded: _shapeOutlineColorPickerExpanded,
-                                onKindChanged: _shapeTool.setKind,
-                                onStrokeColorChanged: _setShapeStrokeColor,
-                                onFillColorChanged: _shapeTool.setFillColor,
-                                onStrokeWidthChanged: _shapeTool.setStrokeWidth,
-                                onOutlineColorPickerExpandedChanged: (expanded) => setState(
-                                  () => _shapeOutlineColorPickerExpanded = expanded,
+                                listenable: _shapeTool,
+                                builder: (context, _) => _ShapeSettings(
+                                  kind: _shapeTool.kind,
+                                  strokeColor: _shapeTool.strokeColor,
+                                  fillColor: _shapeTool.fillColor,
+                                  strokeWidth: _shapeTool.strokeWidth,
+                                  outlineColorPickerExpanded: _shapeOutlineColorPickerExpanded,
+                                  onKindChanged: _shapeTool.setKind,
+                                  onStrokeColorChanged: _setShapeStrokeColor,
+                                  onFillColorChanged: _shapeTool.setFillColor,
+                                  onStrokeWidthChanged: _shapeTool.setStrokeWidth,
+                                  onOutlineColorPickerExpandedChanged: (expanded) => setState(
+                                    () => _shapeOutlineColorPickerExpanded = expanded,
+                                  ),
                                 ),
                               )
                             : null,
@@ -2193,7 +2196,6 @@ class _ShapeSettings extends StatelessWidget {
     required this.onFillColorChanged,
     required this.onStrokeWidthChanged,
     required this.onOutlineColorPickerExpandedChanged,
-    super.key,
   });
 
   final ShapeKind kind;
