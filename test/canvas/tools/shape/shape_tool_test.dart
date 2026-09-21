@@ -4,6 +4,7 @@
 import 'package:beyond/canvas/document/canvas_document.dart';
 import 'package:beyond/canvas/editor/canvas_background.dart';
 import 'package:beyond/canvas/editor/widgets/toolbar_button.dart';
+import 'package:beyond/canvas/tools/arrow/arrow_tool.dart';
 import 'package:beyond/canvas/tools/shape/shape_tool.dart';
 import 'package:beyond/theme/preset_colors.dart';
 import 'package:beyond/theme/starless.dart';
@@ -143,6 +144,59 @@ void main() {
     expect(backgroundTaps, 1);
 
     model.dispose();
+  });
+
+  testWidgets('drawing tools receive drags started over text blocks', (
+    tester,
+  ) async {
+    const style = TextNodeStyle(
+      fontFamily: 'Source Serif 4',
+      color: '#201C1A',
+    );
+    await pumpCanvas(
+      tester,
+      TestCanvasDocumentStore(
+        CanvasDocument(
+          background: CanvasBackgroundKind.plain,
+          elements: [
+            TextElementData(
+              id: 'drawing-surface',
+              position: const Offset(100, 160),
+              width: 240,
+              height: 300,
+              markdown: 'Drawing surface',
+              style: style,
+            ),
+          ],
+        ),
+      ),
+    );
+
+    await tester.tap(find.byKey(const ValueKey('toolbar-arrow')));
+    await tester.pump();
+    final arrowDrag = await tester.startGesture(
+      const Offset(140, 200),
+      kind: PointerDeviceKind.mouse,
+    );
+    await arrowDrag.moveTo(const Offset(300, 240));
+    await tester.pump();
+    expect(find.byKey(const ValueKey('arrow-preview')), findsOneWidget);
+    await arrowDrag.up();
+    await tester.pump();
+    expect(find.byType(Arrow), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('toolbar-shape')));
+    await tester.pump();
+    final shapeDrag = await tester.startGesture(
+      const Offset(140, 380),
+      kind: PointerDeviceKind.mouse,
+    );
+    await shapeDrag.moveTo(const Offset(300, 420));
+    await tester.pump();
+    expect(find.byKey(const ValueKey('shape-preview')), findsOneWidget);
+    await shapeDrag.up();
+    await tester.pump();
+    expect(find.byType(Shape), findsOneWidget);
   });
 
   testWidgets('toolbar places one shape, then activates, moves, and resizes', (

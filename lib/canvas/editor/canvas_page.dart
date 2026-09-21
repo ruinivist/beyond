@@ -2516,7 +2516,9 @@ class _CanvasElementHost extends StatelessWidget {
   Widget build(BuildContext context) {
     final target = CompositedTransformTarget(link: model.layerLink, child: child);
     final listener = Listener(
-      onPointerDown: onPointerDown,
+      onPointerDown: (event) {
+        if (activeTool.value == _CanvasTool.select) onPointerDown(event);
+      },
       child: ListenableBuilder(
         listenable: Listenable.merge([activeTool, modifierPressed]),
         builder: (context, child) => AbsorbPointer(
