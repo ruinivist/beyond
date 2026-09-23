@@ -173,7 +173,6 @@ class _ZoomControlState extends State<ZoomControl> {
                 child: ToolbarButton(
                   key: key,
                   selected: false,
-                  iconOnly: true,
                   onPressed: onPressed,
                   child: Icon(icon, size: 15),
                 ),

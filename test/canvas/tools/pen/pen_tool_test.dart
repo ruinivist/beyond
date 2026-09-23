@@ -34,10 +34,9 @@ void main() {
     final preferences = SharedPreferencesAsync();
     await preferences.remove(CanvasDocumentStore.key);
     await preferences.remove(CanvasDocumentStore.libraryKey);
-    await preferences.remove('interface.no_icons');
   });
 
-  testWidgets('toolbar icons can be replaced with persistent labels', (
+  testWidgets('toolbar displays tool icons', (
     tester,
   ) async {
     await tester.pumpWidget(const BeyondApp());
@@ -54,37 +53,6 @@ void main() {
         findsOneWidget,
       );
     }
-    expect(find.text('Text'), findsNothing);
-
-    await tester.tap(find.byKey(const ValueKey('settings-button')));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Interface'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey('no-icons-switch')));
-    await tester.pumpAndSettle();
-
-    expect(find.text('Text'), findsOneWidget);
-    expect(find.text('Rect'), findsOneWidget);
-    expect(
-      await SharedPreferencesAsync().getBool('interface.no_icons'),
-      isTrue,
-    );
-
-    await tester.pumpWidget(const SizedBox());
-    await tester.pump();
-    await tester.pumpWidget(const BeyondApp());
-    await tester.pump();
-    await tester.pump();
-
-    expect(find.text('Text'), findsOneWidget);
-    expect(find.text('Rect'), findsOneWidget);
-    expect(
-      find.descendant(
-        of: find.byKey(const ValueKey('toolbar-text')),
-        matching: find.byType(Icon),
-      ),
-      findsNothing,
-    );
   });
 
   testWidgets('keyboard shortcuts toggle tools and escape disables them', (

@@ -39,7 +39,6 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:infinite_lazy_grid/infinite_lazy_grid.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:super_clipboard/super_clipboard.dart';
 import 'package:uuid/uuid.dart';
 
@@ -86,7 +85,6 @@ class _CanvasPageState extends State<CanvasPage> {
   // ---------- Constants ----------
 
   static const _historyLimit = 50;
-  static const _noIconsPreferenceKey = 'interface.no_icons';
 
   // ---------- State ----------
 
@@ -141,11 +139,8 @@ class _CanvasPageState extends State<CanvasPage> {
   (String, Offset?)? _pointerReference;
   final _undoHistory = <String>[];
   final _redoHistory = <String>[];
-  final _preferences = SharedPreferencesAsync();
   String? _historyCurrent;
   var _historyOperationActive = false;
-  var _noIcons = false;
-  var _noIconsChanged = false;
   var _penColorPickerExpanded = false;
   var _shapeOutlineColorPickerExpanded = false;
   var _arrowColorPickerExpanded = false;
@@ -206,7 +201,6 @@ class _CanvasPageState extends State<CanvasPage> {
       ?..registerCopyEventListener(_handleWebCopy)
       ..registerCutEventListener(_handleWebCut)
       ..registerPasteEventListener(_handleWebPaste);
-    unawaited(_restoreNoIcons());
     unawaited(_restoreDocument());
   }
 
@@ -261,34 +255,6 @@ class _CanvasPageState extends State<CanvasPage> {
       ..dispose();
     _canvasController.dispose();
     super.dispose();
-  }
-
-  // ---------- Preferences ----------
-
-  Future<void> _restoreNoIcons() async {
-    try {
-      final noIcons = await _preferences.getBool(_noIconsPreferenceKey) ?? false;
-      if (mounted && !_noIconsChanged && noIcons != _noIcons) {
-        setState(() => _noIcons = noIcons);
-      }
-    } on Object {
-      // Keep the icon default when preferences are unavailable.
-    }
-  }
-
-  void _setNoIcons(bool noIcons) {
-    if (noIcons == _noIcons) return;
-    _noIconsChanged = true;
-    setState(() => _noIcons = noIcons);
-    unawaited(_persistNoIcons(noIcons));
-  }
-
-  Future<void> _persistNoIcons(bool noIcons) async {
-    try {
-      await _preferences.setBool(_noIconsPreferenceKey, noIcons);
-    } on Object {
-      // The live setting still works when persistence is unavailable.
-    }
   }
 
   // ---------- Tool selection ----------
@@ -1391,9 +1357,7 @@ class _CanvasPageState extends State<CanvasPage> {
         barrierColor: BTheme.of(context).colors.scrim,
         builder: (_) => SettingsDialog(
           canvasBackgroundKind: _canvasBackgroundKind,
-          noIcons: _noIcons,
           onCanvasBackgroundChanged: _setCanvasBackground,
-          onNoIconsChanged: _setNoIcons,
           onImportCanvas: _importProject,
           onExportCanvas: _exportProject,
         ),
@@ -2043,9 +2007,10 @@ class _CanvasPageState extends State<CanvasPage> {
                             key: const ValueKey('toolbar-text'),
                             selected: _activeTool.value == _CanvasTool.text,
                             onPressed: () => _toggleTool(_CanvasTool.text),
-                            child: _toolbarContent(
-                              'Text',
+                            child: const Icon(
                               LucideIcons.type,
+                              size: 20,
+                              semanticLabel: 'Text',
                             ),
                           ),
                         ),
@@ -2055,9 +2020,10 @@ class _CanvasPageState extends State<CanvasPage> {
                             key: const ValueKey('toolbar-code'),
                             selected: _activeTool.value == _CanvasTool.code,
                             onPressed: () => _toggleTool(_CanvasTool.code),
-                            child: _toolbarContent(
-                              'Code',
+                            child: const Icon(
                               LucideIcons.codeXml,
+                              size: 20,
+                              semanticLabel: 'Code',
                             ),
                           ),
                         ),
@@ -2067,9 +2033,10 @@ class _CanvasPageState extends State<CanvasPage> {
                             key: const ValueKey('toolbar-media'),
                             selected: _activeTool.value == _CanvasTool.media,
                             onPressed: () => _toggleTool(_CanvasTool.media),
-                            child: _toolbarContent(
-                              'Media',
+                            child: const Icon(
                               LucideIcons.image,
+                              size: 20,
+                              semanticLabel: 'Media',
                             ),
                           ),
                         ),
@@ -2079,9 +2046,10 @@ class _CanvasPageState extends State<CanvasPage> {
                             key: const ValueKey('toolbar-shape'),
                             selected: _shapeEnabled,
                             onPressed: () => _toggleTool(_CanvasTool.shape),
-                            child: _toolbarContent(
-                              'Rect',
+                            child: const Icon(
                               LucideIcons.squareRoundCorner,
+                              size: 20,
+                              semanticLabel: 'Rect',
                             ),
                           ),
                         ),
@@ -2091,9 +2059,10 @@ class _CanvasPageState extends State<CanvasPage> {
                             key: const ValueKey('toolbar-draw'),
                             selected: _penEnabled,
                             onPressed: () => _toggleTool(_CanvasTool.pen),
-                            child: _toolbarContent(
-                              'Draw',
+                            child: const Icon(
                               LucideIcons.pencil,
+                              size: 20,
+                              semanticLabel: 'Draw',
                             ),
                           ),
                         ),
@@ -2103,9 +2072,10 @@ class _CanvasPageState extends State<CanvasPage> {
                             key: const ValueKey('toolbar-erase'),
                             selected: _eraserEnabled,
                             onPressed: () => _toggleTool(_CanvasTool.eraser),
-                            child: _toolbarContent(
-                              'Erase',
+                            child: const Icon(
                               LucideIcons.eraser,
+                              size: 20,
+                              semanticLabel: 'Erase',
                             ),
                           ),
                         ),
@@ -2115,9 +2085,10 @@ class _CanvasPageState extends State<CanvasPage> {
                             key: const ValueKey('toolbar-arrow'),
                             selected: _arrowEnabled,
                             onPressed: () => _toggleTool(_CanvasTool.arrow),
-                            child: _toolbarContent(
-                              'Arrow',
+                            child: const Icon(
                               LucideIcons.arrowUpRight,
+                              size: 20,
+                              semanticLabel: 'Arrow',
                             ),
                           ),
                         ),
@@ -2284,9 +2255,6 @@ class _CanvasPageState extends State<CanvasPage> {
       ),
     );
   }
-
-  Widget _toolbarContent(String label, IconData icon) =>
-      _noIcons ? Text(label) : Icon(icon, size: 20, semanticLabel: label);
 }
 
 // ---------- Tool settings ----------
@@ -2328,7 +2296,6 @@ class _ArrowSettings extends StatelessWidget {
                 message: option == ArrowStrokeStyle.solid ? 'Solid' : 'Dashed',
                 child: ToolbarButton(
                   key: ValueKey('arrow-style-${option.name}'),
-                  iconOnly: true,
                   selected: option == strokeStyle,
                   onPressed: () => onStrokeStyleChanged(option),
                   child: ArrowStrokeStyleIcon(style: option),
@@ -2393,7 +2360,6 @@ class _ShapeSettings extends StatelessWidget {
                   message: option.label,
                   child: ToolbarButton(
                     key: ValueKey('shape-option-${option.name}'),
-                    iconOnly: true,
                     selected: option == kind,
                     onPressed: () => onKindChanged(option),
                     child: Icon(
@@ -2526,7 +2492,6 @@ class _ColorSwatches extends StatelessWidget {
             message: 'No fill',
             child: ToolbarButton(
               key: ValueKey('$keyPrefix-none'),
-              iconOnly: true,
               selected: selectedColor == null,
               onPressed: () => onColorChanged(null),
               child: const Icon(LucideIcons.ban, semanticLabel: 'No fill'),

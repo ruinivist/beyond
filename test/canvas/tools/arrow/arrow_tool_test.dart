@@ -25,7 +25,6 @@ void main() {
     final preferences = SharedPreferencesAsync();
     await preferences.remove(CanvasDocumentStore.key);
     await preferences.remove(CanvasDocumentStore.libraryKey);
-    await preferences.remove('interface.no_icons');
   });
 
   test('arrow bends continuously toward the visual counterclockwise side', () {

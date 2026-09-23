@@ -13,21 +13,18 @@ class ToolbarButton extends StatelessWidget {
     required this.onPressed,
     required this.child,
     required this.selected,
-    this.iconOnly = false,
     super.key,
   });
 
   final VoidCallback? onPressed;
   final Widget child;
   final bool selected;
-  final bool iconOnly;
 
   // ---------- Rendering ----------
 
   @override
   Widget build(BuildContext context) {
     final theme = BTheme.of(context);
-    final height = iconOnly ? BSizes.defaultIconButtonSize.height : 48.0;
     return Semantics(
       selected: selected,
       child: TextButton(
@@ -58,18 +55,12 @@ class ToolbarButton extends StatelessWidget {
             RoundedRectangleBorder(borderRadius: theme.geo.radiusMedium),
           ),
           textStyle: WidgetStatePropertyAll(theme.typo.body),
-          padding: WidgetStatePropertyAll(
-            EdgeInsets.symmetric(
-              horizontal: iconOnly ? 0 : 20,
-              vertical: iconOnly ? 0 : 8,
-            ),
-          ),
-          minimumSize: WidgetStatePropertyAll(Size(iconOnly ? 0 : 88, height)),
-          fixedSize: iconOnly ? const WidgetStatePropertyAll(BSizes.defaultIconButtonSize) : null,
+          padding: const WidgetStatePropertyAll(EdgeInsets.zero),
+          fixedSize: const WidgetStatePropertyAll(BSizes.defaultIconButtonSize),
           tapTargetSize: MaterialTapTargetSize.shrinkWrap,
         ),
         child: IconTheme.merge(
-          data: IconThemeData(size: iconOnly ? BSizes.defaultIconSize : 16),
+          data: const IconThemeData(size: BSizes.defaultIconSize),
           child: child,
         ),
       ),

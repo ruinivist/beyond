@@ -39,7 +39,6 @@ void main() {
     final preferences = SharedPreferencesAsync();
     await preferences.remove(CanvasDocumentStore.key);
     await preferences.remove(CanvasDocumentStore.libraryKey);
-    await preferences.remove('interface.no_icons');
     originalLauncher = UrlLauncherPlatform.instance;
     launcher = _FakeUrlLauncher();
     UrlLauncherPlatform.instance = launcher;
