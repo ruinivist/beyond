@@ -9,9 +9,10 @@ import 'package:flutter/material.dart';
 class CanvasTitle extends StatefulWidget {
   // ---------- Construction ----------
 
-  const CanvasTitle({required this.path, super.key});
+  const CanvasTitle({required this.path, this.onPressed, super.key});
 
   final List<String> path;
+  final VoidCallback? onPressed;
 
   @override
   State<CanvasTitle> createState() => _CanvasTitleState();
@@ -39,35 +40,40 @@ class _CanvasTitleState extends State<CanvasTitle> {
 
     return Semantics(
       label: widget.path.join(' / '),
-      child: MouseRegion(
-        onEnter: (_) => setState(() => _hovered = true),
-        onExit: (_) => setState(() => _hovered = false),
-        child: Container(
-          height: _height,
-          alignment: Alignment.center,
-          padding: const EdgeInsets.symmetric(horizontal: 12),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (widget.path.length > 1)
-                TweenAnimationBuilder<double>(
-                  duration: _animationDuration,
-                  curve: Curves.easeOutCubic,
-                  tween: Tween(begin: 0, end: _hovered ? 1 : 0),
-                  child: Text(
-                    '${widget.path.take(widget.path.length - 1).join(' / ')} / ',
-                    style: textStyle,
-                  ),
-                  builder: (context, value, child) => ClipRect(
-                    child: Align(
-                      alignment: Alignment.centerRight,
-                      widthFactor: value,
-                      child: Opacity(opacity: value, child: child),
+      button: widget.onPressed != null,
+      child: InkWell(
+        onTap: widget.onPressed,
+        borderRadius: theme.geo.radiusSmall,
+        child: MouseRegion(
+          onEnter: (_) => setState(() => _hovered = true),
+          onExit: (_) => setState(() => _hovered = false),
+          child: Container(
+            height: _height,
+            alignment: Alignment.center,
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (widget.path.length > 1)
+                  TweenAnimationBuilder<double>(
+                    duration: _animationDuration,
+                    curve: Curves.easeOutCubic,
+                    tween: Tween(begin: 0, end: _hovered ? 1 : 0),
+                    child: Text(
+                      '${widget.path.take(widget.path.length - 1).join(' / ')} / ',
+                      style: textStyle,
+                    ),
+                    builder: (context, value, child) => ClipRect(
+                      child: Align(
+                        alignment: Alignment.centerRight,
+                        widthFactor: value,
+                        child: Opacity(opacity: value, child: child),
+                      ),
                     ),
                   ),
-                ),
-              Text(widget.path.last, style: textStyle),
-            ],
+                Text(widget.path.last, style: textStyle),
+              ],
+            ),
           ),
         ),
       ),

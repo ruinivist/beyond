@@ -1,0 +1,246 @@
+// Coordinates file-tree navigation and inline creation and renaming.
+// Used by the canvas title to manage the browser's saved library.
+
+import 'package:beyond/canvas/editor/widgets/file_tree_popup.dart';
+import 'package:beyond/canvas/persistence/canvas_library.dart';
+import 'package:beyond/theme/theme.dart';
+import 'package:beyond/ui/common/context_menu.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:uuid/uuid.dart';
+
+// ---------- Picker ----------
+
+class CanvasFilePicker extends StatefulWidget {
+  const CanvasFilePicker({required this.library, required this.onSave, super.key});
+
+  final CanvasLibrary library;
+  final Future<void> Function(CanvasLibrary library) onSave;
+
+  @override
+  State<CanvasFilePicker> createState() => _CanvasFilePickerState();
+}
+
+class _CanvasFilePickerState extends State<CanvasFilePicker> {
+  // ---------- State ----------
+
+  late CanvasLibrary _library = widget.library;
+  late final Set<String> _expanded = _library.path(_library.currentId).map((file) => file.id).toSet();
+  final _name = TextEditingController();
+  final _nameFocus = FocusNode();
+  CanvasFile? _editing;
+  String? _error;
+  var _busy = false;
+
+  @override
+  void dispose() {
+    _name.dispose();
+    _nameFocus.dispose();
+    super.dispose();
+  }
+
+  // ---------- Actions ----------
+
+  void _edit(CanvasFile file) {
+    setState(() {
+      _editing = file;
+      _error = null;
+      _name.text = file.name;
+      _name.selection = TextSelection(baseOffset: 0, extentOffset: file.name.length);
+      if (file.parentId != null) _expanded.add(file.parentId!);
+    });
+    _nameFocus.requestFocus();
+  }
+
+  void _create({required bool folder, String? parentId}) => _edit(
+    CanvasFile(
+      id: const Uuid().v4(),
+      name: '',
+      parentId: parentId,
+      document: folder ? null : CanvasLibrary.emptyDocument,
+    ),
+  );
+
+  Future<void> _saveName() async {
+    final editing = _editing;
+    if (editing == null || _busy) return;
+    final error = _library.nameError(_name.text, editing.parentId, exceptId: editing.id);
+    if (error != null) {
+      setState(() => _error = error);
+      _nameFocus.requestFocus();
+      return;
+    }
+    final file = editing.copyWith(name: _name.text.trim());
+    final exists = _library.files.any((entry) => entry.id == file.id);
+    var next = exists
+        ? _library.replace(file)
+        : CanvasLibrary(files: [..._library.files, file], currentId: _library.currentId);
+    if (!exists && !file.isFolder) next = next.select(file.id);
+    if (!await _save(next) || !mounted) return;
+    setState(() => _editing = null);
+    if (!exists && !file.isFolder) Navigator.of(context).pop(file.id);
+  }
+
+  Future<void> _open(String id) async {
+    if (!await _save(_library.select(id)) || !mounted) return;
+    Navigator.of(context).pop(id);
+  }
+
+  Future<bool> _save(CanvasLibrary next) async {
+    if (_busy) return false;
+    setState(() => _busy = true);
+    try {
+      await widget.onSave(next);
+      if (!mounted) return false;
+      setState(() {
+        _library = next;
+        _error = null;
+      });
+      return true;
+    } on Object {
+      if (mounted) setState(() => _error = 'Could not save changes. Please try again.');
+      return false;
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _delete(CanvasFile file) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Delete “${file.name}”?'),
+        content: Text(file.isFolder ? 'This deletes the folder and all its canvases.' : 'This canvas will be deleted.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('Delete')),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    final remaining = _library.files
+        .where((entry) => !_library.path(entry.id).any((part) => part.id == file.id))
+        .toList();
+    if (!remaining.any((entry) => !entry.isFolder)) {
+      var name = 'Untitled';
+      for (
+        var suffix = 2;
+        remaining.any((entry) => entry.parentId == null && entry.name.toLowerCase() == name.toLowerCase());
+        suffix++
+      ) {
+        name = 'Untitled $suffix';
+      }
+      remaining.add(CanvasLibrary.initial().current.copyWith(name: name));
+    }
+    final currentId = remaining.any((entry) => entry.id == _library.currentId)
+        ? _library.currentId
+        : remaining.firstWhere((entry) => !entry.isFolder).id;
+    final changedCurrent = currentId != _library.currentId;
+    if (!await _save(CanvasLibrary(files: remaining, currentId: currentId)) || !mounted) return;
+    setState(() {
+      _editing = null;
+    });
+    if (changedCurrent) Navigator.of(context).pop(currentId);
+  }
+
+  // ---------- Rendering ----------
+
+  List<FileTreeNode> _nodes(String? parentId) {
+    final files = [..._library.files];
+    if (_editing != null && !files.any((file) => file.id == _editing!.id)) files.add(_editing!);
+    return [
+      for (final file in files.where((file) => file.parentId == parentId))
+        FileTreeNode(
+          id: file.id,
+          name: file.name,
+          type: file.isFolder ? FileTreeNodeType.folder : FileTreeNodeType.file,
+          children: file.isFolder ? _nodes(file.id) : const [],
+        ),
+    ];
+  }
+
+  @override
+  Widget build(BuildContext context) => PopScope(
+    canPop: !_busy,
+    child: Dialog(
+      backgroundColor: Colors.transparent,
+      elevation: 0,
+      insetPadding: const EdgeInsets.all(16),
+      child: AbsorbPointer(
+        absorbing: _busy,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Flexible(
+              child: FileTreePopup(
+                nodes: _nodes(null),
+                selectedId: _library.currentId,
+                expandedIds: _expanded,
+                editingId: _editing?.id,
+                editor: CallbackShortcuts(
+                  bindings: {
+                    const SingleActivator(LogicalKeyboardKey.escape): () => setState(() {
+                      _editing = null;
+                      _error = null;
+                    }),
+                  },
+                  child: TextField(
+                    controller: _name,
+                    focusNode: _nameFocus,
+                    autofocus: true,
+                    style: BTheme.of(context).typo.body,
+                    decoration: const InputDecoration(
+                      hintText: 'Name',
+                      isDense: true,
+                      contentPadding: EdgeInsets.symmetric(vertical: 5),
+                      border: InputBorder.none,
+                    ),
+                    onSubmitted: (_) => _saveName(),
+                  ),
+                ),
+                onSelect: (node) => _open(node.id),
+                onToggle: (node) => setState(() {
+                  if (!_expanded.remove(node.id)) _expanded.add(node.id);
+                }),
+                onNewFile: () => _create(folder: false),
+                onNewFolder: () => _create(folder: true),
+                onClose: () => Navigator.of(context).pop(),
+                actionsFor: (node) {
+                  final file = _library.files.where((file) => file.id == node.id).firstOrNull;
+                  if (file == null) return [];
+                  return [
+                    if (file.isFolder) ...[
+                      BContextMenuAction(
+                        label: 'New canvas',
+                        icon: LucideIcons.filePlus,
+                        onPressed: () => _create(folder: false, parentId: file.id),
+                      ),
+                      BContextMenuAction(
+                        label: 'New folder',
+                        icon: LucideIcons.folderPlus,
+                        onPressed: () => _create(folder: true, parentId: file.id),
+                      ),
+                    ],
+                    BContextMenuAction(label: 'Rename', icon: LucideIcons.pencil, onPressed: () => _edit(file)),
+                    BContextMenuAction(
+                      label: 'Delete',
+                      icon: LucideIcons.trash2,
+                      destructive: true,
+                      onPressed: () => _delete(file),
+                    ),
+                  ];
+                },
+              ),
+            ),
+            if (_error != null)
+              Padding(
+                padding: const EdgeInsets.all(8),
+                child: Text(_error!, style: BTheme.of(context).typo.body, semanticsLabel: _error),
+              ),
+          ],
+        ),
+      ),
+    ),
+  );
+}

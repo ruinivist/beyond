@@ -6,6 +6,7 @@ import 'package:beyond/canvas/editor/canvas_clipboard.dart';
 import 'package:beyond/canvas/editor/canvas_page.dart';
 import 'package:beyond/canvas/persistence/attachments/store.dart';
 import 'package:beyond/canvas/persistence/canvas_document_store.dart';
+import 'package:beyond/canvas/persistence/canvas_library.dart';
 import 'package:beyond/canvas/persistence/canvas_project_files.dart';
 import 'package:beyond/main.dart';
 import 'package:beyond/theme/starless.dart';
@@ -19,11 +20,20 @@ class TestCanvasDocumentStore extends CanvasDocumentStore {
   CanvasDocument? persisted;
 
   @override
-  Future<CanvasDocument?> load() async => initial?.copy();
+  Future<CanvasDocument?> load() async {
+    library = CanvasLibrary.initial(initial?.copy());
+    return initial?.copy();
+  }
 
   @override
   Future<void> save(CanvasDocument document) async {
     persisted = document.copy();
+    library = library.replace(library.current.copyWith(document: document.copy()));
+  }
+
+  @override
+  Future<void> saveLibrary(CanvasLibrary next) async {
+    library = next;
   }
 }
 

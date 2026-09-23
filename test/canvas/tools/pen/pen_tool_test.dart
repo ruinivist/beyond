@@ -33,6 +33,7 @@ void main() {
     SharedPreferencesAsyncWeb.registerWith(null);
     final preferences = SharedPreferencesAsync();
     await preferences.remove(CanvasDocumentStore.key);
+    await preferences.remove(CanvasDocumentStore.libraryKey);
     await preferences.remove('interface.no_icons');
   });
 
@@ -386,10 +387,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 320));
     await tester.pump();
 
-    final saved = await SharedPreferencesAsync().getString(
-      CanvasDocumentStore.key,
-    );
-    final document = CanvasDocument.fromJson(jsonDecode(saved!));
+    final document = (await CanvasDocumentStore().load())!;
     final ids = document.elements.map((element) => element.id).toList();
     expect(document.background, CanvasBackgroundKind.plain);
     expect(document.elements, hasLength(4));
@@ -428,13 +426,7 @@ void main() {
     await tester.pump();
     await tester.pump();
 
-    final restored = CanvasDocument.fromJson(
-      jsonDecode(
-        (await SharedPreferencesAsync().getString(
-          CanvasDocumentStore.key,
-        ))!,
-      ),
-    );
+    final restored = (await CanvasDocumentStore().load())!;
     expect(restored.elements.map((element) => element.id), ids);
     expect(find.byType(TextTool), findsOneWidget);
     expect(find.byType(CodeTool), findsOneWidget);
@@ -605,13 +597,7 @@ void main() {
     expect(arrow.selected, isFalse);
 
     await tester.pump(const Duration(milliseconds: 320));
-    final saved = CanvasDocument.fromJson(
-      jsonDecode(
-        (await SharedPreferencesAsync().getString(
-          CanvasDocumentStore.key,
-        ))!,
-      ),
-    );
+    final saved = (await CanvasDocumentStore().load())!;
     expect(saved.elements.map((element) => element.id), ['pen', 'arrow']);
   });
 
@@ -1086,10 +1072,7 @@ void main() {
     }
     await tester.pump(const Duration(milliseconds: 320));
     await tester.pump();
-    final saved = await SharedPreferencesAsync().getString(
-      CanvasDocumentStore.key,
-    );
-    final savedNodes = CanvasDocument.fromJson(jsonDecode(saved!)).elements;
+    final savedNodes = (await CanvasDocumentStore().load())!.elements;
     expect(savedNodes, hasLength(0));
 
     await tester.sendKeyDownEvent(LogicalKeyboardKey.delete);
@@ -1801,13 +1784,7 @@ void main() {
 
     await tester.pump(const Duration(milliseconds: 320));
     await tester.pump();
-    final saved = CanvasDocument.fromJson(
-      jsonDecode(
-        (await SharedPreferencesAsync().getString(
-          CanvasDocumentStore.key,
-        ))!,
-      ),
-    );
+    final saved = (await CanvasDocumentStore().load())!;
     expect(saved.elements.map((element) => element.id), ['pen-safe']);
   });
 }

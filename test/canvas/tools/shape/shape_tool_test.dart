@@ -407,7 +407,7 @@ void main() {
     expect(model().selected, isFalse);
     expect(find.byKey(const ValueKey('shape-settings-panel')), findsOneWidget);
 
-    await tester.tapAt(const Offset(40, 40));
+    await tester.tapAt(const Offset(40, 100));
     await tester.pumpAndSettle();
     expect(model().active, isFalse);
 

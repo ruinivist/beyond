@@ -1,0 +1,120 @@
+// Defines the browser's named canvases and folder hierarchy.
+// Used by canvas persistence and the file picker.
+
+import 'package:beyond/canvas/document/canvas_document.dart';
+import 'package:beyond/canvas/editor/canvas_background.dart';
+import 'package:uuid/uuid.dart';
+
+// ---------- Entries ----------
+
+class CanvasFile {
+  const CanvasFile({required this.id, required this.name, this.parentId, this.document});
+
+  factory CanvasFile.fromJson(Map<String, dynamic> json) => CanvasFile(
+    id: json['id'] as String,
+    name: json['name'] as String,
+    parentId: json['parentId'] as String?,
+    document: json['document'] == null ? null : CanvasDocument.fromJson(json['document']),
+  );
+
+  final String id;
+  final String name;
+  final String? parentId;
+  final CanvasDocument? document;
+
+  bool get isFolder => document == null;
+
+  CanvasFile copyWith({String? name, CanvasDocument? document}) => CanvasFile(
+    id: id,
+    name: name ?? this.name,
+    parentId: parentId,
+    document: document ?? this.document,
+  );
+
+  Map<String, Object?> toJson() => {
+    'id': id,
+    'name': name,
+    'parentId': parentId,
+    'document': document?.toJson(),
+  };
+}
+
+// ---------- Library ----------
+
+class CanvasLibrary {
+  CanvasLibrary({required this.files, required this.currentId});
+
+  factory CanvasLibrary.initial([CanvasDocument? document]) {
+    final file = CanvasFile(id: const Uuid().v4(), name: 'Untitled', document: document ?? emptyDocument);
+    return CanvasLibrary(files: [file], currentId: file.id);
+  }
+
+  factory CanvasLibrary.fromJson(Object? source) {
+    if (source is! Map<String, dynamic> || source['version'] != 1 || source['files'] is! List) {
+      throw const FormatException('Invalid canvas library');
+    }
+    final library = CanvasLibrary(
+      files: (source['files'] as List<dynamic>)
+          .map((file) => CanvasFile.fromJson(file as Map<String, dynamic>))
+          .toList(),
+      currentId: source['currentId'] as String,
+    );
+    final ids = <String>{};
+    for (final file in library.files) {
+      if (file.id.isEmpty || file.name.trim().isEmpty || !ids.add(file.id)) {
+        throw const FormatException('Invalid file name or id');
+      }
+      final ancestors = <String>{file.id};
+      var parent = file.parentId;
+      while (parent != null) {
+        if (!ancestors.add(parent)) throw const FormatException('Folder cycle');
+        final folder = library.file(parent);
+        if (!folder.isFolder) throw const FormatException('Invalid parent folder');
+        parent = folder.parentId;
+      }
+    }
+    if (library.current.isFolder) throw const FormatException('Current file must be a canvas');
+    return library;
+  }
+
+  static const emptyDocument = CanvasDocument(background: CanvasBackgroundKind.dotGrid, elements: []);
+
+  final List<CanvasFile> files;
+  final String currentId;
+
+  CanvasFile file(String id) => files.firstWhere((file) => file.id == id);
+  CanvasFile get current => file(currentId);
+
+  List<CanvasFile> path(String id) {
+    final entry = file(id);
+    return [if (entry.parentId != null) ...path(entry.parentId!), entry];
+  }
+
+  CanvasLibrary replace(CanvasFile replacement) => CanvasLibrary(
+    files: [for (final entry in files) entry.id == replacement.id ? replacement : entry],
+    currentId: currentId,
+  );
+
+  CanvasLibrary select(String id) {
+    if (file(id).isFolder) throw ArgumentError('Cannot open a folder as a canvas');
+    return CanvasLibrary(files: files, currentId: id);
+  }
+
+  String? nameError(String name, String? parentId, {String? exceptId}) {
+    if (name.trim().isEmpty) return 'Enter a name';
+    if (name.contains('/') || name.contains(r'\')) return 'Names cannot contain slashes';
+    if (files.any(
+      (file) =>
+          file.parentId == parentId && file.id != exceptId && file.name.toLowerCase() == name.trim().toLowerCase(),
+    )) {
+      return 'This name is already in use';
+    }
+    return null;
+  }
+
+  Map<String, Object?> toJson() => {
+    'version': 1,
+    'currentId': currentId,
+    'files': files.map((file) => file.toJson()).toList(),
+  };
+}

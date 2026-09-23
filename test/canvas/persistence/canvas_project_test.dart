@@ -77,6 +77,18 @@ attachments/00000000-0000-4000-8000-000000000000.png
     expect(store.reads, 1);
   });
 
+  test('import remaps attachments shared with other canvases', () {
+    final document = _document(markdown: '![image](${_path(0)})')..elements.add(_media(_path(0)));
+    final project = CanvasProject(document: document, attachments: {_path(0): onePixelPngBytes});
+    final rebased = rebaseCanvasProjectAttachments(project, {_path(0)});
+    final newPath = rebased.attachments.keys.single;
+    expect(newPath, isNot(_path(0)));
+    expect(attachmentPathPattern.hasMatch(newPath), isTrue);
+    expect(canvasAttachmentPaths(rebased.document), {newPath});
+    expect(rebased.attachments[newPath], onePixelPngBytes);
+    expect(canvasAttachmentPaths(document), {_path(0)});
+  });
+
   test('missing stored attachments fail export', () async {
     await expectLater(
       encodeCanvasProject(

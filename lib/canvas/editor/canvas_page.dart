@@ -10,6 +10,8 @@ import 'package:beyond/canvas/editor/canvas_background.dart';
 import 'package:beyond/canvas/editor/canvas_clipboard.dart';
 import 'package:beyond/canvas/editor/canvas_element_model.dart';
 import 'package:beyond/canvas/editor/widgets/arrow_stroke_style_icon.dart';
+import 'package:beyond/canvas/editor/widgets/canvas_file_picker.dart';
+import 'package:beyond/canvas/editor/widgets/canvas_title.dart';
 import 'package:beyond/canvas/editor/widgets/element_transform_controls.dart';
 import 'package:beyond/canvas/editor/widgets/tool_options.dart';
 import 'package:beyond/canvas/editor/widgets/toolbar_button.dart';
@@ -117,6 +119,7 @@ class _CanvasPageState extends State<CanvasPage> {
   bool _documentDirty = false;
   bool _documentLoaded = false;
   var _projectTransferActive = false;
+  var _filePickerOpen = false;
   late final PenTool _penTool;
   late final ArrowTool _arrowTool;
   late final ShapeTool _shapeTool;
@@ -1148,7 +1151,7 @@ class _CanvasPageState extends State<CanvasPage> {
   void _handleWebCut(ClipboardWriteEvent event) => unawaited(_copySelection(event, cut: true));
 
   void _handleWebPaste(ClipboardReadEvent event) {
-    if (!_documentLoaded || _editingElement) return;
+    if (!_documentLoaded || _filePickerOpen || _editingElement) return;
     unawaited(_pasteSelection(event.getClipboardReader()));
   }
 
@@ -1156,8 +1159,9 @@ class _CanvasPageState extends State<CanvasPage> {
     ClipboardWriter? writer, {
     bool cut = false,
   }) async {
-    if (!_documentLoaded || _editingElement) return;
+    if (!_documentLoaded || _filePickerOpen || _editingElement) return;
     final selected = _selectedInStackingOrder;
+    final documentId = _documentStore.library.currentId;
     if (selected.isEmpty) return;
     final payload = encodeCanvasClipboard(
       selected.map((model) => model.data.copy()),
@@ -1177,7 +1181,9 @@ class _CanvasPageState extends State<CanvasPage> {
       _pasteOffset = Offset.zero;
       _cutPayload = cut ? payload : null;
       _pointerReference = (payload, _canvasPointerPosition.value);
-      if (cut) _removeElements(selected);
+      if (cut && mounted && !_filePickerOpen && _documentStore.library.currentId == documentId) {
+        _removeElements(selected);
+      }
     } on Object {
       _showProjectSnackBar(
         cut ? 'Could not cut canvas elements' : 'Could not copy canvas elements',
@@ -1186,6 +1192,7 @@ class _CanvasPageState extends State<CanvasPage> {
   }
 
   Future<void> _pasteSelection(Future<ClipboardReader>? readerFuture) async {
+    final documentId = _documentStore.library.currentId;
     try {
       final read = widget.readClipboard;
       late final CanvasClipboardSnapshot clipboard;
@@ -1194,6 +1201,7 @@ class _CanvasPageState extends State<CanvasPage> {
       } on FormatException {
         return;
       }
+      if (!mounted || !_documentLoaded || _filePickerOpen || _documentStore.library.currentId != documentId) return;
       final text = clipboard.text;
       final elements = text == null ? null : decodeCanvasClipboard(text);
       if (elements == null) {
@@ -1239,6 +1247,7 @@ class _CanvasPageState extends State<CanvasPage> {
   }
 
   Future<void> _pasteImage(ClipboardImage image) async {
+    final documentId = _documentStore.library.currentId;
     final model = _newMediaModel('');
     try {
       await model.setDeviceImage(image.bytes, image.extension);
@@ -1249,7 +1258,7 @@ class _CanvasPageState extends State<CanvasPage> {
       model.dispose();
       rethrow;
     }
-    if (!mounted || !_documentLoaded) {
+    if (!mounted || !_documentLoaded || _filePickerOpen || _documentStore.library.currentId != documentId) {
       model.dispose();
       return;
     }
@@ -1340,6 +1349,41 @@ class _CanvasPageState extends State<CanvasPage> {
 
   // ---------- Settings and project transfer ----------
 
+  Future<void> _showFilePicker() async {
+    if (!_documentLoaded || _projectTransferActive || _filePickerOpen) return;
+    setState(() => _filePickerOpen = true);
+    _clearElementEditing();
+    FocusManager.instance.primaryFocus?.unfocus();
+    _saveTimer?.cancel();
+    _saveTimer = null;
+    final previousId = _documentStore.library.currentId;
+    try {
+      await _saveQueue;
+      // Capture even a failed autosave before allowing any file operation.
+      await _persistDocument(_currentDocument());
+      _documentDirty = false;
+      if (!mounted) return;
+      final id = await showDialog<String>(
+        context: context,
+        barrierColor: BTheme.of(context).colors.scrim,
+        builder: (_) => CanvasFilePicker(
+          library: _documentStore.library,
+          onSave: _documentStore.saveLibrary,
+        ),
+      );
+      if (!mounted) return;
+      if (id != null && id != previousId) {
+        final next = _documentStore.library;
+        _replaceLiveModels(next.current.document!.copy());
+        _resetHistory();
+      }
+    } on Object {
+      _showProjectSnackBar('Could not open canvas. Your current canvas is still open.');
+    } finally {
+      if (mounted) setState(() => _filePickerOpen = false);
+    }
+  }
+
   void _showSettingsDialog() {
     unawaited(
       showDialog<void>(
@@ -1407,7 +1451,14 @@ class _CanvasPageState extends State<CanvasPage> {
     }
   }
 
-  Future<void> _commitImportedProject(CanvasProject project) async {
+  Future<void> _commitImportedProject(CanvasProject imported) async {
+    final project = rebaseCanvasProjectAttachments(
+      imported,
+      _documentStore.library.files
+          .where((file) => file.id != _documentStore.library.currentId && !file.isFolder)
+          .expand((file) => canvasAttachmentPaths(file.document!))
+          .toSet(),
+    );
     final currentDocument = _currentDocument();
     final currentPaths = canvasAttachmentPaths(currentDocument);
     final importedPaths = project.attachments.keys.toSet();
@@ -1526,7 +1577,7 @@ class _CanvasPageState extends State<CanvasPage> {
   // ---------- Keyboard commands ----------
 
   bool _handleKeyEvent(KeyEvent event) {
-    if (!_documentLoaded) return false;
+    if (!_documentLoaded || _filePickerOpen || ModalRoute.of(context)?.isCurrent == false) return false;
     _selectionModifierPressed.value = Theme.of(context).platform == TargetPlatform.macOS
         ? HardwareKeyboard.instance.isMetaPressed
         : HardwareKeyboard.instance.isControlPressed;
@@ -1633,7 +1684,6 @@ class _CanvasPageState extends State<CanvasPage> {
       _resetHistory();
       if (mounted) setState(() {});
     } on Object {
-      _documentLoaded = true;
       _resetHistory();
       if (!mounted) return;
       setState(() {});
@@ -1697,6 +1747,7 @@ class _CanvasPageState extends State<CanvasPage> {
     try {
       await _persistDocument(document);
     } on Object {
+      _documentDirty = true;
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Could not save canvas')),
@@ -1777,7 +1828,7 @@ class _CanvasPageState extends State<CanvasPage> {
       body: Stack(
         children: [
           IgnorePointer(
-            ignoring: !_documentLoaded,
+            ignoring: !_documentLoaded || _filePickerOpen,
             child: MouseRegion(
               cursor: !_spaceHeld && (_penEnabled || _eraserEnabled) ? SystemMouseCursors.none : MouseCursor.defer,
               onExit: _handleCanvasPointerExit,
@@ -1945,6 +1996,26 @@ class _CanvasPageState extends State<CanvasPage> {
                 ),
               ),
             ),
+          Positioned(
+            top: 12,
+            left: 12,
+            child: SafeArea(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(maxWidth: math.max(80, MediaQuery.sizeOf(context).width / 2 - 190)),
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  reverse: true,
+                  child: CanvasTitle(
+                    path: _documentStore.library
+                        .path(_documentStore.library.currentId)
+                        .map((file) => file.name)
+                        .toList(),
+                    onPressed: _documentLoaded ? _showFilePicker : null,
+                  ),
+                ),
+              ),
+            ),
+          ),
           SafeArea(
             child: Align(
               alignment: Alignment.bottomRight,

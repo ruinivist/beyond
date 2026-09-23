@@ -8,6 +8,7 @@ import 'dart:ui';
 import 'package:beyond/canvas/document/canvas_document.dart';
 import 'package:beyond/canvas/persistence/attachments/store.dart';
 import 'package:markdown/markdown.dart' as md;
+import 'package:uuid/uuid.dart';
 
 // ---------- Limits ----------
 
@@ -51,6 +52,32 @@ Set<String> canvasAttachmentPaths(CanvasDocument document) {
 }
 
 // ---------- Encoding and decoding ----------
+
+/// Gives imported images fresh paths when another canvas already uses them.
+/// Prevents project imports from replacing another saved canvas's image bytes.
+CanvasProject rebaseCanvasProjectAttachments(CanvasProject project, Set<String> reservedPaths) {
+  final replacements = <String, String>{
+    for (final path in project.attachments.keys)
+      if (reservedPaths.contains(path)) path: 'attachments/${const Uuid().v4()}.${path.split('.').last}',
+  };
+  if (replacements.isEmpty) return project;
+  final document = project.document.copy();
+  for (final element in document.elements) {
+    if (element is MediaElementData) {
+      element.url = replacements[element.url.trim()] ?? element.url;
+    } else if (element is TextElementData) {
+      for (final entry in replacements.entries) {
+        element.markdown = element.markdown.replaceAll(entry.key, entry.value);
+      }
+    }
+  }
+  return CanvasProject(
+    document: document,
+    attachments: {
+      for (final entry in project.attachments.entries) replacements[entry.key] ?? entry.key: entry.value,
+    },
+  );
+}
 
 /// Encodes a document and its referenced attachments as a portable project.
 /// Used by the canvas export flow before saving to the host file system.

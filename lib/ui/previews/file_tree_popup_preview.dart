@@ -1,5 +1,5 @@
 // Previews the canvas file-tree popup with temporary interactive data.
-// Used by Flutter widget previews while the popup remains outside the app shell.
+// Used by Flutter widget previews for isolated tree layout and disclosure.
 
 import 'package:beyond/canvas/editor/widgets/file_tree_popup.dart';
 import 'package:beyond/theme/theme.dart';
@@ -64,8 +64,9 @@ class _FileTreePopupPreviewState extends State<_FileTreePopupPreview> {
           onSelect: (node) => setState(() => _selectedId = node.id),
           onToggle: _toggle,
           onNewFolder: () {},
+          onNewFile: () {},
           onClose: () {},
-          onContextMenu: (_, _) {},
+          actionsFor: (_) => [],
         ),
       ),
     );

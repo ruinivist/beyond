@@ -3,6 +3,7 @@
 
 import 'package:beyond/canvas/editor/widgets/file_tree_popup.dart';
 import 'package:beyond/theme/starless.dart';
+import 'package:beyond/ui/common/context_menu.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -42,8 +43,11 @@ void main() {
                   if (!expandedIds.remove(folder.id)) expandedIds.add(folder.id);
                 }),
                 onNewFolder: () => newFolderCalls++,
+                onNewFile: () {},
                 onClose: () => closeCalls++,
-                onContextMenu: (node, _) => contextId = node.id,
+                actionsFor: (node) => [
+                  BContextMenuAction(label: 'Rename', icon: Icons.edit, onPressed: () => contextId = node.id),
+                ],
               ),
             ),
           ),
@@ -67,6 +71,9 @@ void main() {
       find.byKey(const ValueKey('file-tree-node-brainstorm')),
       buttons: kSecondaryMouseButton,
     );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Rename'));
+    await tester.pumpAndSettle();
     expect(contextId, 'brainstorm');
 
     await tester.tap(find.byKey(const ValueKey('file-tree-new-folder')));

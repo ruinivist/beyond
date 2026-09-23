@@ -69,3 +69,12 @@ Shapes follow the same state separation: clicking or creating a shape makes it a
 - Transform controls rotate with their block and remain anchored to its top-left corner.
 - Scrolling inside bounded text or code content does not pan the canvas.
 - Only the primary mouse button performs block interactions; other pointer gestures retain their canvas behavior.
+
+## Canvas files
+
+- Clicking the canvas title opens the file picker; hovering the title reveals its folder path.
+- Clicking a canvas saves the current file and opens the chosen one. Each file has separate contents; switching clears undo and selection state.
+- Clicking a folder expands or collapses it. Header actions create root-level canvases and folders; right-click a folder to create items inside it.
+- Names are edited inline. Enter saves, Escape cancels, and duplicate sibling names are rejected. Right-click an item to rename or delete it; deletion requires confirmation.
+- While the picker is open, keyboard input belongs to the picker. Escape, the close button, or clicking outside dismisses it; Escape in a name field cancels only that edit.
+- Files, folders, and the last-opened canvas persist in this browser. Failed saves keep the current canvas open and preserve entered names for retry.

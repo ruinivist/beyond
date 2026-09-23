@@ -1,8 +1,9 @@
 // Provides the canvas file-tree popup and its controlled node model.
-// Used by previews now and by future canvas document navigation.
+// Used by the canvas file picker and isolated previews.
 
 import 'package:beyond/theme/theme.dart';
 import 'package:beyond/ui/common/b_container.dart';
+import 'package:beyond/ui/common/context_menu.dart';
 import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:scroll_animator/scroll_animator.dart';
@@ -36,8 +37,11 @@ class FileTreePopup extends StatelessWidget {
     required this.onSelect,
     required this.onToggle,
     required this.onNewFolder,
+    required this.onNewFile,
     required this.onClose,
-    required this.onContextMenu,
+    required this.actionsFor,
+    this.editingId,
+    this.editor,
     super.key,
   });
 
@@ -47,8 +51,11 @@ class FileTreePopup extends StatelessWidget {
   final ValueChanged<FileTreeNode> onSelect;
   final ValueChanged<FileTreeNode> onToggle;
   final VoidCallback onNewFolder;
+  final VoidCallback onNewFile;
   final VoidCallback onClose;
-  final void Function(FileTreeNode node, TapDownDetails details) onContextMenu;
+  final List<BContextMenuAction> Function(FileTreeNode node) actionsFor;
+  final String? editingId;
+  final Widget? editor;
 
   static const _width = 320.0;
   static const _maxHeight = 420.0;
@@ -83,6 +90,14 @@ class FileTreePopup extends StatelessWidget {
                 right: 6,
                 child: Row(
                   children: [
+                    _control(
+                      context,
+                      key: const ValueKey('file-tree-new-file'),
+                      icon: LucideIcons.filePlus,
+                      tooltip: 'New canvas',
+                      onPressed: onNewFile,
+                    ),
+                    const SizedBox(width: 2),
                     _control(
                       context,
                       key: const ValueKey('file-tree-new-folder'),
@@ -124,54 +139,58 @@ class FileTreePopup extends StatelessWidget {
             button: true,
             selected: isSelected,
             expanded: isFolder ? isExpanded : null,
-            child: InkWell(
-              key: ValueKey('file-tree-node-${node.id}'),
-              borderRadius: radius,
-              mouseCursor: SystemMouseCursors.click,
-              onTap: () => isFolder ? onToggle(node) : onSelect(node),
-              onSecondaryTapDown: (details) => onContextMenu(node, details),
-              overlayColor: WidgetStateProperty.resolveWith((states) {
-                if (states.contains(WidgetState.pressed)) return theme.colors.surfacePressed;
-                if (states.contains(WidgetState.hovered) || states.contains(WidgetState.focused)) {
-                  return theme.colors.surfaceHover;
-                }
-                return Colors.transparent;
-              }),
-              child: Ink(
-                height: _rowHeight,
-                padding: const EdgeInsets.symmetric(horizontal: 6),
-                decoration: BoxDecoration(
-                  color: isSelected ? theme.colors.surfaceSubtle : Colors.transparent,
-                  borderRadius: radius,
-                ),
-                child: Row(
-                  children: [
-                    SizedBox(
-                      width: _iconSize,
-                      child: isFolder
-                          ? Icon(
-                              isExpanded ? LucideIcons.chevronDown : LucideIcons.chevronRight,
-                              size: 14,
-                              color: theme.colors.textMuted,
-                            )
-                          : null,
-                    ),
-                    const SizedBox(width: 5),
-                    Icon(
-                      isFolder ? LucideIcons.folder : LucideIcons.file,
-                      size: _iconSize,
-                      color: theme.colors.textSecondary,
-                    ),
-                    const SizedBox(width: 7),
-                    Expanded(
-                      child: Text(
-                        node.name,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: theme.typo.body,
+            child: BContextMenu(
+              groups: [actionsFor(node)],
+              child: InkWell(
+                key: ValueKey('file-tree-node-${node.id}'),
+                borderRadius: radius,
+                mouseCursor: SystemMouseCursors.click,
+                onTap: () => isFolder ? onToggle(node) : onSelect(node),
+                overlayColor: WidgetStateProperty.resolveWith((states) {
+                  if (states.contains(WidgetState.pressed)) return theme.colors.surfacePressed;
+                  if (states.contains(WidgetState.hovered) || states.contains(WidgetState.focused)) {
+                    return theme.colors.surfaceHover;
+                  }
+                  return Colors.transparent;
+                }),
+                child: Ink(
+                  height: _rowHeight,
+                  padding: const EdgeInsets.symmetric(horizontal: 6),
+                  decoration: BoxDecoration(
+                    color: isSelected ? theme.colors.surfaceSubtle : Colors.transparent,
+                    borderRadius: radius,
+                  ),
+                  child: Row(
+                    children: [
+                      SizedBox(
+                        width: _iconSize,
+                        child: isFolder
+                            ? Icon(
+                                isExpanded ? LucideIcons.chevronDown : LucideIcons.chevronRight,
+                                size: 14,
+                                color: theme.colors.textMuted,
+                              )
+                            : null,
                       ),
-                    ),
-                  ],
+                      const SizedBox(width: 5),
+                      Icon(
+                        isFolder ? LucideIcons.folder : LucideIcons.file,
+                        size: _iconSize,
+                        color: theme.colors.textSecondary,
+                      ),
+                      const SizedBox(width: 7),
+                      Expanded(
+                        child: editingId == node.id
+                            ? editor!
+                            : Text(
+                                node.name,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: theme.typo.body,
+                              ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),

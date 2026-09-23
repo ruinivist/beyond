@@ -1,7 +1,6 @@
 // Verifies text editing, Markdown preview, styling, and interaction.
 // Exercises text blocks through model and canvas widget flows.
 
-import 'dart:convert';
 import 'dart:math' as math;
 
 import 'package:beyond/canvas/document/canvas_document.dart';
@@ -39,6 +38,7 @@ void main() {
     SharedPreferencesAsyncWeb.registerWith(null);
     final preferences = SharedPreferencesAsync();
     await preferences.remove(CanvasDocumentStore.key);
+    await preferences.remove(CanvasDocumentStore.libraryKey);
     await preferences.remove('interface.no_icons');
     originalLauncher = UrlLauncherPlatform.instance;
     launcher = _FakeUrlLauncher();
@@ -1066,9 +1066,7 @@ Inline $x^2$''';
     await tester.pump();
     await pumpPastSave(tester);
 
-    final preferences = SharedPreferencesAsync();
-    final savedSource = await preferences.getString(CanvasDocumentStore.key);
-    final savedDocument = CanvasDocument.fromJson(jsonDecode(savedSource!));
+    final savedDocument = (await CanvasDocumentStore().load())!;
     final savedNodes = savedDocument.elements.whereType<TextElementData>().toList();
     expect(savedNodes, hasLength(2));
     expect(savedNodes.first.id, second.node.id);
@@ -1144,18 +1142,13 @@ Inline $x^2$''';
     expect(find.text('Could not load saved canvas'), findsOneWidget);
     expect(await preferences.getString(CanvasDocumentStore.key), invalid);
 
-    await _placeTextBlock(tester, const Offset(120, 200));
-    await tester.enterText(
-      find.byKey(const ValueKey('text-markdown-editor')),
-      'replacement',
-    );
+    await tester.tap(find.byKey(const ValueKey('toolbar-text')));
+    await tester.pump();
+    await tester.tapAt(const Offset(120, 200));
     await pumpPastSave(tester);
-
-    final replacement = await preferences.getString(CanvasDocumentStore.key);
-    expect(
-      CanvasDocument.fromJson(jsonDecode(replacement!)).elements,
-      hasLength(1),
-    );
+    expect(find.byType(TextTool), findsNothing);
+    expect(await preferences.getString(CanvasDocumentStore.key), invalid);
+    expect(await preferences.getString(CanvasDocumentStore.libraryKey), isNull);
   });
 }
 
