@@ -96,6 +96,22 @@ void main() {
     expect(find.byType(CanvasFilePicker), findsOneWidget);
     expect(store.library.files, hasLength(1));
 
+    await tester.tap(find.byTooltip('New canvas'));
+    await tester.pumpAndSettle();
+    await tester.tapAt(const Offset(790, 590));
+    await tester.pumpAndSettle();
+    expect(find.byType(CanvasFilePicker), findsNothing);
+    expect(store.library.files, hasLength(1));
+
+    await _open(tester);
+    await tester.tap(find.byTooltip('New folder'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField), '   ');
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.pumpAndSettle();
+    expect(find.byType(TextField), findsNothing);
+    expect(store.library.files, hasLength(1));
+
     store.fail = true;
     await tester.tap(find.byTooltip('New folder'));
     await tester.pumpAndSettle();
@@ -148,6 +164,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(CanvasFilePicker), findsNothing);
     expect(store.library.current.name, 'First');
+    final firstId = store.library.currentId;
 
     await _open(tester);
     await tester.tap(find.byTooltip('New canvas'));
@@ -158,6 +175,14 @@ void main() {
     expect(find.byType(CanvasFilePicker), findsNothing);
     expect(store.library.currentId, originalId);
     expect(store.library.files.map((file) => file.name), containsAll(['First', 'Second']));
+
+    await _open(tester);
+    await tester.tap(find.byTooltip('New canvas'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(ValueKey('file-tree-node-$firstId')));
+    await tester.pumpAndSettle();
+    expect(store.library.current.name, 'First');
+    expect(store.library.files, hasLength(3));
     expect(tester.takeException(), isNull);
   });
 

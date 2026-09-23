@@ -64,9 +64,23 @@ class _CanvasFilePickerState extends State<CanvasFilePicker> {
     ),
   );
 
+  void _cancelEdit() => setState(() {
+    _editing = null;
+    _error = null;
+  });
+
   Future<bool> _saveName({String? openId, bool close = false}) async {
     final editing = _editing;
     if (editing == null || _busy) return false;
+    if (_name.text.trim().isEmpty) {
+      _cancelEdit();
+      if (openId != null) {
+        await _open(openId);
+      } else if (close) {
+        Navigator.of(context).pop();
+      }
+      return true;
+    }
     final error = _library.nameError(_name.text, editing.parentId, exceptId: editing.id);
     if (error != null) {
       setState(() => _error = error);
@@ -98,8 +112,9 @@ class _CanvasFilePickerState extends State<CanvasFilePicker> {
   Future<bool> _commitPendingEdit() async {
     final editing = _editing;
     if (editing == null) return true;
+    final empty = _name.text.trim().isEmpty;
     final opensCanvas = !editing.isFolder && !_library.files.any((file) => file.id == editing.id);
-    return await _saveName() && !opensCanvas && mounted;
+    return await _saveName() && (empty || !opensCanvas) && mounted;
   }
 
   Future<void> _toggle(String id) async {
@@ -257,10 +272,7 @@ class _CanvasFilePickerState extends State<CanvasFilePicker> {
                   editingId: _editing?.id,
                   editor: CallbackShortcuts(
                     bindings: {
-                      const SingleActivator(LogicalKeyboardKey.escape): () => setState(() {
-                        _editing = null;
-                        _error = null;
-                      }),
+                      const SingleActivator(LogicalKeyboardKey.escape): _cancelEdit,
                     },
                     child: TextField(
                       controller: _name,
