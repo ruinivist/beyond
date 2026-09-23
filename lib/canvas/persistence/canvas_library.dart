@@ -95,6 +95,35 @@ class CanvasLibrary {
     currentId: currentId,
   );
 
+  CanvasLibrary move(String id, {required String? parentId, String? beforeId}) {
+    final source = file(id);
+    if (parentId != null) {
+      final parent = file(parentId);
+      if (!parent.isFolder) throw const FormatException('Choose a folder');
+      if (path(parentId).any((entry) => entry.id == id)) {
+        throw const FormatException('Cannot move a folder into itself');
+      }
+    }
+    final error = nameError(source.name, parentId, exceptId: id);
+    if (error != null) throw FormatException(error);
+    if (beforeId != null && (beforeId == id || file(beforeId).parentId != parentId)) {
+      throw const FormatException('Invalid destination');
+    }
+
+    final siblings = files.where((entry) => entry.parentId == parentId && entry.id != id).toList();
+    final siblingIndex = beforeId == null ? siblings.length : siblings.indexWhere((entry) => entry.id == beforeId);
+    if (source.parentId == parentId &&
+        files.where((entry) => entry.parentId == parentId).toList().indexOf(source) == siblingIndex) {
+      return this;
+    }
+
+    final moved = CanvasFile(id: source.id, name: source.name, parentId: parentId, document: source.document);
+    final next = files.where((entry) => entry.id != id).toList();
+    final insertAt = beforeId == null ? next.length : next.indexWhere((entry) => entry.id == beforeId);
+    next.insert(insertAt, moved);
+    return CanvasLibrary(files: next, currentId: currentId);
+  }
+
   CanvasLibrary select(String id) {
     if (file(id).isFolder) throw ArgumentError('Cannot open a folder as a canvas');
     return CanvasLibrary(files: files, currentId: id);

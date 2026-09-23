@@ -76,5 +76,6 @@ Shapes follow the same state separation: clicking or creating a shape makes it a
 - Clicking a canvas saves the current file and opens the chosen one. Each file has separate contents; switching clears undo and selection state.
 - Clicking a folder expands or collapses it. Header actions create root-level canvases and folders; right-click a folder to create items inside it.
 - Names are edited inline. Enter saves, Escape cancels, and duplicate sibling names are rejected. Right-click an item to rename or delete it; deletion requires confirmation.
+- Drag a file or folder above or below a row to place it beside that item. Drop on the center of a folder row to move inside it. A folder moves with its contents; moves that create a folder cycle or duplicate sibling name are rejected.
 - While the picker is open, keyboard input belongs to the picker. Escape, the close button, or clicking outside dismisses it; Escape in a name field cancels only that edit.
 - Files, folders, and the last-opened canvas persist in this browser. Failed saves keep the current canvas open and preserve entered names for retry.

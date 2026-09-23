@@ -4,6 +4,7 @@
 import 'package:beyond/theme/theme.dart';
 import 'package:beyond/ui/common/b_container.dart';
 import 'package:beyond/ui/common/context_menu.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:scroll_animator/scroll_animator.dart';
@@ -11,6 +12,8 @@ import 'package:scroll_animator/scroll_animator.dart';
 // ---------- Models ----------
 
 enum FileTreeNodeType { folder, file }
+
+enum FileTreeDropPosition { before, inside, after }
 
 @immutable
 class FileTreeNode {
@@ -36,6 +39,8 @@ class FileTreePopup extends StatelessWidget {
     required this.expandedIds,
     required this.onSelect,
     required this.onToggle,
+    required this.canMove,
+    required this.onMove,
     required this.onNewFolder,
     required this.onNewFile,
     required this.onClose,
@@ -50,6 +55,8 @@ class FileTreePopup extends StatelessWidget {
   final Set<String> expandedIds;
   final ValueChanged<FileTreeNode> onSelect;
   final ValueChanged<FileTreeNode> onToggle;
+  final bool Function(String sourceId, String targetId, FileTreeDropPosition position) canMove;
+  final void Function(String sourceId, String targetId, FileTreeDropPosition position) onMove;
   final VoidCallback onNewFolder;
   final VoidCallback onNewFile;
   final VoidCallback onClose;
@@ -135,61 +142,67 @@ class FileTreePopup extends StatelessWidget {
       children: [
         Padding(
           padding: EdgeInsets.only(left: depth * _indent),
-          child: Semantics(
-            button: true,
-            selected: isSelected,
-            expanded: isFolder ? isExpanded : null,
-            child: BContextMenu(
-              groups: [actionsFor(node)],
-              child: InkWell(
-                key: ValueKey('file-tree-node-${node.id}'),
-                borderRadius: radius,
-                mouseCursor: SystemMouseCursors.click,
-                onTap: () => isFolder ? onToggle(node) : onSelect(node),
-                overlayColor: WidgetStateProperty.resolveWith((states) {
-                  if (states.contains(WidgetState.pressed)) return theme.colors.surfacePressed;
-                  if (states.contains(WidgetState.hovered) || states.contains(WidgetState.focused)) {
-                    return theme.colors.surfaceHover;
-                  }
-                  return Colors.transparent;
-                }),
-                child: Ink(
-                  height: _rowHeight,
-                  padding: const EdgeInsets.symmetric(horizontal: 6),
-                  decoration: BoxDecoration(
-                    color: isSelected ? theme.colors.surfaceSubtle : Colors.transparent,
-                    borderRadius: radius,
-                  ),
-                  child: Row(
-                    children: [
-                      SizedBox(
-                        width: _iconSize,
-                        child: isFolder
-                            ? Icon(
-                                isExpanded ? LucideIcons.chevronDown : LucideIcons.chevronRight,
-                                size: 14,
-                                color: theme.colors.textMuted,
-                              )
-                            : null,
-                      ),
-                      const SizedBox(width: 5),
-                      Icon(
-                        isFolder ? LucideIcons.folder : LucideIcons.file,
-                        size: _iconSize,
-                        color: theme.colors.textSecondary,
-                      ),
-                      const SizedBox(width: 7),
-                      Expanded(
-                        child: editingId == node.id
-                            ? editor!
-                            : Text(
-                                node.name,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: theme.typo.body,
-                              ),
-                      ),
-                    ],
+          child: _DropRow(
+            node: node,
+            enabled: editingId == null,
+            canMove: canMove,
+            onMove: onMove,
+            child: Semantics(
+              button: true,
+              selected: isSelected,
+              expanded: isFolder ? isExpanded : null,
+              child: BContextMenu(
+                groups: [actionsFor(node)],
+                child: InkWell(
+                  key: ValueKey('file-tree-node-${node.id}'),
+                  borderRadius: radius,
+                  mouseCursor: SystemMouseCursors.click,
+                  onTap: () => isFolder ? onToggle(node) : onSelect(node),
+                  overlayColor: WidgetStateProperty.resolveWith((states) {
+                    if (states.contains(WidgetState.pressed)) return theme.colors.surfacePressed;
+                    if (states.contains(WidgetState.hovered) || states.contains(WidgetState.focused)) {
+                      return theme.colors.surfaceHover;
+                    }
+                    return Colors.transparent;
+                  }),
+                  child: Ink(
+                    height: _rowHeight,
+                    padding: const EdgeInsets.symmetric(horizontal: 6),
+                    decoration: BoxDecoration(
+                      color: isSelected ? theme.colors.surfaceSubtle : Colors.transparent,
+                      borderRadius: radius,
+                    ),
+                    child: Row(
+                      children: [
+                        SizedBox(
+                          width: _iconSize,
+                          child: isFolder
+                              ? Icon(
+                                  isExpanded ? LucideIcons.chevronDown : LucideIcons.chevronRight,
+                                  size: 14,
+                                  color: theme.colors.textMuted,
+                                )
+                              : null,
+                        ),
+                        const SizedBox(width: 5),
+                        Icon(
+                          isFolder ? LucideIcons.folder : LucideIcons.file,
+                          size: _iconSize,
+                          color: theme.colors.textSecondary,
+                        ),
+                        const SizedBox(width: 7),
+                        Expanded(
+                          child: editingId == node.id
+                              ? editor!
+                              : Text(
+                                  node.name,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: theme.typo.body,
+                                ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -229,6 +242,95 @@ class FileTreePopup extends StatelessWidget {
         padding: const WidgetStatePropertyAll(EdgeInsets.zero),
         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
         shape: WidgetStatePropertyAll(RoundedRectangleBorder(borderRadius: theme.geo.radiusSmall)),
+      ),
+    );
+  }
+}
+
+class _DropRow extends StatefulWidget {
+  const _DropRow({
+    required this.node,
+    required this.enabled,
+    required this.canMove,
+    required this.onMove,
+    required this.child,
+  });
+
+  final FileTreeNode node;
+  final bool enabled;
+  final bool Function(String, String, FileTreeDropPosition) canMove;
+  final void Function(String, String, FileTreeDropPosition) onMove;
+  final Widget child;
+
+  @override
+  State<_DropRow> createState() => _DropRowState();
+}
+
+class _DropRowState extends State<_DropRow> {
+  FileTreeDropPosition? _hover;
+
+  FileTreeDropPosition _position(Offset globalPosition) {
+    final box = context.findRenderObject()! as RenderBox;
+    final y = box.globalToLocal(globalPosition).dy;
+    if (y < 8) return FileTreeDropPosition.before;
+    if (y > 22) return FileTreeDropPosition.after;
+    return widget.node.type == FileTreeNodeType.folder
+        ? FileTreeDropPosition.inside
+        : y < 15
+        ? FileTreeDropPosition.before
+        : FileTreeDropPosition.after;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = BTheme.of(context);
+    final row = widget.enabled
+        ? Draggable<String>(
+            data: widget.node.id,
+            allowedButtonsFilter: (buttons) => buttons == kPrimaryButton,
+            dragAnchorStrategy: pointerDragAnchorStrategy,
+            feedback: Material(
+              color: theme.colors.surfaceRaised,
+              borderRadius: theme.geo.radiusSmall,
+              elevation: 4,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                child: Text(widget.node.name, style: theme.typo.body),
+              ),
+            ),
+            childWhenDragging: Opacity(opacity: 0.4, child: widget.child),
+            child: widget.child,
+          )
+        : widget.child;
+
+    return DragTarget<String>(
+      onWillAcceptWithDetails: (details) => widget.enabled && details.data != widget.node.id,
+      onMove: (details) {
+        final position = _position(details.offset);
+        final valid = widget.canMove(details.data, widget.node.id, position);
+        if (_hover != (valid ? position : null)) setState(() => _hover = valid ? position : null);
+      },
+      onLeave: (_) {
+        if (_hover != null) setState(() => _hover = null);
+      },
+      onAcceptWithDetails: (details) {
+        final position = _position(details.offset);
+        widget.onMove(details.data, widget.node.id, position);
+        setState(() => _hover = null);
+      },
+      builder: (context, _, _) => DecoratedBox(
+        decoration: BoxDecoration(
+          color: _hover == FileTreeDropPosition.inside ? theme.colors.accentSoft : null,
+          border: Border(
+            top: _hover == FileTreeDropPosition.before
+                ? BorderSide(color: theme.colors.accent, width: 2)
+                : BorderSide.none,
+            bottom: _hover == FileTreeDropPosition.after
+                ? BorderSide(color: theme.colors.accent, width: 2)
+                : BorderSide.none,
+          ),
+        ),
+        child: row,
       ),
     );
   }

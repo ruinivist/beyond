@@ -87,6 +87,41 @@ class _CanvasFilePickerState extends State<CanvasFilePicker> {
     Navigator.of(context).pop(id);
   }
 
+  (String?, String?) _destination(String sourceId, String targetId, FileTreeDropPosition position) {
+    final target = _library.file(targetId);
+    if (position == FileTreeDropPosition.inside) return (target.id, null);
+    if (position == FileTreeDropPosition.before) return (target.parentId, target.id);
+    final siblings = _library.files.where((file) => file.parentId == target.parentId && file.id != sourceId).toList();
+    final index = siblings.indexWhere((file) => file.id == targetId);
+    return (target.parentId, index + 1 < siblings.length ? siblings[index + 1].id : null);
+  }
+
+  CanvasLibrary _movedLibrary(String sourceId, String targetId, FileTreeDropPosition position) {
+    final (parentId, beforeId) = _destination(sourceId, targetId, position);
+    return _library.move(sourceId, parentId: parentId, beforeId: beforeId);
+  }
+
+  bool _canMove(String sourceId, String targetId, FileTreeDropPosition position) {
+    try {
+      return !identical(_movedLibrary(sourceId, targetId, position), _library);
+    } on FormatException {
+      return false;
+    }
+  }
+
+  Future<void> _move(String sourceId, String targetId, FileTreeDropPosition position) async {
+    if (_busy || _editing != null) return;
+    CanvasLibrary next;
+    try {
+      next = _movedLibrary(sourceId, targetId, position);
+    } on FormatException catch (error) {
+      setState(() => _error = error.message);
+      return;
+    }
+    if (identical(next, _library) || !await _save(next) || !mounted) return;
+    if (position == FileTreeDropPosition.inside) setState(() => _expanded.add(targetId));
+  }
+
   Future<bool> _save(CanvasLibrary next) async {
     if (_busy) return false;
     setState(() => _busy = true);
@@ -203,6 +238,8 @@ class _CanvasFilePickerState extends State<CanvasFilePicker> {
                 onToggle: (node) => setState(() {
                   if (!_expanded.remove(node.id)) _expanded.add(node.id);
                 }),
+                canMove: _canMove,
+                onMove: _move,
                 onNewFile: () => _create(folder: false),
                 onNewFolder: () => _create(folder: true),
                 onClose: () => Navigator.of(context).pop(),

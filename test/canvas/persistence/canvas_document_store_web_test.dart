@@ -63,4 +63,40 @@ void main() {
       throwsFormatException,
     );
   });
+
+  test('persists sibling order and folder moves without changing canvas contents', () async {
+    final library = CanvasLibrary(
+      currentId: 'a',
+      files: [
+        const CanvasFile(id: 'a', name: 'A', document: CanvasLibrary.emptyDocument),
+        const CanvasFile(id: 'b', name: 'B', document: CanvasLibrary.emptyDocument),
+        const CanvasFile(id: 'folder', name: 'Folder'),
+        const CanvasFile(id: 'nested', name: 'Nested', parentId: 'folder'),
+        const CanvasFile(id: 'child', name: 'Child', parentId: 'nested', document: CanvasLibrary.emptyDocument),
+        const CanvasFile(id: 'duplicate', name: 'A', parentId: 'folder', document: CanvasLibrary.emptyDocument),
+      ],
+    );
+
+    final reordered = library.move('b', parentId: null, beforeId: 'a');
+    expect(reordered.files.where((file) => file.parentId == null).map((file) => file.id), ['b', 'a', 'folder']);
+    final nested = reordered.move('b', parentId: 'nested');
+    expect(nested.file('b').parentId, 'nested');
+    final outdented = nested.move('b', parentId: null);
+    expect(outdented.files.where((file) => file.parentId == null).map((file) => file.id), ['a', 'folder', 'b']);
+    expect(outdented.currentId, 'a');
+    expect(outdented.file('child').parentId, 'nested');
+    final movedFolder = outdented.move('nested', parentId: null);
+    expect(movedFolder.path('child').map((file) => file.id), ['nested', 'child']);
+    expect(() => outdented.move('folder', parentId: 'nested'), throwsFormatException);
+    expect(() => outdented.move('a', parentId: 'folder'), throwsFormatException);
+    expect(identical(outdented.move('b', parentId: null), outdented), isTrue);
+
+    final store = CanvasDocumentStore();
+    await store.saveLibrary(outdented);
+    final restored = CanvasDocumentStore();
+    await restored.load();
+    expect(restored.library.files.map((file) => file.id), outdented.files.map((file) => file.id));
+    expect(restored.library.file('b').parentId, isNull);
+    expect(restored.library.current.document!.toJson(), library.current.document!.toJson());
+  });
 }

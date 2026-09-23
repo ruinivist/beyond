@@ -7,6 +7,7 @@ import 'package:beyond/canvas/editor/widgets/canvas_file_picker.dart';
 import 'package:beyond/canvas/editor/widgets/canvas_title.dart';
 import 'package:beyond/canvas/persistence/canvas_library.dart';
 import 'package:beyond/canvas/tools/text/text_tool.dart';
+import 'package:beyond/theme/starless.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -120,6 +121,58 @@ void main() {
     expect(find.byType(CanvasFilePicker), findsNothing);
     expect(store.library.currentId, isNot(previousId));
     expect(store.library.current.document!.elements, isEmpty);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('drag moves save and failed moves keep the original tree', (tester) async {
+    final store = _FailingLibraryStore()
+      ..library = CanvasLibrary(
+        currentId: 'a',
+        files: [
+          const CanvasFile(id: 'a', name: 'A', document: CanvasLibrary.emptyDocument),
+          const CanvasFile(id: 'b', name: 'B', document: CanvasLibrary.emptyDocument),
+          const CanvasFile(id: 'folder', name: 'Folder'),
+        ],
+      );
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: starlessLightThemeData,
+        home: Scaffold(
+          body: Center(
+            child: CanvasFilePicker(library: store.library, onSave: store.saveLibrary),
+          ),
+        ),
+      ),
+    );
+
+    Future<void> drag(String sourceId, String targetId, {bool inside = false}) async {
+      final target = find.byKey(ValueKey('file-tree-node-$targetId'));
+      final gesture = await tester.startGesture(
+        tester.getCenter(find.byKey(ValueKey('file-tree-node-$sourceId'))),
+        kind: PointerDeviceKind.mouse,
+      );
+      await gesture.moveBy(const Offset(20, 0));
+      await tester.pump();
+      await gesture.moveTo(inside ? tester.getCenter(target) : tester.getTopLeft(target) + const Offset(30, 3));
+      await tester.pump();
+      await gesture.up();
+      await tester.pumpAndSettle();
+    }
+
+    await drag('b', 'a');
+    expect(store.library.files.where((file) => file.parentId == null).map((file) => file.id), ['b', 'a', 'folder']);
+    await drag('b', 'folder', inside: true);
+    expect(store.library.file('b').parentId, 'folder');
+    expect(find.byKey(const ValueKey('file-tree-node-b')), findsOneWidget);
+    await drag('b', 'a');
+    expect(store.library.file('b').parentId, isNull);
+    expect(store.library.files.where((file) => file.parentId == null).map((file) => file.id), ['b', 'a', 'folder']);
+    await drag('b', 'folder', inside: true);
+
+    store.fail = true;
+    await drag('a', 'folder', inside: true);
+    expect(store.library.file('a').parentId, isNull);
+    expect(find.text('Could not save changes. Please try again.'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 }
