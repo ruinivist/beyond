@@ -5,6 +5,7 @@ import 'package:beyond/canvas/document/canvas_document.dart';
 import 'package:beyond/canvas/editor/canvas_background.dart';
 import 'package:beyond/canvas/editor/widgets/canvas_file_picker.dart';
 import 'package:beyond/canvas/editor/widgets/canvas_title.dart';
+import 'package:beyond/canvas/editor/widgets/file_tree_popup.dart';
 import 'package:beyond/canvas/persistence/canvas_library.dart';
 import 'package:beyond/canvas/tools/text/text_tool.dart';
 import 'package:beyond/theme/starless.dart';
@@ -44,7 +45,10 @@ void main() {
     expect(store.library.current.document!.elements.whereType<TextElementData>().single.markdown, contains('edited'));
 
     await tester.tap(find.byTooltip('New folder'));
-    await _name(tester, 'Notes');
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField), 'Notes');
+    await tester.tapAt(tester.getBottomLeft(find.byType(FileTreePopup)) + const Offset(24, -12));
+    await tester.pumpAndSettle();
     final folder = store.library.files.singleWhere((file) => file.isFolder);
     await tester.tap(find.text('Notes'), buttons: kSecondaryMouseButton);
     await tester.pumpAndSettle();
@@ -66,10 +70,11 @@ void main() {
     await tester.tap(find.byKey(ValueKey('file-tree-node-$canvasId')), buttons: kSecondaryMouseButton);
     await tester.pumpAndSettle();
     await tester.tap(find.text('Rename'));
-    await _name(tester, 'Ideas');
-    expect(store.library.current.name, 'Ideas');
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField), 'Ideas');
     await tester.tap(find.byKey(ValueKey('file-tree-node-$originalId')));
     await tester.pumpAndSettle();
+    expect(store.library.file(canvasId).name, 'Ideas');
     expect(store.library.currentId, originalId);
     expect(tester.widget<TextTool>(find.byType(TextTool)).model.node.markdown, contains('edited'));
     expect(tester.takeException(), isNull);
@@ -80,7 +85,10 @@ void main() {
     await pumpCanvas(tester, store);
     await _open(tester);
     await tester.tap(find.byTooltip('New canvas'));
-    await _name(tester, 'Untitled');
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField), 'Untitled');
+    await tester.tapAt(const Offset(790, 590));
+    await tester.pumpAndSettle();
     expect(find.text('This name is already in use'), findsOneWidget);
     await tester.sendKeyEvent(LogicalKeyboardKey.escape);
     await tester.pumpAndSettle();
@@ -90,7 +98,10 @@ void main() {
 
     store.fail = true;
     await tester.tap(find.byTooltip('New folder'));
-    await _name(tester, 'Unsaved');
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField), 'Unsaved');
+    await tester.tapAt(const Offset(790, 590));
+    await tester.pumpAndSettle();
     expect(find.text('Could not save changes. Please try again.'), findsOneWidget);
     expect(store.library.files, hasLength(1));
     expect(find.byType(TextField), findsOneWidget);
@@ -121,6 +132,32 @@ void main() {
     expect(find.byType(CanvasFilePicker), findsNothing);
     expect(store.library.currentId, isNot(previousId));
     expect(store.library.current.document!.elements, isEmpty);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('click-away creates a canvas and preserves a clicked file selection', (tester) async {
+    final store = TestCanvasDocumentStore();
+    await pumpCanvas(tester, store);
+    final originalId = store.library.currentId;
+
+    await _open(tester);
+    await tester.tap(find.byTooltip('New canvas'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField), 'First');
+    await tester.tapAt(const Offset(790, 590));
+    await tester.pumpAndSettle();
+    expect(find.byType(CanvasFilePicker), findsNothing);
+    expect(store.library.current.name, 'First');
+
+    await _open(tester);
+    await tester.tap(find.byTooltip('New canvas'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField), 'Second');
+    await tester.tap(find.byKey(ValueKey('file-tree-node-$originalId')));
+    await tester.pumpAndSettle();
+    expect(find.byType(CanvasFilePicker), findsNothing);
+    expect(store.library.currentId, originalId);
+    expect(store.library.files.map((file) => file.name), containsAll(['First', 'Second']));
     expect(tester.takeException(), isNull);
   });
 

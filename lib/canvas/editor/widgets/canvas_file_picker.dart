@@ -1,6 +1,8 @@
 // Coordinates file-tree navigation and inline creation and renaming.
 // Used by the canvas title to manage the browser's saved library.
 
+import 'dart:async';
+
 import 'package:beyond/canvas/editor/widgets/file_tree_popup.dart';
 import 'package:beyond/canvas/persistence/canvas_library.dart';
 import 'package:beyond/theme/theme.dart';
@@ -62,29 +64,61 @@ class _CanvasFilePickerState extends State<CanvasFilePicker> {
     ),
   );
 
-  Future<void> _saveName() async {
+  Future<bool> _saveName({String? openId, bool close = false}) async {
     final editing = _editing;
-    if (editing == null || _busy) return;
+    if (editing == null || _busy) return false;
     final error = _library.nameError(_name.text, editing.parentId, exceptId: editing.id);
     if (error != null) {
       setState(() => _error = error);
       _nameFocus.requestFocus();
-      return;
+      return false;
     }
     final file = editing.copyWith(name: _name.text.trim());
     final exists = _library.files.any((entry) => entry.id == file.id);
     var next = exists
         ? _library.replace(file)
         : CanvasLibrary(files: [..._library.files, file], currentId: _library.currentId);
-    if (!exists && !file.isFolder) next = next.select(file.id);
-    if (!await _save(next) || !mounted) return;
+    final selectedId = openId ?? (!exists && !file.isFolder ? file.id : null);
+    if (selectedId != null) next = next.select(selectedId);
+    if (!await _save(next) || !mounted) return false;
     setState(() => _editing = null);
-    if (!exists && !file.isFolder) Navigator.of(context).pop(file.id);
+    if (selectedId != null || close) Navigator.of(context).pop(selectedId);
+    return true;
   }
 
   Future<void> _open(String id) async {
+    if (_editing != null) {
+      await _saveName(openId: id);
+      return;
+    }
     if (!await _save(_library.select(id)) || !mounted) return;
     Navigator.of(context).pop(id);
+  }
+
+  Future<bool> _commitPendingEdit() async {
+    final editing = _editing;
+    if (editing == null) return true;
+    final opensCanvas = !editing.isFolder && !_library.files.any((file) => file.id == editing.id);
+    return await _saveName() && !opensCanvas && mounted;
+  }
+
+  Future<void> _toggle(String id) async {
+    if (!await _commitPendingEdit()) return;
+    setState(() {
+      if (!_expanded.remove(id)) _expanded.add(id);
+    });
+  }
+
+  Future<void> _createAfterEdit({required bool folder, String? parentId}) async {
+    if (await _commitPendingEdit()) _create(folder: folder, parentId: parentId);
+  }
+
+  void _close() {
+    if (_editing != null) {
+      unawaited(_saveName(close: true));
+    } else if (!_busy) {
+      Navigator.of(context).pop();
+    }
   }
 
   (String?, String?) _destination(String sourceId, String targetId, FileTreeDropPosition position) {
@@ -196,8 +230,11 @@ class _CanvasFilePickerState extends State<CanvasFilePicker> {
   }
 
   @override
-  Widget build(BuildContext context) => PopScope(
-    canPop: !_busy,
+  Widget build(BuildContext context) => PopScope<String>(
+    canPop: !_busy && _editing == null,
+    onPopInvokedWithResult: (didPop, _) {
+      if (!didPop && _editing != null && !_busy) unawaited(_saveName(close: true));
+    },
     child: Dialog(
       backgroundColor: Colors.transparent,
       elevation: 0,
@@ -208,66 +245,78 @@ class _CanvasFilePickerState extends State<CanvasFilePicker> {
           mainAxisSize: MainAxisSize.min,
           children: [
             Flexible(
-              child: FileTreePopup(
-                nodes: _nodes(null),
-                selectedId: _library.currentId,
-                expandedIds: _expanded,
-                editingId: _editing?.id,
-                editor: CallbackShortcuts(
-                  bindings: {
-                    const SingleActivator(LogicalKeyboardKey.escape): () => setState(() {
-                      _editing = null;
-                      _error = null;
-                    }),
-                  },
-                  child: TextField(
-                    controller: _name,
-                    focusNode: _nameFocus,
-                    autofocus: true,
-                    style: BTheme.of(context).typo.body,
-                    decoration: const InputDecoration(
-                      hintText: 'Name',
-                      isDense: true,
-                      contentPadding: EdgeInsets.symmetric(vertical: 5),
-                      border: InputBorder.none,
-                    ),
-                    onSubmitted: (_) => _saveName(),
-                  ),
-                ),
-                onSelect: (node) => _open(node.id),
-                onToggle: (node) => setState(() {
-                  if (!_expanded.remove(node.id)) _expanded.add(node.id);
-                }),
-                canMove: _canMove,
-                onMove: _move,
-                onNewFile: () => _create(folder: false),
-                onNewFolder: () => _create(folder: true),
-                onClose: () => Navigator.of(context).pop(),
-                actionsFor: (node) {
-                  final file = _library.files.where((file) => file.id == node.id).firstOrNull;
-                  if (file == null) return [];
-                  return [
-                    if (file.isFolder) ...[
-                      BContextMenuAction(
-                        label: 'New canvas',
-                        icon: LucideIcons.filePlus,
-                        onPressed: () => _create(folder: false, parentId: file.id),
-                      ),
-                      BContextMenuAction(
-                        label: 'New folder',
-                        icon: LucideIcons.folderPlus,
-                        onPressed: () => _create(folder: true, parentId: file.id),
-                      ),
-                    ],
-                    BContextMenuAction(label: 'Rename', icon: LucideIcons.pencil, onPressed: () => _edit(file)),
-                    BContextMenuAction(
-                      label: 'Delete',
-                      icon: LucideIcons.trash2,
-                      destructive: true,
-                      onPressed: () => _delete(file),
-                    ),
-                  ];
+              child: GestureDetector(
+                behavior: HitTestBehavior.translucent,
+                onTap: () {
+                  if (_editing != null) unawaited(_saveName());
                 },
+                child: FileTreePopup(
+                  nodes: _nodes(null),
+                  selectedId: _library.currentId,
+                  expandedIds: _expanded,
+                  editingId: _editing?.id,
+                  editor: CallbackShortcuts(
+                    bindings: {
+                      const SingleActivator(LogicalKeyboardKey.escape): () => setState(() {
+                        _editing = null;
+                        _error = null;
+                      }),
+                    },
+                    child: TextField(
+                      controller: _name,
+                      focusNode: _nameFocus,
+                      autofocus: true,
+                      style: BTheme.of(context).typo.body,
+                      decoration: const InputDecoration(
+                        hintText: 'Name',
+                        isDense: true,
+                        contentPadding: EdgeInsets.symmetric(vertical: 5),
+                        border: InputBorder.none,
+                      ),
+                      onSubmitted: (_) => _saveName(),
+                    ),
+                  ),
+                  onSelect: (node) => _open(node.id),
+                  onToggle: (node) => _toggle(node.id),
+                  canMove: _canMove,
+                  onMove: _move,
+                  onNewFile: () => _createAfterEdit(folder: false),
+                  onNewFolder: () => _createAfterEdit(folder: true),
+                  onClose: _close,
+                  actionsFor: (node) {
+                    final file = _library.files.where((file) => file.id == node.id).firstOrNull;
+                    if (file == null) return [];
+                    return [
+                      if (file.isFolder) ...[
+                        BContextMenuAction(
+                          label: 'New canvas',
+                          icon: LucideIcons.filePlus,
+                          onPressed: () => _createAfterEdit(folder: false, parentId: file.id),
+                        ),
+                        BContextMenuAction(
+                          label: 'New folder',
+                          icon: LucideIcons.folderPlus,
+                          onPressed: () => _createAfterEdit(folder: true, parentId: file.id),
+                        ),
+                      ],
+                      BContextMenuAction(
+                        label: 'Rename',
+                        icon: LucideIcons.pencil,
+                        onPressed: () async {
+                          if (await _commitPendingEdit()) _edit(_library.file(file.id));
+                        },
+                      ),
+                      BContextMenuAction(
+                        label: 'Delete',
+                        icon: LucideIcons.trash2,
+                        destructive: true,
+                        onPressed: () async {
+                          if (await _commitPendingEdit()) await _delete(_library.file(file.id));
+                        },
+                      ),
+                    ];
+                  },
+                ),
               ),
             ),
             if (_error != null)
