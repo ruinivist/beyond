@@ -1365,7 +1365,7 @@ class _CanvasPageState extends State<CanvasPage> {
       if (!mounted) return;
       final id = await showDialog<String>(
         context: context,
-        barrierColor: BTheme.of(context).colors.scrim,
+        barrierColor: Colors.transparent,
         builder: (_) => CanvasFilePicker(
           library: _documentStore.library,
           onSave: _documentStore.saveLibrary,

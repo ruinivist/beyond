@@ -64,7 +64,8 @@ class FileTreePopup extends StatelessWidget {
   final String? editingId;
   final Widget? editor;
 
-  static const _width = 320.0;
+  static const _width = 380.0;
+  static const _minHeight = 360.0;
   static const _maxHeight = 420.0;
   static const _rowHeight = 30.0;
   static const _indent = 18.0;
@@ -79,7 +80,7 @@ class FileTreePopup extends StatelessWidget {
       width: _width,
       child: BContainer(
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxHeight: _maxHeight),
+          constraints: const BoxConstraints(minHeight: _minHeight, maxHeight: _maxHeight),
           child: Stack(
             children: [
               AnimatedPrimaryScrollController(
