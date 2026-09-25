@@ -170,7 +170,7 @@ class FileTreePopup extends StatelessWidget {
                     height: _rowHeight,
                     padding: const EdgeInsets.symmetric(horizontal: 6),
                     decoration: BoxDecoration(
-                      color: isSelected ? theme.colors.surfaceSubtle : Colors.transparent,
+                      color: isSelected || editingId == node.id ? theme.colors.surfaceSubtle : Colors.transparent,
                       borderRadius: radius,
                     ),
                     child: Row(

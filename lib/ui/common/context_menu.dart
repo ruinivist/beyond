@@ -134,6 +134,13 @@ class BContextMenu extends StatelessWidget {
           mouseCursor: SystemMouseCursors.contextMenu,
           onTap: controller.open,
           onSecondaryTapDown: (details) => controller.open(position: details.localPosition),
+          overlayColor: WidgetStateProperty.resolveWith((states) {
+            if (states.contains(WidgetState.pressed)) return theme.colors.surfacePressed;
+            if (states.contains(WidgetState.hovered) || states.contains(WidgetState.focused)) {
+              return theme.colors.surfaceHover;
+            }
+            return Colors.transparent;
+          }),
           child: child,
         ),
       ),
