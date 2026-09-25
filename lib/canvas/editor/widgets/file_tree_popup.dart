@@ -142,7 +142,7 @@ class FileTreePopup extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         Padding(
-          padding: EdgeInsets.only(left: depth * _indent),
+          padding: EdgeInsets.only(left: depth * _indent, bottom: 2),
           child: _DropRow(
             node: node,
             enabled: editingId == null,
@@ -166,15 +166,28 @@ class FileTreePopup extends StatelessWidget {
                     }
                     return Colors.transparent;
                   }),
-                  child: Ink(
+                  child: Container(
                     height: _rowHeight,
-                    padding: const EdgeInsets.symmetric(horizontal: 6),
+                    padding: const EdgeInsets.only(right: 6),
                     decoration: BoxDecoration(
-                      color: isSelected || editingId == node.id ? theme.colors.surfaceSubtle : Colors.transparent,
+                      color: isSelected
+                          ? theme.colors.accentSoft
+                          : editingId == node.id
+                          ? theme.colors.surfaceSubtle
+                          : Colors.transparent,
                       borderRadius: radius,
                     ),
                     child: Row(
                       children: [
+                        Container(
+                          width: 3,
+                          height: _rowHeight,
+                          decoration: BoxDecoration(
+                            color: isSelected ? theme.colors.accent : null,
+                            borderRadius: radius,
+                          ),
+                        ),
+                        const SizedBox(width: 3),
                         SizedBox(
                           width: _iconSize,
                           child: isFolder
