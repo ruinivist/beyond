@@ -38,6 +38,10 @@ void main() {
     expect(find.text('100%'), findsOneWidget);
     expect(find.byKey(const ValueKey('zoom-out')).hitTestable(), findsNothing);
     expect(find.bySemanticsLabel('Reset zoom to 100%'), findsOneWidget);
+    expect(
+      tester.getSize(find.byKey(const ValueKey('zoom-control'))),
+      tester.getSize(find.byKey(const ValueKey('zoom-reset'))),
+    );
 
     controller.updateScalebyDelta(0.2);
     await tester.pump();
@@ -49,6 +53,12 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byKey(const ValueKey('zoom-out')).hitTestable(), findsOneWidget);
+    expect(find.byKey(const ValueKey('zoom-in')).hitTestable(), findsOneWidget);
+    final out = tester.getRect(find.byKey(const ValueKey('zoom-out')));
+    final reset = tester.getRect(find.byKey(const ValueKey('zoom-reset')));
+    final zoomIn = tester.getRect(find.byKey(const ValueKey('zoom-in')));
+    expect(out.right, lessThanOrEqualTo(reset.left));
+    expect(reset.right, lessThanOrEqualTo(zoomIn.left));
     expect(_semanticsLabel('Zoom out'), findsOneWidget);
     expect(_semanticsLabel('Zoom in'), findsOneWidget);
 

@@ -26,8 +26,8 @@ class _ZoomControlState extends State<ZoomControl> {
 
   static const _animationDuration = Duration(milliseconds: 150);
   static const _collapsedWidth = 48.0;
-  static const _expandedWidth = 128.0;
-  static const _height = 40.0;
+  static final double _expandedWidth = _collapsedWidth + 2 * BSizes.defaultIconButtonSize.width;
+  static final double _height = BSizes.defaultIconButtonSize.height;
   static const _minScale = 0.25;
   static const _maxScale = 2.0;
   static const _scaleStep = 0.1;
@@ -135,9 +135,8 @@ class _ZoomControlState extends State<ZoomControl> {
           textStyle: WidgetStatePropertyAll(
             theme.typo.body.copyWith(fontSize: 12),
           ),
-          fixedSize: const WidgetStatePropertyAll(
-            Size(_collapsedWidth, _height),
-          ),
+          minimumSize: const WidgetStatePropertyAll(Size.zero),
+          fixedSize: WidgetStatePropertyAll(Size(_collapsedWidth, _height)),
           padding: const WidgetStatePropertyAll(EdgeInsets.zero),
           tapTargetSize: MaterialTapTargetSize.shrinkWrap,
           mouseCursor: const WidgetStatePropertyAll(SystemMouseCursors.click),
@@ -173,6 +172,7 @@ class _ZoomControlState extends State<ZoomControl> {
                 child: ToolbarButton(
                   key: key,
                   selected: false,
+                  compact: true,
                   onPressed: onPressed,
                   child: Icon(icon, size: 15),
                 ),

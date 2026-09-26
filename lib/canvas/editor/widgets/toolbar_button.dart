@@ -1,5 +1,5 @@
 // Provides the canvas toolbar's button styles and sizing.
-// Used by toolbar actions and compact tool option buttons.
+// Used by toolbar actions and tool option buttons.
 
 import 'package:beyond/theme/theme.dart';
 import 'package:flutter/material.dart';
@@ -13,12 +13,14 @@ class ToolbarButton extends StatelessWidget {
     required this.onPressed,
     required this.child,
     required this.selected,
+    this.compact = false,
     super.key,
   });
 
   final VoidCallback? onPressed;
   final Widget child;
   final bool selected;
+  final bool compact;
 
   // ---------- Rendering ----------
 
@@ -56,11 +58,14 @@ class ToolbarButton extends StatelessWidget {
           ),
           textStyle: WidgetStatePropertyAll(theme.typo.body),
           padding: const WidgetStatePropertyAll(EdgeInsets.zero),
-          fixedSize: const WidgetStatePropertyAll(BSizes.defaultIconButtonSize),
+          minimumSize: WidgetStatePropertyAll(
+            compact ? Size.zero : const Size(88, 48),
+          ),
+          fixedSize: compact ? const WidgetStatePropertyAll(BSizes.defaultIconButtonSize) : null,
           tapTargetSize: MaterialTapTargetSize.shrinkWrap,
         ),
         child: IconTheme.merge(
-          data: const IconThemeData(size: BSizes.defaultIconSize),
+          data: const IconThemeData(size: 16),
           child: child,
         ),
       ),
