@@ -61,7 +61,16 @@ CanvasProject rebaseCanvasProjectAttachments(CanvasProject project, Set<String> 
       if (reservedPaths.contains(path)) path: 'attachments/${const Uuid().v4()}.${path.split('.').last}',
   };
   if (replacements.isEmpty) return project;
-  final document = project.document.copy();
+  return CanvasProject(
+    document: rebaseCanvasDocumentAttachments(project.document, replacements),
+    attachments: {
+      for (final entry in project.attachments.entries) replacements[entry.key] ?? entry.key: entry.value,
+    },
+  );
+}
+
+CanvasDocument rebaseCanvasDocumentAttachments(CanvasDocument source, Map<String, String> replacements) {
+  final document = source.copy();
   for (final element in document.elements) {
     if (element is MediaElementData) {
       element.url = replacements[element.url.trim()] ?? element.url;
@@ -71,12 +80,7 @@ CanvasProject rebaseCanvasProjectAttachments(CanvasProject project, Set<String> 
       }
     }
   }
-  return CanvasProject(
-    document: document,
-    attachments: {
-      for (final entry in project.attachments.entries) replacements[entry.key] ?? entry.key: entry.value,
-    },
-  );
+  return document;
 }
 
 /// Encodes a document and its referenced attachments as a portable project.
@@ -164,7 +168,7 @@ Future<CanvasProject> decodeCanvasProject(Uint8List bytes) async {
   }
 
   for (final path in referencedPaths) {
-    await _validateEncodedImage(path, attachments[path]!);
+    await validateCanvasAttachment(path, attachments[path]!);
   }
 
   return CanvasProject(document: document, attachments: attachments);
@@ -214,7 +218,9 @@ Map<String, Object?> _jsonMap(Object? value, String field) {
   return result;
 }
 
-Future<void> _validateEncodedImage(String path, Uint8List bytes) async {
+Future<void> validateCanvasAttachment(String path, Uint8List bytes) async {
+  if (!attachmentPathPattern.hasMatch(path)) throw FormatException('Invalid attachment path: $path');
+  validateAttachmentSize(bytes.length, 'Attachment exceeds 10 MiB: $path');
   ImmutableBuffer? buffer;
   ImageDescriptor? descriptor;
   try {

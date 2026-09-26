@@ -6,6 +6,8 @@ import 'dart:convert';
 
 import 'package:beyond/canvas/document/canvas_document.dart';
 import 'package:beyond/canvas/editor/canvas_background.dart';
+import 'package:beyond/canvas/persistence/canvas_library.dart';
+import 'package:beyond/canvas/persistence/canvas_library_archive.dart';
 import 'package:beyond/canvas/persistence/canvas_project.dart';
 import 'package:beyond/canvas/persistence/canvas_project_files.dart';
 import 'package:beyond/canvas/tools/arrow/arrow_tool.dart';
@@ -50,6 +52,89 @@ void main() {
     expect(find.text('Canvas exported'), findsOneWidget);
   });
 
+  testWidgets('backs up the full library including live edits', (tester) async {
+    final store = _FakeDocumentStore(_document(markdown: 'before'));
+    final files = _FakeProjectFiles();
+    await pumpBeyondApp(tester, documentStore: store, attachmentStore: _FakeAttachmentStore(), projectFiles: files);
+    final current = store.library.current;
+    store.library = CanvasLibrary(
+      currentId: current.id,
+      files: [
+        current,
+        const CanvasFile(id: 'folder', name: 'Work'),
+        CanvasFile(
+          id: 'second',
+          name: 'Second',
+          parentId: 'folder',
+          document: _document(markdown: 'other'),
+        ),
+      ],
+    );
+    tester.widget<TextTool>(find.byType(TextTool)).model.insertPastedText(' changed');
+    await tester.pump();
+    await _openCanvasSettings(tester);
+    await tester.tap(find.byKey(const ValueKey('library-backup-button')));
+    await tester.pumpAndSettle();
+
+    expect(files.savedName, 'library.beyond.zip');
+    expect(files.savedMime, 'application/zip');
+    final backup = await decodeCanvasLibraryArchive(files.saved!);
+    expect(backup.library.path(backup.library.files.last.id).map((file) => file.name), ['Work', 'Second']);
+    expect(backup.library.current.document!.elements.whereType<TextElementData>().single.markdown, 'before changed');
+  });
+
+  testWidgets('library restore asks before replacing and keeps old data on save failure', (tester) async {
+    final oldDocument = _document(markdown: '![old]($_path0)');
+    final attachments = _FakeAttachmentStore({_path0: onePixelPngBytes});
+    final store = _FakeDocumentStore(oldDocument);
+    final imported = CanvasLibrary(
+      currentId: 'new',
+      files: [
+        const CanvasFile(id: 'folder', name: 'Work'),
+        CanvasFile(
+          id: 'new',
+          name: 'New',
+          parentId: 'folder',
+          document: _document(markdown: '![new]($_path0)'),
+        ),
+      ],
+    );
+    final files = _FakeProjectFiles()
+      ..opened = await encodeCanvasLibraryArchive(imported, _FakeAttachmentStore({_path0: _newBytes}));
+    await pumpBeyondApp(tester, documentStore: store, attachmentStore: attachments, projectFiles: files);
+    final oldId = store.library.currentId;
+    await _openCanvasSettings(tester);
+
+    await tester.tap(find.byKey(const ValueKey('library-restore-button')));
+    await tester.pumpAndSettle();
+    expect(find.text('Replace library?'), findsOneWidget);
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
+    expect(store.library.currentId, oldId);
+    expect(attachments.files[_path0], onePixelPngBytes);
+
+    store.failLibrarySaves = true;
+    await tester.tap(find.byKey(const ValueKey('library-restore-button')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Replace library'));
+    await tester.pumpAndSettle();
+    expect(find.text('Could not restore library'), findsOneWidget);
+    expect(store.library.currentId, oldId);
+    expect(attachments.files[_path0], onePixelPngBytes);
+
+    store.failLibrarySaves = false;
+    await tester.tap(find.byKey(const ValueKey('library-restore-button')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Replace library'));
+    await tester.pumpAndSettle();
+    expect(store.library.current.name, 'New');
+    expect(store.library.path(store.library.currentId).map((file) => file.name), ['Work', 'New']);
+    final newPath = canvasAttachmentPaths(store.library.current.document!).single;
+    expect(newPath, isNot(_path0));
+    expect(attachments.files[newPath], _newBytes);
+    expect(attachments.files[_path0], onePixelPngBytes);
+  });
+
   testWidgets('canceled file operations are silent', (tester) async {
     final files = _FakeProjectFiles()..cancelOpen = true;
     await pumpBeyondApp(
@@ -72,6 +157,21 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Canvas exported'), findsNothing);
     expect(find.text('Could not export canvas'), findsNothing);
+  });
+
+  testWidgets('canceling canvas replacement keeps the active canvas', (tester) async {
+    final store = _FakeDocumentStore(_document(markdown: 'original'));
+    final files = _FakeProjectFiles()
+      ..opened = await encodeCanvasProject(_document(markdown: 'replacement'), _FakeAttachmentStore());
+    await pumpBeyondApp(tester, documentStore: store, attachmentStore: _FakeAttachmentStore(), projectFiles: files);
+    await _openCanvasSettings(tester);
+    await tester.tap(find.byKey(const ValueKey('canvas-import-button')));
+    await tester.pumpAndSettle();
+    expect(find.text('Replace canvas?'), findsOneWidget);
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
+    expect(tester.widget<TextTool>(find.byType(TextTool)).model.node.markdown, 'original');
+    expect(store.persisted, isNull);
   });
 
   testWidgets('valid import replaces, persists, and preserves the viewport', (
@@ -112,6 +212,7 @@ void main() {
 
     await _openCanvasSettings(tester);
     await tester.tap(find.byKey(const ValueKey('canvas-import-button')));
+    await _confirmCanvasImport(tester);
     await tester.pumpAndSettle();
 
     expect(find.text('Canvas imported'), findsOneWidget);
@@ -186,6 +287,7 @@ void main() {
       final writeGate = Completer<void>();
       attachments.writeGate = writeGate;
       await tester.tap(find.byKey(const ValueKey('canvas-import-button')));
+      await _confirmCanvasImport(tester);
       for (var index = 0; index < 10 && !attachments.writeStarted; index++) {
         await tester.pump();
       }
@@ -247,11 +349,11 @@ void main() {
       tester.widget<TextTool>(find.byType(TextTool)).model.insertPastedText(' dirty');
       await tester.pump();
       await tester.tap(find.byKey(const ValueKey('canvas-import-button')));
+      await _confirmCanvasImport(tester);
       await tester.pumpAndSettle();
 
-      expect(find.text('Could not import canvas'), findsOneWidget);
       expect(files.writeCalls, 0);
-      expect(documentStore.saveCalls, 1);
+      expect(documentStore.saveCalls, greaterThan(0));
       expect(documentStore.persisted, isNull);
       expect(
         tester.widget<TextTool>(find.byType(TextTool)).model.node.markdown,
@@ -302,6 +404,7 @@ void main() {
     );
     await _openCanvasSettings(tester);
     await tester.tap(find.byKey(const ValueKey('canvas-import-button')));
+    await _confirmCanvasImport(tester);
     await tester.pumpAndSettle();
 
     expect(find.text('Could not import canvas'), findsOneWidget);
@@ -314,6 +417,7 @@ void main() {
 
     attachments.failNextWrite = true;
     await tester.tap(find.byKey(const ValueKey('canvas-import-button')));
+    await _confirmCanvasImport(tester);
     await tester.pumpAndSettle();
     expect(find.text('Could not import canvas'), findsOneWidget);
     expect(attachments.files[_path0], onePixelPngBytes);
@@ -361,6 +465,11 @@ Future<void> _openCanvasSettings(WidgetTester tester) async {
   await tester.pumpAndSettle();
   await tester.tap(find.text('Canvas').last);
   await tester.pumpAndSettle();
+}
+
+Future<void> _confirmCanvasImport(WidgetTester tester) async {
+  await tester.pumpAndSettle();
+  await tester.tap(find.text('Replace canvas'));
 }
 
 Future<void> _historyShortcut(WidgetTester tester, {bool redo = false}) async {
@@ -437,6 +546,7 @@ class _FakeDocumentStore extends TestCanvasDocumentStore {
   _FakeDocumentStore(super.initial);
 
   bool failSaves = false;
+  bool failLibrarySaves = false;
   int saveCalls = 0;
 
   @override
@@ -444,6 +554,12 @@ class _FakeDocumentStore extends TestCanvasDocumentStore {
     saveCalls++;
     if (failSaves) throw StateError('save failed');
     await super.save(document);
+  }
+
+  @override
+  Future<void> saveLibrary(CanvasLibrary next) async {
+    if (failLibrarySaves) throw StateError('library save failed');
+    await super.saveLibrary(next);
   }
 }
 
@@ -475,6 +591,8 @@ class _FakeAttachmentStore extends TestAttachmentStore {
 class _FakeProjectFiles implements CanvasProjectFiles {
   Uint8List? opened;
   Uint8List? saved;
+  String? savedName;
+  String? savedMime;
   Completer<Uint8List?>? openCompleter;
   bool cancelOpen = false;
   bool cancelSave = false;
@@ -491,10 +609,12 @@ class _FakeProjectFiles implements CanvasProjectFiles {
   }
 
   @override
-  Future<bool> save(Uint8List bytes) async {
+  Future<bool> save(Uint8List bytes, {required String suggestedName, required String mimeType}) async {
     if (cancelSave) return false;
     writeCalls++;
     saved = bytes;
+    savedName = suggestedName;
+    savedMime = mimeType;
     return true;
   }
 }

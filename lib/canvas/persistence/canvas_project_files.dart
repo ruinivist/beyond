@@ -12,7 +12,7 @@ import 'package:file_selector/file_selector.dart';
 abstract interface class CanvasProjectFiles {
   Future<Uint8List?> open();
 
-  Future<bool> save(Uint8List bytes);
+  Future<bool> save(Uint8List bytes, {required String suggestedName, required String mimeType});
 }
 
 // ---------- Platform selection ----------
@@ -26,15 +26,15 @@ final class _PlatformCanvasProjectFiles implements CanvasProjectFiles {
   Future<Uint8List?> open() async => (await openFile())?.readAsBytes();
 
   @override
-  Future<bool> save(Uint8List bytes) async {
+  Future<bool> save(Uint8List bytes, {required String suggestedName, required String mimeType}) async {
     final location = await getSaveLocation(
-      suggestedName: 'canvas.beyond.json',
+      suggestedName: suggestedName,
     );
     if (location == null) return false;
     await XFile.fromData(
       bytes,
-      mimeType: 'application/json',
-      name: 'canvas.beyond.json',
+      mimeType: mimeType,
+      name: suggestedName,
     ).saveTo(location.path);
     return true;
   }

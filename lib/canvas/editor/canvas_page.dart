@@ -18,6 +18,8 @@ import 'package:beyond/canvas/editor/widgets/toolbar_button.dart';
 import 'package:beyond/canvas/editor/widgets/zoom_control.dart';
 import 'package:beyond/canvas/persistence/attachments/store.dart';
 import 'package:beyond/canvas/persistence/canvas_document_store.dart';
+import 'package:beyond/canvas/persistence/canvas_library.dart';
+import 'package:beyond/canvas/persistence/canvas_library_archive.dart';
 import 'package:beyond/canvas/persistence/canvas_project.dart';
 import 'package:beyond/canvas/persistence/canvas_project_files.dart';
 import 'package:beyond/canvas/tools/arrow/arrow_tool.dart';
@@ -1360,6 +1362,8 @@ class _CanvasPageState extends State<CanvasPage> {
           onCanvasBackgroundChanged: _setCanvasBackground,
           onImportCanvas: _importProject,
           onExportCanvas: _exportProject,
+          onBackupLibrary: _backupLibrary,
+          onRestoreLibrary: _restoreLibrary,
         ),
       ),
     );
@@ -1371,11 +1375,79 @@ class _CanvasPageState extends State<CanvasPage> {
     try {
       final snapshot = _currentDocument();
       final bytes = await encodeCanvasProject(snapshot, _attachmentStore);
-      if (await _projectFiles.save(bytes)) {
+      if (await _projectFiles.save(bytes, suggestedName: 'canvas.beyond.json', mimeType: 'application/json')) {
         _showProjectSnackBar('Canvas exported');
       }
     } on Object {
       _showProjectSnackBar('Could not export canvas');
+    } finally {
+      _projectTransferActive = false;
+    }
+  }
+
+  Future<void> _backupLibrary() async {
+    if (_projectTransferActive || !_documentLoaded) return;
+    _projectTransferActive = true;
+    try {
+      await _saveQueue;
+      if (!mounted) return;
+      final library = _documentStore.library;
+      final snapshot = library.replace(library.current.copyWith(document: _currentDocument()));
+      final bytes = await encodeCanvasLibraryArchive(snapshot, _attachmentStore);
+      if (await _projectFiles.save(bytes, suggestedName: 'library.beyond.zip', mimeType: 'application/zip')) {
+        _showProjectSnackBar('Library backed up');
+      }
+    } on FormatException catch (error) {
+      _showProjectSnackBar(error.message);
+    } on Object {
+      _showProjectSnackBar('Could not back up library');
+    } finally {
+      _projectTransferActive = false;
+    }
+  }
+
+  Future<bool> _confirmReplacement({required String title, required String message, required String action}) async {
+    if (!mounted) return false;
+    return await showDialog<bool>(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: Text(title),
+            content: Text(message),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+              TextButton(onPressed: () => Navigator.pop(context, true), child: Text(action)),
+            ],
+          ),
+        ) ??
+        false;
+  }
+
+  Future<bool> _restoreLibrary() async {
+    if (_projectTransferActive || !_documentLoaded) return false;
+    _projectTransferActive = true;
+    try {
+      final bytes = await _projectFiles.open();
+      if (bytes == null) return false;
+      final imported = await decodeCanvasLibraryArchive(bytes);
+      final count = imported.library.files.where((file) => !file.isFolder).length;
+      if (!await _confirmReplacement(
+        title: 'Replace library?',
+        message:
+            'Restore $count ${count == 1 ? 'canvas' : 'canvases'}? This replaces all existing canvases and folders.',
+        action: 'Replace library',
+      )) {
+        return false;
+      }
+      await _replaceAfterFlush(() => _commitImportedLibrary(imported));
+      _showProjectSnackBar('Library restored');
+      return true;
+    } on Object {
+      if (!_documentLoaded) {
+        _documentLoaded = true;
+        if (mounted) setState(() {});
+      }
+      _showProjectSnackBar('Could not restore library');
+      return false;
     } finally {
       _projectTransferActive = false;
     }
@@ -1388,19 +1460,14 @@ class _CanvasPageState extends State<CanvasPage> {
       final bytes = await _projectFiles.open();
       if (bytes == null) return false;
       final project = await decodeCanvasProject(bytes);
-
-      _saveTimer?.cancel();
-      _saveTimer = null;
-      final dirtyFlush = _documentDirty ? _enqueueDocumentSave(throwOnFailure: true) : null;
-      _documentLoaded = false;
-      if (dirtyFlush != null) await dirtyFlush;
-
-      final operation = _saveQueue.then((_) => _commitImportedProject(project));
-      _saveQueue = operation.then<void>(
-        (_) {},
-        onError: (Object error, StackTrace stackTrace) {},
-      );
-      await operation;
+      if (!await _confirmReplacement(
+        title: 'Replace canvas?',
+        message: 'Importing replaces “${_documentStore.library.current.name}”.',
+        action: 'Replace canvas',
+      )) {
+        return false;
+      }
+      await _replaceAfterFlush(() => _commitImportedProject(project));
       _showProjectSnackBar('Canvas imported');
       return true;
     } on Object {
@@ -1413,6 +1480,50 @@ class _CanvasPageState extends State<CanvasPage> {
     } finally {
       _projectTransferActive = false;
     }
+  }
+
+  Future<void> _replaceAfterFlush(Future<void> Function() commit) async {
+    _saveTimer?.cancel();
+    _saveTimer = null;
+    final dirtyFlush = _documentDirty ? _enqueueDocumentSave(throwOnFailure: true) : null;
+    _documentLoaded = false;
+    if (dirtyFlush != null) await dirtyFlush;
+    final operation = _saveQueue.then((_) => commit());
+    _saveQueue = operation.then<void>(
+      (_) {},
+      onError: (Object error, StackTrace stackTrace) {},
+    );
+    await operation;
+  }
+
+  Future<void> _commitImportedLibrary(CanvasLibraryArchive imported) async {
+    final replacements = <String, String>{};
+    final reserved = imported.attachments.keys.toSet();
+    for (final path in imported.attachments.keys.toList()..sort()) {
+      String fresh;
+      do {
+        fresh = 'attachments/${const Uuid().v4()}.${path.split('.').last}';
+      } while (reserved.contains(fresh) || await _attachmentStore.readIfExists(fresh) != null);
+      reserved.add(fresh);
+      replacements[path] = fresh;
+    }
+    final source = imported.library;
+    final next = CanvasLibrary(
+      files: [
+        for (final file in source.files)
+          if (file.isFolder)
+            file
+          else
+            file.copyWith(document: rebaseCanvasDocumentAttachments(file.document!, replacements)),
+      ],
+      currentId: source.currentId,
+    );
+    for (final entry in replacements.entries) {
+      await _attachmentStore.write(entry.value, imported.attachments[entry.key]!);
+    }
+    await _documentStore.saveLibrary(next);
+    _replaceLiveModels(next.current.document!);
+    _resetHistory();
   }
 
   Future<void> _commitImportedProject(CanvasProject imported) async {
