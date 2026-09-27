@@ -2,7 +2,7 @@
 // Used by the canvas toolbar when switching editing tools.
 
 import 'package:beyond/theme/sizes.dart';
-import 'package:beyond/ui/common/b_container.dart';
+import 'package:beyond/ui/common/surface.dart';
 import 'package:flutter/material.dart';
 
 // ---------- Widgets ----------
@@ -36,7 +36,7 @@ class ToolOptions extends StatelessWidget {
           ).animate(animation),
           child: Padding(
             padding: const EdgeInsets.only(top: 8),
-            child: BContainer(
+            child: Surface(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.all(12),
                 child: SizedBox(width: BSizes.toolOptionsWidth, child: child),

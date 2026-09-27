@@ -300,25 +300,25 @@ class _CanvasFilePickerState extends State<CanvasFilePicker> {
                     if (file == null) return [];
                     return [
                       if (file.isFolder) ...[
-                        BContextMenuAction(
+                        ContextMenuAction(
                           label: 'New canvas',
                           icon: LucideIcons.filePlus,
                           onPressed: () => _createAfterEdit(folder: false, parentId: file.id),
                         ),
-                        BContextMenuAction(
+                        ContextMenuAction(
                           label: 'New folder',
                           icon: LucideIcons.folderPlus,
                           onPressed: () => _createAfterEdit(folder: true, parentId: file.id),
                         ),
                       ],
-                      BContextMenuAction(
+                      ContextMenuAction(
                         label: 'Rename',
                         icon: LucideIcons.pencil,
                         onPressed: () async {
                           if (await _commitPendingEdit()) _edit(_library.file(file.id));
                         },
                       ),
-                      BContextMenuAction(
+                      ContextMenuAction(
                         label: 'Delete',
                         icon: LucideIcons.trash2,
                         destructive: true,

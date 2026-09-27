@@ -2,8 +2,8 @@
 // Used by the canvas file picker and isolated previews.
 
 import 'package:beyond/theme/theme.dart';
-import 'package:beyond/ui/common/b_container.dart';
 import 'package:beyond/ui/common/context_menu.dart';
+import 'package:beyond/ui/common/surface.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
@@ -60,7 +60,7 @@ class FileTreePopup extends StatelessWidget {
   final VoidCallback onNewFolder;
   final VoidCallback onNewFile;
   final VoidCallback onClose;
-  final List<BContextMenuAction> Function(FileTreeNode node) actionsFor;
+  final List<ContextMenuAction> Function(FileTreeNode node) actionsFor;
   final String? editingId;
   final Widget? editor;
 
@@ -78,7 +78,7 @@ class FileTreePopup extends StatelessWidget {
   Widget build(BuildContext context) {
     return SizedBox(
       width: _width,
-      child: BContainer(
+      child: Surface(
         child: ConstrainedBox(
           constraints: const BoxConstraints(minHeight: _minHeight, maxHeight: _maxHeight),
           child: Stack(
@@ -152,7 +152,7 @@ class FileTreePopup extends StatelessWidget {
               button: true,
               selected: isSelected,
               expanded: isFolder ? isExpanded : null,
-              child: BContextMenu(
+              child: ContextMenu(
                 groups: [actionsFor(node)],
                 child: InkWell(
                   key: ValueKey('file-tree-node-${node.id}'),

@@ -6,8 +6,8 @@ import 'package:flutter/material.dart';
 
 // ---------- Models ----------
 
-class BContextMenuAction {
-  const BContextMenuAction({
+class ContextMenuAction {
+  const ContextMenuAction({
     required this.label,
     required this.icon,
     required this.onPressed,
@@ -28,8 +28,8 @@ class BContextMenuAction {
 
 /// Renders a context menu around a pointer-interactive child.
 /// Used by canvas elements and other surfaces with grouped actions.
-class BContextMenu extends StatelessWidget {
-  const BContextMenu({
+class ContextMenu extends StatelessWidget {
+  const ContextMenu({
     required this.groups,
     required this.child,
     this.semanticLabel,
@@ -37,7 +37,7 @@ class BContextMenu extends StatelessWidget {
     super.key,
   });
 
-  final List<List<BContextMenuAction>> groups;
+  final List<List<ContextMenuAction>> groups;
   final Widget child;
   final String? semanticLabel;
   final String? semanticHint;
@@ -90,7 +90,7 @@ class BContextMenu extends StatelessWidget {
 
   // ---------- Composition ----------
 
-  Widget _item(BuildContext context, BContextMenuAction action) {
+  Widget _item(BuildContext context, ContextMenuAction action) {
     final item = MenuItemButton(
       autofocus: action.autofocus,
       onPressed: action.onPressed,

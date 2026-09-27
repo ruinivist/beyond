@@ -105,7 +105,7 @@ class CodeToolSettings extends StatelessWidget {
   Widget build(BuildContext context) {
     return ListenableBuilder(
       listenable: model,
-      builder: (context, _) => BSwitchButton(
+      builder: (context, _) => LabeledSwitch(
         key: const ValueKey('code-show-line-numbers'),
         label: 'Line numbers',
         value: model.showLineNumbers,

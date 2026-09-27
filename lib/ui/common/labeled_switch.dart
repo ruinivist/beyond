@@ -13,10 +13,10 @@ const _thumbSize = 16.0;
 
 /// Renders a compact settings row with a trailing binary switch.
 /// Used by preference surfaces that toggle a labeled boolean value.
-class BSwitchButton extends StatelessWidget {
+class LabeledSwitch extends StatelessWidget {
   // ---------- Construction ----------
 
-  const BSwitchButton({
+  const LabeledSwitch({
     required this.label,
     required this.value,
     required this.onChanged,

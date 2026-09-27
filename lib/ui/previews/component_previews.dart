@@ -2,35 +2,35 @@
 // Interactive wrappers keep each preview responsible for only its own state.
 
 import 'package:beyond/theme/theme.dart';
-import 'package:beyond/ui/common/b_container.dart';
-import 'package:beyond/ui/common/b_icon_button.dart';
-import 'package:beyond/ui/common/b_switch_button.dart';
-import 'package:beyond/ui/common/b_text_button.dart';
 import 'package:beyond/ui/common/color_picker.dart';
 import 'package:beyond/ui/common/context_menu.dart';
 import 'package:beyond/ui/common/discrete_slider.dart';
 import 'package:beyond/ui/common/icon_drag.dart';
+import 'package:beyond/ui/common/labeled_switch.dart';
 import 'package:beyond/ui/common/select.dart';
+import 'package:beyond/ui/common/surface.dart';
+import 'package:beyond/ui/common/surface_icon_button.dart';
+import 'package:beyond/ui/common/surface_text_button.dart';
 import 'package:beyond/ui/previews/theme_preview.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widget_previews.dart';
 
 @Preview(
-  name: 'BContainer',
+  name: 'Surface',
   size: Size(400, 240),
   theme: previewTheme,
   brightness: Brightness.light,
 )
-Widget bContainerPreview() => _surface(
+Widget surfacePreview() => _surface(
   const Row(
     mainAxisSize: MainAxisSize.min,
     children: [
-      BContainer(
+      Surface(
         child: Padding(padding: EdgeInsets.all(16), child: Text('Default')),
       ),
       SizedBox(width: 12),
-      BContainer(
+      Surface(
         selected: true,
         child: Padding(padding: EdgeInsets.all(16), child: Text('Selected')),
       ),
@@ -39,18 +39,18 @@ Widget bContainerPreview() => _surface(
 );
 
 @Preview(
-  name: 'BIconButton',
+  name: 'SurfaceIconButton',
   size: Size(400, 240),
   theme: previewTheme,
   brightness: Brightness.light,
 )
-Widget bIconButtonPreview() => _surface(
+Widget surfaceIconButtonPreview() => _surface(
   Row(
     mainAxisSize: MainAxisSize.min,
     children: [
-      BIconButton(icon: const Icon(Icons.add), tooltip: 'Add', onPressed: () {}),
+      SurfaceIconButton(icon: const Icon(Icons.add), tooltip: 'Add', onPressed: () {}),
       const SizedBox(width: 12),
-      BIconButton(
+      SurfaceIconButton(
         icon: const Icon(Icons.check),
         tooltip: 'Done',
         onPressed: () {},
@@ -60,25 +60,25 @@ Widget bIconButtonPreview() => _surface(
 );
 
 @Preview(
-  name: 'BTextButton',
+  name: 'SurfaceTextButton',
   size: Size(400, 240),
   theme: previewTheme,
   brightness: Brightness.light,
 )
-Widget bTextButtonPreview() => _surface(
-  BTextButton(
+Widget surfaceTextButtonPreview() => _surface(
+  SurfaceTextButton(
     label: 'New page',
     onPressed: () {},
   ),
 );
 
 @Preview(
-  name: 'BSwitchButton',
+  name: 'LabeledSwitch',
   size: Size(400, 240),
   theme: previewTheme,
   brightness: Brightness.light,
 )
-Widget bSwitchButtonPreview() => const _BSwitchButtonPreview();
+Widget labeledSwitchPreview() => const _LabeledSwitchPreview();
 
 @Preview(
   name: 'IconDrag',
@@ -103,7 +103,7 @@ Widget iconDragPreview() => _surface(
 Widget colorPickerPreview() => const _ColorPickerPreview();
 
 @Preview(
-  name: 'BContextMenu',
+  name: 'ContextMenu',
   size: Size(400, 240),
   theme: previewTheme,
   brightness: Brightness.light,
@@ -112,20 +112,20 @@ Widget contextMenuPreview() => Builder(
   builder: (context) {
     final theme = BTheme.of(context);
     return _surface(
-      BContextMenu(
+      ContextMenu(
         semanticLabel: 'Context menu preview',
         groups: [
           [
-            BContextMenuAction(
+            ContextMenuAction(
               label: 'Duplicate',
               icon: Icons.copy_outlined,
               shortcut: const SingleActivator(LogicalKeyboardKey.keyD, control: true),
               onPressed: () {},
             ),
-            const BContextMenuAction(label: 'Unavailable', icon: Icons.block, onPressed: null),
+            const ContextMenuAction(label: 'Unavailable', icon: Icons.block, onPressed: null),
           ],
           [
-            BContextMenuAction(
+            ContextMenuAction(
               label: 'Delete',
               icon: Icons.delete_outline,
               destructive: true,
@@ -180,14 +180,14 @@ Widget _surface(Widget child) => Builder(
   ),
 );
 
-class _BSwitchButtonPreview extends StatefulWidget {
-  const _BSwitchButtonPreview();
+class _LabeledSwitchPreview extends StatefulWidget {
+  const _LabeledSwitchPreview();
 
   @override
-  State<_BSwitchButtonPreview> createState() => _BSwitchButtonPreviewState();
+  State<_LabeledSwitchPreview> createState() => _LabeledSwitchPreviewState();
 }
 
-class _BSwitchButtonPreviewState extends State<_BSwitchButtonPreview> {
+class _LabeledSwitchPreviewState extends State<_LabeledSwitchPreview> {
   var _value = true;
 
   @override
@@ -207,10 +207,10 @@ class _BSwitchButtonPreviewState extends State<_BSwitchButtonPreview> {
           SizedBox(
             width: 200,
             height: 46,
-            child: BContainer(
+            child: Surface(
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 12),
-                child: BSwitchButton(
+                child: LabeledSwitch(
                   label: 'Show line numbers',
                   value: _value,
                   onChanged: (value) => setState(() => _value = value),

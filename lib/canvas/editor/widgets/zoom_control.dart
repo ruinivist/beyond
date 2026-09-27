@@ -3,7 +3,7 @@
 
 import 'package:beyond/canvas/editor/widgets/toolbar_button.dart';
 import 'package:beyond/theme/theme.dart';
-import 'package:beyond/ui/common/b_container.dart';
+import 'package:beyond/ui/common/surface.dart';
 import 'package:flutter/material.dart';
 import 'package:infinite_lazy_grid/infinite_lazy_grid.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
@@ -64,7 +64,7 @@ class _ZoomControlState extends State<ZoomControl> {
                   child: AnimatedOpacity(
                     duration: _animationDuration,
                     opacity: _expanded ? 1 : 0,
-                    child: const BContainer(child: SizedBox.expand()),
+                    child: const Surface(child: SizedBox.expand()),
                   ),
                 ),
               ),

@@ -2,15 +2,15 @@
 // Used for app-wide actions that need a text label.
 
 import 'package:beyond/theme/theme.dart';
-import 'package:beyond/ui/common/b_container.dart';
+import 'package:beyond/ui/common/surface.dart';
 import 'package:flutter/material.dart';
 
 // ---------- Widgets ----------
 
-class BTextButton extends StatelessWidget {
+class SurfaceTextButton extends StatelessWidget {
   // ---------- Construction ----------
 
-  const BTextButton({
+  const SurfaceTextButton({
     required this.label,
     required this.onPressed,
     super.key,
@@ -24,7 +24,7 @@ class BTextButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = BTheme.of(context);
-    return BContainer(
+    return Surface(
       child: TextButton(
         onPressed: onPressed,
         style: ButtonStyle(

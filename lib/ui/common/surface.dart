@@ -6,10 +6,10 @@ import 'package:flutter/material.dart';
 
 // ---------- Widgets ----------
 
-class BContainer extends StatelessWidget {
+class Surface extends StatelessWidget {
   // ---------- Construction ----------
 
-  const BContainer({
+  const Surface({
     required this.child,
     this.selected = false,
     this.raised = true,

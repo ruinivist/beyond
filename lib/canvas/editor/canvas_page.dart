@@ -31,9 +31,9 @@ import 'package:beyond/canvas/tools/text/text_tool.dart';
 import 'package:beyond/settings/settings_dialog.dart';
 import 'package:beyond/theme/preset_colors.dart';
 import 'package:beyond/theme/theme.dart';
-import 'package:beyond/ui/common/b_container.dart';
 import 'package:beyond/ui/common/color_picker.dart';
 import 'package:beyond/ui/common/discrete_slider.dart';
+import 'package:beyond/ui/common/surface.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
@@ -2107,7 +2107,7 @@ class _CanvasPageState extends State<CanvasPage> {
                 padding: const EdgeInsets.only(top: 12),
                 child: FittedBox(
                   fit: BoxFit.scaleDown,
-                  child: BContainer(
+                  child: Surface(
                     key: const ValueKey('toolbar-surface'),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
@@ -2224,7 +2224,7 @@ class _CanvasPageState extends State<CanvasPage> {
                   crossAxisAlignment: CrossAxisAlignment.end,
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    BContainer(
+                    Surface(
                       key: const ValueKey('settings-button-surface'),
                       child: IconButton(
                         key: const ValueKey('settings-button'),

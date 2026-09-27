@@ -10,7 +10,5 @@
 
 ## Naming convention
 
-- `B` is the Beyond app prefix.
-- Follow it with the visual type, then the action the widget is most commonly intended for, such as `BIconButton`.
-- The naming rule is => if there is a flutter widget by the same name, prefix by "B" to make it app specific, otherwise we don't need the
-  prefix as no need to disambiguate.
+- Name shared widgets by their role, such as `SurfaceIconButton` or `LabeledSwitch`.
+- Use an import alias when a real name collision occurs.

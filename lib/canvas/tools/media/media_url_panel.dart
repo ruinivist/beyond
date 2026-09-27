@@ -25,7 +25,7 @@ class _MediaUrlPanel extends StatelessWidget {
     return SizedBox(
       key: const ValueKey('media-url-panel'),
       width: model.urlPanelWidth,
-      child: BContainer(
+      child: Surface(
         selected: model.selected,
         raised: false,
         child: Stack(

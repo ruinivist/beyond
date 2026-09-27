@@ -2,15 +2,15 @@
 // Used by canvas controls that expose a click action.
 
 import 'package:beyond/theme/theme.dart';
-import 'package:beyond/ui/common/b_container.dart';
+import 'package:beyond/ui/common/surface.dart';
 import 'package:flutter/material.dart';
 
 // ---------- Widgets ----------
 
-class BIconButton extends StatelessWidget {
+class SurfaceIconButton extends StatelessWidget {
   // ---------- Construction ----------
 
-  const BIconButton({
+  const SurfaceIconButton({
     required this.icon,
     required this.tooltip,
     required this.onPressed,
@@ -28,7 +28,7 @@ class BIconButton extends StatelessWidget {
     final theme = BTheme.of(context);
     return Tooltip(
       message: tooltip,
-      child: BContainer(
+      child: Surface(
         child: IconButton(
           onPressed: onPressed,
           icon: icon,

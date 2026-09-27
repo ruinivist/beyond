@@ -48,7 +48,7 @@ void main() {
                 onNewFile: () {},
                 onClose: () => closeCalls++,
                 actionsFor: (node) => [
-                  BContextMenuAction(label: 'Rename', icon: Icons.edit, onPressed: () => contextId = node.id),
+                  ContextMenuAction(label: 'Rename', icon: Icons.edit, onPressed: () => contextId = node.id),
                 ],
               ),
             ),
