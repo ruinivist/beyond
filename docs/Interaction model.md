@@ -72,8 +72,21 @@ Shapes follow the same state separation: clicking or creating a shape makes it a
 
 ## Touch navigation
 
-- In the default tool, dragging empty canvas with one finger pans without changing selection. Movement below Flutter's touch threshold remains a tap; crossing it applies the full drag displacement. Normal release can continue panning with inertia; cancellation does not.
+| Action | Select off | Select on |
+| --- | --- | --- |
+| Drag empty canvas | Pan | Draw a selection box |
+| Drag an unselected object | Move that object | Move that object |
+| Drag a selected object | Move the selected group | Move the selected group |
+| Tap an object | Existing activation or editing behavior | Same behavior |
+| Tap empty canvas | Clear activation and selection | Same behavior |
+| Two fingers | Pan and pinch zoom | Pan and pinch zoom |
+
+- Select changes only empty-canvas touch dragging. It stays enabled after box selection until tapped again, another tool is chosen, or the document is replaced. Turning Select off preserves selected objects and their direct group movement.
+- The Select button appears initially on Android/iOS platform classification. Elsewhere, the first actual touch anywhere on the page or its controls reveals it after all touches and release callbacks finish. It remains visible until reload; mouse, stylus, keyboard, hover, and screen width do not hide or reveal it. Visibility and Select mode are not persisted.
+- Movement below Flutter's touch threshold remains a tap. With Select off, crossing the threshold pans with the full drag displacement without changing selection. Normal release can continue panning with inertia; cancellation does not.
+- With Select on, crossing the threshold draws the selection box using the existing overlap rules, including zoom and rotated bounds. Cancellation, two-finger takeover, or a tool change restores the prior selection and removes the unfinished box.
 - Tapping empty canvas clears activation and selection on release. Dragging an object moves it directly; dragging a selected member moves the selected group.
+- Escape first dismisses active editing or object controls as before, then disables Select on the next press. Mouse marquee and modifier selection keep their existing behavior in either mode.
 - One finger also draws, erases, places objects, or interacts with object controls when those tools are enabled. Two fingers pan and pinch to zoom, including when a finger starts on an object control or code title.
 - Adding a second finger cancels a pending or active single-finger pan without a jump or fling. Changing tools or replacing the document also cancels the pan; held pointers cannot restart it.
 - Adding a second finger discards unfinished pen, arrow, and shape drawings and pending placement. Erasures and object moves, resizes, rotations, and arrow-point edits already made are kept as one undoable operation.

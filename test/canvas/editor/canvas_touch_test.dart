@@ -1,8 +1,11 @@
 // Verifies touch ownership between canvas tools, object edits, and navigation.
 // Exercises Plane's handoff through real pointer sequences and persisted models.
 
+import 'dart:math' as math;
+
 import 'package:beyond/canvas/document/canvas_document.dart';
 import 'package:beyond/canvas/editor/canvas_background.dart';
+import 'package:beyond/canvas/editor/widgets/toolbar_button.dart';
 import 'package:beyond/canvas/tools/arrow/arrow_tool.dart';
 import 'package:beyond/canvas/tools/code/code_tool.dart';
 import 'package:beyond/canvas/tools/media/media_tool.dart';
@@ -15,6 +18,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:infinite_lazy_grid/infinite_lazy_grid.dart';
 import 'package:shared_preferences_web/shared_preferences_web.dart';
+import 'package:web/web.dart' as web;
 
 import '../test_helpers.dart';
 
@@ -152,12 +156,332 @@ void main() {
     expect(tester.widget<PenStroke>(find.byType(PenStroke)).model.data.position, const Offset(100, 250));
   });
 
-  testWidgets('touch object movement leaves the viewport fixed', (tester) async {
-    await pumpCanvas(tester, TestCanvasDocumentStore(_document([_pen('a')])));
-    final model = tester.widget<PenStroke>(find.byType(PenStroke)).model;
-    await tester.dragFrom(const Offset(150, 300), const Offset(60, 30));
-    expect(model.data.position, isNot(const Offset(100, 250)));
-    expect((_canvas(tester).offset, _canvas(tester).scale), (Offset.zero, 1));
+  for (final select in [false, true]) {
+    testWidgets('touch object movement with Select $select leaves the viewport fixed', (tester) async {
+      await pumpCanvas(tester, TestCanvasDocumentStore(_document([_pen('a')])), platform: TargetPlatform.android);
+      if (select) await _chooseTool(tester, 'select');
+      final model = tester.widget<PenStroke>(find.byType(PenStroke)).model;
+      await tester.dragFrom(const Offset(150, 300), const Offset(60, 30));
+      expect(model.data.position, isNot(const Offset(100, 250)));
+      expect((_canvas(tester).offset, _canvas(tester).scale), (Offset.zero, 1));
+    });
+  }
+
+  for (final platform in [TargetPlatform.android, TargetPlatform.iOS]) {
+    testWidgets('Select is initially visible and accessible on $platform', (tester) async {
+      await pumpCanvas(tester, TestCanvasDocumentStore(_document()), platform: platform);
+      final button = tester.getSemantics(
+        find.descendant(of: find.byKey(const ValueKey('toolbar-select')), matching: find.byType(TextButton)),
+      );
+      expect(button.label, 'Select');
+      expect(button.flagsCollection.isButton, isTrue);
+      expect(find.byTooltip('Select elements'), findsOneWidget);
+      expect(_selectEnabled(tester), isFalse);
+    });
+  }
+
+  testWidgets('narrow mouse and stylus sessions keep the existing toolbar', (tester) async {
+    tester.view.physicalSize = const Size(320, 600);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    await pumpCanvas(tester, TestCanvasDocumentStore(_document()), platform: TargetPlatform.linux);
+    for (final kind in [PointerDeviceKind.mouse, PointerDeviceKind.stylus]) {
+      final pointer = await tester.startGesture(
+        tester.getCenter(find.byKey(const ValueKey('toolbar-draw'))),
+        kind: kind,
+      );
+      await pointer.up();
+      await tester.pump();
+      expect(find.byKey(const ValueKey('toolbar-select')), findsNothing);
+    }
+    await tester.sendKeyEvent(LogicalKeyboardKey.keyP);
+    expect(find.byKey(const ValueKey('toolbar-select')), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('desktop toolbar touch reveals Select after all releases and keeps it until reload', (tester) async {
+    await pumpCanvas(tester, TestCanvasDocumentStore(_document()), platform: TargetPlatform.linux);
+    final draw = find.byKey(const ValueKey('toolbar-draw'));
+    final bounds = tester.getRect(draw);
+    final toolbarTouch = await tester.startGesture(bounds.center, pointer: 1);
+    final canvasTouch = await tester.startGesture(const Offset(550, 400), pointer: 2);
+    await tester.pump();
+    expect(find.byKey(const ValueKey('toolbar-select')), findsNothing);
+    await toolbarTouch.up();
+    await tester.pump();
+    expect(find.byKey(const ValueKey('toolbar-select')), findsNothing);
+    expect(tester.getRect(draw), bounds);
+    expect(tester.widget<ToolbarButton>(draw).selected, isTrue);
+    await canvasTouch.cancel();
+    await tester.pump();
+    expect(find.byKey(const ValueKey('toolbar-select')), findsOneWidget);
+    final mouse = await tester.startGesture(const Offset(550, 400), kind: PointerDeviceKind.mouse);
+    await mouse.up();
+    await tester.pump();
+    expect(find.byKey(const ValueKey('toolbar-select')), findsOneWidget);
+    await tester.pumpWidget(const SizedBox.shrink());
+    await pumpCanvas(tester, TestCanvasDocumentStore(_document()), platform: TargetPlatform.linux);
+    expect(find.byKey(const ValueKey('toolbar-select')), findsNothing);
+  });
+
+  testWidgets('browser touch reveals Select after all releases even when Flutter receives only a semantics tap', (
+    tester,
+  ) async {
+    await pumpCanvas(tester, TestCanvasDocumentStore(_document()), platform: TargetPlatform.linux);
+    void pointer(String type, int id, {String kind = 'touch'}) {
+      web.document.dispatchEvent(web.PointerEvent(type, web.PointerEventInit(pointerId: id, pointerType: kind)));
+    }
+
+    pointer('pointerdown', 1, kind: 'pen');
+    pointer('pointerup', 1, kind: 'pen');
+    await tester.pump();
+    expect(find.byKey(const ValueKey('toolbar-select')), findsNothing);
+    pointer('pointerdown', 1);
+    pointer('pointerdown', 2);
+    pointer('pointerup', 1);
+    await tester.pump();
+    expect(find.byKey(const ValueKey('toolbar-select')), findsNothing);
+    pointer('pointercancel', 2);
+    // A semantic action can follow the browser pointer release synchronously.
+    tester.widget<ToolbarButton>(find.byKey(const ValueKey('toolbar-draw'))).onPressed!();
+    await tester.pump(Duration.zero);
+    expect(find.byKey(const ValueKey('toolbar-select')), findsOneWidget);
+    expect(tester.widget<ToolbarButton>(find.byKey(const ValueKey('toolbar-draw'))).selected, isTrue);
+  });
+
+  testWidgets('Select uses touch slop, stays enabled, and toggles back to panning without clearing selection', (
+    tester,
+  ) async {
+    await pumpCanvas(
+      tester,
+      TestCanvasDocumentStore(_document([_pen('a'), _pen('b', const Offset(350, 250))])),
+      platform: TargetPlatform.android,
+    );
+    await _chooseTool(tester, 'select');
+    final models = tester.widgetList<PenStroke>(find.byType(PenStroke)).map((stroke) => stroke.model).toList();
+    models[1].selected = true;
+    final touch = await tester.startGesture(const Offset(60, 200));
+    await touch.moveBy(const Offset(5, 0));
+    await tester.pump();
+    expect(find.byKey(const ValueKey('drag-selection-marquee')), findsNothing);
+    expect(models[1].selected, isTrue);
+    await touch.moveTo(const Offset(250, 350));
+    await tester.pump();
+    expect(find.byKey(const ValueKey('drag-selection-marquee')), findsOneWidget);
+    expect(models.map((model) => model.selected), [true, false]);
+    await touch.up();
+    await tester.pump();
+    expect(_selectEnabled(tester), isTrue);
+    expect(find.byKey(const ValueKey('drag-selection-marquee')), findsNothing);
+    expect(_canvas(tester).offset, Offset.zero);
+    await _chooseTool(tester, 'select');
+    expect(models[0].selected, isTrue);
+    final pan = await tester.startGesture(const Offset(550, 400));
+    await pan.moveBy(const Offset(40, 20));
+    expect(_canvas(tester).offset, const Offset(-40, -20));
+    expect(models[0].selected, isTrue);
+    await pan.cancel();
+  });
+
+  testWidgets('Select empty tap clears activation and selection on release', (tester) async {
+    await pumpCanvas(tester, TestCanvasDocumentStore(_document([_code()])), platform: TargetPlatform.android);
+    await _chooseTool(tester, 'select');
+    final model = tester.widget<CodeTool>(find.byType(CodeTool)).model;
+    await tester.tapAt(const Offset(220, 300));
+    await tester.pumpAndSettle();
+    model.selected = true;
+    final touch = await tester.startGesture(const Offset(550, 400));
+    await touch.moveBy(const Offset(5, 0));
+    expect((model.active, model.selected), (true, true));
+    await touch.up();
+    await tester.pump();
+    expect((model.active, model.selected), (false, false));
+    expect(_selectEnabled(tester), isTrue);
+    await tester.pump(const Duration(milliseconds: 150));
+  });
+
+  for (final interruption in ['cancel', 'navigation', 'tool']) {
+    testWidgets('$interruption restores prior touch selection and removes the marquee', (tester) async {
+      await pumpCanvas(
+        tester,
+        TestCanvasDocumentStore(_document([_pen('a'), _pen('b', const Offset(350, 250))])),
+        platform: TargetPlatform.android,
+      );
+      await _chooseTool(tester, 'select');
+      final models = tester.widgetList<PenStroke>(find.byType(PenStroke)).map((stroke) => stroke.model).toList();
+      models[1].selected = true;
+      final touch = await tester.startGesture(const Offset(60, 200), pointer: 1);
+      await touch.moveTo(const Offset(250, 350));
+      expect(models.map((model) => model.selected), [true, false]);
+      if (interruption == 'cancel') {
+        await touch.cancel();
+      } else if (interruption == 'navigation') {
+        final second = await tester.startGesture(const Offset(550, 400), pointer: 2);
+        expect(models.map((model) => model.selected), [false, true]);
+        await second.moveBy(const Offset(40, 20));
+        await second.up();
+        final frozen = (_canvas(tester).offset, _canvas(tester).scale);
+        await touch.moveBy(const Offset(60, 30));
+        expect((_canvas(tester).offset, _canvas(tester).scale), frozen);
+        await touch.up();
+      } else {
+        await tester.sendKeyEvent(LogicalKeyboardKey.keyP);
+        await tester.sendKeyEvent(LogicalKeyboardKey.keyP);
+        await touch.moveBy(const Offset(60, 30));
+        await touch.up();
+      }
+      await tester.pump();
+      expect(models.map((model) => model.selected), [false, true]);
+      expect(find.byKey(const ValueKey('drag-selection-marquee')), findsNothing);
+      expect(_selectEnabled(tester), interruption != 'tool');
+    });
+  }
+
+  testWidgets('Select cancels drawing and other tools reset touch selection', (tester) async {
+    await pumpCanvas(tester, TestCanvasDocumentStore(_document()), platform: TargetPlatform.android);
+    await _chooseTool(tester, 'draw');
+    final drawing = await tester.startGesture(const Offset(200, 300), pointer: 1);
+    await drawing.moveBy(const Offset(40, 20));
+    await _chooseTool(tester, 'select');
+    await drawing.moveBy(const Offset(40, 20));
+    await drawing.up();
+    await tester.pump();
+    expect(find.byType(PenStroke), findsNothing);
+    expect(_selectEnabled(tester), isTrue);
+    await _chooseTool(tester, 'shape');
+    expect(_selectEnabled(tester), isFalse);
+    await tester.dragFrom(const Offset(200, 300), const Offset(80, 60));
+    await tester.pump();
+    expect(find.byType(Shape), findsOneWidget);
+    expect(_selectEnabled(tester), isFalse);
+  });
+
+  testWidgets('Escape dismisses editing before disabling Select', (tester) async {
+    await pumpCanvas(tester, TestCanvasDocumentStore(_document([_code()])), platform: TargetPlatform.android);
+    await _chooseTool(tester, 'select');
+    await tester.tapAt(const Offset(220, 300));
+    await tester.pumpAndSettle();
+    final model = tester.widget<CodeTool>(find.byType(CodeTool)).model;
+    expect(model.active, isTrue);
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await tester.pump();
+    expect(model.active, isFalse);
+    expect(_selectEnabled(tester), isTrue);
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await tester.pump();
+    expect(_selectEnabled(tester), isFalse);
+    await tester.pump(const Duration(milliseconds: 150));
+  });
+
+  testWidgets('mixed touch group moves in either mode as one undo step and replacement resets Select', (tester) async {
+    await pumpCanvas(
+      tester,
+      TestCanvasDocumentStore(
+        _document([
+          _pen('pen'),
+          ShapeElementData(
+            id: 'shape',
+            kind: ShapeKind.rectangle,
+            position: const Offset(300, 250),
+            size: const Size(100, 100),
+            strokeColor: 0xff000000,
+            fillColor: null,
+            strokeWidth: 2,
+          ),
+          ArrowElementData(
+            id: 'arrow',
+            start: const Offset(450, 300),
+            control: const Offset(500, 300),
+            end: const Offset(550, 300),
+            color: 0xff000000,
+            strokeStyle: ArrowStrokeStyle.solid,
+            strokeWidth: 3,
+          ),
+        ]),
+      ),
+      platform: TargetPlatform.android,
+    );
+    List<Offset> positions() => [
+      tester.widget<PenStroke>(find.byType(PenStroke)).model.data.position,
+      tester.widget<Shape>(find.byType(Shape)).model.data.position,
+      tester.widget<Arrow>(find.byType(Arrow)).model.data.start,
+    ];
+    final before = positions();
+    for (final select in [false, true]) {
+      if (select) await _chooseTool(tester, 'select');
+      tester.widget<PenStroke>(find.byType(PenStroke)).model.selected = true;
+      tester.widget<Shape>(find.byType(Shape)).model.selected = true;
+      tester.widget<Arrow>(find.byType(Arrow)).model.selected = true;
+      final move = await tester.startGesture(before[0] + const Offset(50, 50));
+      await move.moveBy(const Offset(40, 20));
+      await move.moveBy(const Offset(30, 10));
+      await move.up();
+      final moved = positions();
+      final delta = moved[0] - before[0];
+      expect(delta, isNot(Offset.zero));
+      expect(moved, before.map((position) => position + delta));
+      await _undo(tester);
+      expect(positions(), before);
+      expect(_selectEnabled(tester), isFalse);
+    }
+  });
+
+  testWidgets('touch marquee overlaps rotated bounds at non-default zoom', (tester) async {
+    final code = _code()
+      ..position = const Offset(160, 140)
+      ..rotation = math.pi / 2
+      ..title = '';
+    await pumpCanvas(tester, TestCanvasDocumentStore(_document([code])), platform: TargetPlatform.android);
+    await _chooseTool(tester, 'select');
+    final controller = _canvas(tester)..updateScalebyDelta(0.5, focalPoint: Offset.zero);
+    await tester.pump();
+    final before = controller.offset;
+    // This box hits the rotated top edge, above the unrotated screen bounds.
+    final touch = await tester.startGesture(const Offset(415, 175));
+    await touch.moveTo(const Offset(475, 205));
+    await touch.up();
+    await tester.pump();
+    final model = tester.widget<CodeTool>(find.byType(CodeTool)).model;
+    expect(model.selected, isTrue);
+    expect(model.active, isFalse);
+    expect(controller.offset, before);
+    expect(_selectEnabled(tester), isTrue);
+  });
+
+  testWidgets('mouse marquee and modifier selection retain their behavior with Select enabled', (tester) async {
+    await pumpCanvas(
+      tester,
+      TestCanvasDocumentStore(_document([_pen('a'), _pen('b', const Offset(350, 250))])),
+      platform: TargetPlatform.linux,
+    );
+    final models = tester.widgetList<PenStroke>(find.byType(PenStroke)).map((stroke) => stroke.model).toList();
+    Future<void> marquee(Offset end) async {
+      final mouse = await tester.startGesture(const Offset(60, 200), kind: PointerDeviceKind.mouse);
+      await mouse.moveTo(end);
+      await mouse.up();
+      await tester.pump();
+    }
+
+    await marquee(const Offset(250, 350));
+    expect(models.map((model) => model.selected), [true, false]);
+    expect(find.byKey(const ValueKey('toolbar-select')), findsNothing);
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+    await tester.tapAt(const Offset(400, 300), kind: PointerDeviceKind.mouse);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+    expect(models.map((model) => model.selected), [true, true]);
+    final reveal = await tester.startGesture(const Offset(550, 400));
+    await reveal.cancel();
+    await tester.pump();
+    await _chooseTool(tester, 'select');
+    await marquee(const Offset(250, 350));
+    expect(models.map((model) => model.selected), [true, false]);
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+    await marquee(const Offset(500, 350));
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+    expect(models.map((model) => model.selected), [false, true]);
+    expect(_selectEnabled(tester), isTrue);
+    expect(_canvas(tester).offset, Offset.zero);
   });
 
   for (final (tool, type) in [('draw', PenStroke), ('arrow', Arrow), ('shape', Shape)]) {
@@ -379,6 +703,9 @@ void main() {
 // ---------- Helpers and fixtures ----------
 
 LazyCanvasController _canvas(WidgetTester tester) => tester.widget<LazyCanvas>(find.byType(LazyCanvas)).controller;
+
+bool _selectEnabled(WidgetTester tester) =>
+    tester.widget<ToolbarButton>(find.byKey(const ValueKey('toolbar-select'))).selected;
 
 Future<void> _chooseTool(WidgetTester tester, String tool) async {
   await tester.tap(find.byKey(ValueKey('toolbar-$tool')));

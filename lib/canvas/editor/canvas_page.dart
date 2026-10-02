@@ -6,6 +6,8 @@ import 'dart:convert';
 import 'dart:math' as math;
 
 import 'package:beyond/canvas/document/canvas_document.dart';
+import 'package:beyond/canvas/editor/browser_touch_observer.dart'
+    if (dart.library.js_interop) 'package:beyond/canvas/editor/browser_touch_observer_web.dart';
 import 'package:beyond/canvas/editor/canvas_background.dart';
 import 'package:beyond/canvas/editor/canvas_clipboard.dart';
 import 'package:beyond/canvas/editor/canvas_element_model.dart';
@@ -112,6 +114,7 @@ class _CanvasPageState extends State<CanvasPage> {
   int? _dragSelectionPointer;
   Offset? _dragSelectionStart;
   Offset? _dragSelectionEnd;
+  double _dragSelectionSlop = kPrecisePointerPanSlop;
   int? _dragArrowPointer;
   ArrowModel? _dragArrow;
   var _toggleDragSelection = false;
@@ -139,6 +142,11 @@ class _CanvasPageState extends State<CanvasPage> {
   ({int pointer, Offset start, _CanvasTool tool, double slop})? _touchPlacement;
   ({int pointer, Offset start, double slop, VelocityTracker velocity})? _touchPan;
   var _touchPanStarted = false;
+  var _touchControlsVisible = false;
+  var _touchSelectionEnabled = false;
+  final _pageTouchPointers = <int>{};
+  var _browserTouchObserved = false;
+  late final VoidCallback _stopObservingBrowserTouch;
   var _spaceHeld = false;
   ClipboardEvents? _clipboardEvents;
   String? _lastPastedPayload;
@@ -208,6 +216,11 @@ class _CanvasPageState extends State<CanvasPage> {
     _arrowTool = ArrowTool(onArrow: _addArrow)..addListener(_handleDrawingToolChanged);
     _shapeTool = ShapeTool(onShape: _addShape)..addListener(_handleDrawingToolChanged);
     HardwareKeyboard.instance.addHandler(_handleKeyEvent);
+    GestureBinding.instance.pointerRouter.addGlobalRoute(_observePageTouch);
+    _stopObservingBrowserTouch = observeBrowserTouch(
+      onStart: () => _browserTouchObserved = true,
+      onEnd: _revealTouchControls,
+    );
     _clipboardEvents = widget.readClipboard == null && widget.writeClipboardText == null
         ? ClipboardEvents.instance
         : null;
@@ -221,6 +234,8 @@ class _CanvasPageState extends State<CanvasPage> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    final platform = Theme.of(context).platform;
+    if (platform == TargetPlatform.android || platform == TargetPlatform.iOS) _touchControlsVisible = true;
     final colors = BTheme.of(context).colors;
     _canvasController.background = _canvasBackgroundKind.build(colors);
     if (_customPenColor == null) _penTool.setColor(colors.textPrimary);
@@ -253,6 +268,8 @@ class _CanvasPageState extends State<CanvasPage> {
       model.dispose();
     }
     HardwareKeyboard.instance.removeHandler(_handleKeyEvent);
+    GestureBinding.instance.pointerRouter.removeGlobalRoute(_observePageTouch);
+    _stopObservingBrowserTouch();
     _clipboardEvents
       ?..unregisterCopyEventListener(_handleWebCopy)
       ..unregisterCutEventListener(_handleWebCut)
@@ -284,13 +301,23 @@ class _CanvasPageState extends State<CanvasPage> {
     _touchPlacement = null;
     if (_touchPan case final pan?) _blockedCanvasPointers.add(pan.pointer);
     _touchPan = null;
+    if (_dragSelectionPointer case final pointer?) _blockedCanvasPointers.add(pointer);
+    _finishDragSelection(canceled: true);
     _finishHistoryOperation();
     _clearElementEditing();
     setState(() {
       _activeTool.value = enabling ? tool : _CanvasTool.select;
+      _touchSelectionEnabled = false;
       _eraserPointer = null;
       _spaceHeld = false;
     });
+  }
+
+  void _toggleTouchSelection() {
+    if (!_documentLoaded) return;
+    final enabling = !_touchSelectionEnabled;
+    _toggleTool(_CanvasTool.select);
+    setState(() => _touchSelectionEnabled = enabling);
   }
 
   void _setPenColor(Color color) {
@@ -327,6 +354,23 @@ class _CanvasPageState extends State<CanvasPage> {
 
   // ---------- Canvas pointer events ----------
 
+  void _observePageTouch(PointerEvent event) {
+    if (_touchControlsVisible || _browserTouchObserved || event.kind != PointerDeviceKind.touch) return;
+    if (event is PointerDownEvent) {
+      _pageTouchPointers.add(event.pointer);
+    } else if (event is PointerUpEvent || event is PointerCancelEvent) {
+      // Wait for release callbacks before allowing the toolbar to rearrange.
+      scheduleMicrotask(() {
+        _pageTouchPointers.remove(event.pointer);
+        if (!_browserTouchObserved && _pageTouchPointers.isEmpty) _revealTouchControls();
+      });
+    }
+  }
+
+  void _revealTouchControls() {
+    if (mounted && !_touchControlsVisible) setState(() => _touchControlsVisible = true);
+  }
+
   bool get _canvasInputBlocked => _touchNavigationActive || _blockedCanvasPointers.isNotEmpty;
 
   bool _canHandleCanvasPointer(PointerEvent event) {
@@ -355,7 +399,7 @@ class _CanvasPageState extends State<CanvasPage> {
       _widgetPointer = null;
       _interactiveCanvasPointerIds.clear();
       _selectionBeforeWidgetPointer.clear();
-      _finishDragSelection();
+      _finishDragSelection(canceled: true);
       _finishHistoryOperation();
       _canvasPointerPosition.value = null;
     }
@@ -435,7 +479,10 @@ class _CanvasPageState extends State<CanvasPage> {
       _shapeTool.onPointerDown(event, position);
       return;
     }
-    if (event.kind == PointerDeviceKind.touch && _activeTool.value == _CanvasTool.select && !_spaceHeld) {
+    if (event.kind == PointerDeviceKind.touch &&
+        _activeTool.value == _CanvasTool.select &&
+        !_touchSelectionEnabled &&
+        !_spaceHeld) {
       _touchPan = (
         pointer: event.pointer,
         start: event.localPosition,
@@ -445,19 +492,21 @@ class _CanvasPageState extends State<CanvasPage> {
       _touchPanStarted = false;
       return;
     }
-    _clearElementEditing();
+    final touchSelection = event.kind == PointerDeviceKind.touch && _touchSelectionEnabled;
+    if (!touchSelection) _clearElementEditing();
     _selectionBeforeDrag
       ..clear()
       ..addAll(_selectedModels());
-    _toggleDragSelection = _selectionModifierPressed.value;
-    if (!_toggleDragSelection) _clearSelection();
-    if (event.kind != PointerDeviceKind.mouse || _penEnabled || _eraserEnabled) {
+    _toggleDragSelection = !touchSelection && _selectionModifierPressed.value;
+    if (!touchSelection && !_toggleDragSelection) _clearSelection();
+    if ((!touchSelection && event.kind != PointerDeviceKind.mouse) || _penEnabled || _eraserEnabled) {
       return;
     }
     setState(() {
       _dragSelectionPointer = event.pointer;
       _dragSelectionStart = event.localPosition;
       _dragSelectionEnd = null;
+      _dragSelectionSlop = computePanSlop(event.kind, MediaQuery.maybeGestureSettingsOf(context));
     });
   }
 
@@ -566,6 +615,10 @@ class _CanvasPageState extends State<CanvasPage> {
     }
     if (event.pointer != _dragSelectionPointer) return;
     _updateDragSelection(event.localPosition);
+    if (event.kind == PointerDeviceKind.touch && _dragSelectionEnd == null) {
+      _clearElementEditing();
+      _clearSelection();
+    }
     _finishDragSelection();
   }
 
@@ -597,10 +650,7 @@ class _CanvasPageState extends State<CanvasPage> {
       return;
     }
     if (event.pointer != _dragSelectionPointer) return;
-    for (final model in _elements) {
-      model.selected = _selectionBeforeDrag.contains(model);
-    }
-    _finishDragSelection();
+    _finishDragSelection(canceled: true);
   }
 
   // ---------- Selection ----------
@@ -608,9 +658,10 @@ class _CanvasPageState extends State<CanvasPage> {
   void _updateDragSelection(Offset end) {
     final start = _dragSelectionStart;
     if (start == null) return;
-    if (_dragSelectionEnd == null && (end - start).distance <= kPrecisePointerPanSlop) {
+    if (_dragSelectionEnd == null && (end - start).distance <= _dragSelectionSlop) {
       return;
     }
+    if (_dragSelectionEnd == null) _clearElementEditing();
     setState(() => _dragSelectionEnd = end);
     final rect = Rect.fromPoints(start, end);
     final positions = {
@@ -657,7 +708,9 @@ class _CanvasPageState extends State<CanvasPage> {
     return !overlap.isEmpty;
   }
 
-  void _finishDragSelection() {
+  void _finishDragSelection({bool canceled = false}) {
+    if (_dragSelectionPointer == null) return;
+    if (canceled) _setSelection(_selectionBeforeDrag);
     setState(() {
       _dragSelectionPointer = null;
       _dragSelectionStart = null;
@@ -1747,6 +1800,7 @@ class _CanvasPageState extends State<CanvasPage> {
     _touchPan = null;
     _blockedCanvasPointers.addAll(_canvasPointers.keys);
     _activeTool.value = _CanvasTool.select;
+    _touchSelectionEnabled = false;
     _activeElement = null;
     _eraserPointer = null;
     _spaceHeld = false;
@@ -2297,6 +2351,17 @@ class _CanvasPageState extends State<CanvasPage> {
           selected: _activeTool.value == tool,
           onPressed: () => _toggleTool(tool),
           child: Icon(icon, size: 20, semanticLabel: label),
+        ),
+      ),
+    if (_touchControlsVisible)
+      Tooltip(
+        message: 'Select elements',
+        child: ToolbarButton(
+          key: const ValueKey('toolbar-select'),
+          compact: compact,
+          selected: _touchSelectionEnabled,
+          onPressed: _toggleTouchSelection,
+          child: const Icon(LucideIcons.squareDashed, size: 20, semanticLabel: 'Select'),
         ),
       ),
   ];
