@@ -133,6 +133,10 @@ class _CanvasPageState extends State<CanvasPage> {
     _CanvasTool.select,
   );
   int? _eraserPointer;
+  final _canvasPointers = <int, PointerDeviceKind>{};
+  final _blockedCanvasPointers = <int>{};
+  var _touchNavigationActive = false;
+  ({int pointer, Offset start, _CanvasTool tool, double slop})? _touchPlacement;
   var _spaceHeld = false;
   ClipboardEvents? _clipboardEvents;
   String? _lastPastedPayload;
@@ -193,6 +197,11 @@ class _CanvasPageState extends State<CanvasPage> {
   @override
   void initState() {
     super.initState();
+    _canvasController
+      ..rawPointerDownListener = _handleCanvasPointerDown
+      ..rawPointerMoveListener = _handleCanvasPointerMove
+      ..rawPointerUpListener = _handleCanvasPointerUp
+      ..rawPointerCancelListener = _handleCanvasPointerCancel;
     _penTool = PenTool(onStroke: _addStroke)..setStrokeWidth(_penWidth);
     _arrowTool = ArrowTool(onArrow: _addArrow)..addListener(_handleDrawingToolChanged);
     _shapeTool = ShapeTool(onShape: _addShape)..addListener(_handleDrawingToolChanged);
@@ -269,6 +278,9 @@ class _CanvasPageState extends State<CanvasPage> {
   void _toggleTool(_CanvasTool tool) {
     if (!_documentLoaded) return;
     final enabling = _activeTool.value != tool;
+    _cancelDrawingTools();
+    _touchPlacement = null;
+    _finishHistoryOperation();
     _clearElementEditing();
     setState(() {
       _activeTool.value = enabling ? tool : _CanvasTool.select;
@@ -311,6 +323,53 @@ class _CanvasPageState extends State<CanvasPage> {
 
   // ---------- Canvas pointer events ----------
 
+  bool get _canvasInputBlocked => _touchNavigationActive || _blockedCanvasPointers.isNotEmpty;
+
+  bool _canHandleCanvasPointer(PointerEvent event) {
+    if (_canvasInputBlocked) return false;
+    return event is! PointerDownEvent ||
+        event.kind != PointerDeviceKind.touch ||
+        !_canvasPointers.entries.any((entry) => entry.key != event.pointer && entry.value == PointerDeviceKind.touch);
+  }
+
+  void _cancelDrawingTools() {
+    _penTool.cancel();
+    _arrowTool.cancel();
+    _shapeTool.cancel();
+  }
+
+  void _handleTouchNavigationChanged(bool active) {
+    _touchNavigationActive = active;
+    if (active) {
+      _blockedCanvasPointers.addAll(_canvasPointers.keys);
+      _cancelDrawingTools();
+      _touchPlacement = null;
+      _eraserPointer = null;
+      _dragArrowPointer = null;
+      _dragArrow = null;
+      _widgetPointer = null;
+      _interactiveCanvasPointerIds.clear();
+      _selectionBeforeWidgetPointer.clear();
+      _finishDragSelection();
+      _finishHistoryOperation();
+      _canvasPointerPosition.value = null;
+    }
+    if (mounted) setState(() {});
+  }
+
+  void _releaseCanvasPointer(int pointer) {
+    // Gesture callbacks run after the raw listener, including final-up taps.
+    scheduleMicrotask(() {
+      _canvasPointers.remove(pointer);
+      _blockedCanvasPointers.remove(pointer);
+      _interactiveCanvasPointerIds.remove(pointer);
+    });
+  }
+
+  void _handleObjectControlPointerDown(PointerDownEvent event) {
+    if (_canHandleCanvasPointer(event)) _interactiveCanvasPointerIds.add(event.pointer);
+  }
+
   bool _tryPlaceActiveTool(Offset position) {
     final place = _placementAction;
     if (place == null) return false;
@@ -322,7 +381,10 @@ class _CanvasPageState extends State<CanvasPage> {
   Offset _screenToCanvas(Offset screenPosition) => _canvasController.offset + screenPosition / _canvasController.scale;
 
   void _handleCanvasPointerDown(PointerDownEvent event) {
-    if (!_documentLoaded) return;
+    final allowed = _canHandleCanvasPointer(event);
+    _canvasPointers[event.pointer] = event.kind;
+    if (_canvasInputBlocked) _blockedCanvasPointers.add(event.pointer);
+    if (!_documentLoaded || !allowed) return;
     _canvasPointerPosition.value = event.localPosition;
     if (_eraserEnabled && !_spaceHeld) {
       if (_eraserPointer == null && (event.kind != PointerDeviceKind.mouse || event.buttons == kPrimaryButton)) {
@@ -340,6 +402,15 @@ class _CanvasPageState extends State<CanvasPage> {
       event.pointer,
     );
     final position = _screenToCanvas(event.localPosition);
+    if (_placementEnabled && event.kind == PointerDeviceKind.touch) {
+      _touchPlacement = (
+        pointer: event.pointer,
+        start: event.localPosition,
+        tool: _activeTool.value,
+        slop: computePanSlop(event.kind, MediaQuery.maybeGestureSettingsOf(context)),
+      );
+      return;
+    }
     if (_tryPlaceActiveTool(position)) return;
     if (onInteractiveChild) {
       if (!_selectionModifierPressed.value) {
@@ -376,6 +447,11 @@ class _CanvasPageState extends State<CanvasPage> {
   }
 
   void _handleCanvasPointerMove(PointerMoveEvent event) {
+    if (!_canHandleCanvasPointer(event)) return;
+    if (_touchPlacement case final placement? when placement.pointer == event.pointer) {
+      if ((event.localPosition - placement.start).distance > placement.slop) _touchPlacement = null;
+      return;
+    }
     _canvasPointerPosition.value = event.localPosition;
     if (_penEnabled) {
       _penTool.onPointerUpdate(event);
@@ -409,6 +485,15 @@ class _CanvasPageState extends State<CanvasPage> {
   }
 
   void _handleCanvasPointerUp(PointerUpEvent event) {
+    _releaseCanvasPointer(event.pointer);
+    if (!_canHandleCanvasPointer(event)) return;
+    if (_touchPlacement case final placement? when placement.pointer == event.pointer) {
+      _touchPlacement = null;
+      if (placement.tool == _activeTool.value && (event.localPosition - placement.start).distance <= placement.slop) {
+        _tryPlaceActiveTool(_screenToCanvas(event.localPosition));
+      }
+      return;
+    }
     if (_penEnabled) {
       _penTool.onPointerUp(event);
       return;
@@ -443,6 +528,9 @@ class _CanvasPageState extends State<CanvasPage> {
   }
 
   void _handleCanvasPointerCancel(PointerCancelEvent event) {
+    _releaseCanvasPointer(event.pointer);
+    if (_touchPlacement?.pointer == event.pointer) _touchPlacement = null;
+    if (!_canHandleCanvasPointer(event)) return;
     if (_penEnabled) {
       _penTool.onPointerCancel(event);
       return;
@@ -552,6 +640,7 @@ class _CanvasPageState extends State<CanvasPage> {
     CodeBlockModel model,
     PointerDownEvent event,
   ) {
+    if (!_canHandleCanvasPointer(event)) return;
     if (event.buttons != kPrimaryButton || !_documentLoaded || _placementEnabled || _penEnabled || _eraserEnabled) {
       return;
     }
@@ -565,6 +654,7 @@ class _CanvasPageState extends State<CanvasPage> {
   }
 
   void _editCodeBlock(CodeBlockModel model) {
+    if (_canvasInputBlocked) return;
     if (!_documentLoaded || _placementEnabled || _penEnabled || _eraserEnabled || !_elements.contains(model)) {
       return;
     }
@@ -585,6 +675,7 @@ class _CanvasPageState extends State<CanvasPage> {
     TextBlockModel model,
     PointerDownEvent event,
   ) {
+    if (!_canHandleCanvasPointer(event)) return;
     if (event.buttons != kPrimaryButton || _placementEnabled || _penEnabled || _eraserEnabled) {
       return;
     }
@@ -604,6 +695,7 @@ class _CanvasPageState extends State<CanvasPage> {
     CanvasElementModel model,
     PointerDownEvent event,
   ) {
+    if (!_canHandleCanvasPointer(event)) return;
     if (event.buttons != kPrimaryButton ||
         !_documentLoaded ||
         _activeTool.value != _CanvasTool.select ||
@@ -619,12 +711,14 @@ class _CanvasPageState extends State<CanvasPage> {
   }
 
   void _activateElement(CanvasElementModel model) {
+    if (_canvasInputBlocked) return;
     if (!_documentLoaded || _activeTool.value != _CanvasTool.select || !_elements.contains(model)) return;
     _clearTextEditing();
     _setActiveElement(model);
   }
 
   void _editTextBlock(TextBlockModel model) {
+    if (_canvasInputBlocked) return;
     if (!_documentLoaded || _placementEnabled || _penEnabled || _eraserEnabled || !_elements.contains(model)) {
       return;
     }
@@ -697,6 +791,7 @@ class _CanvasPageState extends State<CanvasPage> {
   GlobalKey _selectionKey(Object model) => _selectionKeys.putIfAbsent(model, GlobalKey.new);
 
   void _moveSelectedChildren(CanvasElementModel dragged, Offset screenDelta) {
+    if (_canvasInputBlocked) return;
     if (!_documentLoaded ||
         _placementEnabled ||
         _penEnabled ||
@@ -736,6 +831,7 @@ class _CanvasPageState extends State<CanvasPage> {
     Size renderedSize,
     Offset screenDelta,
   ) {
+    if (_canvasInputBlocked) return;
     if (!_documentLoaded || _placementEnabled || _penEnabled || _eraserEnabled) {
       return;
     }
@@ -744,6 +840,7 @@ class _CanvasPageState extends State<CanvasPage> {
   }
 
   void _resizeCodeBlock(CodeBlockModel model, Offset localDelta) {
+    if (_canvasInputBlocked) return;
     if (!_documentLoaded || _placementEnabled || _penEnabled || _eraserEnabled) {
       return;
     }
@@ -755,6 +852,7 @@ class _CanvasPageState extends State<CanvasPage> {
   }
 
   void _resizeMedia(MediaModel model, Offset screenDelta) {
+    if (_canvasInputBlocked) return;
     if (!_documentLoaded || _activeTool.value != _CanvasTool.select || !_elements.contains(model)) {
       return;
     }
@@ -762,6 +860,7 @@ class _CanvasPageState extends State<CanvasPage> {
   }
 
   void _resizeShape(ShapeModel model, Offset screenDelta) {
+    if (_canvasInputBlocked) return;
     if (!_documentLoaded || _activeTool.value != _CanvasTool.select || !_elements.contains(model)) {
       return;
     }
@@ -783,6 +882,7 @@ class _CanvasPageState extends State<CanvasPage> {
   }
 
   void _rotateElement(RotatableCanvasElementModel model, double angle) {
+    if (_canvasInputBlocked) return;
     if (!_documentLoaded || _placementEnabled || _penEnabled || _eraserEnabled) {
       return;
     }
@@ -873,6 +973,8 @@ class _CanvasPageState extends State<CanvasPage> {
           onMove: (delta) => _moveSelectedChildren(code, delta),
           onResize: (delta) => _resizeCodeBlock(code, delta),
           onChangeBoundary: _finishHistoryOperation,
+          canHandlePointer: _canHandleCanvasPointer,
+          onTitlePointerDown: (event) => _handleCodeBlockPointerDown(code, event),
         ),
       ),
       final MediaModel media => _CanvasElementHost(
@@ -943,12 +1045,12 @@ class _CanvasPageState extends State<CanvasPage> {
 
   void _handleCanvasPointerExit(PointerExitEvent event) {
     _canvasPointerPosition.value = null;
-    if (_penEnabled) _penTool.onPointerExit(event);
+    if (_penEnabled && !_canvasInputBlocked) _penTool.onPointerExit(event);
   }
 
   void _handleCanvasPointerHover(PointerHoverEvent event) {
     _canvasPointerPosition.value = event.localPosition;
-    if (_penEnabled && !_spaceHeld) _penTool.onPointerHover(event);
+    if (_penEnabled && !_spaceHeld && !_canvasInputBlocked) _penTool.onPointerHover(event);
   }
 
   void _addCodeBlock(Offset position) {
@@ -1023,6 +1125,7 @@ class _CanvasPageState extends State<CanvasPage> {
     ArrowModel model,
     PointerDownEvent event,
   ) {
+    if (!_canHandleCanvasPointer(event)) return;
     if (event.buttons != kPrimaryButton ||
         !_documentLoaded ||
         _placementEnabled ||
@@ -1049,6 +1152,7 @@ class _CanvasPageState extends State<CanvasPage> {
   }
 
   void _startArrowPointEdit() {
+    if (_canvasInputBlocked) return;
     _finishHistoryOperation();
     _clearSelection();
   }
@@ -1058,6 +1162,7 @@ class _CanvasPageState extends State<CanvasPage> {
     ArrowPoint point,
     Offset position,
   ) {
+    if (_canvasInputBlocked) return;
     if (!_documentLoaded || !identical(_activeElement, model) || !_elements.contains(model)) return;
     if (!model.setPoint(point, position)) return;
     _canvasController.updatePosition(model.data.id, model.canvasPosition);
@@ -1067,6 +1172,7 @@ class _CanvasPageState extends State<CanvasPage> {
     PenStrokeModel model,
     PointerDownEvent event,
   ) {
+    if (!_canHandleCanvasPointer(event)) return;
     if (event.buttons != kPrimaryButton ||
         !_documentLoaded ||
         _placementEnabled ||
@@ -1593,8 +1699,9 @@ class _CanvasPageState extends State<CanvasPage> {
     final oldElements = List<CanvasElementModel>.of(_elements);
     _clearTextEditing();
     FocusManager.instance.primaryFocus?.unfocus();
-    _arrowTool.cancel();
-    _shapeTool.cancel();
+    _cancelDrawingTools();
+    _touchPlacement = null;
+    _blockedCanvasPointers.addAll(_canvasPointers.keys);
     _activeTool.value = _CanvasTool.select;
     _activeElement = null;
     _eraserPointer = null;
@@ -1890,35 +1997,15 @@ class _CanvasPageState extends State<CanvasPage> {
 
   // ---------- Rendering ----------
 
-  @override
-  Widget build(BuildContext context) {
-    final theme = BTheme.of(context);
-    final colors = theme.colors;
-    final geo = theme.geo;
+  Widget _buildCanvasViewport(BuildContext context, Widget viewport) {
+    final colors = BTheme.of(context).colors;
     final editingChromeModel = _editingChromeModel;
     final activeArrow = _activeArrow;
-    return Scaffold(
-      body: Stack(
+    return Overlay.wrap(
+      clipBehavior: Clip.none,
+      child: Stack(
         children: [
-          IgnorePointer(
-            ignoring: !_documentLoaded || _filePickerOpen,
-            child: MouseRegion(
-              cursor: !_spaceHeld && (_penEnabled || _eraserEnabled) ? SystemMouseCursors.none : MouseCursor.defer,
-              onExit: _handleCanvasPointerExit,
-              child: Listener(
-                behavior: HitTestBehavior.opaque,
-                onPointerDown: _handleCanvasPointerDown,
-                onPointerMove: _handleCanvasPointerMove,
-                onPointerUp: _handleCanvasPointerUp,
-                onPointerCancel: _handleCanvasPointerCancel,
-                onPointerHover: _handleCanvasPointerHover,
-                child: LazyCanvas(
-                  controller: _canvasController,
-                  mousePanButtons: kSecondaryMouseButton | kMiddleMouseButton | (_spaceHeld ? kPrimaryMouseButton : 0),
-                ),
-              ),
-            ),
-          ),
+          viewport,
           if (_arrowTool.preview case final preview?)
             Positioned.fill(
               child: IgnorePointer(
@@ -2002,22 +2089,22 @@ class _CanvasPageState extends State<CanvasPage> {
                 offset: const Offset(-10, 0),
                 child: SizedBox.fromSize(
                   size: ElementTransformControls.size,
-                  child: Overlay.wrap(
-                    clipBehavior: Clip.none,
-                    child: AnimatedSwitcher(
-                      duration: const Duration(milliseconds: 260),
-                      reverseDuration: const Duration(milliseconds: 180),
-                      switchInCurve: Curves.easeOutCubic,
-                      switchOutCurve: Curves.easeOutCubic,
-                      transitionBuilder: _textEditingChromeTransition,
-                      child: switch (_activeElement) {
-                        final CanvasElementModel editing => ListenableBuilder(
-                          key: ValueKey(editing.data.id),
-                          listenable: editing,
-                          builder: (context, child) => IgnorePointer(
-                            ignoring: !editing.active,
-                            child: child,
-                          ),
+                  child: AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 260),
+                    reverseDuration: const Duration(milliseconds: 180),
+                    switchInCurve: Curves.easeOutCubic,
+                    switchOutCurve: Curves.easeOutCubic,
+                    transitionBuilder: _textEditingChromeTransition,
+                    child: switch (_activeElement) {
+                      final CanvasElementModel editing => ListenableBuilder(
+                        key: ValueKey(editing.data.id),
+                        listenable: editing,
+                        builder: (context, child) => IgnorePointer(
+                          ignoring: !editing.active,
+                          child: child,
+                        ),
+                        child: Listener(
+                          onPointerDown: _handleObjectControlPointerDown,
                           child: ElementTransformControls(
                             key: ValueKey(editing.data.id),
                             elementName: editing.data.type,
@@ -2034,8 +2121,11 @@ class _CanvasPageState extends State<CanvasPage> {
                               ),
                               _ => null,
                             },
-                            onDelete: () => _removeElements([editing]),
+                            onDelete: () {
+                              if (!_canvasInputBlocked) _removeElements([editing]);
+                            },
                             onTransformStart: () {
+                              if (_canvasInputBlocked) return;
                               if (editing is TextBlockModel) {
                                 _clearTextEditing();
                               } else {
@@ -2046,11 +2136,11 @@ class _CanvasPageState extends State<CanvasPage> {
                             rotationCenter: () => _elementCenter(editing),
                           ),
                         ),
-                        _ => const SizedBox(
-                          key: ValueKey('text-editing-chrome-hidden'),
-                        ),
-                      },
-                    ),
+                      ),
+                      _ => const SizedBox(
+                        key: ValueKey('text-editing-chrome-hidden'),
+                      ),
+                    },
                   ),
                 ),
               ),
@@ -2059,16 +2149,50 @@ class _CanvasPageState extends State<CanvasPage> {
             Positioned.fill(
               child: ListenableBuilder(
                 listenable: Listenable.merge([activeArrow, _canvasController]),
-                builder: (context, _) => ArrowEditor(
-                  model: activeArrow,
-                  canvasOffset: _canvasController.offset,
-                  canvasScale: _canvasController.scale,
-                  onChangeStart: _startArrowPointEdit,
-                  onPointChanged: (point, position) => _editArrowPoint(activeArrow, point, position),
-                  onChangeEnd: _finishHistoryOperation,
+                builder: (context, _) => Listener(
+                  onPointerDown: _handleObjectControlPointerDown,
+                  child: ArrowEditor(
+                    model: activeArrow,
+                    canvasOffset: _canvasController.offset,
+                    canvasScale: _canvasController.scale,
+                    onChangeStart: _startArrowPointEdit,
+                    onPointChanged: (point, position) => _editArrowPoint(activeArrow, point, position),
+                    onChangeEnd: _finishHistoryOperation,
+                  ),
                 ),
               ),
             ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = BTheme.of(context);
+    final colors = theme.colors;
+    final geo = theme.geo;
+    return Scaffold(
+      body: Stack(
+        children: [
+          IgnorePointer(
+            ignoring: !_documentLoaded || _filePickerOpen,
+            child: MouseRegion(
+              cursor: !_spaceHeld && (_penEnabled || _eraserEnabled) ? SystemMouseCursors.none : MouseCursor.defer,
+              onExit: _handleCanvasPointerExit,
+              child: Listener(
+                behavior: HitTestBehavior.opaque,
+                onPointerHover: _handleCanvasPointerHover,
+                child: LazyCanvas(
+                  controller: _canvasController,
+                  touchNavigationMode: TouchNavigationMode.twoFinger,
+                  onTouchNavigationChanged: _handleTouchNavigationChanged,
+                  viewportBuilder: _buildCanvasViewport,
+                  mousePanButtons: kSecondaryMouseButton | kMiddleMouseButton | (_spaceHeld ? kPrimaryMouseButton : 0),
+                ),
+              ),
+            ),
+          ),
           SafeArea(
             child: Align(
               alignment: Alignment.bottomRight,

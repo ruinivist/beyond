@@ -32,6 +32,8 @@ class CodeTool extends StatefulWidget {
     required this.onMove,
     required this.onResize,
     required this.onChangeBoundary,
+    this.canHandlePointer,
+    this.onTitlePointerDown,
     super.key,
   });
 
@@ -40,6 +42,8 @@ class CodeTool extends StatefulWidget {
   final ValueChanged<Offset> onMove;
   final ValueChanged<Offset> onResize;
   final VoidCallback onChangeBoundary;
+  final bool Function(PointerEvent event)? canHandlePointer;
+  final PointerDownEventListener? onTitlePointerDown;
 
   @override
   State<CodeTool> createState() => _CodeToolState();
@@ -62,6 +66,7 @@ class _CodeToolState extends State<CodeTool> {
   }
 
   void _handlePreviewPointerDown(PointerDownEvent event) {
+    if (widget.canHandlePointer?.call(event) == false) return;
     if (widget.model.active || event.buttons != kPrimaryButton || _previewPointer != null) return;
     _previewPointer = event.pointer;
     _previewPointerStart = event.position;
@@ -75,6 +80,10 @@ class _CodeToolState extends State<CodeTool> {
 
   void _handlePreviewPointerMove(PointerMoveEvent event) {
     if (event.pointer != _previewPointer) return;
+    if (widget.canHandlePointer?.call(event) == false) {
+      _clearPreviewPointer();
+      return;
+    }
     final start = _previewPointerStart!;
     final previous = _previewPointerPosition!;
     if (!_previewDragging) {
@@ -95,6 +104,7 @@ class _CodeToolState extends State<CodeTool> {
     if (event.pointer != _previewPointer) return;
     final dragging = _previewDragging;
     _clearPreviewPointer();
+    if (widget.canHandlePointer?.call(event) == false) return;
     if (dragging) {
       widget.model
         ..focusNode.unfocus()
@@ -107,6 +117,7 @@ class _CodeToolState extends State<CodeTool> {
   void _handlePreviewPointerCancel(PointerCancelEvent event) {
     if (event.pointer != _previewPointer) return;
     _clearPreviewPointer();
+    if (widget.canHandlePointer?.call(event) == false) return;
     widget.model
       ..focusNode.unfocus()
       ..controller.cancelSelection();
@@ -157,24 +168,27 @@ class _CodeToolState extends State<CodeTool> {
                 alignment: Alignment.topLeft,
                 child: Transform.translate(
                   offset: const Offset(0, -_codeTitleHeight),
-                  child: IgnorePointer(
-                    ignoring: !showTitle,
-                    child: AnimatedSwitcher(
-                      duration: model.title.trim().isEmpty ? _codeControlAnimationDuration : Duration.zero,
-                      switchInCurve: Curves.easeOutCubic,
-                      switchOutCurve: Curves.easeOutCubic,
-                      transitionBuilder: _codeControlTransition,
-                      child: showTitle
-                          ? editing
-                                ? titleTab
-                                : GestureDetector(
-                                    behavior: HitTestBehavior.opaque,
-                                    dragStartBehavior: DragStartBehavior.down,
-                                    onTap: widget.onEdit,
-                                    onPanUpdate: (details) => widget.onMove(details.delta),
-                                    child: titleTab,
-                                  )
-                          : const SizedBox(key: ValueKey('code-title-hidden')),
+                  child: Listener(
+                    onPointerDown: widget.onTitlePointerDown,
+                    child: IgnorePointer(
+                      ignoring: !showTitle,
+                      child: AnimatedSwitcher(
+                        duration: model.title.trim().isEmpty ? _codeControlAnimationDuration : Duration.zero,
+                        switchInCurve: Curves.easeOutCubic,
+                        switchOutCurve: Curves.easeOutCubic,
+                        transitionBuilder: _codeControlTransition,
+                        child: showTitle
+                            ? editing
+                                  ? titleTab
+                                  : GestureDetector(
+                                      behavior: HitTestBehavior.opaque,
+                                      dragStartBehavior: DragStartBehavior.down,
+                                      onTap: widget.onEdit,
+                                      onPanUpdate: (details) => widget.onMove(details.delta),
+                                      child: titleTab,
+                                    )
+                            : const SizedBox(key: ValueKey('code-title-hidden')),
+                      ),
                     ),
                   ),
                 ),

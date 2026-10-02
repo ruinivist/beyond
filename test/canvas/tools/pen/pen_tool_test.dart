@@ -204,7 +204,7 @@ void main() {
     tool.dispose();
   });
 
-  test('pen cancel and exit each commit once and clear ownership', () {
+  test('pen cancellation discards while mouse exit commits once', () {
     final strokes = <RawPenStroke>[];
     final tool = PenTool(onStroke: strokes.add)
       ..onPointerDown(const PointerDownEvent(pointer: 1))
@@ -220,8 +220,26 @@ void main() {
       )
       ..onPointerExit(const PointerExitEvent(pointer: 2));
 
-    expect(strokes, hasLength(2));
+    expect(strokes, hasLength(1));
     expect(tool.active, isFalse);
+    tool.dispose();
+  });
+
+  test('discarded pen strokes apply queued options to the next stroke', () {
+    final strokes = <RawPenStroke>[];
+    final tool = PenTool(onStroke: strokes.add)
+      ..onPointerDown(const PointerDownEvent(pointer: 1))
+      ..setColor(Colors.red)
+      ..setStrokeWidth(8)
+      ..setStreamline(1)
+      ..cancel()
+      ..onPointerUp(const PointerUpEvent(pointer: 1))
+      ..onPointerDown(const PointerDownEvent(pointer: 2))
+      ..onPointerUp(const PointerUpEvent(pointer: 2));
+    expect(strokes, hasLength(1));
+    expect(strokes.single.color, Colors.red.toARGB32());
+    expect(strokes.single.width, 8);
+    expect(strokes.single.streamline, 1);
     tool.dispose();
   });
 
@@ -444,7 +462,7 @@ void main() {
 
     await tester.tap(find.byKey(const ValueKey('toolbar-draw')));
     await tester.pump();
-    await tester.dragFrom(const Offset(100, 200), const Offset(80, 40));
+    await tester.dragFrom(const Offset(100, 200), const Offset(80, 40), kind: PointerDeviceKind.mouse);
     await tester.dragFrom(const Offset(100, 300), const Offset(80, 40));
     await tester.pump();
 

@@ -112,7 +112,17 @@ class PenTool extends ChangeNotifier {
 
   void onPointerUp(PointerUpEvent event) => _finish(event);
 
-  void onPointerCancel(PointerCancelEvent event) => _finish(event);
+  void onPointerCancel(PointerCancelEvent event) {
+    if (event.pointer == _activePointer) cancel();
+  }
+
+  /// Discards the unfinished stroke and applies options queued for the next one.
+  /// Used when navigation or a tool change takes over the pointer sequence.
+  void cancel() {
+    _pointerPosition = null;
+    _clearStroke();
+    notifyListeners();
+  }
 
   void onPointerExit(PointerExitEvent event) {
     if (!active) {
@@ -135,6 +145,12 @@ class PenTool extends ChangeNotifier {
       width: _strokeWidth,
       streamline: _streamline,
     );
+    _clearStroke();
+    onStroke(stroke);
+    notifyListeners();
+  }
+
+  void _clearStroke() {
     _activePointer = null;
     _points.clear();
     final pendingColor = _pendingColor;
@@ -143,10 +159,8 @@ class PenTool extends ChangeNotifier {
     _pendingColor = null;
     _pendingStrokeWidth = null;
     _pendingStreamline = null;
-    onStroke(stroke);
     if (pendingColor != null) _color = pendingColor;
     if (pendingWidth != null) _strokeWidth = pendingWidth;
     if (pendingStreamline != null) _streamline = pendingStreamline;
-    notifyListeners();
   }
 }

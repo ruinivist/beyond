@@ -70,6 +70,14 @@ Shapes follow the same state separation: clicking or creating a shape makes it a
 - Scrolling inside bounded text or code content does not pan the canvas.
 - Only the primary mouse button performs block interactions; other pointer gestures retain their canvas behavior.
 
+## Touch navigation
+
+- One finger draws, erases, or interacts with canvas objects. Two fingers pan and pinch to zoom, including when a finger starts on an object control or code title.
+- Adding a second finger discards unfinished pen, arrow, and shape drawings and pending placement. Erasures and object moves, resizes, rotations, and arrow-point edits already made are kept as one undoable operation.
+- After navigation drops to one finger, the remaining finger does nothing until all touches lift. Interrupted pointers cannot resume editing; an interrupted stylus must also lift before tools resume.
+- Text, code, and media are placed on single-finger touch tap release. Dragging, cancellation, or adding a second finger cancels placement. Mouse and stylus placement happen on press.
+- A stylus and one finger do not start navigation. Two actual fingers can take over and discard an unfinished stylus drawing.
+
 ## Canvas files
 
 - Clicking the canvas title opens the file picker; hovering the title reveals its folder path.
