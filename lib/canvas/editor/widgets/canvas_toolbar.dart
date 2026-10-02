@@ -44,13 +44,12 @@ class CanvasToolbar extends StatelessWidget {
       for (var row = 0; row < rowCount; row++) {
         final end = start + perRow + (row < extra ? 1 : 0);
         rows.add(
-          Padding(
-            padding: EdgeInsets.symmetric(horizontal: compact ? _compactHorizontalPadding : 0),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              spacing: compact ? _compactHorizontalPadding * 2 : 0,
-              children: buttons.sublist(start, end),
-            ),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              for (final button in buttons.sublist(start, end))
+                if (compact) SizedBox(width: buttonWidth, child: button) else button,
+            ],
           ),
         );
         start = end;
