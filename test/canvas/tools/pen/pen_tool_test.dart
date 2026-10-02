@@ -6,6 +6,7 @@ import 'dart:math' as math;
 
 import 'package:beyond/canvas/document/canvas_document.dart';
 import 'package:beyond/canvas/editor/canvas_background.dart';
+import 'package:beyond/canvas/editor/widgets/canvas_title.dart';
 import 'package:beyond/canvas/editor/widgets/element_transform_controls.dart';
 import 'package:beyond/canvas/editor/widgets/toolbar_button.dart';
 import 'package:beyond/canvas/persistence/canvas_document_store.dart';
@@ -305,7 +306,7 @@ void main() {
       'saved text',
     );
 
-    await _placeCodeBlock(tester, const Offset(120, 100));
+    await _placeCodeBlock(tester, const Offset(120, 140));
     final code = tester.widget<CodeTool>(find.byType(CodeTool)).model
       ..language = CodeLanguage.json
       ..controller.text = '{"saved": true}';
@@ -685,8 +686,16 @@ void main() {
     final panel = tester.getRect(
       find.byKey(const ValueKey('draw-settings-panel')),
     );
-    expect(toolbar.center.dx, 275);
-    expect(settings.top, greaterThan(toolbar.bottom));
+    final title = tester.getRect(
+      find.ancestor(of: find.byType(CanvasTitle), matching: find.byType(SingleChildScrollView)),
+    );
+    expect(title.left, lessThan(toolbar.left));
+    expect(title.top, greaterThan(toolbar.bottom));
+    expect(toolbar.overlaps(title), isFalse);
+    expect(title.overlaps(settings), isFalse);
+    expect(title.overlaps(panel), isFalse);
+    expect(toolbar.center.dx, tester.view.physicalSize.width / 2);
+    expect(settings.top, greaterThanOrEqualTo(toolbar.top));
     expect(panel.top, greaterThan(settings.bottom));
     expect(toolbar.overlaps(settings), isFalse);
     expect(settings.overlaps(panel), isFalse);
@@ -738,7 +747,7 @@ void main() {
       findsOneWidget,
     );
 
-    await _placeCodeBlock(tester, const Offset(120, 100));
+    await _placeCodeBlock(tester, const Offset(120, 140));
     await tester.tapAt(
       tester.getCenter(find.byKey(const ValueKey('code-block-surface'))),
     );
@@ -800,7 +809,7 @@ void main() {
   ) async {
     await tester.pumpWidget(const BeyondApp());
     await tester.pump();
-    await _placeCodeBlock(tester, const Offset(120, 100));
+    await _placeCodeBlock(tester, const Offset(120, 140));
     await tester.pump();
 
     final code = tester.widget<CodeTool>(find.byType(CodeTool)).model;
@@ -894,7 +903,7 @@ void main() {
   ) async {
     await tester.pumpWidget(const BeyondApp());
     await tester.pump();
-    await _placeCodeBlock(tester, const Offset(120, 100));
+    await _placeCodeBlock(tester, const Offset(120, 140));
     await tester.pump();
 
     final block = find.byType(CodeTool);
@@ -941,7 +950,7 @@ void main() {
   ) async {
     await tester.pumpWidget(const BeyondApp());
     await tester.pump();
-    await _placeCodeBlock(tester, const Offset(120, 100));
+    await _placeCodeBlock(tester, const Offset(120, 140));
     await tester.pump();
 
     final input = find.byKey(const ValueKey('code-title-input'));
@@ -966,7 +975,7 @@ void main() {
   ) async {
     await tester.pumpWidget(const BeyondApp());
     await tester.pump();
-    await _placeCodeBlock(tester, const Offset(120, 100));
+    await _placeCodeBlock(tester, const Offset(120, 140));
 
     final block = find.byType(CodeTool);
     final code = tester.widget<CodeTool>(block).model;
@@ -1006,7 +1015,7 @@ void main() {
     );
     await tester.pump();
     await tester.tap(find.byKey(const ValueKey('toolbar-draw')));
-    await _placeCodeBlock(tester, const Offset(120, 100));
+    await _placeCodeBlock(tester, const Offset(120, 140));
     await tester.pump(const Duration(milliseconds: 100));
 
     final code = tester.widget<CodeTool>(find.byType(CodeTool)).model;
@@ -1075,7 +1084,7 @@ void main() {
     await tester.pumpWidget(const BeyondApp());
     await tester.pump();
 
-    await _placeCodeBlock(tester, const Offset(120, 100));
+    await _placeCodeBlock(tester, const Offset(40, 120));
     await tester.pump(const Duration(milliseconds: 100));
 
     final block = find.byType(CodeTool);
@@ -1119,7 +1128,7 @@ void main() {
   testWidgets('code scroll boundary does not pan canvas', (tester) async {
     await tester.pumpWidget(const BeyondApp());
     await tester.pump();
-    await _placeCodeBlock(tester, const Offset(120, 100));
+    await _placeCodeBlock(tester, const Offset(120, 140));
 
     final block = find.byType(CodeTool);
     final model = tester.widget<CodeTool>(block).model;
@@ -1157,7 +1166,7 @@ void main() {
     await tester.pumpWidget(const BeyondApp());
     await tester.pump();
 
-    await _placeCodeBlock(tester, const Offset(120, 100));
+    await _placeCodeBlock(tester, const Offset(120, 140));
     await tester.pump(const Duration(milliseconds: 100));
     await tester.sendKeyEvent(LogicalKeyboardKey.escape);
     await tester.pump();
@@ -1194,7 +1203,7 @@ void main() {
     await tester.tapAt(const Offset(40, 520));
     await tester.pump();
     await tester.pump();
-    await _placeCodeBlock(tester, const Offset(120, 100));
+    await _placeCodeBlock(tester, const Offset(120, 140));
     await tester.pump(const Duration(milliseconds: 100));
 
     final text = tester.widget<TextTool>(find.byType(TextTool)).model;
@@ -1281,7 +1290,7 @@ void main() {
     );
     await tester.pump();
     await tester.tap(find.byKey(const ValueKey('toolbar-draw')));
-    await _placeCodeBlock(tester, const Offset(120, 100));
+    await _placeCodeBlock(tester, const Offset(120, 140));
     await tester.pump(const Duration(milliseconds: 100));
 
     final textFinder = find.byType(TextTool);
@@ -1341,7 +1350,7 @@ void main() {
     await tester.tapAt(const Offset(40, 520));
     await tester.pump();
     await tester.pump();
-    await _placeCodeBlock(tester, const Offset(120, 100));
+    await _placeCodeBlock(tester, const Offset(120, 140));
     await tester.pump(const Duration(milliseconds: 100));
 
     final text = tester.widget<TextTool>(find.byType(TextTool)).model;
@@ -1389,7 +1398,7 @@ void main() {
     await tester.tapAt(const Offset(40, 520));
     await tester.pump();
     await tester.pump();
-    await _placeCodeBlock(tester, const Offset(120, 100));
+    await _placeCodeBlock(tester, const Offset(120, 140));
     await tester.pump(const Duration(milliseconds: 100));
     await tester.sendKeyEvent(LogicalKeyboardKey.escape);
     await tester.pump();
@@ -1450,7 +1459,7 @@ void main() {
     );
     await tester.pump();
     await tester.tap(find.byKey(const ValueKey('toolbar-draw')));
-    await _placeCodeBlock(tester, const Offset(120, 100));
+    await _placeCodeBlock(tester, const Offset(120, 140));
     await tester.pump(const Duration(milliseconds: 100));
 
     final texts = tester.widgetList<TextTool>(find.byType(TextTool)).map((block) => block.model).toList();
@@ -1559,7 +1568,7 @@ void main() {
   testWidgets('right and middle drag pan over block controls', (tester) async {
     await tester.pumpWidget(const BeyondApp());
     await tester.pump();
-    await _placeCodeBlock(tester, const Offset(120, 100));
+    await _placeCodeBlock(tester, const Offset(120, 140));
 
     final block = find.byType(CodeTool);
     final model = tester.widget<CodeTool>(block).model;

@@ -10,10 +10,11 @@ import 'package:beyond/canvas/editor/canvas_background.dart';
 import 'package:beyond/canvas/editor/canvas_clipboard.dart';
 import 'package:beyond/canvas/editor/canvas_element_model.dart';
 import 'package:beyond/canvas/editor/widgets/arrow_stroke_style_icon.dart';
+import 'package:beyond/canvas/editor/widgets/canvas_chrome.dart';
 import 'package:beyond/canvas/editor/widgets/canvas_file_picker.dart';
 import 'package:beyond/canvas/editor/widgets/canvas_title.dart';
+import 'package:beyond/canvas/editor/widgets/canvas_toolbar.dart';
 import 'package:beyond/canvas/editor/widgets/element_transform_controls.dart';
-import 'package:beyond/canvas/editor/widgets/tool_options.dart';
 import 'package:beyond/canvas/editor/widgets/toolbar_button.dart';
 import 'package:beyond/canvas/editor/widgets/zoom_control.dart';
 import 'package:beyond/canvas/persistence/attachments/store.dart';
@@ -1895,9 +1896,6 @@ class _CanvasPageState extends State<CanvasPage> {
     final colors = theme.colors;
     final geo = theme.geo;
     final editingChromeModel = _editingChromeModel;
-    final activeTextBlock = _activeTextBlock;
-    final activeCodeBlock = _activeCodeBlock;
-    final activeShape = _activeShape;
     final activeArrow = _activeArrow;
     return Scaffold(
       body: Stack(
@@ -2071,26 +2069,6 @@ class _CanvasPageState extends State<CanvasPage> {
                 ),
               ),
             ),
-          Positioned(
-            top: 12,
-            left: 12,
-            child: SafeArea(
-              child: ConstrainedBox(
-                constraints: BoxConstraints(maxWidth: math.max(80, MediaQuery.sizeOf(context).width / 2 - 190)),
-                child: SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  reverse: true,
-                  child: CanvasTitle(
-                    path: _documentStore.library
-                        .path(_documentStore.library.currentId)
-                        .map((file) => file.name)
-                        .toList(),
-                    onPressed: _documentLoaded ? _showFilePicker : null,
-                  ),
-                ),
-              ),
-            ),
-          ),
           SafeArea(
             child: Align(
               alignment: Alignment.bottomRight,
@@ -2100,271 +2078,172 @@ class _CanvasPageState extends State<CanvasPage> {
               ),
             ),
           ),
-          SafeArea(
-            child: Align(
-              alignment: Alignment.topCenter,
-              child: Padding(
-                padding: const EdgeInsets.only(top: 12),
-                child: FittedBox(
-                  fit: BoxFit.scaleDown,
-                  child: Surface(
-                    key: const ValueKey('toolbar-surface'),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Tooltip(
-                          message: 'Place text',
-                          child: ToolbarButton(
-                            key: const ValueKey('toolbar-text'),
-                            selected: _activeTool.value == _CanvasTool.text,
-                            onPressed: () => _toggleTool(_CanvasTool.text),
-                            child: const Icon(
-                              LucideIcons.type,
-                              size: 20,
-                              semanticLabel: 'Text',
-                            ),
-                          ),
-                        ),
-                        Tooltip(
-                          message: 'Place code block',
-                          child: ToolbarButton(
-                            key: const ValueKey('toolbar-code'),
-                            selected: _activeTool.value == _CanvasTool.code,
-                            onPressed: () => _toggleTool(_CanvasTool.code),
-                            child: const Icon(
-                              LucideIcons.codeXml,
-                              size: 20,
-                              semanticLabel: 'Code',
-                            ),
-                          ),
-                        ),
-                        Tooltip(
-                          message: 'Place media',
-                          child: ToolbarButton(
-                            key: const ValueKey('toolbar-media'),
-                            selected: _activeTool.value == _CanvasTool.media,
-                            onPressed: () => _toggleTool(_CanvasTool.media),
-                            child: const Icon(
-                              LucideIcons.image,
-                              size: 20,
-                              semanticLabel: 'Media',
-                            ),
-                          ),
-                        ),
-                        Tooltip(
-                          message: 'Draw rounded rectangle',
-                          child: ToolbarButton(
-                            key: const ValueKey('toolbar-shape'),
-                            selected: _shapeEnabled,
-                            onPressed: () => _toggleTool(_CanvasTool.shape),
-                            child: const Icon(
-                              LucideIcons.squareRoundCorner,
-                              size: 20,
-                              semanticLabel: 'Rect',
-                            ),
-                          ),
-                        ),
-                        Tooltip(
-                          message: 'Draw with pen',
-                          child: ToolbarButton(
-                            key: const ValueKey('toolbar-draw'),
-                            selected: _penEnabled,
-                            onPressed: () => _toggleTool(_CanvasTool.pen),
-                            child: const Icon(
-                              LucideIcons.pencil,
-                              size: 20,
-                              semanticLabel: 'Draw',
-                            ),
-                          ),
-                        ),
-                        Tooltip(
-                          message: 'Erase elements',
-                          child: ToolbarButton(
-                            key: const ValueKey('toolbar-erase'),
-                            selected: _eraserEnabled,
-                            onPressed: () => _toggleTool(_CanvasTool.eraser),
-                            child: const Icon(
-                              LucideIcons.eraser,
-                              size: 20,
-                              semanticLabel: 'Erase',
-                            ),
-                          ),
-                        ),
-                        Tooltip(
-                          message: 'Draw an arrow',
-                          child: ToolbarButton(
-                            key: const ValueKey('toolbar-arrow'),
-                            selected: _arrowEnabled,
-                            onPressed: () => _toggleTool(_CanvasTool.arrow),
-                            child: const Icon(
-                              LucideIcons.arrowUpRight,
-                              size: 20,
-                              semanticLabel: 'Arrow',
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+          Positioned.fill(
+            child: CanvasChrome(
+              title: CanvasTitle(
+                path: _documentStore.library.path(_documentStore.library.currentId).map((file) => file.name).toList(),
+                onPressed: _documentLoaded ? _showFilePicker : null,
+              ),
+              toolbar: CanvasToolbar(buttonsBuilder: _buildToolbarButtons),
+              settingsButton: Surface(
+                key: const ValueKey('settings-button-surface'),
+                child: IconButton(
+                  key: const ValueKey('settings-button'),
+                  tooltip: 'Settings',
+                  onPressed: _showSettingsDialog,
+                  style:
+                      _toolbarButtonStyle(
+                        colors,
+                        geo,
+                      ).copyWith(
+                        padding: const WidgetStatePropertyAll(EdgeInsets.all(8)),
+                      ),
+                  icon: const Icon(LucideIcons.settings),
                 ),
               ),
-            ),
-          ),
-          SafeArea(
-            child: Align(
-              alignment: Alignment.topRight,
-              child: Padding(
-                padding: EdgeInsets.fromLTRB(
-                  12,
-                  MediaQuery.sizeOf(context).width < 600 ? 72 : 12,
-                  12,
-                  12,
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Surface(
-                      key: const ValueKey('settings-button-surface'),
-                      child: IconButton(
-                        key: const ValueKey('settings-button'),
-                        tooltip: 'Settings',
-                        onPressed: _showSettingsDialog,
-                        style:
-                            _toolbarButtonStyle(
-                              colors,
-                              geo,
-                            ).copyWith(
-                              padding: const WidgetStatePropertyAll(EdgeInsets.all(8)),
-                            ),
-                        icon: const Icon(LucideIcons.settings),
-                      ),
-                    ),
-                    Flexible(
-                      child: ToolOptions(
-                        child: activeTextBlock != null
-                            ? Listener(
-                                onPointerDown: (_) => _clearTextEditing(),
-                                child: TextToolSettings(
-                                  key: ValueKey(
-                                    'text-settings-${activeTextBlock.node.id}',
-                                  ),
-                                  model: activeTextBlock,
-                                  onChangeBoundary: _finishHistoryOperation,
-                                  colorPickerExpanded: _textColorPickerExpanded,
-                                  onColorPickerExpandedChanged: (expanded) => setState(
-                                    () => _textColorPickerExpanded = expanded,
-                                  ),
-                                ),
-                              )
-                            : activeCodeBlock != null
-                            ? CodeToolSettings(
-                                key: ValueKey(
-                                  'code-settings-${activeCodeBlock.data.id}',
-                                ),
-                                model: activeCodeBlock,
-                                onChangeBoundary: _finishHistoryOperation,
-                              )
-                            : activeShape != null
-                            ? ListenableBuilder(
-                                key: const ValueKey('shape-settings-panel'),
-                                listenable: activeShape,
-                                builder: (context, _) => _ShapeSettings(
-                                  kind: activeShape.kind,
-                                  strokeColor: activeShape.strokeColor,
-                                  fillColor: activeShape.fillColor,
-                                  strokeWidth: activeShape.strokeWidth,
-                                  outlineColorPickerExpanded: _shapeOutlineColorPickerExpanded,
-                                  onKindChanged: (kind) => _editElement(activeShape, () => activeShape.kind = kind),
-                                  onStrokeColorChanged: (color) =>
-                                      _editElement(activeShape, () => activeShape.strokeColor = color),
-                                  onFillColorChanged: (color) =>
-                                      _editElement(activeShape, () => activeShape.fillColor = color),
-                                  onStrokeWidthChanged: (width) =>
-                                      _editElement(activeShape, () => activeShape.strokeWidth = width),
-                                  onOutlineColorPickerExpandedChanged: (expanded) => setState(
-                                    () => _shapeOutlineColorPickerExpanded = expanded,
-                                  ),
-                                ),
-                              )
-                            : activeArrow != null
-                            ? ListenableBuilder(
-                                key: const ValueKey('arrow-settings-panel'),
-                                listenable: activeArrow,
-                                builder: (context, _) => _ArrowSettings(
-                                  color: activeArrow.color,
-                                  strokeStyle: activeArrow.strokeStyle,
-                                  strokeWidth: activeArrow.strokeWidth,
-                                  colorPickerExpanded: _arrowColorPickerExpanded,
-                                  onColorChanged: (color) => _editElement(activeArrow, () => activeArrow.color = color),
-                                  onStrokeStyleChanged: (style) =>
-                                      _editElement(activeArrow, () => activeArrow.strokeStyle = style),
-                                  onStrokeWidthChanged: (width) =>
-                                      _editElement(activeArrow, () => activeArrow.strokeWidth = width),
-                                  onColorPickerExpandedChanged: (expanded) =>
-                                      setState(() => _arrowColorPickerExpanded = expanded),
-                                ),
-                              )
-                            : _penEnabled
-                            ? _StrokeSettings(
-                                key: const ValueKey('draw-settings-panel'),
-                                color: _penColor,
-                                width: _penWidth,
-                                streamline: _penStreamline,
-                                colorPickerExpanded: _penColorPickerExpanded,
-                                onColorChanged: _setPenColor,
-                                onColorPickerExpandedChanged: (expanded) => setState(
-                                  () => _penColorPickerExpanded = expanded,
-                                ),
-                                onWidthChanged: _setPenWidth,
-                                onStreamlineChanged: _setPenStreamline,
-                              )
-                            : _shapeEnabled
-                            ? ListenableBuilder(
-                                key: const ValueKey('shape-settings-panel'),
-                                listenable: _shapeTool,
-                                builder: (context, _) => _ShapeSettings(
-                                  kind: _shapeTool.kind,
-                                  strokeColor: _shapeTool.strokeColor,
-                                  fillColor: _shapeTool.fillColor,
-                                  strokeWidth: _shapeTool.strokeWidth,
-                                  outlineColorPickerExpanded: _shapeOutlineColorPickerExpanded,
-                                  onKindChanged: _shapeTool.setKind,
-                                  onStrokeColorChanged: _setShapeStrokeColor,
-                                  onFillColorChanged: _shapeTool.setFillColor,
-                                  onStrokeWidthChanged: _shapeTool.setStrokeWidth,
-                                  onOutlineColorPickerExpandedChanged: (expanded) => setState(
-                                    () => _shapeOutlineColorPickerExpanded = expanded,
-                                  ),
-                                ),
-                              )
-                            : _arrowEnabled
-                            ? ListenableBuilder(
-                                key: const ValueKey('arrow-settings-panel'),
-                                listenable: _arrowTool,
-                                builder: (context, _) => _ArrowSettings(
-                                  color: _arrowTool.color,
-                                  strokeStyle: _arrowTool.strokeStyle,
-                                  strokeWidth: _arrowTool.strokeWidth,
-                                  colorPickerExpanded: _arrowColorPickerExpanded,
-                                  onColorChanged: _setArrowColor,
-                                  onStrokeStyleChanged: _arrowTool.setStrokeStyle,
-                                  onStrokeWidthChanged: _arrowTool.setStrokeWidth,
-                                  onColorPickerExpandedChanged: (expanded) =>
-                                      setState(() => _arrowColorPickerExpanded = expanded),
-                                ),
-                              )
-                            : null,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+              toolOptions: _buildToolOptions(),
             ),
           ),
         ],
       ),
     );
+  }
+
+  // ---------- Canvas chrome content ----------
+
+  List<Widget> _buildToolbarButtons({required bool compact}) => [
+    for (final (tool, key, message, icon, label) in const [
+      (_CanvasTool.text, 'text', 'Place text', LucideIcons.type, 'Text'),
+      (_CanvasTool.code, 'code', 'Place code block', LucideIcons.codeXml, 'Code'),
+      (_CanvasTool.media, 'media', 'Place media', LucideIcons.image, 'Media'),
+      (_CanvasTool.shape, 'shape', 'Draw rounded rectangle', LucideIcons.squareRoundCorner, 'Rect'),
+      (_CanvasTool.pen, 'draw', 'Draw with pen', LucideIcons.pencil, 'Draw'),
+      (_CanvasTool.eraser, 'erase', 'Erase elements', LucideIcons.eraser, 'Erase'),
+      (_CanvasTool.arrow, 'arrow', 'Draw an arrow', LucideIcons.arrowUpRight, 'Arrow'),
+    ])
+      Tooltip(
+        message: message,
+        child: ToolbarButton(
+          compact: compact,
+          key: ValueKey('toolbar-$key'),
+          selected: _activeTool.value == tool,
+          onPressed: () => _toggleTool(tool),
+          child: Icon(icon, size: 20, semanticLabel: label),
+        ),
+      ),
+  ];
+
+  Widget? _buildToolOptions() {
+    final activeTextBlock = _activeTextBlock;
+    final activeCodeBlock = _activeCodeBlock;
+    final activeShape = _activeShape;
+    final activeArrow = _activeArrow;
+    return activeTextBlock != null
+        ? Listener(
+            onPointerDown: (_) => _clearTextEditing(),
+            child: TextToolSettings(
+              key: ValueKey(
+                'text-settings-${activeTextBlock.node.id}',
+              ),
+              model: activeTextBlock,
+              onChangeBoundary: _finishHistoryOperation,
+              colorPickerExpanded: _textColorPickerExpanded,
+              onColorPickerExpandedChanged: (expanded) => setState(
+                () => _textColorPickerExpanded = expanded,
+              ),
+            ),
+          )
+        : activeCodeBlock != null
+        ? CodeToolSettings(
+            key: ValueKey(
+              'code-settings-${activeCodeBlock.data.id}',
+            ),
+            model: activeCodeBlock,
+            onChangeBoundary: _finishHistoryOperation,
+          )
+        : activeShape != null
+        ? ListenableBuilder(
+            key: const ValueKey('shape-settings-panel'),
+            listenable: activeShape,
+            builder: (context, _) => _ShapeSettings(
+              kind: activeShape.kind,
+              strokeColor: activeShape.strokeColor,
+              fillColor: activeShape.fillColor,
+              strokeWidth: activeShape.strokeWidth,
+              outlineColorPickerExpanded: _shapeOutlineColorPickerExpanded,
+              onKindChanged: (kind) => _editElement(activeShape, () => activeShape.kind = kind),
+              onStrokeColorChanged: (color) => _editElement(activeShape, () => activeShape.strokeColor = color),
+              onFillColorChanged: (color) => _editElement(activeShape, () => activeShape.fillColor = color),
+              onStrokeWidthChanged: (width) => _editElement(activeShape, () => activeShape.strokeWidth = width),
+              onOutlineColorPickerExpandedChanged: (expanded) => setState(
+                () => _shapeOutlineColorPickerExpanded = expanded,
+              ),
+            ),
+          )
+        : activeArrow != null
+        ? ListenableBuilder(
+            key: const ValueKey('arrow-settings-panel'),
+            listenable: activeArrow,
+            builder: (context, _) => _ArrowSettings(
+              color: activeArrow.color,
+              strokeStyle: activeArrow.strokeStyle,
+              strokeWidth: activeArrow.strokeWidth,
+              colorPickerExpanded: _arrowColorPickerExpanded,
+              onColorChanged: (color) => _editElement(activeArrow, () => activeArrow.color = color),
+              onStrokeStyleChanged: (style) => _editElement(activeArrow, () => activeArrow.strokeStyle = style),
+              onStrokeWidthChanged: (width) => _editElement(activeArrow, () => activeArrow.strokeWidth = width),
+              onColorPickerExpandedChanged: (expanded) => setState(() => _arrowColorPickerExpanded = expanded),
+            ),
+          )
+        : _penEnabled
+        ? _StrokeSettings(
+            key: const ValueKey('draw-settings-panel'),
+            color: _penColor,
+            width: _penWidth,
+            streamline: _penStreamline,
+            colorPickerExpanded: _penColorPickerExpanded,
+            onColorChanged: _setPenColor,
+            onColorPickerExpandedChanged: (expanded) => setState(
+              () => _penColorPickerExpanded = expanded,
+            ),
+            onWidthChanged: _setPenWidth,
+            onStreamlineChanged: _setPenStreamline,
+          )
+        : _shapeEnabled
+        ? ListenableBuilder(
+            key: const ValueKey('shape-settings-panel'),
+            listenable: _shapeTool,
+            builder: (context, _) => _ShapeSettings(
+              kind: _shapeTool.kind,
+              strokeColor: _shapeTool.strokeColor,
+              fillColor: _shapeTool.fillColor,
+              strokeWidth: _shapeTool.strokeWidth,
+              outlineColorPickerExpanded: _shapeOutlineColorPickerExpanded,
+              onKindChanged: _shapeTool.setKind,
+              onStrokeColorChanged: _setShapeStrokeColor,
+              onFillColorChanged: _shapeTool.setFillColor,
+              onStrokeWidthChanged: _shapeTool.setStrokeWidth,
+              onOutlineColorPickerExpandedChanged: (expanded) => setState(
+                () => _shapeOutlineColorPickerExpanded = expanded,
+              ),
+            ),
+          )
+        : _arrowEnabled
+        ? ListenableBuilder(
+            key: const ValueKey('arrow-settings-panel'),
+            listenable: _arrowTool,
+            builder: (context, _) => _ArrowSettings(
+              color: _arrowTool.color,
+              strokeStyle: _arrowTool.strokeStyle,
+              strokeWidth: _arrowTool.strokeWidth,
+              colorPickerExpanded: _arrowColorPickerExpanded,
+              onColorChanged: _setArrowColor,
+              onStrokeStyleChanged: _arrowTool.setStrokeStyle,
+              onStrokeWidthChanged: _arrowTool.setStrokeWidth,
+              onColorPickerExpandedChanged: (expanded) => setState(() => _arrowColorPickerExpanded = expanded),
+            ),
+          )
+        : null;
   }
 }
 

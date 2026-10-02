@@ -14,6 +14,11 @@ class ToolOptions extends StatelessWidget {
 
   final Widget? child;
 
+  // ---------- Geometry ----------
+
+  static const _padding = 12.0;
+  static const double outerWidth = BSizes.toolOptionsWidth + _padding * 2;
+
   // ---------- Rendering ----------
 
   @override
@@ -38,7 +43,7 @@ class ToolOptions extends StatelessWidget {
             padding: const EdgeInsets.only(top: 8),
             child: Surface(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.all(12),
+                padding: const EdgeInsets.all(_padding),
                 child: SizedBox(width: BSizes.toolOptionsWidth, child: child),
               ),
             ),

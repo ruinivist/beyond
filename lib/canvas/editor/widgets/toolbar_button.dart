@@ -22,6 +22,25 @@ class ToolbarButton extends StatelessWidget {
   final bool selected;
   final bool compact;
 
+  // ---------- Geometry ----------
+
+  static const _regularMinimumSize = Size(88, 48);
+
+  /// Returns the regular icon button size after Flutter's density adjustment.
+  /// Used by the toolbar to choose spacing before its buttons are laid out.
+  static Size regularSizeOf(BuildContext context) {
+    final theme = Theme.of(context);
+    final density = theme.textButtonTheme.style?.visualDensity ?? theme.visualDensity;
+    return density
+        .effectiveConstraints(
+          BoxConstraints(
+            minWidth: _regularMinimumSize.width,
+            minHeight: _regularMinimumSize.height,
+          ),
+        )
+        .smallest;
+  }
+
   // ---------- Rendering ----------
 
   @override
@@ -59,7 +78,7 @@ class ToolbarButton extends StatelessWidget {
           textStyle: WidgetStatePropertyAll(theme.typo.body),
           padding: const WidgetStatePropertyAll(EdgeInsets.zero),
           minimumSize: WidgetStatePropertyAll(
-            compact ? Size.zero : const Size(88, 48),
+            compact ? Size.zero : _regularMinimumSize,
           ),
           fixedSize: compact ? const WidgetStatePropertyAll(BSizes.defaultIconButtonSize) : null,
           tapTargetSize: MaterialTapTargetSize.shrinkWrap,
