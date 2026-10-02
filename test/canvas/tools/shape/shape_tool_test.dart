@@ -199,6 +199,36 @@ void main() {
     expect(find.byType(Shape), findsOneWidget);
   });
 
+  testWidgets('shape options fit four per row at desktop and narrow widths', (tester) async {
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(tester.view.resetPhysicalSize);
+
+    for (final width in [1200.0, 500.0]) {
+      tester.view.physicalSize = Size(width, 800);
+      await pumpCanvas(tester, TestCanvasDocumentStore());
+      await tester.tap(find.byKey(const ValueKey('toolbar-shape')));
+      await tester.pumpAndSettle();
+
+      final options = [
+        for (final kind in ShapeKind.values) tester.getRect(find.byKey(ValueKey('shape-option-${kind.name}'))),
+      ];
+      expect(options[1].top, options.first.top);
+      expect(options[2].top, options.first.top);
+      expect(options[3].top, options.first.top);
+      expect(options[4].top, greaterThan(options.first.top));
+      expect(options[5].top, options[4].top);
+      for (final option in options) {
+        expect(option.width, option.height);
+      }
+      final noFill = tester.getRect(find.byKey(const ValueKey('shape-fill-none')));
+      expect(noFill.width, noFill.height);
+      expect(tester.getRect(find.byKey(const ValueKey('shape-fill-red'))).top, lessThan(noFill.bottom));
+
+      await tester.pumpWidget(const SizedBox.shrink());
+    }
+  });
+
   testWidgets('toolbar places one shape, then activates, moves, and resizes', (
     tester,
   ) async {

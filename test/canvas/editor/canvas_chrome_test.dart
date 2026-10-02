@@ -93,7 +93,6 @@ void main() {
           home: Center(
             child: ToolbarButton(
               key: const ValueKey('compact-reference'),
-              compact: true,
               selected: false,
               onPressed: () {},
               child: const Icon(Icons.edit, size: 20),

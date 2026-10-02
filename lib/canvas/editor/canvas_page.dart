@@ -2575,25 +2575,22 @@ class _ShapeSettings extends StatelessWidget {
       children: [
         Text('Shape', style: theme.typo.label),
         const SizedBox(height: 6),
-        SizedBox(
-          width: 120,
-          child: Wrap(
-            children: [
-              for (final option in ShapeKind.values)
-                Tooltip(
-                  message: option.label,
-                  child: ToolbarButton(
-                    key: ValueKey('shape-option-${option.name}'),
-                    selected: option == kind,
-                    onPressed: () => onKindChanged(option),
-                    child: Icon(
-                      _shapeIcon(option),
-                      semanticLabel: option.label,
-                    ),
+        Wrap(
+          children: [
+            for (final option in ShapeKind.values)
+              Tooltip(
+                message: option.label,
+                child: ToolbarButton(
+                  key: ValueKey('shape-option-${option.name}'),
+                  selected: option == kind,
+                  onPressed: () => onKindChanged(option),
+                  child: Icon(
+                    _shapeIcon(option),
+                    semanticLabel: option.label,
                   ),
                 ),
-            ],
-          ),
+              ),
+          ],
         ),
         const SizedBox(height: 10),
         Text('Outline', style: theme.typo.label),

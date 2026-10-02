@@ -13,7 +13,7 @@ class ToolbarButton extends StatelessWidget {
     required this.onPressed,
     required this.child,
     required this.selected,
-    this.compact = false,
+    this.compact = true,
     super.key,
   });
 
@@ -84,7 +84,7 @@ class ToolbarButton extends StatelessWidget {
           tapTargetSize: MaterialTapTargetSize.shrinkWrap,
         ),
         child: IconTheme.merge(
-          data: const IconThemeData(size: 16),
+          data: const IconThemeData(size: BSizes.defaultIconSize),
           child: child,
         ),
       ),
