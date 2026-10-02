@@ -83,6 +83,10 @@ void main() {
     expect(tool.preview!.color, const Color(0xffd85b5b));
     expect(tool.preview!.strokeStyle, ArrowStrokeStyle.dashed);
     expect(tool.preview!.strokeWidth, 3);
+    expect(tool.preview!.showControls, isFalse);
+    expect(tool.preview!.geometry.controls, [
+      arrowControlPoint(start: const Offset(10, 20), end: const Offset(120, 80)),
+    ]);
     expect(committed, isEmpty);
 
     tool.onPointerUp(
@@ -115,12 +119,111 @@ void main() {
     committed.single.dispose();
   });
 
+  test('RMB presses pin controls and LMB release commits while RMB remains held', () {
+    final committed = <ArrowModel>[];
+    final tool = ArrowTool(onArrow: committed.add);
+    final pointer = TestPointer(1, PointerDeviceKind.mouse);
+    tool.onPointerDown(pointer.down(Offset.zero), Offset.zero);
+    void move(Offset position, int buttons) => tool.onPointerMove(pointer.move(position, buttons: buttons), position);
+
+    move(const Offset(40, 60), kPrimaryButton);
+    move(const Offset(40, 60), kPrimaryButton | kSecondaryButton);
+    final snapshot = tool.preview!.geometry;
+    expect(snapshot.controls, const [Offset(40, 60)]);
+    expect(tool.preview!.showControls, isTrue);
+    move(const Offset(70, 80), kPrimaryButton | kSecondaryButton);
+    expect(tool.preview!.geometry.controls, snapshot.controls);
+    move(const Offset(70, 80), kPrimaryButton);
+    expect(committed, isEmpty);
+    move(const Offset(70, 80), kPrimaryButton | kSecondaryButton);
+    expect(tool.preview!.geometry.controls, const [Offset(40, 60), Offset(70, 80)]);
+    expect(snapshot.controls, const [Offset(40, 60)]);
+    move(const Offset(120, 20), kSecondaryButton);
+    expect(tool.preview, isNull);
+    expect(committed, hasLength(1));
+    expect(committed.single.end, const Offset(120, 20));
+    expect(committed.single.controls, const [Offset(40, 60), Offset(70, 80)]);
+    tool.onPointerUp(pointer.up(), const Offset(150, 20));
+    expect(committed, hasLength(1));
+    expect(committed.single.end, const Offset(120, 20));
+
+    for (final model in committed) {
+      model.dispose();
+    }
+    tool.dispose();
+  });
+
+  test('canceling clears controls and secondary-only input does not draw', () {
+    final committed = <ArrowModel>[];
+    final tool = ArrowTool(onArrow: committed.add);
+    final pointer = TestPointer(1, PointerDeviceKind.mouse);
+    tool.onPointerDown(pointer.down(Offset.zero, buttons: kSecondaryButton), Offset.zero);
+    expect(tool.isDrawing, isFalse);
+    pointer.up();
+    for (final cancel in [tool.cancel, () => tool.onPointerCancel(pointer.cancel())]) {
+      tool
+        ..onPointerDown(pointer.down(Offset.zero, buttons: kPrimaryButton), Offset.zero)
+        ..onPointerMove(
+          pointer.move(const Offset(20, 40), buttons: kPrimaryButton | kSecondaryButton),
+          const Offset(20, 40),
+        );
+      cancel();
+      if (pointer.isDown) pointer.up();
+      expect(tool.preview, isNull);
+      expect(committed, isEmpty);
+    }
+    tool
+      ..onPointerDown(pointer.down(Offset.zero, buttons: kPrimaryButton), Offset.zero)
+      ..onPointerMove(pointer.move(const Offset(100, 0)), const Offset(100, 0));
+    expect(tool.preview!.showControls, isFalse);
+    tool.onPointerUp(pointer.up(), const Offset(100, 0));
+    expect(committed.single.controls, [arrowControlPoint(start: Offset.zero, end: const Offset(100, 0))]);
+    committed.single.dispose();
+    tool.dispose();
+  });
+
+  test('joined curves stay smooth and later handles affect only nearby sections', () {
+    final geometry = ArrowGeometry(
+      start: Offset.zero,
+      controls: const [Offset(40, 80), Offset(100, -40), Offset(180, 60)],
+      end: const Offset(240, 0),
+    );
+    final changed = ArrowGeometry(
+      start: geometry.start,
+      controls: [geometry.controls[0], geometry.controls[1], const Offset(180, 120)],
+      end: geometry.end,
+    );
+    final join = (geometry.controls[0] + geometry.controls[1]) / 2;
+    final first = Path()
+      ..moveTo(0, 0)
+      ..quadraticBezierTo(40, 80, join.dx, join.dy);
+    final metric = geometry.shaftPath.computeMetrics().single;
+    final firstLength = first.computeMetrics().single.length;
+    final tangentBefore = metric.getTangentForOffset(firstLength - 0.01)!;
+    final tangentAfter = metric.getTangentForOffset(firstLength + 0.01)!;
+    expect((tangentBefore.position - join).distance, lessThan(0.1));
+    expect((tangentAfter.position - join).distance, lessThan(0.1));
+    expect((tangentBefore.vector - tangentAfter.vector).distance, lessThan(0.01));
+    expect(
+      changed.shaftPath.computeMetrics().single.getTangentForOffset(firstLength / 2)!.position,
+      metric.getTangentForOffset(firstLength / 2)!.position,
+    );
+
+    final coincident = ArrowGeometry(
+      start: Offset.zero,
+      controls: const [Offset(100, 0), Offset(100, 0)],
+      end: const Offset(100, 0),
+    );
+    expect(coincident.endTangent, const Offset(1, 0));
+    expect(coincident.bounds.isFinite, isTrue);
+  });
+
   test('arrow points edit independently and preserve minimum length', () {
     final model = ArrowModel(
       ArrowElementData(
         id: 'arrow',
         start: const Offset(10, 20),
-        control: const Offset(60, 5),
+        controls: const [Offset(60, 5), Offset(80, 20)],
         end: const Offset(110, 40),
         color: Colors.black.toARGB32(),
         strokeStyle: ArrowStrokeStyle.solid,
@@ -128,12 +231,16 @@ void main() {
       ),
     );
 
-    expect(model.setPoint(ArrowPoint.control, const Offset(70, 10)), isTrue);
+    final geometry = model.geometry;
+    final copied = model.data.copy();
+    expect(model.setPoint(1, const Offset(70, 10)), isTrue);
     expect(model.start, const Offset(10, 20));
-    expect(model.control, const Offset(70, 10));
+    expect(model.controls, const [Offset(70, 10), Offset(80, 20)]);
+    expect(geometry.controls, const [Offset(60, 5), Offset(80, 20)]);
+    expect(copied.controls, geometry.controls);
     expect(model.end, const Offset(110, 40));
 
-    model.setPoint(ArrowPoint.end, model.start);
+    model.setPoint(model.pointCount - 1, model.start);
     expect(
       (model.end - model.start).distance,
       greaterThanOrEqualTo(arrowMinimumLength),
@@ -151,7 +258,7 @@ void main() {
     var model = tester.widget<Arrow>(arrowFinder).model;
 
     expect(find.byKey(const ValueKey('arrow-start-handle')), findsNothing);
-    final curvePoint = model.start * 0.25 + model.control * 0.5 + model.end * 0.25;
+    final curvePoint = model.start * 0.25 + model.controls.single * 0.5 + model.end * 0.25;
     await tester.tapAt(
       tester.getTopLeft(arrowFinder) + curvePoint - model.bounds.topLeft,
     );
@@ -159,7 +266,7 @@ void main() {
 
     expect(find.byKey(const ValueKey('arrow-bezier-guides')), findsOneWidget);
     expect(find.byKey(const ValueKey('arrow-start-handle')), findsOneWidget);
-    expect(find.byKey(const ValueKey('arrow-control-handle')), findsOneWidget);
+    expect(find.byKey(const ValueKey('arrow-control-0-handle')), findsOneWidget);
     expect(find.byKey(const ValueKey('arrow-end-handle')), findsOneWidget);
 
     final originalEnd = model.end;
@@ -188,7 +295,84 @@ void main() {
 
     await tester.sendKeyEvent(LogicalKeyboardKey.escape);
     await tester.pump();
-    expect(find.byKey(const ValueKey('arrow-control-handle')), findsNothing);
+    expect(find.byKey(const ValueKey('arrow-control-0-handle')), findsNothing);
+  });
+
+  testWidgets('multi-handle dragging stays on canvas, edits at zoom, saves and undoes', (tester) async {
+    final store = TestCanvasDocumentStore(const CanvasDocument(background: CanvasBackgroundKind.plain, elements: []));
+    await pumpCanvas(tester, store);
+    final controller = tester.widget<LazyCanvas>(find.byType(LazyCanvas)).controller
+      ..updateScalebyDelta(1, focalPoint: Offset.zero);
+    await tester.tap(find.byKey(const ValueKey('toolbar-arrow')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('arrow-style-dashed')));
+    final pointer = TestPointer(1, PointerDeviceKind.mouse);
+    await tester.sendEventToBinding(pointer.down(const Offset(120, 300)));
+    await tester.sendEventToBinding(pointer.move(const Offset(200, 300), buttons: kPrimaryButton | kSecondaryButton));
+    await tester.pump();
+    final preview =
+        tester.widget<CustomPaint>(find.byKey(const ValueKey('arrow-preview'))).painter! as ArrowPreviewPainter;
+    expect(preview.preview.showControls, isTrue);
+    expect(preview.preview.geometry.controls, const [Offset(100, 150)]);
+    await tester.sendEventToBinding(pointer.move(const Offset(360, 220), buttons: kPrimaryButton));
+    await tester.sendEventToBinding(pointer.move(const Offset(360, 220), buttons: kPrimaryButton | kSecondaryButton));
+    await tester.sendEventToBinding(pointer.move(const Offset(520, 340), buttons: kSecondaryButton));
+    await tester.pump();
+    expect(controller.offset, Offset.zero);
+    expect(find.byKey(const ValueKey('arrow-preview')), findsNothing);
+    expect(find.byType(Arrow), findsOneWidget);
+    expect(tester.widget<ToolbarButton>(find.byKey(const ValueKey('toolbar-arrow'))).selected, isFalse);
+    var model = tester.widget<Arrow>(find.byType(Arrow)).model;
+    expect(model.active, isTrue);
+    expect(model.controls, const [Offset(100, 150), Offset(180, 110)]);
+    expect(model.end, const Offset(260, 170));
+    await tester.sendEventToBinding(pointer.up());
+    await tester.pump();
+    expect(find.byType(Arrow), findsOneWidget);
+    expect(find.byKey(const ValueKey('arrow-control-0-handle')), findsOneWidget);
+    expect(find.byKey(const ValueKey('arrow-control-1-handle')), findsOneWidget);
+
+    final paint = tester
+        .widget<CustomPaint>(find.descendant(of: find.byType(Arrow), matching: find.byType(CustomPaint)))
+        .foregroundPainter!;
+    final metric = model.localGeometry.shaftPath.computeMetrics().single;
+    for (final fraction in [0.25, 0.5, 0.75]) {
+      expect(paint.hitTest(metric.getTangentForOffset(metric.length * fraction)!.position), isTrue);
+    }
+    final original = model.controls;
+    await tester.drag(
+      find.byKey(const ValueKey('arrow-control-1-handle')),
+      const Offset(40, 20),
+      kind: PointerDeviceKind.mouse,
+    );
+    await tester.pump();
+    expect(model.controls, [original[0], original[1] + const Offset(20, 10)]);
+    await pumpPastSave(tester);
+    expect((store.persisted!.elements.single as ArrowElementData).controls, model.controls);
+
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+    await tester.sendKeyEvent(LogicalKeyboardKey.keyZ);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+    await tester.pump();
+    model = tester.widget<Arrow>(find.byType(Arrow)).model;
+    expect(model.controls, original);
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.shiftLeft);
+    await tester.sendKeyEvent(LogicalKeyboardKey.keyZ);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.shiftLeft);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+    await tester.pump();
+    model = tester.widget<Arrow>(find.byType(Arrow)).model;
+    expect(model.controls, [original[0], original[1] + const Offset(20, 10)]);
+
+    final pan = await tester.startGesture(
+      const Offset(600, 400),
+      kind: PointerDeviceKind.mouse,
+      buttons: kSecondaryButton,
+    );
+    await pan.moveBy(const Offset(40, 20));
+    await pan.up();
+    expect(controller.offset, isNot(Offset.zero));
   });
 
   testWidgets('arrows place once, select by click and marquee, and move', (
@@ -283,7 +467,7 @@ CanvasDocument _arrowDocument() => CanvasDocument(
     ArrowElementData(
       id: 'arrow',
       start: const Offset(120, 200),
-      control: const Offset(210, 160),
+      controls: const [Offset(210, 160)],
       end: const Offset(300, 240),
       color: Colors.black.toARGB32(),
       strokeStyle: ArrowStrokeStyle.solid,

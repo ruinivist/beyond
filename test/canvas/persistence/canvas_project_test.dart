@@ -214,7 +214,7 @@ CanvasDocument _document({required String markdown}) => CanvasDocument(
     ArrowElementData(
       id: 'arrow-1',
       start: Offset.zero,
-      control: const Offset(2, 2),
+      controls: const [Offset(2, 2)],
       end: const Offset(4, 0),
       color: 0xff000000,
       strokeStyle: ArrowStrokeStyle.solid,

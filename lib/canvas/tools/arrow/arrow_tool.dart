@@ -6,6 +6,7 @@ import 'dart:math' as math;
 import 'package:beyond/canvas/document/canvas_document.dart';
 import 'package:beyond/canvas/editor/canvas_element_model.dart';
 import 'package:beyond/theme/theme.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
@@ -30,6 +31,8 @@ class ArrowTool extends ChangeNotifier {
   String? _id;
   Offset? _start;
   Offset? _end;
+  final _controls = <Offset>[];
+  int _buttons = 0;
   Color _color = Colors.black;
   ArrowStrokeStyle _strokeStyle = ArrowStrokeStyle.solid;
   double _strokeWidth = 2;
@@ -48,12 +51,13 @@ class ArrowTool extends ChangeNotifier {
     return (
       geometry: ArrowGeometry(
         start: start,
-        control: arrowControlPoint(start: start, end: end),
+        controls: _curveControls(start, end),
         end: end,
       ),
       color: _color,
       strokeStyle: _strokeStyle,
       strokeWidth: _strokeWidth,
+      showControls: _controls.isNotEmpty,
     );
   }
 
@@ -85,18 +89,33 @@ class ArrowTool extends ChangeNotifier {
     _id = _uuid.v4();
     _start = canvasPosition;
     _end = canvasPosition;
+    _buttons = event.buttons;
     notifyListeners();
   }
 
   void onPointerMove(PointerMoveEvent event, Offset canvasPosition) {
     if (!ownsPointer(event.pointer)) return;
     _end = canvasPosition;
+    if (event.kind == PointerDeviceKind.mouse) {
+      if (event.buttons & kPrimaryButton == 0) {
+        _finish();
+        return;
+      }
+      if (event.buttons & kSecondaryButton != 0 && _buttons & kSecondaryButton == 0) {
+        _controls.add(canvasPosition);
+      }
+      _buttons = event.buttons;
+    }
     notifyListeners();
   }
 
   void onPointerUp(PointerUpEvent event, Offset canvasPosition) {
     if (!ownsPointer(event.pointer)) return;
     _end = canvasPosition;
+    _finish();
+  }
+
+  void _finish() {
     final id = _id;
     final start = _start;
     final end = _end;
@@ -123,7 +142,7 @@ class ArrowTool extends ChangeNotifier {
       ArrowElementData(
         id: id,
         start: start,
-        control: arrowControlPoint(start: start, end: end),
+        controls: _curveControls(start, end),
         end: end,
         color: _color.toARGB32(),
         strokeStyle: _strokeStyle,
@@ -132,11 +151,16 @@ class ArrowTool extends ChangeNotifier {
     );
   }
 
+  List<Offset> _curveControls(Offset start, Offset end) =>
+      _controls.isEmpty ? [arrowControlPoint(start: start, end: end)] : List.of(_controls);
+
   void _clearPreview() {
     _pointer = null;
     _id = null;
     _start = null;
     _end = null;
+    _controls.clear();
+    _buttons = 0;
     notifyListeners();
   }
 }

@@ -38,7 +38,7 @@ class Arrow extends StatelessWidget {
   }
 }
 
-/// Draws and handles the three editable points of an active arrow.
+/// Draws and handles every editable point of an active arrow.
 class ArrowEditor extends StatelessWidget {
   const ArrowEditor({
     required this.model,
@@ -54,7 +54,7 @@ class ArrowEditor extends StatelessWidget {
   final Offset canvasOffset;
   final double canvasScale;
   final VoidCallback onChangeStart;
-  final void Function(ArrowPoint point, Offset position) onPointChanged;
+  final void Function(int point, Offset position) onPointChanged;
   final VoidCallback onChangeEnd;
 
   Offset _toScreen(Offset point) => (point - canvasOffset) * canvasScale;
@@ -62,9 +62,7 @@ class ArrowEditor extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = BTheme.of(context).colors;
-    final points = {
-      for (final point in ArrowPoint.values) point: _toScreen(model.point(point)),
-    };
+    final points = [for (var point = 0; point < model.pointCount; point++) _toScreen(model.point(point))];
     return Stack(
       children: [
         Positioned.fill(
@@ -72,21 +70,30 @@ class ArrowEditor extends StatelessWidget {
             child: CustomPaint(
               key: const ValueKey('arrow-bezier-guides'),
               painter: _ArrowGuidePainter(
-                start: points[ArrowPoint.start]!,
-                control: points[ArrowPoint.control]!,
-                end: points[ArrowPoint.end]!,
+                points: points,
                 color: colors.accent.withValues(alpha: 0.55),
               ),
             ),
           ),
         ),
-        for (final point in ArrowPoint.values)
+        for (var point = 0; point < points.length; point++)
           Positioned(
-            left: points[point]!.dx - _ArrowPointHandle.size / 2,
-            top: points[point]!.dy - _ArrowPointHandle.size / 2,
+            left: points[point].dx - _ArrowPointHandle.size / 2,
+            top: points[point].dy - _ArrowPointHandle.size / 2,
             child: _ArrowPointHandle(
-              key: ValueKey('arrow-${point.name}-handle'),
-              point: point,
+              key: ValueKey(
+                'arrow-${point == 0
+                    ? 'start'
+                    : point == points.length - 1
+                    ? 'end'
+                    : 'control-${point - 1}'}-handle',
+              ),
+              label: point == 0
+                  ? 'start'
+                  : point == points.length - 1
+                  ? 'end'
+                  : 'control $point',
+              isControl: point > 0 && point < points.length - 1,
               position: model.point(point),
               canvasScale: canvasScale,
               onChangeStart: onChangeStart,
@@ -101,7 +108,8 @@ class ArrowEditor extends StatelessWidget {
 
 class _ArrowPointHandle extends StatefulWidget {
   const _ArrowPointHandle({
-    required this.point,
+    required this.label,
+    required this.isControl,
     required this.position,
     required this.canvasScale,
     required this.onChangeStart,
@@ -113,7 +121,8 @@ class _ArrowPointHandle extends StatefulWidget {
   static const size = 28.0;
   static const visualSize = 10.0;
 
-  final ArrowPoint point;
+  final String label;
+  final bool isControl;
   final Offset position;
   final double canvasScale;
   final VoidCallback onChangeStart;
@@ -134,7 +143,7 @@ class _ArrowPointHandleState extends State<_ArrowPointHandle> {
       cursor: SystemMouseCursors.move,
       child: Semantics(
         button: true,
-        label: 'Move arrow ${widget.point.name} point',
+        label: 'Move arrow ${widget.label} point',
         child: GestureDetector(
           behavior: HitTestBehavior.opaque,
           dragStartBehavior: DragStartBehavior.down,
@@ -154,7 +163,7 @@ class _ArrowPointHandleState extends State<_ArrowPointHandle> {
             child: Center(
               child: DecoratedBox(
                 decoration: BoxDecoration(
-                  color: widget.point == ArrowPoint.control ? colors.accent : colors.surface,
+                  color: widget.isControl ? colors.accent : colors.surface,
                   shape: BoxShape.circle,
                   border: Border.all(color: colors.accent, width: 2),
                 ),
@@ -175,15 +184,11 @@ class _ArrowPointHandleState extends State<_ArrowPointHandle> {
 
 class _ArrowGuidePainter extends CustomPainter {
   const _ArrowGuidePainter({
-    required this.start,
-    required this.control,
-    required this.end,
+    required this.points,
     required this.color,
   });
 
-  final Offset start;
-  final Offset control;
-  final Offset end;
+  final List<Offset> points;
   final Color color;
 
   @override
@@ -191,17 +196,14 @@ class _ArrowGuidePainter extends CustomPainter {
     final paint = Paint()
       ..color = color
       ..strokeWidth = 1;
-    canvas
-      ..drawLine(start, control, paint)
-      ..drawLine(control, end, paint);
+    for (var index = 1; index < points.length; index++) {
+      canvas.drawLine(points[index - 1], points[index], paint);
+    }
   }
 
   @override
   bool shouldRepaint(_ArrowGuidePainter oldDelegate) =>
-      start != oldDelegate.start ||
-      control != oldDelegate.control ||
-      end != oldDelegate.end ||
-      color != oldDelegate.color;
+      !listEquals(points, oldDelegate.points) || color != oldDelegate.color;
 }
 
 // ---------- Painter ----------
@@ -234,18 +236,16 @@ class _ArrowPainter extends CustomPainter {
   bool hitTest(Offset position) {
     final radius = strokeWidth / 2 + _arrowHitSlop;
     final radiusSquared = radius * radius;
-    Offset curvePoint(double t) {
-      final oneMinusT = 1 - t;
-      return geometry.start * (oneMinusT * oneMinusT) + geometry.control * (2 * oneMinusT * t) + geometry.end * (t * t);
-    }
-
-    var previous = geometry.start;
-    for (var index = 1; index <= 24; index++) {
-      final current = curvePoint(index / 24);
-      if (distanceToSegmentSquared(position, previous, current) <= radiusSquared) {
-        return true;
+    for (final metric in geometry.shaftPath.computeMetrics()) {
+      var previous = geometry.start;
+      final steps = (metric.length / (radius / 2)).ceil();
+      for (var index = 1; index <= steps; index++) {
+        final current = metric.getTangentForOffset(metric.length * index / steps)!.position;
+        if (distanceToSegmentSquared(position, previous, current) <= radiusSquared) {
+          return true;
+        }
+        previous = current;
       }
-      previous = current;
     }
     return distanceToSegmentSquared(
               position,
@@ -264,7 +264,7 @@ class _ArrowPainter extends CustomPainter {
   @override
   bool shouldRepaint(_ArrowPainter oldDelegate) {
     return oldDelegate.geometry.start != geometry.start ||
-        oldDelegate.geometry.control != geometry.control ||
+        !listEquals(oldDelegate.geometry.controls, geometry.controls) ||
         oldDelegate.geometry.end != geometry.end ||
         oldDelegate.color != color ||
         oldDelegate.strokeStyle != strokeStyle ||

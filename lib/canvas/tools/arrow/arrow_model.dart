@@ -5,9 +5,6 @@ part of 'arrow_tool.dart';
 
 // ---------- Models ----------
 
-/// Identifies one editable point on a quadratic arrow.
-enum ArrowPoint { start, control, end }
-
 /// Adapts persisted arrow points to canvas geometry and movement.
 /// Used by the canvas selection and arrow rendering flows.
 class ArrowModel extends CanvasElementModel<ArrowElementData> {
@@ -15,7 +12,7 @@ class ArrowModel extends CanvasElementModel<ArrowElementData> {
 
   ArrowGeometry get geometry => ArrowGeometry(
     start: data.start,
-    control: data.control,
+    controls: data.controls,
     end: data.end,
   );
 
@@ -29,32 +26,35 @@ class ArrowModel extends CanvasElementModel<ArrowElementData> {
   @override
   Size get canvasSize => bounds.size;
 
-  Offset get start => geometry.start;
+  Offset get start => data.start;
 
-  Offset get control => geometry.control;
+  List<Offset> get controls => List.unmodifiable(data.controls);
 
-  Offset get end => geometry.end;
+  Offset get end => data.end;
 
-  Offset point(ArrowPoint point) => switch (point) {
-    ArrowPoint.start => data.start,
-    ArrowPoint.control => data.control,
-    ArrowPoint.end => data.end,
-  };
+  int get pointCount => data.controls.length + 2;
 
-  bool setPoint(ArrowPoint point, Offset position) {
-    final next = switch (point) {
-      ArrowPoint.start => _minimumLengthPoint(position, data.end, data.start),
-      ArrowPoint.control => position,
-      ArrowPoint.end => _minimumLengthPoint(position, data.start, data.end),
-    };
-    if (next == this.point(point)) return false;
-    switch (point) {
-      case ArrowPoint.start:
-        data.start = next;
-      case ArrowPoint.control:
-        data.control = next;
-      case ArrowPoint.end:
-        data.end = next;
+  Offset point(int index) {
+    RangeError.checkValidIndex(index, this, 'index', pointCount);
+    if (index == 0) return start;
+    if (index == pointCount - 1) return end;
+    return data.controls[index - 1];
+  }
+
+  bool setPoint(int index, Offset position) {
+    final current = point(index);
+    final next = index == 0
+        ? _minimumLengthPoint(position, end, start)
+        : index == pointCount - 1
+        ? _minimumLengthPoint(position, start, end)
+        : position;
+    if (next == current) return false;
+    if (index == 0) {
+      data.start = next;
+    } else if (index == pointCount - 1) {
+      data.end = next;
+    } else {
+      data.controls = List.of(data.controls)..[index - 1] = next;
     }
     notifyDocumentChanged();
     return true;
@@ -90,7 +90,7 @@ class ArrowModel extends CanvasElementModel<ArrowElementData> {
     if (delta == Offset.zero) return;
     data
       ..start += delta
-      ..control += delta
+      ..controls = [for (final control in data.controls) control + delta]
       ..end += delta;
     notifyDocumentChanged();
   }

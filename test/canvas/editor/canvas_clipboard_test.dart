@@ -290,7 +290,7 @@ void _expectShifted(
       expect(result.width, source.width);
     case (final ArrowElementData source, final ArrowElementData result):
       expect(result.start, source.start + delta);
-      expect(result.control, source.control + delta);
+      expect(result.controls, source.controls.map((point) => point + delta).toList());
       expect(result.end, source.end + delta);
       expect(result.color, source.color);
       expect(result.strokeStyle, source.strokeStyle);
@@ -337,7 +337,7 @@ final _document = CanvasDocument(
     ArrowElementData(
       id: 'arrow',
       start: const Offset(100, 110),
-      control: const Offset(110, 114),
+      controls: const [Offset(110, 114), Offset(140, 90), Offset(170, 130)],
       end: const Offset(120, 110),
       color: 0xff000000,
       strokeStyle: ArrowStrokeStyle.solid,

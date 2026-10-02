@@ -1255,7 +1255,7 @@ class _CanvasPageState extends State<CanvasPage> {
 
   void _editArrowPoint(
     ArrowModel model,
-    ArrowPoint point,
+    int point,
     Offset position,
   ) {
     if (_canvasInputBlocked) return;
@@ -2111,6 +2111,7 @@ class _CanvasPageState extends State<CanvasPage> {
                   key: const ValueKey('arrow-preview'),
                   painter: ArrowPreviewPainter(
                     preview: preview,
+                    guideColor: colors.accent,
                     canvasOffset: _canvasController.offset,
                     canvasScale: _canvasController.scale,
                   ),

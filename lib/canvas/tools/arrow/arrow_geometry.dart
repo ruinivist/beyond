@@ -14,20 +14,23 @@ const _arrowDashGap = 6.0;
 /// Calculates the curve, arrowhead, and interaction bounds of an arrow.
 /// Used by arrow models, painters, and previews.
 class ArrowGeometry {
-  const ArrowGeometry({
+  ArrowGeometry({
     required this.start,
-    required this.control,
+    required List<Offset> controls,
     required this.end,
-  });
+  }) : assert(controls.isNotEmpty, 'An arrow needs at least one control'),
+       controls = List.unmodifiable(controls);
 
   final Offset start;
-  final Offset control;
+  final List<Offset> controls;
   final Offset end;
 
   Offset get endTangent {
-    final tangent = end - control;
-    if (tangent == Offset.zero) return const Offset(1, 0);
-    return tangent / tangent.distance;
+    for (final point in [...controls.reversed, start]) {
+      final tangent = end - point;
+      if (tangent != Offset.zero) return tangent / tangent.distance;
+    }
+    return const Offset(1, 0);
   }
 
   Offset get arrowheadBase => end - endTangent * _arrowHeadLength;
@@ -42,9 +45,15 @@ class ArrowGeometry {
     return arrowheadBase - Offset(-tangent.dy, tangent.dx) * _arrowHeadHalfWidth;
   }
 
-  Path get shaftPath => Path()
-    ..moveTo(start.dx, start.dy)
-    ..quadraticBezierTo(control.dx, control.dy, end.dx, end.dy);
+  Path get shaftPath {
+    final path = Path()..moveTo(start.dx, start.dy);
+    for (var index = 0; index < controls.length; index++) {
+      final control = controls[index];
+      final join = index == controls.length - 1 ? end : (control + controls[index + 1]) / 2;
+      path.quadraticBezierTo(control.dx, control.dy, join.dx, join.dy);
+    }
+    return path;
+  }
 
   Path get arrowheadPath {
     return Path()
@@ -60,7 +69,7 @@ class ArrowGeometry {
 
   ArrowGeometry shift(Offset offset) => ArrowGeometry(
     start: start + offset,
-    control: control + offset,
+    controls: [for (final control in controls) control + offset],
     end: end + offset,
   );
 }

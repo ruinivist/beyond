@@ -70,7 +70,7 @@ class CanvasDocument {
   factory CanvasDocument.fromJson(Object? json) {
     final document = _decode(json, 'document', _$CanvasDocumentFromJson);
     if (document.schemaVersion != version) {
-      throw const FormatException('document.version must be 6');
+      throw const FormatException('document.version must be $version');
     }
     final ids = <String>{};
     for (final element in document.elements) {
@@ -83,7 +83,7 @@ class CanvasDocument {
 
   // ---------- Constants ----------
 
-  static const version = 6;
+  static const version = 7;
 
   // ---------- State ----------
 
@@ -608,7 +608,7 @@ class ArrowElementData extends CanvasElementData {
   ArrowElementData({
     required String id,
     required this.start,
-    required this.control,
+    required this.controls,
     required this.end,
     required this.color,
     required this.strokeStyle,
@@ -619,7 +619,7 @@ class ArrowElementData extends CanvasElementData {
     required String id,
     required String type,
     required this.start,
-    required this.control,
+    required this.controls,
     required this.end,
     required this.color,
     required this.strokeStyle,
@@ -628,6 +628,9 @@ class ArrowElementData extends CanvasElementData {
 
   factory ArrowElementData.fromJson(Object? json) {
     final arrow = _decode(json, 'arrow element', _$ArrowElementDataFromJson)..validateType('arrow');
+    if (arrow.controls.isEmpty) {
+      throw const FormatException('element.controls must not be empty');
+    }
     if ((arrow.end - arrow.start).distance < arrowMinimumLength) {
       throw const FormatException('element arrow is shorter than the minimum');
     }
@@ -644,7 +647,7 @@ class ArrowElementData extends CanvasElementData {
   @_OffsetConverter()
   Offset start;
   @_OffsetConverter()
-  Offset control;
+  List<Offset> controls;
   @_OffsetConverter()
   Offset end;
   @JsonKey(fromJson: _jsonInt)
@@ -663,7 +666,7 @@ class ArrowElementData extends CanvasElementData {
   ArrowElementData copy({String? id}) => ArrowElementData(
     id: id ?? this.id,
     start: start,
-    control: control,
+    controls: List.of(controls),
     end: end,
     color: color,
     strokeStyle: strokeStyle,

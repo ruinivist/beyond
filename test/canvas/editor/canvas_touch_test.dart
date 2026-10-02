@@ -392,7 +392,7 @@ void main() {
           ArrowElementData(
             id: 'arrow',
             start: const Offset(450, 300),
-            control: const Offset(500, 300),
+            controls: const [Offset(500, 300)],
             end: const Offset(550, 300),
             color: 0xff000000,
             strokeStyle: ArrowStrokeStyle.solid,
@@ -669,7 +669,7 @@ void main() {
           ArrowElementData(
             id: 'arrow',
             start: const Offset(200, 300),
-            control: const Offset(350, 300),
+            controls: const [Offset(350, 300)],
             end: const Offset(500, 300),
             color: 0xff000000,
             strokeStyle: ArrowStrokeStyle.solid,

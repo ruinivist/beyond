@@ -290,7 +290,7 @@ void main() {
       ArrowElementData(
         id: 'arrow',
         start: Offset.zero,
-        control: const Offset(20, -8),
+        controls: const [Offset(20, -8)],
         end: const Offset(40, 10),
         color: 0xff000000,
         strokeStyle: ArrowStrokeStyle.solid,
@@ -302,7 +302,7 @@ void main() {
     model.moveBy(const Offset(12, 7));
 
     expect(model.geometry.start, before.start + const Offset(12, 7));
-    expect(model.geometry.control, before.control + const Offset(12, 7));
+    expect(model.geometry.controls.single, before.controls.single + const Offset(12, 7));
     expect(model.geometry.end, before.end + const Offset(12, 7));
     model.dispose();
   });
@@ -402,8 +402,8 @@ void main() {
       arrowGeometry.start,
     );
     expect(
-      (document.elements[3] as ArrowElementData).control,
-      arrowGeometry.control,
+      (document.elements[3] as ArrowElementData).controls.single,
+      arrowGeometry.controls.single,
     );
     expect((document.elements[3] as ArrowElementData).end, arrowGeometry.end);
 
@@ -452,7 +452,7 @@ void main() {
     expect(restoredPen.data.toJson()['points'], penPoints);
     final restoredArrow = tester.widget<Arrow>(find.byType(Arrow)).model;
     expect(restoredArrow.geometry.start, arrowGeometry.start);
-    expect(restoredArrow.geometry.control, arrowGeometry.control);
+    expect(restoredArrow.geometry.controls.single, arrowGeometry.controls.single);
     expect(restoredArrow.geometry.end, arrowGeometry.end);
   });
 
@@ -510,7 +510,7 @@ void main() {
         ArrowElementData(
           id: 'arrow',
           start: const Offset(300, 250),
-          control: const Offset(380, 235),
+          controls: const [Offset(380, 235)],
           end: const Offset(460, 250),
           color: 0xff000000,
           strokeStyle: ArrowStrokeStyle.solid,
@@ -1715,7 +1715,7 @@ void main() {
         ArrowElementData(
           id: 'arrow-overlap',
           start: const Offset(100, 300),
-          control: const Offset(150, 300),
+          controls: const [Offset(150, 300)],
           end: const Offset(200, 300),
           color: 0xff000000,
           strokeStyle: ArrowStrokeStyle.solid,

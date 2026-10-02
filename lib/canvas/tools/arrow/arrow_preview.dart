@@ -9,6 +9,7 @@ typedef ArrowPreview = ({
   Color color,
   ArrowStrokeStyle strokeStyle,
   double strokeWidth,
+  bool showControls,
 });
 
 // ---------- Painters ----------
@@ -18,11 +19,13 @@ typedef ArrowPreview = ({
 class ArrowPreviewPainter extends CustomPainter {
   const ArrowPreviewPainter({
     required this.preview,
+    required this.guideColor,
     required this.canvasOffset,
     required this.canvasScale,
   });
 
   final ArrowPreview preview;
+  final Color guideColor;
   final Offset canvasOffset;
   final double canvasScale;
 
@@ -30,9 +33,19 @@ class ArrowPreviewPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final screenGeometry = ArrowGeometry(
       start: _toScreen(preview.geometry.start),
-      control: _toScreen(preview.geometry.control),
+      controls: preview.geometry.controls.map(_toScreen).toList(),
       end: _toScreen(preview.geometry.end),
     );
+    if (preview.showControls) {
+      _ArrowGuidePainter(
+        points: [screenGeometry.start, ...screenGeometry.controls, screenGeometry.end],
+        color: guideColor.withValues(alpha: 0.55),
+      ).paint(canvas, size);
+      final paint = Paint()..color = guideColor;
+      for (final control in screenGeometry.controls) {
+        canvas.drawCircle(control, _ArrowPointHandle.visualSize / 2, paint);
+      }
+    }
     paintArrow(
       canvas,
       geometry: screenGeometry,
@@ -48,12 +61,14 @@ class ArrowPreviewPainter extends CustomPainter {
   @override
   bool shouldRepaint(ArrowPreviewPainter oldDelegate) {
     return oldDelegate.preview.geometry.start != preview.geometry.start ||
-        oldDelegate.preview.geometry.control != preview.geometry.control ||
+        !listEquals(oldDelegate.preview.geometry.controls, preview.geometry.controls) ||
         oldDelegate.preview.geometry.end != preview.geometry.end ||
         oldDelegate.canvasOffset != canvasOffset ||
         oldDelegate.canvasScale != canvasScale ||
         oldDelegate.preview.color != preview.color ||
         oldDelegate.preview.strokeStyle != preview.strokeStyle ||
-        oldDelegate.preview.strokeWidth != preview.strokeWidth;
+        oldDelegate.preview.strokeWidth != preview.strokeWidth ||
+        oldDelegate.preview.showControls != preview.showControls ||
+        oldDelegate.guideColor != guideColor;
   }
 }

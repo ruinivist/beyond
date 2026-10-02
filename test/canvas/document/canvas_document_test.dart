@@ -21,7 +21,7 @@ void main() {
         ArrowElementData(
           id: 'arrow-1',
           start: const Offset(10, 20),
-          control: const Offset(40, 5),
+          controls: const [Offset(40, 5), Offset(60, 40)],
           end: const Offset(80, 60),
           color: 0xffdc3f3f,
           strokeStyle: ArrowStrokeStyle.dashed,
@@ -143,13 +143,17 @@ void main() {
 
     final arrow = elements[0] as ArrowElementData;
     expect(arrow.start, const Offset(10, 20));
-    expect(arrow.control, const Offset(40, 5));
+    expect(arrow.controls, const [Offset(40, 5), Offset(60, 40)]);
     expect(arrow.end, const Offset(80, 60));
     expect(arrow.color, 0xffdc3f3f);
     expect(arrow.strokeStyle, ArrowStrokeStyle.dashed);
     expect(arrow.strokeWidth, 3);
 
     final snapshot = document.copy();
+    final copiedArrow = snapshot.elements.first as ArrowElementData;
+    expect(copiedArrow.controls, isNot(same(arrow.controls)));
+    copiedArrow.controls[0] = Offset.zero;
+    expect(arrow.controls.first, const Offset(40, 5));
     expect(snapshot.elements, isNot(same(document.elements)));
     expect(
       (snapshot.elements[2] as PenElementData).points,
@@ -424,6 +428,16 @@ void main() {
       throwsA(isA<FormatException>()),
     );
     for (final invalid in [
+      _encodedArrow()..['controls'] = [],
+      _encodedArrow()
+        ..['controls'] = [
+          {'x': double.nan, 'y': 0},
+        ],
+      _encodedArrow()
+        ..['controls'] = [
+          {'x': 1},
+        ],
+      _encodedArrow()..['controls'] = null,
       _encodedArrow()..['color'] = -1,
       _encodedArrow()..['strokeStyle'] = 'dotted',
       _encodedArrow()..['strokeWidth'] = 0.0,
@@ -523,7 +537,9 @@ Map<String, Object?> _encodedArrow({String id = 'arrow-1'}) => {
   'id': id,
   'type': 'arrow',
   'start': {'x': 0.0, 'y': 0.0},
-  'control': {'x': 2.0, 'y': 2.0},
+  'controls': [
+    {'x': 2.0, 'y': 2.0},
+  ],
   'end': {'x': 4.0, 'y': 0.0},
   'color': 0xff000000,
   'strokeStyle': 'solid',

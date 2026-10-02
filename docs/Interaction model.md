@@ -56,7 +56,10 @@ Shapes follow the same state separation: clicking or creating a shape makes it a
 - Drawing an arrow makes it active and returns to the select tool.
 - Arrow options set the color, solid or dashed shaft style, and width for newly drawn arrows.
 - Activating an existing arrow exposes the same options; edits affect only that arrow and keep its arrowhead solid.
-- An active arrow shows its start, bend, and arrowhead points with Bézier guides. Dragging a point reshapes only that arrow.
+- Hold the primary mouse button and drag to draw an arrow. Each secondary-button press while the primary remains held fixes a Bézier control handle at the cursor; the arrowhead continues following the cursor. Holding the secondary button adds only one handle. Releasing the primary commits the arrow, even if the secondary remains held.
+- Drawing without secondary clicks keeps the automatic bend. The first click replaces that bend with a fixed control handle; further clicks add handles in order. Added handles and guides appear during drawing.
+- Curves use smooth quadratic Bézier sections joined at midpoints between controls. Handles pull the curve toward them and affect nearby bends; the curve does not have to pass through them.
+- An active arrow shows its start, all control handles, and arrowhead with Bézier guides. Primary-button dragging a point reshapes only that arrow and forms one undoable operation. Secondary dragging by itself still pans the canvas.
 - Dashed gaps remain part of the arrow's pointer target.
 
 ## Drag and selection rules
