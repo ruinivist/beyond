@@ -14,6 +14,34 @@ class CanvasTitle extends StatefulWidget {
   final List<String> path;
   final VoidCallback? onPressed;
 
+  // ---------- Sizing ----------
+
+  static const _horizontalPadding = 12.0;
+
+  /// Measures the name and padding without the hover-revealed folder path.
+  double collapsedWidthOf(BuildContext context) =>
+      TextPainter.computeWidth(
+        text: TextSpan(
+          text: path.last,
+          style: DefaultTextStyle.of(context).style
+              .merge(_textStyleOf(context))
+              .copyWith(
+                fontWeight: MediaQuery.boldTextOf(context) ? FontWeight.bold : null,
+                letterSpacing: MediaQuery.maybeLetterSpacingOverrideOf(context),
+                wordSpacing: MediaQuery.maybeWordSpacingOverrideOf(context),
+              ),
+        ),
+        textDirection: Directionality.of(context),
+        textScaler: MediaQuery.textScalerOf(context),
+        locale: Localizations.maybeLocaleOf(context),
+      ) +
+      _horizontalPadding * 2;
+
+  static TextStyle _textStyleOf(BuildContext context) {
+    final theme = BTheme.of(context);
+    return theme.typo.body.copyWith(color: theme.colors.textMuted, fontSize: 12);
+  }
+
   @override
   State<CanvasTitle> createState() => _CanvasTitleState();
 }
@@ -33,10 +61,7 @@ class _CanvasTitleState extends State<CanvasTitle> {
   @override
   Widget build(BuildContext context) {
     final theme = BTheme.of(context);
-    final textStyle = theme.typo.body.copyWith(
-      color: theme.colors.textMuted,
-      fontSize: 12,
-    );
+    final textStyle = CanvasTitle._textStyleOf(context);
 
     return Semantics(
       label: widget.path.join(' / '),
@@ -50,7 +75,7 @@ class _CanvasTitleState extends State<CanvasTitle> {
           child: Container(
             height: _height,
             alignment: Alignment.center,
-            padding: const EdgeInsets.symmetric(horizontal: 12),
+            padding: const EdgeInsets.symmetric(horizontal: CanvasTitle._horizontalPadding),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [

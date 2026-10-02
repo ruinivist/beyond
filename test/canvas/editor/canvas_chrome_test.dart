@@ -47,7 +47,7 @@ void main() {
           icon: const Icon(Icons.settings),
         ),
       );
-      Widget title() => CanvasTitle(
+      CanvasTitle title() => CanvasTitle(
         path: ['Folder', if (longTitle) 'A very long canvas title that needs horizontal scrolling' else 'Untitled'],
         onPressed: () => titleClicks++,
       );
@@ -104,10 +104,10 @@ void main() {
       await tester.pumpAndSettle();
       final compactSize = tester.getSize(find.byKey(const ValueKey('compact-reference')));
 
-      Widget app({EdgeInsets insets = EdgeInsets.zero}) => MaterialApp(
+      Widget app({MediaQueryData media = const MediaQueryData()}) => MaterialApp(
         theme: theme,
         home: MediaQuery(
-          data: MediaQueryData(size: tester.view.physicalSize, padding: insets),
+          data: media.copyWith(size: tester.view.physicalSize),
           child: Scaffold(
             body: StatefulBuilder(
               builder: (context, setState) {
@@ -145,8 +145,12 @@ void main() {
       canvasClicks = 0;
       final compactPitch = rect('tool-1').center.dx - rect('tool-0').center.dx;
       expect(compactPitch, greaterThan(compactSize.width));
+      final fitWidth = originalToolbar.width + originalTitle.width * 2 + originalTitleLeft * 4;
       final widths = [
         1200.0,
+        fitWidth + 1,
+        fitWidth,
+        fitWidth - 1,
         originalToolbar.width + originalTitleLeft * 2 + 1,
         originalToolbar.width + originalTitleLeft * 2,
         originalToolbar.width + originalTitleLeft * 2 - 1,
@@ -175,6 +179,8 @@ void main() {
         final titleBounds = tester.getRect(titleViewport);
         final settingsBounds = rect('settings');
         expect(titleBounds.left, originalTitleLeft, reason: 'title viewport at $width');
+        final nameFits = toolbar.left - originalTitleLeft * 2 >= originalTitle.width;
+        expect(titleBounds.top, nameFits ? toolbar.top : greaterThan(toolbar.bottom), reason: 'title row at $width');
         if (titleBounds.width >= originalTitle.width) {
           expect(tester.getRect(find.byType(CanvasTitle)).left, originalTitleLeft, reason: 'title at $width');
           expect(tester.getRect(find.text('Untitled')).left, originalTextLeft);
@@ -186,7 +192,11 @@ void main() {
         expect(settingsBounds.size, originalSettings.size);
         for (var i = 0; i < 7; i++) {
           final compact = tester.widget<ToolbarButton>(find.byKey(ValueKey('tool-$i'))).compact;
-          expect(rect('tool-$i').size, compact ? compactSize : originalButtons[i].size, reason: 'tool $i at $width');
+          expect(
+            rect('tool-$i').size,
+            compact ? Size(compactPitch, compactSize.height) : originalButtons[i].size,
+            reason: 'tool $i at $width',
+          );
           final icon = find.descendant(of: find.byKey(ValueKey('tool-$i')), matching: find.byType(Icon));
           expect(
             tester.getSize(icon),
@@ -242,13 +252,62 @@ void main() {
       expect(settingsClicks, widths.length);
       expect(canvasClicks, widths.length);
 
-      update(() => longTitle = true);
+      tester.view.physicalSize = Size(fitWidth + 1, 700);
+      await tester.pumpWidget(app());
       await tester.pumpAndSettle();
       final titleAllocation = find.ancestor(of: find.byType(CanvasTitle), matching: find.byType(Align)).first;
-      final beforeHover = tester.getRect(titleAllocation);
+      final topTitleBounds = tester.getRect(titleAllocation);
+      expect(topTitleBounds.top, rect('toolbar-surface').top);
       final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
       addTearDown(mouse.removePointer);
       await mouse.addPointer(location: tester.getCenter(titleViewport));
+      await tester.pumpAndSettle();
+      expect(tester.getRect(titleAllocation), topTitleBounds);
+      expect(rect('toolbar-surface').overlaps(tester.getRect(titleViewport)), isFalse);
+      expect(find.byKey(const ValueKey('tool-0')).hitTestable(), findsOneWidget);
+      await tester.tap(find.text('Untitled'));
+      expect(titleClicks, widths.length + 1);
+      final titleScroll = tester.state<ScrollableState>(
+        find.descendant(of: titleViewport, matching: find.byType(Scrollable)),
+      );
+      expect(titleScroll.position.maxScrollExtent, greaterThan(0));
+      await tester.drag(titleViewport, const Offset(40, 0));
+      await tester.pumpAndSettle();
+      expect(titleScroll.position.pixels, greaterThan(0));
+      expect(tester.getRect(titleAllocation), topTitleBounds);
+      await mouse.moveTo(Offset.zero);
+      await tester.pumpAndSettle();
+
+      update(() => longTitle = true);
+      await tester.pumpAndSettle();
+      expect(tester.getRect(titleViewport).top, greaterThan(rect('toolbar-surface').bottom));
+      update(() => longTitle = false);
+      await tester.pumpAndSettle();
+      expect(tester.getRect(titleViewport).top, rect('toolbar-surface').top);
+
+      await tester.pumpWidget(
+        app(
+          media: const MediaQueryData(
+            textScaler: TextScaler.linear(1.5),
+            boldText: true,
+            letterSpacingOverride: 1,
+            wordSpacingOverride: 2,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(tester.getRect(titleViewport).top, greaterThan(rect('toolbar-surface').bottom));
+      update(() => longTitle = true);
+      await tester.pumpAndSettle();
+      expect(
+        title().collapsedWidthOf(tester.element(find.byType(CanvasChrome))),
+        closeTo(tester.getSize(find.byType(CanvasTitle)).width, 0.001),
+      );
+      await tester.pumpWidget(app());
+      await tester.pumpAndSettle();
+
+      final beforeHover = tester.getRect(titleAllocation);
+      await mouse.moveTo(tester.getCenter(titleViewport));
       await tester.pumpAndSettle();
       expect(tester.getRect(titleAllocation), beforeHover);
       expect(rect('toolbar-surface').overlaps(tester.getRect(titleViewport)), isFalse);
@@ -274,7 +333,7 @@ void main() {
       expect(tester.takeException(), isNull);
 
       tester.view.physicalSize = const Size(320, 400);
-      await tester.pumpWidget(app(insets: const EdgeInsets.fromLTRB(10, 24, 18, 20)));
+      await tester.pumpWidget(app(media: const MediaQueryData(padding: EdgeInsets.fromLTRB(10, 24, 18, 20))));
       await tester.pumpAndSettle();
       expect(rect('toolbar-surface').top, greaterThanOrEqualTo(24));
       expect(rect('toolbar-surface').right, lessThanOrEqualTo(302));

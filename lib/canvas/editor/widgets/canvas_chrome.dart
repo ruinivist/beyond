@@ -3,6 +3,7 @@
 
 import 'dart:math' as math;
 
+import 'package:beyond/canvas/editor/widgets/canvas_title.dart';
 import 'package:beyond/canvas/editor/widgets/tool_options.dart';
 import 'package:flutter/material.dart';
 
@@ -19,7 +20,7 @@ class CanvasChrome extends StatelessWidget {
     super.key,
   });
 
-  final Widget title;
+  final CanvasTitle title;
   final Widget toolbar;
   final Widget settingsButton;
   final Widget? toolOptions;
@@ -31,7 +32,7 @@ class CanvasChrome extends StatelessWidget {
     child: Padding(
       padding: const EdgeInsets.all(_ChromeLayout.gap),
       child: CustomMultiChildLayout(
-        delegate: _ChromeLayout(),
+        delegate: _ChromeLayout(minimumTitleWidth: title.collapsedWidthOf(context)),
         children: [
           LayoutId(
             id: _Control.toolbar,
@@ -66,8 +67,11 @@ enum _Control { toolbar, title, settings, options }
 /// Places controls using their natural sizes, including Flutter density.
 /// Keeps title and settings clear of the toolbar and its wrapped rows.
 class _ChromeLayout extends MultiChildLayoutDelegate {
+  _ChromeLayout({required this.minimumTitleWidth});
+
   static const gap = 12.0;
-  static const _minimumTitleWidth = 160.0;
+
+  final double minimumTitleWidth;
 
   @override
   void performLayout(Size size) {
@@ -76,7 +80,7 @@ class _ChromeLayout extends MultiChildLayoutDelegate {
 
     final settings = layoutChild(_Control.settings, BoxConstraints.loose(size));
     final sideWidth = (size.width - toolbar.width) / 2 - gap;
-    final titleBelow = sideWidth < _minimumTitleWidth;
+    final titleBelow = sideWidth < minimumTitleWidth;
     final settingsBelow = sideWidth < settings.width;
     final lowerTop = toolbar.height + gap;
     final settingsTop = settingsBelow ? lowerTop : 0.0;
@@ -100,5 +104,5 @@ class _ChromeLayout extends MultiChildLayoutDelegate {
   }
 
   @override
-  bool shouldRelayout(_ChromeLayout oldDelegate) => false;
+  bool shouldRelayout(_ChromeLayout oldDelegate) => minimumTitleWidth != oldDelegate.minimumTitleWidth;
 }
