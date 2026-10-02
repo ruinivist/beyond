@@ -9,11 +9,17 @@ import 'package:flutter/widget_previews.dart';
 // ---------- Preview theme ----------
 
 PreviewThemeData previewTheme() {
-  return PreviewThemeData(materialLight: starlessLightThemeData);
+  return PreviewThemeData(materialLight: starlessLightThemeData, materialDark: starlessDarkThemeData);
 }
 
 // ---------- Theme preview ----------
 
+@Preview(
+  name: 'Theme dark',
+  size: Size(1100, 700),
+  theme: previewTheme,
+  brightness: Brightness.dark,
+)
 @Preview(
   name: 'Theme',
   size: Size(1100, 700),

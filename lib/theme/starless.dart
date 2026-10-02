@@ -4,6 +4,7 @@
 import 'package:beyond/theme/theme.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:re_highlight/styles/atom-one-dark.dart';
 import 'package:re_highlight/styles/atom-one-light.dart';
 
 // ---------- Palette and geometry ----------
@@ -29,6 +30,29 @@ const _starlessLightColors = BColors(
   focusRing: Color(0xffe5a48f),
   shadow: Color(0x1f302a27),
   scrim: Color(0x52201c1a),
+);
+
+const _starlessDarkColors = BColors(
+  canvasBackground: Color(0xff16191e),
+  canvasGrid: Color(0xff262b32),
+  surface: Color(0xff252930),
+  surfaceRaised: Color(0xff2b3038),
+  surfaceSubtle: Color(0xff1e2229),
+  surfaceHover: Color(0xff30363f),
+  surfacePressed: Color(0xff38414c),
+  textPrimary: Color(0xffe7e7e9),
+  textSecondary: Color(0xffb3b7bd),
+  textMuted: Color(0xff848b94),
+  resizeHandle: Color(0xff9da6b1),
+  borderSubtle: Color(0xff393e46),
+  accent: Color(0xff879db8),
+  accentHover: Color(0xff9cafc6),
+  accentPressed: Color(0xff73879f),
+  accentSoft: Color(0xff252f3b),
+  accentSubtle: Color(0xff303d4d),
+  focusRing: Color(0xffa3b5c9),
+  shadow: Color(0x80000000),
+  scrim: Color(0x80000000),
 );
 
 const _starlessGeo = BGeo(
@@ -103,49 +127,80 @@ Future<void> loadFonts() async {
 
 // ---------- Theme instances ----------
 
-final ThemeData starlessLightThemeData = _starlessThemeData();
+final Map<String, TextStyle> _starlessDarkSyntaxTheme = atomOneDarkTheme.map(
+  (name, style) => MapEntry(
+    name,
+    style.copyWith(
+      color: switch (style.color?.toARGB32()) {
+        0xffabb2bf => _starlessDarkColors.textPrimary,
+        0xff5c6370 => const Color(0xff97999f),
+        0xffc678dd => const Color(0xffb2a5be),
+        0xffe06c75 => const Color(0xffbc9ea5),
+        0xff56b6c2 || 0xff61aeee => _starlessDarkColors.focusRing,
+        0xff98c379 => const Color(0xffa5b8a3),
+        0xffd19a66 || 0xffe6c07b => const Color(0xffb7adb8),
+        _ => style.color,
+      },
+      backgroundColor: name == 'root' ? _starlessDarkColors.surface : style.backgroundColor,
+    ),
+  ),
+);
+
+final ThemeData starlessLightThemeData = _starlessThemeData(
+  _starlessLightColors,
+  Brightness.light,
+  atomOneLightTheme,
+);
+
+final ThemeData starlessDarkThemeData = _starlessThemeData(
+  _starlessDarkColors,
+  Brightness.dark,
+  _starlessDarkSyntaxTheme,
+);
 
 // ---------- Theme construction ----------
 
-ThemeData _starlessThemeData() {
-  const colors = _starlessLightColors;
+ThemeData _starlessThemeData(BColors colors, Brightness brightness, Map<String, TextStyle> syntaxTheme) {
+  final isDark = brightness == Brightness.dark;
+  final onAccent = isDark ? colors.canvasBackground : colors.surface;
+  final onAccentContainer = isDark ? colors.textPrimary : colors.accentPressed;
   final typo = _starlessTypo(colors);
   final theme = BTheme(
     colors: colors,
     typo: typo,
     geo: _starlessGeo,
-    syntaxTheme: atomOneLightTheme,
+    syntaxTheme: syntaxTheme,
   );
   final colorScheme = ColorScheme(
-    brightness: Brightness.light,
+    brightness: brightness,
     primary: colors.accent,
-    onPrimary: colors.surface,
+    onPrimary: onAccent,
     primaryContainer: colors.accentSoft,
-    onPrimaryContainer: colors.accentPressed,
+    onPrimaryContainer: onAccentContainer,
     primaryFixed: colors.accentSoft,
     primaryFixedDim: colors.accentSubtle,
-    onPrimaryFixed: colors.accentPressed,
-    onPrimaryFixedVariant: colors.accentHover,
+    onPrimaryFixed: onAccentContainer,
+    onPrimaryFixedVariant: isDark ? colors.textSecondary : colors.accentHover,
     secondary: colors.accent,
-    onSecondary: colors.surface,
+    onSecondary: onAccent,
     secondaryContainer: colors.accentSoft,
-    onSecondaryContainer: colors.accentPressed,
+    onSecondaryContainer: onAccentContainer,
     secondaryFixed: colors.accentSoft,
     secondaryFixedDim: colors.accentSubtle,
-    onSecondaryFixed: colors.accentPressed,
-    onSecondaryFixedVariant: colors.accentHover,
+    onSecondaryFixed: onAccentContainer,
+    onSecondaryFixedVariant: isDark ? colors.textSecondary : colors.accentHover,
     tertiary: colors.accent,
-    onTertiary: colors.surface,
+    onTertiary: onAccent,
     tertiaryContainer: colors.accentSoft,
-    onTertiaryContainer: colors.accentPressed,
+    onTertiaryContainer: onAccentContainer,
     tertiaryFixed: colors.accentSoft,
     tertiaryFixedDim: colors.accentSubtle,
-    onTertiaryFixed: colors.accentPressed,
-    onTertiaryFixedVariant: colors.accentHover,
-    error: colors.accentPressed,
-    onError: colors.surface,
-    errorContainer: colors.accentSoft,
-    onErrorContainer: colors.accentPressed,
+    onTertiaryFixed: onAccentContainer,
+    onTertiaryFixedVariant: isDark ? colors.textSecondary : colors.accentHover,
+    error: isDark ? const Color(0xffd09a9a) : colors.accentPressed,
+    onError: onAccent,
+    errorContainer: isDark ? const Color(0xff3b2b2c) : colors.accentSoft,
+    onErrorContainer: isDark ? const Color(0xffeccccc) : colors.accentPressed,
     surface: colors.surface,
     onSurface: colors.textPrimary,
     surfaceDim: colors.surfacePressed,
@@ -167,7 +222,7 @@ ThemeData _starlessThemeData() {
   );
 
   return ThemeData(
-    brightness: Brightness.light,
+    brightness: brightness,
     colorScheme: colorScheme,
     scaffoldBackgroundColor: colors.canvasBackground,
     extensions: [theme],

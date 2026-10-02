@@ -16,6 +16,8 @@ class SettingsDialog extends StatefulWidget {
   // ---------- Construction ----------
 
   const SettingsDialog({
+    this.themeMode = ThemeMode.light,
+    this.onThemeModeChanged,
     this.canvasBackgroundKind = CanvasBackgroundKind.dotGrid,
     this.onCanvasBackgroundChanged,
     this.onImportCanvas,
@@ -25,6 +27,8 @@ class SettingsDialog extends StatefulWidget {
     super.key,
   });
 
+  final ThemeMode themeMode;
+  final Future<void> Function(ThemeMode)? onThemeModeChanged;
   final CanvasBackgroundKind canvasBackgroundKind;
   final ValueChanged<CanvasBackgroundKind>? onCanvasBackgroundChanged;
   final Future<bool> Function()? onImportCanvas;
@@ -38,14 +42,30 @@ class SettingsDialog extends StatefulWidget {
 
 // ---------- Sections ----------
 
-enum _SettingsSection { about, canvas }
+enum _SettingsSection { about, appearance, canvas }
 
 class _SettingsDialogState extends State<SettingsDialog> {
   // ---------- State ----------
 
   _SettingsSection _section = _SettingsSection.canvas;
+  late ThemeMode _themeMode = widget.themeMode;
   late CanvasBackgroundKind _canvasBackgroundKind = widget.canvasBackgroundKind;
   var _transferActive = false;
+
+  // ---------- Theme selection ----------
+
+  Future<void> _changeTheme(ThemeMode mode) async {
+    setState(() => _themeMode = mode);
+    try {
+      await widget.onThemeModeChanged?.call(mode);
+    } on Object {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not save theme preference.')),
+        );
+      }
+    }
+  }
 
   // ---------- Transfer actions ----------
 
@@ -156,7 +176,7 @@ class _SettingsDialogState extends State<SettingsDialog> {
     final theme = BTheme.of(context);
     return LayoutBuilder(
       builder: (context, constraints) {
-        final horizontalNavigation = constraints.maxWidth >= 340;
+        final horizontalNavigation = constraints.maxWidth >= 480;
         final navigation = _navigation(
           context,
           padding: const EdgeInsets.all(16),
@@ -193,6 +213,12 @@ class _SettingsDialogState extends State<SettingsDialog> {
     bool horizontal = false,
   }) {
     final children = [
+      _navigationItem(
+        context,
+        section: _SettingsSection.appearance,
+        icon: Icons.palette_outlined,
+        label: 'Appearance',
+      ),
       _navigationItem(
         context,
         section: _SettingsSection.canvas,
@@ -288,8 +314,30 @@ class _SettingsDialogState extends State<SettingsDialog> {
   Widget _sectionContent(BuildContext context) {
     return switch (_section) {
       _SettingsSection.about => _aboutContent(context),
+      _SettingsSection.appearance => _appearanceContent(context),
       _SettingsSection.canvas => _canvasContent(context),
     };
+  }
+
+  Widget _appearanceContent(BuildContext context) {
+    final theme = BTheme.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Theme', style: theme.typo.label),
+        const SizedBox(height: 10),
+        Select<ThemeMode>(
+          key: const ValueKey('theme-select'),
+          value: _themeMode,
+          options: const [
+            SelectOption(value: ThemeMode.light, label: 'Light'),
+            SelectOption(value: ThemeMode.dark, label: 'Dark'),
+          ],
+          showBorder: false,
+          onChanged: widget.onThemeModeChanged == null ? null : _changeTheme,
+        ),
+      ],
+    );
   }
 
   Widget _aboutContent(BuildContext context) {

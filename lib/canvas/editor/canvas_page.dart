@@ -73,6 +73,8 @@ class CanvasPage extends StatefulWidget {
     this.projectFiles,
     this.readClipboard,
     this.writeClipboardText,
+    this.themeMode = ThemeMode.light,
+    this.onThemeModeChanged,
     super.key,
   });
 
@@ -81,6 +83,8 @@ class CanvasPage extends StatefulWidget {
   final CanvasProjectFiles? projectFiles;
   final Future<CanvasClipboardSnapshot> Function()? readClipboard;
   final Future<void> Function(String text)? writeClipboardText;
+  final ThemeMode themeMode;
+  final Future<void> Function(ThemeMode)? onThemeModeChanged;
 
   @override
   State<CanvasPage> createState() => _CanvasPageState();
@@ -1561,6 +1565,8 @@ class _CanvasPageState extends State<CanvasPage> {
         context: context,
         barrierColor: BTheme.of(context).colors.scrim,
         builder: (_) => SettingsDialog(
+          themeMode: widget.themeMode,
+          onThemeModeChanged: widget.onThemeModeChanged,
           canvasBackgroundKind: _canvasBackgroundKind,
           onCanvasBackgroundChanged: _setCanvasBackground,
           onImportCanvas: _importProject,
