@@ -23,6 +23,143 @@ import '../test_helpers.dart';
 void main() {
   setUp(() => SharedPreferencesAsyncWeb.registerWith(null));
 
+  testWidgets('empty touch pans after slop, preserves selection, and converts zoom', (tester) async {
+    await pumpCanvas(tester, TestCanvasDocumentStore(_document([_pen('a')])));
+    final model = tester.widget<PenStroke>(find.byType(PenStroke)).model..selected = true;
+    final controller = _canvas(tester)..updateScalebyDelta(1);
+    final before = controller.offset;
+    final first = await tester.startGesture(const Offset(550, 400));
+    await first.moveBy(const Offset(5, 0));
+    expect(controller.offset, before);
+    expect(model.selected, isTrue);
+    await first.moveBy(const Offset(35, 20));
+    expect(controller.offset, before - const Offset(40, 20) / controller.scale);
+    await first.moveBy(const Offset(20, 10));
+    expect(controller.offset, before - const Offset(60, 30) / controller.scale);
+    expect(model.selected, isTrue);
+    expect(model.data.position, const Offset(100, 250));
+    await first.up();
+  });
+
+  testWidgets('empty touch tap clears activation and selection only on release', (tester) async {
+    await pumpCanvas(tester, TestCanvasDocumentStore(_document([_code()])));
+    final model = tester.widget<CodeTool>(find.byType(CodeTool)).model;
+    await tester.tapAt(const Offset(220, 300));
+    await tester.pumpAndSettle();
+    model.selected = true;
+    final touch = await tester.startGesture(const Offset(550, 400));
+    await touch.moveBy(const Offset(5, 0));
+    expect(model.active, isTrue);
+    expect(model.selected, isTrue);
+    expect(_canvas(tester).offset, Offset.zero);
+    await touch.up();
+    await tester.pump();
+    expect(model.active, isFalse);
+    expect(model.selected, isFalse);
+    await tester.pump(const Duration(milliseconds: 150));
+  });
+
+  for (final displacement in [Offset.zero, const Offset(60, 30)]) {
+    testWidgets('canceling empty touch at $displacement preserves selection without inertia', (tester) async {
+      await pumpCanvas(tester, TestCanvasDocumentStore(_document([_pen('a')])));
+      final model = tester.widget<PenStroke>(find.byType(PenStroke)).model..selected = true;
+      final controller = _canvas(tester);
+      final touch = await tester.startGesture(const Offset(550, 400));
+      await touch.moveBy(displacement, timeStamp: const Duration(milliseconds: 16));
+      await touch.moveBy(displacement, timeStamp: const Duration(milliseconds: 32));
+      await touch.cancel();
+      final frozen = controller.offset;
+      await tester.pump(const Duration(milliseconds: 200));
+      expect(controller.offset, frozen);
+      expect(model.selected, isTrue);
+      final fresh = await tester.startGesture(const Offset(550, 400));
+      await fresh.moveBy(const Offset(40, 20));
+      expect(controller.offset, frozen - const Offset(40, 20));
+      await fresh.cancel();
+    });
+  }
+
+  testWidgets('normal empty touch pan release uses viewport inertia', (tester) async {
+    await pumpCanvas(tester, TestCanvasDocumentStore(_document()));
+    final controller = _canvas(tester);
+    final touch = await tester.startGesture(const Offset(200, 300));
+    for (var frame = 1; frame <= 5; frame++) {
+      await touch.moveBy(const Offset(20, 0), timeStamp: Duration(milliseconds: frame * 16));
+    }
+    await touch.up(timeStamp: const Duration(milliseconds: 81));
+    final released = controller.offset;
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(controller.offset.dx, lessThan(released.dx));
+    expect(controller.scale, 1);
+    controller.stopAnimation();
+  });
+
+  for (final displacement in [Offset.zero, const Offset(60, 30)]) {
+    testWidgets('two fingers take over empty touch at $displacement without a jump or fling', (tester) async {
+      await pumpCanvas(tester, TestCanvasDocumentStore(_document([_pen('a')])));
+      final model = tester.widget<PenStroke>(find.byType(PenStroke)).model..selected = true;
+      final controller = _canvas(tester);
+      final first = await tester.startGesture(const Offset(200, 400), pointer: 1);
+      await first.moveBy(displacement, timeStamp: const Duration(milliseconds: 16));
+      final panned = (controller.offset, controller.scale);
+      final second = await tester.startGesture(const Offset(550, 400), pointer: 2);
+      expect((controller.offset, controller.scale), panned);
+      await second.moveBy(const Offset(60, 30));
+      expect((controller.offset, controller.scale), isNot(panned));
+      await second.up();
+      final frozen = (controller.offset, controller.scale);
+      await first.moveBy(const Offset(60, 30));
+      await first.up();
+      await tester.pump(const Duration(milliseconds: 200));
+      expect((controller.offset, controller.scale), frozen);
+      expect(model.selected, isTrue);
+      final fresh = await tester.startGesture(const Offset(550, 400));
+      await fresh.moveBy(const Offset(40, 20));
+      expect(controller.offset, frozen.$1 - const Offset(40, 20) / controller.scale);
+      await fresh.cancel();
+    });
+  }
+
+  testWidgets('tool changes cancel empty touch pan through final release', (tester) async {
+    await pumpCanvas(tester, TestCanvasDocumentStore(_document()));
+    final controller = _canvas(tester);
+    final touch = await tester.startGesture(const Offset(200, 300));
+    await touch.moveBy(const Offset(60, 30));
+    await tester.sendKeyEvent(LogicalKeyboardKey.keyP);
+    await tester.sendKeyEvent(LogicalKeyboardKey.keyP);
+    final frozen = controller.offset;
+    await touch.moveBy(const Offset(60, 30));
+    await touch.up();
+    await tester.pump(const Duration(milliseconds: 200));
+    expect(controller.offset, frozen);
+    expect(find.byType(PenStroke), findsNothing);
+  });
+
+  testWidgets('document replacement cancels an empty touch pan', (tester) async {
+    await pumpCanvas(tester, TestCanvasDocumentStore(_document([_pen('a')])));
+    await tester.dragFrom(const Offset(150, 300), const Offset(60, 30));
+    await tester.pump();
+    final controller = _canvas(tester);
+    final touch = await tester.startGesture(const Offset(550, 400));
+    await touch.moveBy(const Offset(60, 30));
+    await _undo(tester);
+    final frozen = controller.offset;
+    await touch.moveBy(const Offset(60, 30));
+    await touch.up();
+    await tester.pump(const Duration(milliseconds: 200));
+    expect(controller.offset, frozen);
+    expect(tester.widget<PenStroke>(find.byType(PenStroke)).model.data.position, const Offset(100, 250));
+  });
+
+  testWidgets('touch object movement leaves the viewport fixed', (tester) async {
+    await pumpCanvas(tester, TestCanvasDocumentStore(_document([_pen('a')])));
+    final model = tester.widget<PenStroke>(find.byType(PenStroke)).model;
+    await tester.dragFrom(const Offset(150, 300), const Offset(60, 30));
+    expect(model.data.position, isNot(const Offset(100, 250)));
+    expect((_canvas(tester).offset, _canvas(tester).scale), (Offset.zero, 1));
+  });
+
   for (final (tool, type) in [('draw', PenStroke), ('arrow', Arrow), ('shape', Shape)]) {
     testWidgets('$tool draws with one finger and discards on navigation takeover', (tester) async {
       await pumpCanvas(tester, TestCanvasDocumentStore(_document()));

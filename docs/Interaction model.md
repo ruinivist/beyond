@@ -72,7 +72,10 @@ Shapes follow the same state separation: clicking or creating a shape makes it a
 
 ## Touch navigation
 
-- One finger draws, erases, or interacts with canvas objects. Two fingers pan and pinch to zoom, including when a finger starts on an object control or code title.
+- In the default tool, dragging empty canvas with one finger pans without changing selection. Movement below Flutter's touch threshold remains a tap; crossing it applies the full drag displacement. Normal release can continue panning with inertia; cancellation does not.
+- Tapping empty canvas clears activation and selection on release. Dragging an object moves it directly; dragging a selected member moves the selected group.
+- One finger also draws, erases, places objects, or interacts with object controls when those tools are enabled. Two fingers pan and pinch to zoom, including when a finger starts on an object control or code title.
+- Adding a second finger cancels a pending or active single-finger pan without a jump or fling. Changing tools or replacing the document also cancels the pan; held pointers cannot restart it.
 - Adding a second finger discards unfinished pen, arrow, and shape drawings and pending placement. Erasures and object moves, resizes, rotations, and arrow-point edits already made are kept as one undoable operation.
 - After navigation drops to one finger, the remaining finger does nothing until all touches lift. Interrupted pointers cannot resume editing; an interrupted stylus must also lift before tools resume.
 - Text, code, and media are placed on single-finger touch tap release. Dragging, cancellation, or adding a second finger cancels placement. Mouse and stylus placement happen on press.
