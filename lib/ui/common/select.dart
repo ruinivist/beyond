@@ -9,19 +9,17 @@ import 'package:flutter/services.dart';
 
 // ---------- Models ----------
 
-/// Describes one value, label, and enabled state in a select menu.
+/// Describes one value and label in a select menu.
 /// Used by both standard and searchable select controls.
 @immutable
 class SelectOption<T> {
   const SelectOption({
     required this.value,
     required this.label,
-    this.enabled = true,
   });
 
   final T value;
   final String label;
-  final bool enabled;
 }
 
 // ---------- Geometry ----------
@@ -257,7 +255,7 @@ Widget _buildSelectOption<T>({
     child: MenuItemButton(
       key: ValueKey('$keyPrefix-option-$index'),
       focusNode: focusNode,
-      onPressed: option.enabled ? () => onChanged?.call(option.value) : null,
+      onPressed: () => onChanged?.call(option.value),
       semanticsLabel: option.label,
       style: _selectOptionStyle(theme: theme, isSelected: isSelected),
       child: Text(option.label),
@@ -353,11 +351,9 @@ class _SelectState<T> extends State<Select<T>> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted || !_menuController.isOpen) return;
       var index = widget.options.indexWhere(
-        (option) => option.value == widget.value && option.enabled,
+        (option) => option.value == widget.value,
       );
-      if (index < 0) {
-        index = widget.options.indexWhere((option) => option.enabled);
-      }
+      if (index < 0 && widget.options.isNotEmpty) index = 0;
       if (index >= 0) _optionFocusNodes[index].requestFocus();
     });
   }

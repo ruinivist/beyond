@@ -13,7 +13,6 @@ class ContextMenuAction {
     required this.onPressed,
     this.shortcut,
     this.destructive = false,
-    this.autofocus = false,
   });
 
   final String label;
@@ -21,7 +20,6 @@ class ContextMenuAction {
   final VoidCallback? onPressed;
   final MenuSerializableShortcut? shortcut;
   final bool destructive;
-  final bool autofocus;
 }
 
 // ---------- Widgets ----------
@@ -33,14 +31,12 @@ class ContextMenu extends StatelessWidget {
     required this.groups,
     required this.child,
     this.semanticLabel,
-    this.semanticHint,
     super.key,
   });
 
   final List<List<ContextMenuAction>> groups;
   final Widget child;
   final String? semanticLabel;
-  final String? semanticHint;
 
   static const _menuWidth = 224.0;
 
@@ -92,7 +88,6 @@ class ContextMenu extends StatelessWidget {
 
   Widget _item(BuildContext context, ContextMenuAction action) {
     final item = MenuItemButton(
-      autofocus: action.autofocus,
       onPressed: action.onPressed,
       shortcut: action.shortcut,
       style: _itemStyle(
@@ -128,7 +123,6 @@ class ContextMenu extends StatelessWidget {
       ],
       builder: (context, controller, child) => Semantics(
         label: semanticLabel,
-        hint: semanticHint,
         button: true,
         child: InkWell(
           mouseCursor: SystemMouseCursors.contextMenu,

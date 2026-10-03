@@ -25,9 +25,6 @@ class DiscreteSlider extends StatelessWidget {
     this.min = _defaultMinimum,
     this.max = _defaultMaximum,
     this.stepSize = _defaultStepSize,
-    this.labelFormatter,
-    this.focusNode,
-    this.autofocus = false,
     super.key,
   }) : assert(min < max, 'min must be less than max'),
        assert(stepSize > 0, 'stepSize must be greater than 0'),
@@ -41,9 +38,6 @@ class DiscreteSlider extends StatelessWidget {
   final double min;
   final double max;
   final double stepSize;
-  final String Function(double value)? labelFormatter;
-  final FocusNode? focusNode;
-  final bool autofocus;
 
   int get divisions => ((max - min) / stepSize).round();
 
@@ -93,10 +87,8 @@ class DiscreteSlider extends StatelessWidget {
             min: min,
             max: max,
             divisions: divisions,
-            label: labelFormatter != null ? labelFormatter!(value) : '${(value / stepSize).round()}',
-            semanticFormatterCallback: labelFormatter ?? (value) => '${(value / stepSize).round()}',
-            focusNode: focusNode,
-            autofocus: autofocus,
+            label: '${(value / stepSize).round()}',
+            semanticFormatterCallback: (value) => '${(value / stepSize).round()}',
             onChanged: onChanged == null ? null : (next) => onChanged!(next.clamp(min, max)),
           ),
         ),
