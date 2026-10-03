@@ -23,7 +23,6 @@ void main() {
   setUp(() async {
     SharedPreferencesAsyncWeb.registerWith(null);
     final preferences = SharedPreferencesAsync();
-    await preferences.remove(CanvasDocumentStore.key);
     await preferences.remove(CanvasDocumentStore.libraryKey);
   });
 

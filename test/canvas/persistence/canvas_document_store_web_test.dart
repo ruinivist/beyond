@@ -19,8 +19,15 @@ import 'package:shared_preferences_web/shared_preferences_web.dart';
 void main() {
   setUp(() async {
     SharedPreferencesAsyncWeb.registerWith(null);
-    await SharedPreferencesAsync().remove(CanvasDocumentStore.key);
     await SharedPreferencesAsync().remove(CanvasDocumentStore.libraryKey);
+  });
+
+  test('starts an empty library when browser storage has no saved library', () async {
+    final store = CanvasDocumentStore();
+
+    expect(await store.load(), isNull);
+    expect(store.library.files, hasLength(1));
+    expect(store.library.current.document!.toJson(), CanvasLibrary.emptyDocument.toJson());
   });
 
   test('persists the current canvas document in browser storage', () async {
@@ -35,9 +42,12 @@ void main() {
     expect((await store.load())?.toJson(), document.toJson());
   });
 
-  test('retains the old canvas and restores folders and the selected file', () async {
+  test('retains existing canvas and restores folders and the selected file', () async {
     const original = CanvasDocument(background: CanvasBackgroundKind.plain, elements: []);
-    await SharedPreferencesAsync().setString(CanvasDocumentStore.key, jsonEncode(original.toJson()));
+    await SharedPreferencesAsync().setString(
+      CanvasDocumentStore.libraryKey,
+      jsonEncode(CanvasLibrary.initial(original).toJson()),
+    );
     final store = CanvasDocumentStore();
     await store.load();
     final originalId = store.library.currentId;

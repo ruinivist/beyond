@@ -12,7 +12,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 class CanvasDocumentStore {
   // ---------- Constants ----------
 
-  static const key = 'beyond.canvas.document.v3';
   static const libraryKey = 'beyond.canvas.library.v1';
 
   // ---------- State ----------
@@ -24,14 +23,8 @@ class CanvasDocumentStore {
 
   Future<CanvasDocument?> load() async {
     final savedLibrary = await _preferences.getString(libraryKey);
-    if (savedLibrary != null) {
-      library = CanvasLibrary.fromJson(jsonDecode(savedLibrary));
-      return library.current.document;
-    }
-    final source = await _preferences.getString(key);
-    final document = source == null ? null : CanvasDocument.fromJson(jsonDecode(source));
-    library = CanvasLibrary.initial(document);
-    return document;
+    library = savedLibrary == null ? CanvasLibrary.initial() : CanvasLibrary.fromJson(jsonDecode(savedLibrary));
+    return savedLibrary == null ? null : library.current.document;
   }
 
   Future<void> save(CanvasDocument document) {

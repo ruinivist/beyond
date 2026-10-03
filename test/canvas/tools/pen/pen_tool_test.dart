@@ -10,6 +10,7 @@ import 'package:beyond/canvas/editor/widgets/canvas_title.dart';
 import 'package:beyond/canvas/editor/widgets/element_transform_controls.dart';
 import 'package:beyond/canvas/editor/widgets/toolbar_button.dart';
 import 'package:beyond/canvas/persistence/canvas_document_store.dart';
+import 'package:beyond/canvas/persistence/canvas_library.dart';
 import 'package:beyond/canvas/tools/arrow/arrow_tool.dart';
 import 'package:beyond/canvas/tools/code/code_tool.dart';
 import 'package:beyond/canvas/tools/pen/pen_tool.dart';
@@ -33,7 +34,6 @@ void main() {
   setUp(() async {
     SharedPreferencesAsyncWeb.registerWith(null);
     final preferences = SharedPreferencesAsync();
-    await preferences.remove(CanvasDocumentStore.key);
     await preferences.remove(CanvasDocumentStore.libraryKey);
   });
 
@@ -519,8 +519,8 @@ void main() {
       ],
     );
     await SharedPreferencesAsync().setString(
-      CanvasDocumentStore.key,
-      jsonEncode(document.toJson()),
+      CanvasDocumentStore.libraryKey,
+      jsonEncode(CanvasLibrary.initial(document).toJson()),
     );
     await tester.pumpWidget(const BeyondApp());
     await tester.pump();
@@ -1736,8 +1736,8 @@ void main() {
       ],
     );
     await SharedPreferencesAsync().setString(
-      CanvasDocumentStore.key,
-      jsonEncode(document.toJson()),
+      CanvasDocumentStore.libraryKey,
+      jsonEncode(CanvasLibrary.initial(document).toJson()),
     );
     await tester.pumpWidget(const BeyondApp());
     await tester.pump();

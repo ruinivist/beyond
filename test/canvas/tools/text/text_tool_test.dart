@@ -37,7 +37,6 @@ void main() {
   setUp(() async {
     SharedPreferencesAsyncWeb.registerWith(null);
     final preferences = SharedPreferencesAsync();
-    await preferences.remove(CanvasDocumentStore.key);
     await preferences.remove(CanvasDocumentStore.libraryKey);
     originalLauncher = UrlLauncherPlatform.instance;
     launcher = _FakeUrlLauncher();
@@ -1126,12 +1125,12 @@ Inline $x^2$''';
     await tester.pump(const Duration(milliseconds: 100));
   });
 
-  testWidgets('malformed saved documents are preserved and reported', (
+  testWidgets('malformed saved libraries are preserved and reported', (
     tester,
   ) async {
-    const invalid = '{"version":99,"background":"dotGrid","elements":[]}';
+    const invalid = '{"version":99,"currentId":"invalid","files":[]}';
     final preferences = SharedPreferencesAsync();
-    await preferences.setString(CanvasDocumentStore.key, invalid);
+    await preferences.setString(CanvasDocumentStore.libraryKey, invalid);
 
     await tester.pumpWidget(const BeyondApp());
     await tester.pump();
@@ -1139,15 +1138,14 @@ Inline $x^2$''';
 
     expect(find.byType(TextTool), findsNothing);
     expect(find.text('Could not load saved canvas'), findsOneWidget);
-    expect(await preferences.getString(CanvasDocumentStore.key), invalid);
+    expect(await preferences.getString(CanvasDocumentStore.libraryKey), invalid);
 
     await tester.tap(find.byKey(const ValueKey('toolbar-text')));
     await tester.pump();
     await tester.tapAt(const Offset(120, 200));
     await pumpPastSave(tester);
     expect(find.byType(TextTool), findsNothing);
-    expect(await preferences.getString(CanvasDocumentStore.key), invalid);
-    expect(await preferences.getString(CanvasDocumentStore.libraryKey), isNull);
+    expect(await preferences.getString(CanvasDocumentStore.libraryKey), invalid);
   });
 }
 
