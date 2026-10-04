@@ -2483,17 +2483,14 @@ class _CanvasPageState extends State<CanvasPage> {
   Widget _buildControlsPortal() => OverlayPortal.overlayChildLayoutBuilder(
     key: _controlsPortalKey,
     controller: _controlsOverlayController,
-    overlayChildBuilder: (context, _) {
+    overlayChildBuilder: (_, layout) {
       final anchor = _editingChromeModel.value;
-      final box = _selectionKeys[anchor]?.currentContext?.findRenderObject();
-      if (box is! RenderBox || !box.attached || !box.hasSize) return const SizedBox.shrink();
-      final overlay = Overlay.of(context).context.findRenderObject()!;
-      final bodyOffset = anchor is CodeBlockModel ? box.size.height - anchor.size.height : 0.0;
+      final bodyOffset = anchor is CodeBlockModel ? layout.childSize.height - anchor.size.height : 0.0;
       return Positioned(
         left: 0,
         top: 0,
         child: Transform(
-          transform: box.getTransformTo(overlay),
+          transform: layout.childPaintTransform,
           child: Transform.translate(
             offset: Offset(-ElementTransformControls.size.width - 10, bodyOffset),
             child: SizedBox.fromSize(
