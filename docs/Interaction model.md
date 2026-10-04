@@ -34,7 +34,7 @@ Shapes follow the same state separation: clicking or creating a shape makes it a
 - The active state exposes the editable source and title, language picker, resize handle, and move, rotate, and delete controls.
 - The options panel controls line-number visibility.
 - Moving or rotating through the floating controls keeps the block active and editable.
-- Clicking away or pressing Escape returns the block to its read-only preview. An empty title is hidden while inactive.
+- Clicking away or pressing Escape returns the block to its read-only preview. An empty title is hidden while inactive. The title belongs to the block's layout and stacking layer; its strip remains reserved when hidden without changing the body's position, dimensions, or rotation pivot.
 
 ## Media blocks
 
@@ -59,6 +59,7 @@ Shapes follow the same state separation: clicking or creating a shape makes it a
 - Hold the primary mouse button and drag to draw an arrow. Each secondary-button press while the primary remains held fixes a Bézier control handle at the cursor; the arrowhead continues following the cursor. Holding the secondary button adds only one handle. Releasing the primary commits the arrow, even if the secondary remains held.
 - Drawing without secondary clicks keeps the automatic bend. The first click replaces that bend with a fixed control handle; further clicks add handles in order. Added handles and guides appear during drawing.
 - Curves use smooth quadratic Bézier sections joined at midpoints between controls. Handles pull the curve toward them and affect nearby bends; the curve does not have to pass through them.
+- Clicking an existing arrow activates it; dragging an inactive arrow moves it without activation or a temporary lift. Dragging an active arrow keeps its lift.
 - An active arrow shows its start, all control handles, and arrowhead with Bézier guides. Primary-button dragging a point reshapes only that arrow and forms one undoable operation. Secondary dragging by itself still pans the canvas.
 - Dashed gaps remain part of the arrow's pointer target.
 
@@ -76,18 +77,20 @@ Shapes follow the same state separation: clicking or creating a shape makes it a
 ## Stacking order
 
 - Document order runs from back to front. New and pasted objects append at the front; pasted objects preserve their internal order.
-- Activation, selection, editing, movement, rotation, and resizing preserve stacking order. Saving and reopening preserve document order.
+- Activation temporarily brings the whole block, including its title, above the stack for painting and pointer targeting. Clicking away, Escape, or changing tools removes this lift. Moving, rotating, or resizing an active block keeps its lift.
+- Selection and dragging inactive blocks preserve their layers. Activation never changes document order, persistence, or undo history. Saving and reopening preserve document order.
+- Entering Arrange ends editing and activation and reveals the saved order before the menu opens or a shortcut changes it. Arrange changes stay visible after dismissal.
 - Arrange offers Bring Forward, Send Backward, Bring to Front, and Send to Back. Forward and Backward cross the nearest overlapping object; Front and Back move to the ends of the stack. Groups retain their internal order, and other objects retain theirs.
 - Each successful Arrange command saves the new order and creates one undo step. Commands that cannot change order are disabled and make no history entry. If an object's layout size is not known, overlap commands are disabled; stack-end commands remain available.
-- Cmd on macOS, or Ctrl elsewhere, plus `]` brings forward and `[` sends backward. Adding Shift brings to front or sends to back. Shortcuts target the selection, falling back to the active object, and support key repeat. Focused editors keep these keys while the menu is closed.
+- Cmd on macOS, or Ctrl elsewhere, plus `]` brings forward and `[` sends backward. Adding Shift brings to front or sends to back. Shortcuts target the selection, falling back to the active object, and support key repeat. A fallback object becomes selected before deactivation so repeated shortcuts retain their target. Focused editors keep these keys while the menu is closed.
 
 ## Object context menu
 
 - In the Select tool, secondary-button release on an object opens a menu containing only Arrange when movement stays within 4 logical pixels of the press position. The canvas stays still within that distance; crossing it commits to panning, even if the pointer returns to the press position. Right-clicking empty canvas opens nothing. Touch long-press has no object menu.
 - Right-clicking a selected object targets its selected group. Right-clicking an unselected object makes it the sole selection. Neither activates an object nor enters editing.
-- Right-clicking an editor preserves content and activation, closes Markdown source editing, and transfers keyboard focus to the menu. Editor context menus do not compete with Arrange. Menu clicks count as object-control interaction, including for active media.
+- Right-clicking an editor captures its target, preserves content, ends editing and activation, and transfers keyboard focus to the menu. Editor context menus do not compete with Arrange. Menu clicks count as object-control interaction, including for active media.
 - Menus stay upright and use screen coordinates under zoom and rotation. Hover, click, arrow keys, Enter, and Escape use Flutter's menu navigation. While open, the menu owns keyboard input and Arrange shortcuts use the targets captured on opening.
-- Dismissing the menu preserves selection and activation. Navigation, tool changes, file-picker opening, target deletion, document replacement, and leaving the page close it.
+- Dismissing the menu preserves selection and leaves blocks inactive. Navigation, tool changes, file-picker opening, target deletion, document replacement, and leaving the page close it.
 
 ## Touch navigation
 

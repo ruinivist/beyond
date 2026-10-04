@@ -131,6 +131,9 @@ class _CanvasPageState extends State<CanvasPage> {
   double _dragSelectionSlop = kPrecisePointerPanSlop;
   int? _dragArrowPointer;
   ArrowModel? _dragArrow;
+  Offset _dragArrowStart = Offset.zero;
+  double _dragArrowSlop = kPrecisePointerPanSlop;
+  bool _dragArrowMoving = false;
   var _toggleDragSelection = false;
   Timer? _saveTimer;
   Future<void> _saveQueue = Future<void>.value();
@@ -596,7 +599,12 @@ class _CanvasPageState extends State<CanvasPage> {
     }
     if (event.pointer == _dragArrowPointer) {
       final arrow = _dragArrow;
-      if (arrow != null) _moveSelectedChildren(arrow, event.delta);
+      if (arrow != null) {
+        final displacement = event.position - _dragArrowStart;
+        if (!_dragArrowMoving && displacement.distance <= _dragArrowSlop) return;
+        _moveSelectedChildren(arrow, _dragArrowMoving ? event.delta : displacement);
+        _dragArrowMoving = true;
+      }
       return;
     }
     if (event.pointer != _dragSelectionPointer) return;
@@ -655,6 +663,7 @@ class _CanvasPageState extends State<CanvasPage> {
       return;
     }
     if (event.pointer == _dragArrowPointer) {
+      if (!_dragArrowMoving && _dragArrow != null) _activateElement(_dragArrow!);
       _finishArrowDrag(select: true);
       return;
     }
@@ -929,9 +938,8 @@ class _CanvasPageState extends State<CanvasPage> {
   void _openObjectContextMenu(CanvasElementModel model, Offset position) {
     if (!_elements.contains(model) || _activeTool.value != _CanvasTool.select) return;
     if (!model.selected) _setSelection({model});
-    _clearTextEditing();
-    FocusManager.instance.primaryFocus?.unfocus();
     _contextMenuTargets = _selectedInStackingOrder;
+    _clearElementEditing();
     _contextMenuView = (_canvasController.offset, _canvasController.scale);
     setState(() {});
     // Build the captured targets before opening; editor release callbacks finish first.
@@ -1141,7 +1149,10 @@ class _CanvasPageState extends State<CanvasPage> {
       model,
     ).currentContext?.findRenderObject();
     if (renderObject is! RenderBox) return Offset.zero;
-    return renderObject.localToGlobal(renderObject.size.center(Offset.zero));
+    final center = model is CodeBlockModel
+        ? Offset(model.size.width / 2, model.canvasSize.height - model.size.height / 2)
+        : renderObject.size.center(Offset.zero);
+    return renderObject.localToGlobal(center);
   }
 
   // ---------- Element creation ----------
@@ -1222,10 +1233,6 @@ class _CanvasPageState extends State<CanvasPage> {
           onResize: (delta) => _resizeCodeBlock(code, delta),
           onChangeBoundary: _finishHistoryOperation,
           canHandlePointer: _canHandleCanvasPointer,
-          onTitlePointerDown: (event) {
-            _handleObjectSecondaryDown(code, event);
-            _handleCodeBlockPointerDown(code, event);
-          },
         ),
       ),
       final MediaModel media => _CanvasElementHost(
@@ -1409,10 +1416,16 @@ class _CanvasPageState extends State<CanvasPage> {
     }
     _interactiveCanvasPointerIds.add(event.pointer);
     if (_toggleSelectionIfModifierPressed(model)) return;
-    _setActiveElement(model);
-    _clearTextEditing();
+    if (!model.active) {
+      _clearElementEditing();
+    } else {
+      _clearTextEditing();
+    }
     _dragArrowPointer = event.pointer;
     _dragArrow = model;
+    _dragArrowStart = event.position;
+    _dragArrowSlop = computePanSlop(event.kind, MediaQuery.maybeGestureSettingsOf(context));
+    _dragArrowMoving = false;
   }
 
   void _finishArrowDrag({bool select = false}) {
@@ -2066,7 +2079,12 @@ class _CanvasPageState extends State<CanvasPage> {
         _ => null,
       };
       if (action != null) {
-        _arrange(action, _arrangeTargets);
+        final targets = _arrangeTargets;
+        if (!_contextMenuController.isOpen) {
+          if (_selectedInStackingOrder.isEmpty) _setSelection(targets.toSet());
+          _clearElementEditing();
+        }
+        _arrange(action, targets);
         return true;
       }
     }
@@ -2497,6 +2515,7 @@ class _CanvasPageState extends State<CanvasPage> {
                 onPointerHover: _handleCanvasPointerHover,
                 child: LazyCanvas(
                   controller: _canvasController,
+                  foregroundChildId: _activeElement?.data.id,
                   touchNavigationMode: TouchNavigationMode.twoFinger,
                   onTouchNavigationChanged: _handleTouchNavigationChanged,
                   viewportBuilder: _buildCanvasViewport,
@@ -2989,7 +3008,7 @@ class _CanvasElementHost extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final target = CompositedTransformTarget(link: model.layerLink, child: child);
+    final target = model is CodeBlockModel ? child : CompositedTransformTarget(link: model.layerLink, child: child);
     final listener = Listener(
       onPointerDown: (event) {
         if (activeTool.value == _CanvasTool.select) {

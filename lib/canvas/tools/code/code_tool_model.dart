@@ -37,10 +37,18 @@ class CodeBlockModel extends RotatableCanvasElementModel<CodeElementData> {
   // ---------- Geometry and language ----------
 
   @override
-  Offset get canvasPosition => data.position;
+  Offset get canvasPosition {
+    // The title extends above the body without moving its rotation center.
+    const halfTitle = _codeTitleHeight / 2;
+    return data.position +
+        Offset(
+          math.sin(rotation) * halfTitle,
+          -halfTitle - math.cos(rotation) * halfTitle,
+        );
+  }
 
   @override
-  Size get canvasSize => data.size;
+  Size get canvasSize => Size(size.width, size.height + _codeTitleHeight);
 
   Size get size => data.size;
 

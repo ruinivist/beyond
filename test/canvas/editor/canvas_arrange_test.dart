@@ -15,6 +15,7 @@ import 'package:beyond/canvas/tools/shape/shape_tool.dart';
 import 'package:beyond/canvas/tools/text/text_tool.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:infinite_lazy_grid/infinite_lazy_grid.dart';
@@ -74,6 +75,161 @@ void main() {
     }
   }
 
+  testWidgets('code title and body share temporary foreground and saved arrangement', (tester) async {
+    final document = _editorDocument('code');
+    (document.elements.last as ShapeElementData)
+      ..position = const Offset(150, 195)
+      ..size = const Size(100, 110)
+      ..fillColor = Colors.red.toARGB32();
+    final store = TestCanvasDocumentStore(document);
+    await pumpCanvas(tester, store);
+    await tester.pumpAndSettle();
+    final canvas = _canvas(tester);
+    final model = tester.widget<CodeTool>(find.byType(CodeTool)).model;
+    final editorState = tester.state(find.byType(CodeTool));
+    final title = tester.getCenter(find.byKey(const ValueKey('code-title-text')));
+    const body = Offset(180, 280);
+
+    Future<void> expectCovered({required bool covered}) async {
+      final boundary = tester.renderObject<RenderRepaintBoundary>(
+        find.ancestor(of: find.byType(LazyCanvas), matching: find.byType(RepaintBoundary)).first,
+      );
+      final pixels = await tester.runAsync(() async {
+        final image = await boundary.toImage();
+        try {
+          return await image.toByteData();
+        } finally {
+          image.dispose();
+        }
+      });
+      for (final point in [const Offset(155, 213), body]) {
+        final local = boundary.globalToLocal(point);
+        final index = (local.dy.toInt() * boundary.size.width.toInt() + local.dx.toInt()) * 4;
+        final pixel = Color.fromARGB(
+          pixels!.getUint8(index + 3),
+          pixels.getUint8(index),
+          pixels.getUint8(index + 1),
+          pixels.getUint8(index + 2),
+        );
+        expect(pixel.toARGB32() == Colors.red.toARGB32(), covered, reason: 'at $point, pixel $pixel');
+      }
+      expect(canvas.childOrder, ['editor', 'other']);
+      expect(tester.state(find.byType(CodeTool)), same(editorState));
+    }
+
+    await expectCovered(covered: true);
+    await tester.tapAt(title);
+    await tester.pumpAndSettle();
+    expect(model.active, isFalse);
+    expect(_models(tester)['other']!.active, isTrue);
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await tester.pumpAndSettle();
+    await tester.tapAt(const Offset(400, 350)); // Exposed code body.
+    await tester.pumpAndSettle();
+    expect(model.active, isTrue);
+    expect(tester.widget<LazyCanvas>(find.byType(LazyCanvas)).foregroundChildId, 'editor');
+    await expectCovered(covered: false);
+    await tester.tapAt(title);
+    await tester.pumpAndSettle();
+    expect(model.active, isTrue);
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await tester.pumpAndSettle();
+    await expectCovered(covered: true);
+    await pumpPastSave(tester);
+    expect(store.persisted, isNull);
+
+    await tester.tapAt(const Offset(400, 350));
+    await tester.pumpAndSettle();
+    await _open(tester, title); // Capture lifted code before revealing the covering shape.
+    expect(model.active, isFalse);
+    expect(model.selected, isTrue);
+    expect(_models(tester)['other']!.selected, isFalse);
+    await expectCovered(covered: true);
+    await tester.tap(find.text('Bring Forward'));
+    await tester.pumpAndSettle();
+    expect(canvas.childOrder, ['other', 'editor']);
+    expect(model.active, isFalse);
+    await tester.tapAt(title);
+    await tester.pumpAndSettle();
+    expect(model.active, isTrue);
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await tester.pumpAndSettle();
+    expect(canvas.childOrder, ['other', 'editor']);
+  });
+
+  for (final scale in [1.0, 1.5]) {
+    testWidgets('code title preserves body geometry and transforms at zoom $scale', (tester) async {
+      final document = _editorDocument('code')..elements.removeLast();
+      (document.elements.first as CodeElementData).position = const Offset(100, 100);
+      await pumpCanvas(tester, TestCanvasDocumentStore(document));
+      final canvas = _canvas(tester)..updateScalebyDelta(scale - 1, focalPoint: Offset.zero);
+      await tester.pumpAndSettle();
+      final model = tester.widget<CodeTool>(find.byType(CodeTool)).model;
+      RenderBox body() => tester.renderObject<RenderBox>(find.byKey(const ValueKey('code-block-surface')));
+      void expectGeometry() {
+        final center = (model.data.position + model.size.center(Offset.zero) - canvas.offset) * scale;
+        expect((body().localToGlobal(model.size.center(Offset.zero)) - center).distance, lessThan(0.001));
+        expect(body().size, model.size);
+        final title = tester.renderObject<RenderBox>(
+          find.byKey(ValueKey(model.active ? 'code-title-input-tab' : 'code-title-tab')),
+        );
+        expect(
+          (title.localToGlobal(Offset(0, title.size.height)) - body().localToGlobal(Offset.zero)).distance,
+          lessThan(0.001),
+        );
+        if (model.active) {
+          final controls = tester.widget<ElementTransformControls>(find.byType(ElementTransformControls));
+          expect((controls.rotationCenter() - center).distance, lessThan(0.001));
+        }
+      }
+
+      expectGeometry();
+      final original = model.data.position;
+      const delta = Offset(50, 30);
+      final titleCenter = tester.getCenter(find.byKey(const ValueKey('code-title-text')));
+      final drag = await tester.startGesture(titleCenter, kind: PointerDeviceKind.mouse);
+      await drag.moveBy(delta);
+      await drag.up();
+      await tester.pumpAndSettle();
+      expect((model.data.position - original - delta / scale).distance, lessThan(0.001));
+      expect(model.active, isFalse);
+      expectGeometry();
+      await tester.tapAt(tester.getCenter(find.byKey(const ValueKey('code-title-text'))));
+      await tester.pumpAndSettle();
+      expect(model.active, isTrue);
+      final controls = tester.widget<ElementTransformControls>(find.byType(ElementTransformControls));
+      controls.onMove(const Offset(-20, -10));
+      controls.onRotate!(math.pi / 3);
+      await tester.pumpAndSettle();
+      expectGeometry();
+      final oldSize = model.size;
+      final resize = await tester.startGesture(
+        tester.getCenter(find.byKey(const ValueKey('code-block-resize-handle'))),
+      );
+      final screenDelta =
+          Offset(
+            math.cos(model.rotation) * 20 - math.sin(model.rotation) * 10,
+            math.sin(model.rotation) * 20 + math.cos(model.rotation) * 10,
+          ) *
+          scale;
+      await resize.moveBy(screenDelta);
+      await resize.moveBy(screenDelta);
+      await resize.up();
+      await tester.pumpAndSettle();
+      expect(model.size.width, greaterThan(oldSize.width));
+      expect(model.size.height, greaterThan(oldSize.height));
+      expect(model.active, isTrue);
+      expectGeometry();
+      final bounds = (model.canvasPosition, model.canvasSize);
+      model.title = '';
+      await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+      await tester.pumpAndSettle();
+      expect(model.active, isFalse);
+      expect((model.canvasPosition, model.canvasSize), bounds);
+      expect(find.byKey(const ValueKey('code-title-hidden')), findsOneWidget);
+    });
+  }
+
   testWidgets('submenu has native keyboard navigation and disabled actions', (tester) async {
     await pumpCanvas(tester, TestCanvasDocumentStore(_document()));
     await _open(tester, const Offset(375, 375));
@@ -103,7 +259,7 @@ void main() {
     expect(_models(tester)['c']!.selected, isTrue);
   });
 
-  testWidgets('hover opens the submenu and click-away preserves state', (tester) async {
+  testWidgets('hover opens the submenu and click-away leaves selection inactive', (tester) async {
     await pumpCanvas(tester, TestCanvasDocumentStore(_document()));
     await tester.tapAt(const Offset(305, 305));
     await tester.pumpAndSettle();
@@ -118,7 +274,7 @@ void main() {
     await tester.tapAt(const Offset(790, 590));
     await tester.pumpAndSettle();
     expect(model.selected, isTrue);
-    expect(model.active, isTrue);
+    expect(model.active, isFalse);
     expect(find.text('Arrange'), findsNothing);
     await mouse.removePointer();
   });
@@ -299,6 +455,10 @@ void main() {
       await tester.pumpAndSettle();
       final model = _models(tester)['a']!;
       final canvas = _canvas(tester);
+      await _shortcut(tester, LogicalKeyboardKey.bracketLeft, platform: platform);
+      expect(canvas.childOrder, ['a', 'b', 'c', 'd']);
+      expect(model.active, isFalse);
+      expect(model.selected, isTrue);
       await _shortcut(tester, LogicalKeyboardKey.bracketRight, platform: platform);
       expect(canvas.childOrder, ['b', 'a', 'c', 'd']);
       await _shortcut(tester, LogicalKeyboardKey.bracketRight, platform: platform, repeat: true);
@@ -310,8 +470,8 @@ void main() {
       await _shortcut(tester, LogicalKeyboardKey.bracketRight, platform: platform, shift: true);
       expect(canvas.childOrder, ['b', 'c', 'd', 'a']);
       expect(_models(tester)['a'], same(model));
-      expect(model.active, isTrue);
-      expect(model.selected, isFalse);
+      expect(model.active, isFalse);
+      expect(model.selected, isTrue);
       await _shortcut(tester, LogicalKeyboardKey.braceLeft, platform: platform, shift: true);
       expect(canvas.childOrder, ['a', 'b', 'c', 'd']);
       await _shortcut(tester, LogicalKeyboardKey.braceRight, platform: platform, shift: true);
@@ -343,7 +503,7 @@ void main() {
   });
 
   for (final editor in ['text', 'code', 'title', 'media']) {
-    testWidgets('$editor right-click transfers focus without changing content or activation', (tester) async {
+    testWidgets('$editor right-click transfers focus and deactivates without changing content', (tester) async {
       final store = TestCanvasDocumentStore(_editorDocument(editor));
       await pumpCanvas(tester, store);
       final surface = switch (editor) {
@@ -377,16 +537,16 @@ void main() {
       expect(find.byType(AdaptiveTextSelectionToolbar), findsNothing);
       if (editor == 'text') {
         final model = tester.widget<TextTool>(find.byType(TextTool)).model;
-        expect(model.active, isTrue);
+        expect(model.active, isFalse);
         expect(model.editing, isFalse);
         expect(model.controller.text, 'contents');
       } else if (editor == 'code' || editor == 'title') {
         final model = tester.widget<CodeTool>(find.byType(CodeTool)).model;
-        expect(model.active, isTrue);
+        expect(model.active, isFalse);
         expect(model.controller.text, 'contents');
         expect(model.title, 'Title');
       } else {
-        expect(tester.widget<MediaTool>(find.byType(MediaTool)).model.active, isTrue);
+        expect(tester.widget<MediaTool>(find.byType(MediaTool)).model.active, isFalse);
       }
       await _shortcut(tester, LogicalKeyboardKey.bracketRight, shift: true);
       expect(_canvas(tester).childOrder, ['other', 'editor']);
@@ -398,7 +558,7 @@ void main() {
     });
   }
 
-  testWidgets('active image menu and URL panel preserve media activation', (tester) async {
+  testWidgets('image Arrange ends activation and reopening captures the inactive image', (tester) async {
     await pumpCanvas(tester, TestCanvasDocumentStore(_editorDocument('media')), attachmentStore: TestAttachmentStore());
     final model = tester.widget<MediaTool>(find.byType(MediaTool)).model;
     await tester.runAsync(() => model.setDeviceImage(onePixelPngBytes, 'png'));
@@ -409,16 +569,16 @@ void main() {
     await _open(tester, tester.getCenter(find.byKey(const ValueKey('media-image'))));
     await tester.tap(find.text('Bring to Front'));
     await tester.pumpAndSettle();
-    expect(model.active, isTrue);
+    expect(model.active, isFalse);
     expect(model.selected, isTrue);
     expect(_canvas(tester).childOrder, ['other', 'editor']);
-    await _open(tester, tester.getCenter(find.byKey(const ValueKey('media-url-field'))));
+    await _open(tester, tester.getCenter(find.byKey(const ValueKey('media-image'))));
     expect(find.text('Arrange'), findsOneWidget);
-    expect(model.active, isTrue);
+    expect(model.active, isFalse);
     expect(model.focusNode.hasFocus, isFalse);
     await tester.sendKeyEvent(LogicalKeyboardKey.escape);
     await tester.pumpAndSettle();
-    expect(model.active, isTrue);
+    expect(model.active, isFalse);
   });
 
   testWidgets('unknown layout sizes disable overlap commands but allow ends', (tester) async {
@@ -532,8 +692,9 @@ void main() {
     await tester.tapAt(const Offset(305, 305));
     await tester.pumpAndSettle();
     expect(_models(tester)['a']!.active, isTrue);
+    final controls = tester.widget<ElementTransformControls>(find.byType(ElementTransformControls));
     await _open(tester, const Offset(305, 305));
-    tester.widget<ElementTransformControls>(find.byType(ElementTransformControls)).onDelete();
+    controls.onDelete();
     await tester.pumpAndSettle();
     expect(_canvas(tester).childOrder, isNot(contains('a')));
     expect(find.text('Arrange'), findsNothing);

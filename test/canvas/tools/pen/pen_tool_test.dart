@@ -804,7 +804,7 @@ void main() {
     await tester.tapAt(const Offset(120, 200));
     await tester.pump();
     final code = tester.widget<CodeTool>(find.byType(CodeTool)).model;
-    expect(tester.getTopLeft(find.byType(CodeTool)), const Offset(120, 200));
+    expect(tester.getTopLeft(find.byKey(const ValueKey('code-block-surface'))), const Offset(120, 200));
     expect(code.active, isTrue);
     expect(code.focusNode.hasFocus, isTrue);
 
@@ -942,7 +942,7 @@ void main() {
     expect(find.byKey(const ValueKey('code-title-input')), findsOneWidget);
 
     final rotate = find.byKey(const ValueKey('code-block-rotate-control'));
-    final center = tester.getCenter(block);
+    final center = tester.getCenter(find.byKey(const ValueKey('code-block-surface')));
     final start = tester.getCenter(rotate);
     final radius = (start - center).distance;
     final startAngle = math.atan2(start.dy - center.dy, start.dx - center.dx);

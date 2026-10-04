@@ -374,6 +374,30 @@ void main() {
     expect(controller.offset, isNot(Offset.zero));
   });
 
+  testWidgets('inactive arrow dragging preserves layers and activation requires a click', (tester) async {
+    final store = TestCanvasDocumentStore(_arrowDocument());
+    await pumpCanvas(tester, store);
+    final model = tester.widget<Arrow>(find.byType(Arrow)).model;
+    final canvas = tester.widget<LazyCanvas>(find.byType(LazyCanvas)).controller;
+    final order = canvas.childOrder;
+    const delta = Offset(50, 30);
+    final drag = await tester.startGesture(model.start, kind: PointerDeviceKind.mouse);
+    await drag.moveBy(delta);
+    await tester.pump();
+    expect(model.active, isFalse);
+    expect(tester.widget<LazyCanvas>(find.byType(LazyCanvas)).foregroundChildId, isNull);
+    await drag.up();
+    await tester.pumpAndSettle();
+    expect(model.active, isFalse);
+    expect(model.selected, isTrue);
+    expect(canvas.childOrder, order);
+    await tester.tapAt(model.start);
+    await tester.pumpAndSettle();
+    expect(model.active, isTrue);
+    expect(tester.widget<LazyCanvas>(find.byType(LazyCanvas)).foregroundChildId, model.data.id);
+    expect(canvas.childOrder, order);
+  });
+
   testWidgets('arrows place once, select by click and marquee, and move', (
     tester,
   ) async {
