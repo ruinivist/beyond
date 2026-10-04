@@ -47,6 +47,7 @@ void main() {
         }
         final position = before[target]!.data.position + const Offset(5, 5);
         await _open(tester, position);
+        await _openArrange(tester);
         await tester.tap(find.text(label));
         await tester.pumpAndSettle();
         expect(canvas.childOrder, expected);
@@ -145,6 +146,7 @@ void main() {
     expect(model.selected, isTrue);
     expect(_models(tester)['other']!.selected, isFalse);
     await expectCovered(covered: true);
+    await _openArrange(tester);
     await tester.tap(find.text('Bring Forward'));
     await tester.pumpAndSettle();
     expect(canvas.childOrder, ['other', 'editor']);
@@ -234,13 +236,13 @@ void main() {
     await pumpCanvas(tester, TestCanvasDocumentStore(_document()));
     await _open(tester, const Offset(375, 375));
     expect(find.text('Arrange'), findsOneWidget);
-    expect(find.text('Bring Forward'), findsOneWidget);
-    expect(_models(tester)['d']!.selected, isTrue);
-    await tester.tap(find.text('Arrange'));
-    await tester.pumpAndSettle();
     expect(find.text('Bring Forward'), findsNothing);
-    await tester.tap(find.text('Arrange'));
+    expect(_models(tester)['d']!.selected, isTrue);
+    for (var step = 0; step < 3; step++) {
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+    }
     await tester.pumpAndSettle();
+    expect(find.text('Bring Forward'), findsOneWidget);
     await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
     await tester.pumpAndSettle();
     expect(find.text('Bring Forward'), findsOneWidget);
@@ -332,7 +334,7 @@ void main() {
     });
   }
 
-  testWidgets('empty-canvas right-click jitter preserves activation and selection', (tester) async {
+  testWidgets('empty-canvas right-click jitter ends activation and preserves selection', (tester) async {
     await pumpCanvas(tester, TestCanvasDocumentStore(_document()));
     await tester.tapAt(const Offset(305, 305));
     await tester.pumpAndSettle();
@@ -340,7 +342,7 @@ void main() {
     final canvas = _canvas(tester);
     final before = canvas.offset;
     final click = await tester.startGesture(
-      const Offset(750, 500),
+      const Offset(200, 550),
       kind: PointerDeviceKind.mouse,
       buttons: kSecondaryButton,
     );
@@ -348,9 +350,10 @@ void main() {
     await click.up();
     await tester.pumpAndSettle();
     expect(canvas.offset, before);
-    expect(model.active, isTrue);
+    expect(model.active, isFalse);
     expect(model.selected, isTrue);
     expect(find.text('Arrange'), findsNothing);
+    expect(find.text('Paste'), findsOneWidget);
   });
 
   for (final displacement in [const Offset(3, 0), const Offset(30, 0)]) {
@@ -495,11 +498,10 @@ void main() {
     await _open(tester, const Offset(305, 305));
     _models(tester)['a']!.selected = false;
     _models(tester)['c']!.selected = true;
-    await tester.sendKeyEvent(LogicalKeyboardKey.delete);
     await tester.sendKeyEvent(LogicalKeyboardKey.keyT);
     await _shortcut(tester, LogicalKeyboardKey.bracketRight, shift: true);
     expect(_canvas(tester).childOrder, ['b', 'c', 'd', 'a']);
-    expect(find.text('Arrange'), findsOneWidget);
+    expect(find.text('Arrange'), findsNothing);
   });
 
   for (final editor in ['text', 'code', 'title', 'media']) {
@@ -567,6 +569,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(model.active, isTrue);
     await _open(tester, tester.getCenter(find.byKey(const ValueKey('media-image'))));
+    await _openArrange(tester);
     await tester.tap(find.text('Bring to Front'));
     await tester.pumpAndSettle();
     expect(model.active, isFalse);
@@ -592,6 +595,7 @@ void main() {
       ..addChild(info.gsPosition, info.child, id: 'unknown');
     expect(canvas.getInfo('unknown').childSize, isNull);
     await _open(tester, const Offset(375, 375));
+    await _openArrange(tester);
     expect(_button(tester, 'Bring Forward').onPressed, isNull);
     expect(_button(tester, 'Bring to Front').onPressed, isNotNull);
     await tester.tap(find.text('Bring to Front'));
@@ -615,6 +619,7 @@ void main() {
     expect(canvas.childOrder, ['unknown', 'a', 'b', 'c', 'd']);
     expect(store.persisted, isNull);
     await _open(tester, const Offset(305, 305));
+    await _openArrange(tester);
     expect(_button(tester, 'Send Backward').onPressed, isNull);
     expect(_button(tester, 'Send to Back').onPressed, isNotNull);
     await tester.tap(find.text('Send to Back'));
@@ -653,6 +658,7 @@ void main() {
     expect(rect.width, greaterThan(rect.height));
     expect(rect.right, lessThanOrEqualTo(800));
     expect(rect.bottom, lessThanOrEqualTo(600));
+    await _openArrange(tester);
     for (final label in ['Bring Forward', 'Send Backward', 'Bring to Front', 'Send to Back']) {
       final bounds = tester.getRect(find.text(label));
       expect(bounds.left, greaterThanOrEqualTo(0));
@@ -733,6 +739,13 @@ Future<void> _open(WidgetTester tester, Offset position, {Offset jitter = Offset
   final click = await tester.startGesture(position, kind: PointerDeviceKind.mouse, buttons: kSecondaryButton);
   if (jitter != Offset.zero) await click.moveBy(jitter);
   await click.up();
+  await tester.pumpAndSettle();
+}
+
+Future<void> _openArrange(WidgetTester tester) async {
+  Focus.of(tester.element(find.text('Arrange'))).requestFocus();
+  await tester.pumpAndSettle();
+  await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
   await tester.pumpAndSettle();
 }
 

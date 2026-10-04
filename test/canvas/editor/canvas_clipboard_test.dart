@@ -1,17 +1,22 @@
 // Verifies canvas clipboard encoding, decoding, and paste behavior.
 // Exercises serialized elements and external clipboard content in the editor.
 
+import 'dart:async';
+
 import 'package:beyond/canvas/document/canvas_document.dart';
 import 'package:beyond/canvas/editor/canvas_background.dart';
 import 'package:beyond/canvas/editor/canvas_clipboard.dart';
 import 'package:beyond/canvas/editor/canvas_element_model.dart';
+import 'package:beyond/canvas/editor/widgets/canvas_title.dart';
 import 'package:beyond/canvas/persistence/attachments/store.dart';
 import 'package:beyond/canvas/tools/arrow/arrow_tool.dart';
 import 'package:beyond/canvas/tools/code/code_tool.dart';
 import 'package:beyond/canvas/tools/media/media_tool.dart';
 import 'package:beyond/canvas/tools/pen/pen_tool.dart';
+import 'package:beyond/canvas/tools/shape/shape_tool.dart';
 import 'package:beyond/canvas/tools/text/text_tool.dart';
 import 'package:flutter/gestures.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:infinite_lazy_grid/infinite_lazy_grid.dart';
@@ -194,6 +199,254 @@ void main() {
     await mouse.removePointer();
   });
 
+  for (final group in [false, true]) {
+    for (final action in ['Copy', 'Cut', 'Delete']) {
+      testWidgets('$action captures ${group ? 'group' : 'single'} targets, persists, and undoes once', (tester) async {
+        final store = TestCanvasDocumentStore(_menuDocument);
+        final write = Completer<void>();
+        String? payload;
+        await pumpCanvas(
+          tester,
+          store,
+          writeClipboardText: (text) {
+            payload = text;
+            return write.future;
+          },
+        );
+        if (group) {
+          for (final model in _models(tester)) {
+            model.selected = true;
+          }
+        }
+        await _openMenu(tester, const Offset(310, 310));
+        await tester.tap(find.text(action));
+        await tester.pump();
+        expect(find.text('Arrange'), findsNothing);
+        if (action != 'Delete') {
+          expect(decodeCanvasClipboard(payload!)!.map((element) => element.id), group ? ['a', 'b'] : ['a']);
+          // Menu dismissal and later selection changes must not retarget Cut.
+          for (final model in _models(tester)) {
+            model.selected = model.data.id == 'b';
+          }
+          write.complete();
+          await tester.pump();
+        }
+        await pumpPastSave(tester);
+        final canvas = tester.widget<LazyCanvas>(find.byType(LazyCanvas)).controller;
+        final remaining = action == 'Copy'
+            ? ['a', 'b']
+            : group
+            ? <String>[]
+            : ['b'];
+        expect(canvas.childOrder, remaining);
+        if (action == 'Copy') {
+          expect(store.persisted, isNull);
+        } else {
+          expect(store.persisted!.elements.map((element) => element.id), remaining);
+        }
+        await _shortcut(tester, LogicalKeyboardKey.keyZ);
+        expect(canvas.childOrder, ['a', 'b']);
+        await _shortcut(tester, LogicalKeyboardKey.keyZ);
+        expect(canvas.childOrder, ['a', 'b']);
+      });
+    }
+  }
+
+  testWidgets('first enabled menu items receive focus and Escape preserves selection', (tester) async {
+    await pumpCanvas(tester, TestCanvasDocumentStore(_menuDocument));
+    await _openMenu(tester, const Offset(310, 310));
+    MenuItemButton button(String label) => tester.widget<MenuItemButton>(
+      find.ancestor(of: find.text(label), matching: find.byType(MenuItemButton)),
+    );
+    expect(button('Cut').focusNode!.hasPrimaryFocus, isTrue);
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await tester.pumpAndSettle();
+    expect(_models(tester).first.selected, isTrue);
+    await _openMenu(tester, const Offset(400, 550));
+    expect(button('Paste').focusNode!.hasPrimaryFocus, isTrue);
+    expect(find.text('Cut'), findsNothing);
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await tester.pumpAndSettle();
+    expect(find.text('Paste'), findsNothing);
+    expect(_models(tester).first.selected, isTrue);
+  });
+
+  testWidgets('failed menu Cut preserves targets and undo history', (tester) async {
+    final store = TestCanvasDocumentStore(_menuDocument);
+    await pumpCanvas(tester, store, writeClipboardText: (_) async => throw StateError('denied'));
+    await _openMenu(tester, const Offset(310, 310));
+    await tester.tap(find.text('Cut'));
+    await tester.pumpAndSettle();
+    expect(find.text('Could not cut canvas elements'), findsOneWidget);
+    expect(_models(tester).map((model) => model.data.id), ['a', 'b']);
+    await pumpPastSave(tester);
+    expect(store.persisted, isNull);
+    await _shortcut(tester, LogicalKeyboardKey.keyZ);
+    expect(_models(tester), hasLength(2));
+  });
+
+  for (final emptyCanvas in [false, true]) {
+    testWidgets(
+      'delayed menu Paste centers at captured ${emptyCanvas ? 'empty canvas' : 'object'} location under zoom',
+      (tester) async {
+        final store = TestCanvasDocumentStore(_menuDocument);
+        final read = Completer<CanvasClipboardSnapshot>();
+        await pumpCanvas(tester, store, readClipboard: () => read.future);
+        final canvas = tester.widget<LazyCanvas>(find.byType(LazyCanvas)).controller
+          ..updateScalebyDelta(0.5, focalPoint: Offset.zero);
+        await tester.pumpAndSettle();
+        final first = _models(tester).first..selected = true;
+        final position = emptyCanvas ? const Offset(600, 420) : canvas.getInfo('a').ssPosition + const Offset(5, 5);
+        final target = canvas.offset + position / canvas.scale;
+        await _openMenu(tester, position);
+        expect(first.selected, isTrue);
+        if (emptyCanvas) {
+          expect(find.text('Arrange'), findsNothing);
+          expect(find.text('Copy'), findsNothing);
+          expect(find.text('Delete'), findsNothing);
+        }
+        await tester.tap(find.text('Paste'));
+        await tester.pump();
+        expect(find.text('Paste'), findsNothing);
+        final mouse = await tester.createGesture(pointer: 99, kind: PointerDeviceKind.mouse);
+        await mouse.moveTo(const Offset(750, 550));
+        canvas.updateScalebyDelta(0.25);
+        await tester.pump();
+        read.complete((text: encodeCanvasClipboard(_menuDocument.elements), image: null));
+        await tester.pumpAndSettle();
+        expect(_selectedBounds(tester).center, target);
+        final pasted = _models(tester).where((model) => model.selected).toList();
+        expect(pasted, hasLength(2));
+        expect(pasted[1].canvasPosition - pasted[0].canvasPosition, const Offset(200, 0));
+        expect(canvas.childOrder.skip(2), pasted.map((model) => model.data.id));
+        await pumpPastSave(tester);
+        expect(store.persisted!.elements, hasLength(4));
+        await _shortcut(tester, LogicalKeyboardKey.keyZ);
+        expect(canvas.childOrder, ['a', 'b']);
+        await _shortcut(tester, LogicalKeyboardKey.keyZ);
+        expect(canvas.childOrder, ['a', 'b']);
+        await mouse.removePointer();
+      },
+    );
+  }
+
+  for (final image in [false, true]) {
+    testWidgets('menu Paste centers ${image ? 'images' : 'media URLs'} at its captured location', (tester) async {
+      final read = Completer<CanvasClipboardSnapshot>();
+      final store = TestCanvasDocumentStore(_emptyDocument);
+      await pumpCanvas(
+        tester,
+        store,
+        attachmentStore: TestAttachmentStore(),
+        readClipboard: () => read.future,
+      );
+      final canvas = tester.widget<LazyCanvas>(find.byType(LazyCanvas)).controller
+        ..updateScalebyDelta(0.5, focalPoint: Offset.zero);
+      await tester.pumpAndSettle();
+      const position = Offset(400, 300);
+      final target = canvas.offset + position / canvas.scale;
+      await _openMenu(tester, position);
+      await tester.runAsync(() async {
+        tester
+            .widget<MenuItemButton>(
+              find.ancestor(of: find.text('Paste'), matching: find.byType(MenuItemButton)),
+            )
+            .onPressed!();
+        canvas.updateScalebyDelta(0.5);
+        read.complete((
+          text: 'https://example.com/image.png',
+          image: image ? (bytes: onePixelPngBytes, extension: 'png') : null,
+        ));
+        await Future.doWhile(() async {
+          await Future<void>.delayed(const Duration(milliseconds: 10));
+          await tester.pump();
+          return store.persisted?.elements.length != 1;
+        }).timeout(const Duration(seconds: 5));
+      });
+      await tester.pumpAndSettle();
+      final model = tester.widget<MediaTool>(find.byType(MediaTool)).model;
+      expect((model.canvasPosition & model.canvasSize).center, target);
+      expect(model.selected, isTrue);
+      await pumpPastSave(tester);
+      expect(store.persisted!.elements, hasLength(1));
+      await _shortcut(tester, LogicalKeyboardKey.keyZ);
+      expect(canvas.childOrder, isEmpty);
+    });
+  }
+
+  for (final key in [
+    LogicalKeyboardKey.keyC,
+    LogicalKeyboardKey.keyX,
+    LogicalKeyboardKey.keyV,
+    LogicalKeyboardKey.delete,
+  ]) {
+    for (final platform in [TargetPlatform.linux, TargetPlatform.macOS]) {
+      testWidgets('$platform menu shortcut $key uses captured targets and position', (tester) async {
+        String? payload;
+        await pumpCanvas(
+          tester,
+          TestCanvasDocumentStore(_menuDocument),
+          platform: platform,
+          writeClipboardText: (text) async => payload = text,
+          readClipboard: () async => (text: encodeCanvasClipboard(_menuDocument.elements), image: null),
+        );
+        await _openMenu(tester, const Offset(310, 310));
+        for (final model in _models(tester)) {
+          model.selected = model.data.id == 'b';
+        }
+        if (key == LogicalKeyboardKey.delete) {
+          await tester.sendKeyEvent(platform == TargetPlatform.macOS ? LogicalKeyboardKey.backspace : key);
+        } else {
+          await _shortcut(tester, key, platform: platform);
+        }
+        await tester.pumpAndSettle();
+        expect(find.text('Arrange'), findsNothing);
+        if (key == LogicalKeyboardKey.keyC || key == LogicalKeyboardKey.keyX) {
+          expect(decodeCanvasClipboard(payload!)!.single.id, 'a');
+        }
+        if (key == LogicalKeyboardKey.keyX || key == LogicalKeyboardKey.delete) {
+          expect(_models(tester).single.data.id, 'b');
+        } else if (key == LogicalKeyboardKey.keyV) {
+          expect(_selectedBounds(tester).center, const Offset(310, 310));
+        } else {
+          expect(_models(tester), hasLength(2));
+        }
+      });
+    }
+  }
+
+  for (final cut in [false, true]) {
+    testWidgets('pending ${cut ? 'Cut' : 'Paste'} cannot affect a replacement document', (tester) async {
+      final read = Completer<CanvasClipboardSnapshot>();
+      final write = Completer<void>();
+      await pumpCanvas(
+        tester,
+        TestCanvasDocumentStore(_menuDocument),
+        readClipboard: () => read.future,
+        writeClipboardText: (_) => write.future,
+      );
+      await _openMenu(tester, const Offset(310, 310));
+      await tester.tap(find.text(cut ? 'Cut' : 'Paste'));
+      await tester.pump();
+      tester.widget<CanvasTitle>(find.byType(CanvasTitle)).onPressed!();
+      await tester.pumpAndSettle();
+      await tester.tap(find.byTooltip('New canvas'));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField), 'Fresh');
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await tester.pumpAndSettle();
+      tester.widget<CanvasTitle>(find.byType(CanvasTitle)).onPressed!();
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Untitled'));
+      await tester.pumpAndSettle();
+      read.complete((text: encodeCanvasClipboard(_menuDocument.elements), image: null));
+      write.complete();
+      await tester.pumpAndSettle();
+      expect(tester.widget<LazyCanvas>(find.byType(LazyCanvas)).controller.childOrder, ['a', 'b']);
+      expect(tester.takeException(), isNull);
+    });
+  }
+
   testWidgets('routes image clipboard content to media', (
     tester,
   ) async {
@@ -240,11 +493,22 @@ void main() {
 
 // ---------- Test helpers ----------
 
-Future<void> _shortcut(WidgetTester tester, LogicalKeyboardKey key) async {
-  await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+Future<void> _openMenu(WidgetTester tester, Offset position) async {
+  final click = await tester.startGesture(position, kind: PointerDeviceKind.mouse, buttons: kSecondaryButton);
+  await click.up();
+  await tester.pumpAndSettle();
+}
+
+Future<void> _shortcut(
+  WidgetTester tester,
+  LogicalKeyboardKey key, {
+  TargetPlatform platform = TargetPlatform.linux,
+}) async {
+  final modifier = platform == TargetPlatform.macOS ? LogicalKeyboardKey.metaLeft : LogicalKeyboardKey.controlLeft;
+  await tester.sendKeyDownEvent(modifier);
   await tester.sendKeyDownEvent(key);
   await tester.sendKeyUpEvent(key);
-  await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+  await tester.sendKeyUpEvent(modifier);
   await tester.pump();
 }
 
@@ -253,6 +517,8 @@ List<CanvasElementModel> _models(WidgetTester tester) => <CanvasElementModel>[
   ...tester.widgetList<CodeTool>(find.byType(CodeTool)).map((widget) => widget.model),
   ...tester.widgetList<PenStroke>(find.byType(PenStroke)).map((widget) => widget.model),
   ...tester.widgetList<Arrow>(find.byType(Arrow)).map((widget) => widget.model),
+  ...tester.widgetList<Shape>(find.byType(Shape)).map((widget) => widget.model),
+  ...tester.widgetList<MediaTool>(find.byType(MediaTool)).map((widget) => widget.model),
 ];
 
 void _expectOnlySelected(WidgetTester tester, Set<String> ids) {
@@ -263,10 +529,11 @@ void _expectOnlySelected(WidgetTester tester, Set<String> ids) {
 
 List<String> _types(Iterable<CanvasElementData> elements) => elements.map((element) => element.type).toList();
 
-Rect _selectedBounds(WidgetTester tester) => _models(tester)
-    .where((model) => model.selected)
-    .map((model) => model.canvasPosition & model.canvasSize)
-    .reduce((bounds, next) => bounds.expandToInclude(next));
+Rect _selectedBounds(WidgetTester tester) =>
+    _models(tester)
+        .where((model) => model.selected)
+        .map((model) => model.canvasPosition & model.canvasSize)
+        .reduce((bounds, next) => bounds.expandToInclude(next));
 
 void _expectShifted(
   CanvasElementData source,
@@ -351,4 +618,20 @@ final _document = CanvasDocument(
 const _emptyDocument = CanvasDocument(
   background: CanvasBackgroundKind.plain,
   elements: [],
+);
+
+final _menuDocument = CanvasDocument(
+  background: CanvasBackgroundKind.plain,
+  elements: [
+    for (final (id, x) in [('a', 300.0), ('b', 500.0)])
+      ShapeElementData(
+        id: id,
+        kind: ShapeKind.rectangle,
+        position: Offset(x, 300),
+        size: const Size(80, 80),
+        strokeColor: 0xff000000,
+        fillColor: 0xffffffff,
+        strokeWidth: 2,
+      ),
+  ],
 );

@@ -69,9 +69,9 @@ class ContextMenu extends StatelessWidget {
 
   ButtonStyle _itemStyle(BTheme theme, {required bool destructive}) {
     final colors = theme.colors;
-    final foreground = destructive ? colors.accentPressed : colors.textPrimary;
+    final foreground = destructive ? colors.destructive : colors.textPrimary;
     return MenuItemButton.styleFrom(
-      foregroundColor: foreground,
+      foregroundColor: colors.textMuted,
       disabledForegroundColor: colors.textMuted,
       iconColor: foreground,
       disabledIconColor: colors.textMuted,
@@ -99,6 +99,17 @@ class ContextMenu extends StatelessWidget {
   Widget _item(BuildContext context, ContextMenuAction action) {
     final theme = BTheme.of(context);
     final style = _itemStyle(theme, destructive: action.destructive);
+    final enabled = action.groups.isNotEmpty || action.onPressed != null;
+    final label = Text(
+      action.label,
+      style: TextStyle(
+        color: !enabled
+            ? theme.colors.textMuted
+            : action.destructive
+            ? theme.colors.destructive
+            : theme.colors.textPrimary,
+      ),
+    );
     final item = action.groups.isNotEmpty
         ? SubmenuButton(
             focusNode: action.focusNode,
@@ -106,7 +117,7 @@ class ContextMenu extends StatelessWidget {
             menuStyle: _menuStyle(theme),
             leadingIcon: Icon(action.icon, size: 16),
             menuChildren: _items(context, action.groups),
-            child: Text(action.label),
+            child: label,
           )
         : MenuItemButton(
             focusNode: action.focusNode,
@@ -114,7 +125,7 @@ class ContextMenu extends StatelessWidget {
             shortcut: action.shortcut,
             style: style,
             leadingIcon: Icon(action.icon, size: 16),
-            child: Text(action.label),
+            child: label,
           );
     return SizedBox(
       width: _menuWidth,

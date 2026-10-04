@@ -111,18 +111,33 @@ Widget colorPickerPreview() => const _ColorPickerPreview();
 Widget contextMenuPreview() => Builder(
   builder: (context) {
     final theme = BTheme.of(context);
+    final macOS = Theme.of(context).platform == TargetPlatform.macOS;
+    SingleActivator shortcut(LogicalKeyboardKey key) => SingleActivator(key, meta: macOS, control: !macOS);
     return _surface(
       ContextMenu(
         semanticLabel: 'Context menu preview',
         groups: [
           [
             ContextMenuAction(
-              label: 'Duplicate',
-              icon: Icons.copy_outlined,
-              shortcut: const SingleActivator(LogicalKeyboardKey.keyD, control: true),
+              label: 'Cut',
+              icon: Icons.content_cut,
+              shortcut: shortcut(LogicalKeyboardKey.keyX),
               onPressed: () {},
             ),
-            const ContextMenuAction(label: 'Unavailable', icon: Icons.block),
+            ContextMenuAction(
+              label: 'Copy',
+              icon: Icons.content_copy,
+              shortcut: shortcut(LogicalKeyboardKey.keyC),
+              onPressed: () {},
+            ),
+            ContextMenuAction(
+              label: 'Paste',
+              icon: Icons.content_paste,
+              shortcut: shortcut(LogicalKeyboardKey.keyV),
+              onPressed: () {},
+            ),
+          ],
+          [
             ContextMenuAction(
               label: 'Arrange',
               icon: Icons.layers_outlined,

@@ -111,10 +111,12 @@ class _CanvasPageState extends State<CanvasPage> {
   final _elements = <CanvasElementModel>[];
   final MenuController _contextMenuController = MenuController();
   final GlobalKey _contextMenuKey = GlobalKey();
-  final _arrangeFocusNode = FocusNode(debugLabel: 'Arrange');
+  final _contextMenuFocusNode = FocusNode(debugLabel: 'Canvas context menu');
   List<CanvasElementModel> _contextMenuTargets = const [];
-  ({int pointer, Offset start, CanvasElementModel model, double slop})? _secondaryClick;
+  ({int pointer, Offset start, CanvasElementModel? model, double slop})? _secondaryClick;
   (Offset, double)? _contextMenuView;
+  Offset? _contextMenuPosition;
+  int _documentGeneration = 0;
   final _geometryListeners = <CanvasElementModel, VoidCallback>{};
   CanvasElementModel? _activeElement;
   TextBlockModel? _editingTextBlock;
@@ -275,7 +277,7 @@ class _CanvasPageState extends State<CanvasPage> {
   @override
   void dispose() {
     _closeContextMenu();
-    _arrangeFocusNode.dispose();
+    _contextMenuFocusNode.dispose();
     _canvasController.removeListener(_closeContextMenuOnNavigation);
     _saveTimer?.cancel();
     _saveTimer = null;
@@ -475,6 +477,12 @@ class _CanvasPageState extends State<CanvasPage> {
     if (event.kind == PointerDeviceKind.mouse &&
         event.buttons == kSecondaryButton &&
         _activeTool.value == _CanvasTool.select) {
+      _secondaryClick ??= (
+        pointer: event.pointer,
+        start: event.position,
+        model: null,
+        slop: _secondaryPanSlop,
+      );
       _canvasController.stopAnimation();
       _pointerPan = (
         pointer: event.pointer,
@@ -615,7 +623,7 @@ class _CanvasPageState extends State<CanvasPage> {
     if (_secondaryClick case final click? when click.pointer == event.pointer) {
       _secondaryClick = null;
       if (_canHandleCanvasPointer(event) && (event.position - click.start).distance <= click.slop) {
-        _openObjectContextMenu(click.model, event.position);
+        _openCanvasContextMenu(click.model, event.position);
       }
     }
     _releaseCanvasPointer(event.pointer);
@@ -935,25 +943,28 @@ class _CanvasPageState extends State<CanvasPage> {
     );
   }
 
-  void _openObjectContextMenu(CanvasElementModel model, Offset position) {
-    if (!_elements.contains(model) || _activeTool.value != _CanvasTool.select) return;
-    if (!model.selected) _setSelection({model});
-    _contextMenuTargets = _selectedInStackingOrder;
+  void _openCanvasContextMenu(CanvasElementModel? model, Offset position) {
+    if ((model != null && !_elements.contains(model)) || _activeTool.value != _CanvasTool.select) return;
+    if (model != null && !model.selected) _setSelection({model});
+    _contextMenuTargets = model == null ? const [] : _selectedInStackingOrder;
+    final box = _contextMenuKey.currentContext!.findRenderObject()! as RenderBox;
+    _contextMenuPosition = _screenToCanvas(box.globalToLocal(position));
     _clearElementEditing();
     _contextMenuView = (_canvasController.offset, _canvasController.scale);
     // Build the captured targets before opening; editor release callbacks finish first.
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted || _contextMenuTargets.isEmpty) return;
+      if (!mounted || _contextMenuPosition == null) return;
       final box = _contextMenuKey.currentContext!.findRenderObject()! as RenderBox;
       _contextMenuController.open(position: box.globalToLocal(position));
-      _arrangeFocusNode.requestFocus();
+      _contextMenuFocusNode.requestFocus();
     });
   }
 
   void _contextMenuClosed() {
     _contextMenuTargets = const [];
     _contextMenuView = null;
-    _arrangeFocusNode.unfocus();
+    _contextMenuPosition = null;
+    _contextMenuFocusNode.unfocus();
   }
 
   void _closeContextMenu() {
@@ -1002,39 +1013,92 @@ class _CanvasPageState extends State<CanvasPage> {
     setState(() {});
   }
 
+  bool get _canCopyDirectly => widget.writeClipboardText != null || SystemClipboard.instance != null;
+
+  bool get _canPasteDirectly => widget.readClipboard != null || SystemClipboard.instance != null;
+
+  void _dispatchContextMenuAction(VoidCallback action) {
+    _closeContextMenu();
+    action();
+  }
+
   List<List<ContextMenuAction>> _objectContextMenuActions() {
     final targets = _contextMenuTargets;
+    final position = _contextMenuPosition;
     final macOS = Theme.of(context).platform == TargetPlatform.macOS;
-    ContextMenuAction action(CanvasArrange action, String label, IconData icon) => ContextMenuAction(
+    SingleActivator shortcut(LogicalKeyboardKey key, {bool shift = false}) =>
+        SingleActivator(key, meta: macOS, control: !macOS, shift: shift);
+    ContextMenuAction arrange(CanvasArrange action, String label, IconData icon) => ContextMenuAction(
       label: label,
       icon: icon,
-      onPressed: _canArrange(action, targets) ? () => _arrange(action, targets) : null,
-      shortcut: SingleActivator(
+      onPressed: _canArrange(action, targets)
+          ? () => _dispatchContextMenuAction(() => _arrange(action, targets))
+          : null,
+      shortcut: shortcut(
         action == CanvasArrange.forward || action == CanvasArrange.front
             ? LogicalKeyboardKey.bracketRight
             : LogicalKeyboardKey.bracketLeft,
-        meta: macOS,
-        control: !macOS,
         shift: action == CanvasArrange.front || action == CanvasArrange.back,
       ),
     );
     return [
       [
+        if (targets.isNotEmpty) ...[
+          ContextMenuAction(
+            label: 'Cut',
+            icon: LucideIcons.scissors,
+            shortcut: shortcut(LogicalKeyboardKey.keyX),
+            focusNode: _canCopyDirectly ? _contextMenuFocusNode : null,
+            onPressed: _canCopyDirectly
+                ? () => _dispatchContextMenuAction(() => unawaited(_copySelection(null, cut: true, targets: targets)))
+                : null,
+          ),
+          ContextMenuAction(
+            label: 'Copy',
+            icon: LucideIcons.copy,
+            shortcut: shortcut(LogicalKeyboardKey.keyC),
+            onPressed: _canCopyDirectly
+                ? () => _dispatchContextMenuAction(() => unawaited(_copySelection(null, targets: targets)))
+                : null,
+          ),
+        ],
         ContextMenuAction(
-          label: 'Arrange',
-          icon: LucideIcons.layers,
-          focusNode: _arrangeFocusNode,
-          groups: [
-            [
-              action(CanvasArrange.forward, 'Bring Forward', LucideIcons.arrowUp),
-              action(CanvasArrange.backward, 'Send Backward', LucideIcons.arrowDown),
-            ],
-            [
-              action(CanvasArrange.front, 'Bring to Front', LucideIcons.bringToFront),
-              action(CanvasArrange.back, 'Send to Back', LucideIcons.sendToBack),
-            ],
-          ],
+          label: 'Paste',
+          icon: LucideIcons.clipboardPaste,
+          shortcut: shortcut(LogicalKeyboardKey.keyV),
+          focusNode: (targets.isEmpty || !_canCopyDirectly) && _canPasteDirectly ? _contextMenuFocusNode : null,
+          onPressed: _canPasteDirectly
+              ? () => _dispatchContextMenuAction(() => unawaited(_pasteSelection(null, position: position)))
+              : null,
         ),
+      ],
+      if (targets.isNotEmpty) ...[
+        [
+          ContextMenuAction(
+            label: 'Arrange',
+            icon: LucideIcons.layers,
+            focusNode: !_canCopyDirectly && !_canPasteDirectly ? _contextMenuFocusNode : null,
+            groups: [
+              [
+                arrange(CanvasArrange.forward, 'Bring Forward', LucideIcons.arrowUp),
+                arrange(CanvasArrange.backward, 'Send Backward', LucideIcons.arrowDown),
+              ],
+              [
+                arrange(CanvasArrange.front, 'Bring to Front', LucideIcons.bringToFront),
+                arrange(CanvasArrange.back, 'Send to Back', LucideIcons.sendToBack),
+              ],
+            ],
+          ),
+        ],
+        [
+          ContextMenuAction(
+            label: 'Delete',
+            icon: LucideIcons.trash2,
+            destructive: true,
+            shortcut: SingleActivator(macOS ? LogicalKeyboardKey.backspace : LogicalKeyboardKey.delete),
+            onPressed: () => _dispatchContextMenuAction(() => _removeElements(targets)),
+          ),
+        ],
       ],
     ];
   }
@@ -1502,22 +1566,35 @@ class _CanvasPageState extends State<CanvasPage> {
 
   List<CanvasElementModel> get _selectedInStackingOrder => _elements.where((model) => model.selected).toList();
 
-  void _handleWebCopy(ClipboardWriteEvent event) => unawaited(_copySelection(event));
+  void _handleWebCopy(ClipboardWriteEvent event) => _handleWebWrite(event, cut: false);
 
-  void _handleWebCut(ClipboardWriteEvent event) => unawaited(_copySelection(event, cut: true));
+  void _handleWebCut(ClipboardWriteEvent event) => _handleWebWrite(event, cut: true);
+
+  void _handleWebWrite(ClipboardWriteEvent event, {required bool cut}) {
+    final targets = _contextMenuController.isOpen ? _contextMenuTargets : null;
+    if (targets != null) _closeContextMenu();
+    unawaited(_copySelection(event, cut: cut, targets: targets));
+  }
 
   void _handleWebPaste(ClipboardReadEvent event) {
-    if (!_documentLoaded || _filePickerOpen || _contextMenuController.isOpen || _editingElement) return;
-    unawaited(_pasteSelection(event.getClipboardReader()));
+    if (!_documentLoaded || _filePickerOpen || _editingElement) return;
+    final position = _contextMenuPosition;
+    _closeContextMenu();
+    unawaited(_pasteSelection(event.getClipboardReader(), position: position));
   }
 
   Future<void> _copySelection(
     ClipboardWriter? writer, {
     bool cut = false,
+    List<CanvasElementModel>? targets,
   }) async {
-    if (!_documentLoaded || _filePickerOpen || _contextMenuController.isOpen || _editingElement) return;
-    final selected = _selectedInStackingOrder;
-    final documentId = _documentStore.library.currentId;
+    if (!_documentLoaded ||
+        _filePickerOpen ||
+        (targets == null && (_contextMenuController.isOpen || _editingElement))) {
+      return;
+    }
+    final selected = targets ?? _selectedInStackingOrder;
+    final generation = _documentGeneration;
     if (selected.isEmpty) return;
     final payload = encodeCanvasClipboard(
       selected.map((model) => model.data.copy()),
@@ -1532,12 +1609,12 @@ class _CanvasPageState extends State<CanvasPage> {
         final item = DataWriterItem()..add(Formats.plainText(payload));
         await clipboard.write([item]);
       }
-      if (!mounted) return;
+      if (!mounted || _documentGeneration != generation) return;
       _lastPastedPayload = null;
       _pasteOffset = Offset.zero;
       _cutPayload = cut ? payload : null;
       _pointerReference = (payload, _canvasPointerPosition.value);
-      if (cut && mounted && !_filePickerOpen && _documentStore.library.currentId == documentId) {
+      if (cut && !_filePickerOpen) {
         _removeElements(selected);
       }
     } on Object {
@@ -1547,44 +1624,51 @@ class _CanvasPageState extends State<CanvasPage> {
     }
   }
 
-  Future<void> _pasteSelection(Future<ClipboardReader>? readerFuture) async {
-    final documentId = _documentStore.library.currentId;
+  Future<void> _pasteSelection(Future<ClipboardReader>? readerFuture, {Offset? position}) async {
+    final generation = _documentGeneration;
+    final pointer = _canvasPointerPosition.value;
+    final scale = _canvasController.scale;
+    final pointerPosition = pointer == null ? null : _screenToCanvas(pointer);
+    final mediaPosition =
+        position ?? pointerPosition ?? _screenToCanvas(_canvasController.canvasSize.center(Offset.zero));
     try {
       final read = widget.readClipboard;
       late final CanvasClipboardSnapshot clipboard;
       try {
-        clipboard = read != null ? await read() : await readCanvasClipboard(await readerFuture!);
+        clipboard = read != null
+            ? await read()
+            : await readCanvasClipboard(await (readerFuture ?? SystemClipboard.instance!.read()));
       } on FormatException {
         return;
       }
-      if (!mounted || !_documentLoaded || _filePickerOpen || _documentStore.library.currentId != documentId) return;
+      if (!mounted || !_documentLoaded || _filePickerOpen || _documentGeneration != generation) return;
       final text = clipboard.text;
       final elements = text == null ? null : decodeCanvasClipboard(text);
       if (elements == null) {
         if (clipboard.image case final image?) {
-          await _pasteImage(image);
+          await _pasteImage(image, mediaPosition, generation);
         } else if (text?.trim() case final url? when isSupportedMediaUrl(url)) {
-          _pasteMediaUrl(url);
+          _pasteMediaUrl(url, mediaPosition);
         }
         return;
       }
       if (!mounted || !_documentLoaded) return;
       final payload = text!;
 
-      final pointer = _canvasPointerPosition.value;
-      final placeAtPointer = pointer != null && (payload, pointer) != _pointerReference;
+      final placeAtPointer = position != null || (pointer != null && (payload, pointer) != _pointerReference);
       final pasted = [
         for (final element in elements) _createElementModel(element.copy(id: const Uuid().v4())),
       ];
+      _finishHistoryOperation();
       if (placeAtPointer) {
         final bounds = pasted
             .map((model) => model.canvasPosition & model.canvasSize)
             .reduce((bounds, next) => bounds.expandToInclude(next));
-        _pasteOffset = _canvasController.offset + pointer / _canvasController.scale - bounds.center;
+        _pasteOffset = (position ?? pointerPosition!) - bounds.center;
       } else if (_lastPastedPayload != payload) {
-        _pasteOffset = payload == _cutPayload ? Offset.zero : const Offset(24, 24) / _canvasController.scale;
+        _pasteOffset = payload == _cutPayload ? Offset.zero : const Offset(24, 24) / scale;
       } else {
-        _pasteOffset += const Offset(24, 24) / _canvasController.scale;
+        _pasteOffset += const Offset(24, 24) / scale;
       }
       _lastPastedPayload = payload;
       _pointerReference = (payload, pointer);
@@ -1602,8 +1686,7 @@ class _CanvasPageState extends State<CanvasPage> {
     }
   }
 
-  Future<void> _pasteImage(ClipboardImage image) async {
-    final documentId = _documentStore.library.currentId;
+  Future<void> _pasteImage(ClipboardImage image, Offset position, int generation) async {
     final model = _newMediaModel('');
     try {
       await model.setDeviceImage(image.bytes, image.extension);
@@ -1614,16 +1697,16 @@ class _CanvasPageState extends State<CanvasPage> {
       model.dispose();
       rethrow;
     }
-    if (!mounted || !_documentLoaded || _filePickerOpen || _documentStore.library.currentId != documentId) {
+    if (!mounted || !_documentLoaded || _filePickerOpen || _documentGeneration != generation) {
       model.dispose();
       return;
     }
-    _placePastedMedia(model);
+    _placePastedMedia(model, position);
   }
 
-  void _pasteMediaUrl(String url) {
+  void _pasteMediaUrl(String url, Offset position) {
     if (!mounted || !_documentLoaded) return;
-    _placePastedMedia(_newMediaModel(url));
+    _placePastedMedia(_newMediaModel(url), position);
   }
 
   MediaModel _newMediaModel(String url) => MediaModel(
@@ -1636,10 +1719,9 @@ class _CanvasPageState extends State<CanvasPage> {
     _attachmentStore,
   );
 
-  void _placePastedMedia(MediaModel model) {
-    final screenPosition = _canvasPointerPosition.value ?? _canvasController.canvasSize.center(Offset.zero);
-    final center = _screenToCanvas(screenPosition);
-    model.data.position = center - model.canvasSize.center(Offset.zero);
+  void _placePastedMedia(MediaModel model, Offset position) {
+    _finishHistoryOperation();
+    model.data.position = position - model.canvasSize.center(Offset.zero);
     _clearTextEditing();
     _setActiveElement(null);
     _clearSelection();
@@ -1673,6 +1755,7 @@ class _CanvasPageState extends State<CanvasPage> {
     if (!_documentLoaded) return;
     final modelsToDispose = models.where(_elements.contains).toList();
     if (modelsToDispose.isEmpty) return;
+    if (finishHistory) _finishHistoryOperation();
     if (modelsToDispose.any(_contextMenuTargets.contains)) _closeContextMenu();
 
     final removesEditingElement = modelsToDispose.any(
@@ -1982,6 +2065,7 @@ class _CanvasPageState extends State<CanvasPage> {
   }
 
   void _replaceLiveModels(CanvasDocument document) {
+    _documentGeneration++;
     _closeContextMenu();
     final oldElements = List<CanvasElementModel>.of(_elements);
     _clearTextEditing();
@@ -2079,7 +2163,9 @@ class _CanvasPageState extends State<CanvasPage> {
       };
       if (action != null) {
         final targets = _arrangeTargets;
-        if (!_contextMenuController.isOpen) {
+        if (_contextMenuController.isOpen) {
+          _closeContextMenu();
+        } else {
           if (_selectedInStackingOrder.isEmpty) _setSelection(targets.toSet());
           _clearElementEditing();
         }
@@ -2088,6 +2174,32 @@ class _CanvasPageState extends State<CanvasPage> {
       }
     }
     if (_contextMenuController.isOpen) {
+      if (event is KeyDownEvent && arrangeModifier && !keyboard.isAltPressed && !keyboard.isShiftPressed) {
+        final key = event.logicalKey;
+        if (key == LogicalKeyboardKey.keyC || key == LogicalKeyboardKey.keyX || key == LogicalKeyboardKey.keyV) {
+          // Browser clipboard events retain the native shortcut's clipboard access.
+          if (_clipboardEvents != null) return false;
+          final targets = _contextMenuTargets;
+          final position = _contextMenuPosition;
+          if (key == LogicalKeyboardKey.keyV) {
+            if (_canPasteDirectly) {
+              _dispatchContextMenuAction(() => unawaited(_pasteSelection(null, position: position)));
+            }
+          } else if (targets.isNotEmpty && _canCopyDirectly) {
+            _dispatchContextMenuAction(
+              () => unawaited(_copySelection(null, targets: targets, cut: key == LogicalKeyboardKey.keyX)),
+            );
+          }
+          return true;
+        }
+      }
+      if (unmodifiedKeyDown &&
+          (event.logicalKey == LogicalKeyboardKey.delete ||
+              (macOS && event.logicalKey == LogicalKeyboardKey.backspace))) {
+        final targets = _contextMenuTargets;
+        _dispatchContextMenuAction(() => _removeElements(targets));
+        return true;
+      }
       if (unmodifiedKeyDown && event.logicalKey == LogicalKeyboardKey.escape) _closeContextMenu();
       return false;
     }
@@ -2123,13 +2235,7 @@ class _CanvasPageState extends State<CanvasPage> {
         return true;
       }
       if (event.logicalKey == LogicalKeyboardKey.keyV) {
-        final read = widget.readClipboard;
-        final clipboard = SystemClipboard.instance;
-        if (read == null && clipboard == null) {
-          _showProjectSnackBar('Could not paste canvas elements');
-          return true;
-        }
-        unawaited(_pasteSelection(read != null ? null : clipboard!.read()));
+        unawaited(_pasteSelection(null));
         return true;
       }
     }
