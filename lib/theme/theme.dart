@@ -148,6 +148,8 @@ class BGeo {
     required this.radiusLarge,
     required this.elevationLow,
     required this.elevationMedium,
+    required this.glassBlurSigma,
+    required this.glassShadow,
   });
 
   final BorderRadius radiusSmall;
@@ -155,6 +157,8 @@ class BGeo {
   final BorderRadius radiusLarge;
   final double elevationLow;
   final double elevationMedium;
+  final double glassBlurSigma;
+  final BoxShadow glassShadow;
 
   // ---------- Interpolation ----------
 
@@ -166,6 +170,8 @@ class BGeo {
       radiusLarge: BorderRadius.lerp(radiusLarge, other.radiusLarge, t)!,
       elevationLow: elevationLow + (other.elevationLow - elevationLow) * t,
       elevationMedium: elevationMedium + (other.elevationMedium - elevationMedium) * t,
+      glassBlurSigma: glassBlurSigma + (other.glassBlurSigma - glassBlurSigma) * t,
+      glassShadow: BoxShadow.lerp(glassShadow, other.glassShadow, t)!,
     );
   }
 }

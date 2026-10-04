@@ -67,6 +67,8 @@ const _starlessGeo = BGeo(
   radiusLarge: BorderRadius.all(Radius.circular(10)),
   elevationLow: 4,
   elevationMedium: 8,
+  glassBlurSigma: 16,
+  glassShadow: BoxShadow(blurRadius: 16, offset: Offset(0, 4)),
 );
 
 // ---------- Typography ----------

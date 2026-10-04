@@ -32,7 +32,7 @@ Shapes follow the same state separation: clicking or creating a shape makes it a
 - Clicking the read-only code surface or title activates the block and makes its source and title editable.
 - Dragging the inactive surface or title moves the block without activating it or leaving a code selection behind.
 - The active state exposes the editable source and title, language picker, resize handle, and move, rotate, and delete controls.
-- The options panel controls line-number visibility.
+- The options panel controls line-number visibility and background. The Background dropdown offers Transparent, Card, and Glass; new code blocks use Card. The choice applies to the body, title, and line-number area. Transparent removes fills, shadows, and inactive borders while retaining editing borders and selection highlighting. Glass blurs the canvas behind the rounded body and visible title, with a translucent surface, fine border, and soft shadow in inactive and active states. Selected Glass retains its blur and translucency with an accent tint and outline. Each background change affects only the active block and is one undoable operation.
 - Moving or rotating through the floating controls keeps the block active and editable.
 - Clicking away or pressing Escape returns the block to its read-only preview. An empty title is hidden while inactive. The title belongs to the block's layout and stacking layer; its strip remains reserved when hidden without changing the body's position, dimensions, or rotation pivot.
 

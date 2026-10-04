@@ -51,9 +51,9 @@ enum ShapeKind {
 /// Used by arrow tools, models, and document serialization.
 enum ArrowStrokeStyle { solid, dashed }
 
-/// Identifies the background treatment of a text element.
-/// Used by text settings, rendering, and document serialization.
-enum TextBackgroundKind { transparent, card, glass }
+/// Identifies the background treatment of text and code blocks.
+/// Used by block settings, rendering, and document serialization.
+enum BlockBackgroundKind { transparent, card, glass }
 
 // ---------- Document models ----------
 
@@ -292,7 +292,7 @@ class TextNodeStyle {
   const TextNodeStyle({
     required this.fontFamily,
     required this.color,
-    this.background = TextBackgroundKind.card,
+    this.background = BlockBackgroundKind.card,
   });
 
   const TextNodeStyle._json({
@@ -316,14 +316,14 @@ class TextNodeStyle {
 
   final String fontFamily;
   final String color;
-  final TextBackgroundKind background;
+  final BlockBackgroundKind background;
 
   // ---------- Copying ----------
 
   TextNodeStyle copyWith({
     String? fontFamily,
     String? color,
-    TextBackgroundKind? background,
+    BlockBackgroundKind? background,
   }) {
     return TextNodeStyle(
       fontFamily: fontFamily ?? this.fontFamily,
@@ -427,6 +427,7 @@ class CodeElementData extends CanvasElementData {
     required this.source,
     required this.title,
     required this.showLineNumbers,
+    this.background = BlockBackgroundKind.card,
     this.rotation = 0,
   }) : super(id, 'code');
 
@@ -439,6 +440,7 @@ class CodeElementData extends CanvasElementData {
     required this.source,
     required this.title,
     required this.showLineNumbers,
+    required this.background,
     required this.rotation,
   }) : super(id, type);
 
@@ -461,6 +463,8 @@ class CodeElementData extends CanvasElementData {
   String source;
   String title;
   bool showLineNumbers;
+  @JsonKey(defaultValue: BlockBackgroundKind.card)
+  BlockBackgroundKind background;
   @JsonKey(defaultValue: 0.0)
   double rotation;
 
@@ -480,6 +484,7 @@ class CodeElementData extends CanvasElementData {
     source: source,
     title: title,
     showLineNumbers: showLineNumbers,
+    background: background,
     rotation: rotation,
   );
 }

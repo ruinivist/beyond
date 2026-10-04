@@ -74,13 +74,13 @@ class TextToolSettings extends StatelessWidget {
             const SizedBox(height: 10),
             Text('Background', style: theme.typo.label),
             const SizedBox(height: 6),
-            Select<TextBackgroundKind>(
+            Select<BlockBackgroundKind>(
               key: const ValueKey('text-background-select'),
               value: style.background,
               options: const [
-                SelectOption(value: TextBackgroundKind.transparent, label: 'Transparent'),
-                SelectOption(value: TextBackgroundKind.card, label: 'Card'),
-                SelectOption(value: TextBackgroundKind.glass, label: 'Glass'),
+                SelectOption(value: BlockBackgroundKind.transparent, label: 'Transparent'),
+                SelectOption(value: BlockBackgroundKind.card, label: 'Card'),
+                SelectOption(value: BlockBackgroundKind.glass, label: 'Glass'),
               ],
               onChanged: (background) {
                 onChangeBoundary();

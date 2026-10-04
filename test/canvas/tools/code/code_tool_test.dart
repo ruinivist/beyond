@@ -1,5 +1,5 @@
-// Verifies inactive code blocks distinguish caret clicks from movement drags.
-// Exercises CodeTool directly without the canvas persistence boundary.
+// Verifies code block backgrounds and distinguishes clicks from movement drags.
+// Exercises CodeTool rendering and editing without the persistence boundary.
 
 import 'package:elseplane/canvas/document/canvas_document.dart';
 import 'package:elseplane/canvas/tools/code/code_tool.dart';
@@ -30,95 +30,210 @@ void main() {
 
     model.language = CodeLanguage.python;
     expect((rebuilds, documentChanges), (1, 2));
+
+    model.background = BlockBackgroundKind.glass;
+    expect((rebuilds, documentChanges), (2, 3));
+    model.background = BlockBackgroundKind.glass;
+    expect((rebuilds, documentChanges), (2, 3));
   });
 
-  testWidgets('inactive code distinguishes editing clicks from drags', (
-    tester,
-  ) async {
-    final model = _codeModel(source: 'first line\nsecond line');
-    addTearDown(model.dispose);
-    var movement = Offset.zero;
-    await tester.pumpWidget(
-      MaterialApp(
-        theme: starlessLightThemeData,
-        home: Scaffold(
-          body: Align(
-            alignment: Alignment.topLeft,
-            child: CodeTool(
-              model: model,
-              onEdit: () {
-                model.active = true;
-                WidgetsBinding.instance.addPostFrameCallback((_) {
-                  if (!model.active) return;
-                  model.focusNode.unfocus();
-                  FocusManager.instance.applyFocusChangesIfNeeded();
-                  model.focusNode.requestFocus();
-                });
-              },
-              onMove: (delta) => movement += delta,
-              onResize: (_) {},
-              onChangeBoundary: () {},
+  testWidgets('backgrounds cover body, title, and line numbers in every interaction state', (tester) async {
+    for (final theme in [starlessLightThemeData, starlessDarkThemeData]) {
+      final model = _codeModel(source: 'void main() {}')
+        ..title = 'main.dart'
+        ..showLineNumbers = true;
+      addTearDown(model.dispose);
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: theme,
+          home: Scaffold(
+            body: Align(
+              alignment: Alignment.topLeft,
+              child: CodeTool(
+                model: model,
+                onEdit: () => model.active = true,
+                onMove: model.moveBy,
+                onResize: (_) {},
+                onChangeBoundary: () {},
+              ),
             ),
           ),
         ),
-      ),
-    );
-    await tester.pump();
-    model.controller.selection = const CodeLineSelection.collapsed(
-      index: 1,
-      offset: 11,
-    );
+      );
+      await tester.pumpAndSettle();
+      final block = find.byType(CodeTool);
+      final surface = find.byKey(const ValueKey('code-block-surface'));
+      final originalBounds = tester.getRect(surface);
 
-    final surface = tester.getRect(
-      find.byKey(const ValueKey('code-block-surface')),
-    );
-    await tester.tapAt(surface.topLeft + const Offset(40, 20));
-    await tester.pump();
-    await tester.pump();
+      Material body() => tester.widget<Material>(surface);
+      BoxDecoration titleDecoration() =>
+          tester
+                  .widget<Container>(
+                    find.byKey(ValueKey(model.active ? 'code-title-input-tab' : 'code-title-tab')),
+                  )
+                  .decoration!
+              as BoxDecoration;
+      BorderSide bodyBorder() => (body().shape! as RoundedRectangleBorder).side;
 
-    expect(model.active, isTrue);
-    expect(model.focusNode.hasFocus, isTrue);
-    expect(
-      model.controller.selection,
-      const CodeLineSelection.collapsed(index: 0, offset: 2),
-    );
+      for (final background in BlockBackgroundKind.values) {
+        model
+          ..background = background
+          ..active = false
+          ..selected = false;
+        await tester.pumpAndSettle();
+        final previewColor = body().color;
+        for (final (active, selected) in [(false, false), (true, false), (false, true), (true, true)]) {
+          model
+            ..active = active
+            ..selected = selected;
+          await tester.pumpAndSettle();
+          final editor = tester.widget<CodeEditor>(find.byType(CodeEditor));
+          final gutter = tester.widget<ColoredBox>(find.byKey(const ValueKey('code-line-numbers')));
+          final title = titleDecoration();
+          final filters = find.descendant(of: block, matching: find.byType(BackdropFilter));
+          expect(tester.getRect(surface), originalBounds);
+          expect(editor.readOnly, !active);
+          expect(editor.style!.backgroundColor!.a, 0);
+          expect(model.controller.text, 'void main() {}');
+          expect(model.title, 'main.dart');
 
-    final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
-    await mouse.addPointer(location: surface.center);
-    expect(
-      RendererBinding.instance.mouseTracker.debugDeviceActiveCursor(1),
-      SystemMouseCursors.text,
-    );
-
-    model
-      ..active = false
-      ..focusNode.unfocus();
-    await tester.pump();
-    expect(
-      RendererBinding.instance.mouseTracker.debugDeviceActiveCursor(1),
-      SystemMouseCursors.basic,
-    );
-    await mouse.removePointer();
-
-    const delta = Offset(80, 60);
-    final drag = await tester.startGesture(
-      surface.topLeft + const Offset(40, 20),
-      kind: PointerDeviceKind.mouse,
-    );
-    await drag.moveBy(delta / 2);
-    await tester.pump();
-    expect(model.controller.selection.isCollapsed, isTrue);
-    await drag.moveBy(delta / 2);
-    await tester.pump();
-    expect(model.controller.selection.isCollapsed, isTrue);
-    await drag.up();
-    await tester.pump();
-
-    expect(movement, delta);
-    expect(model.active, isFalse);
-    expect(model.focusNode.hasFocus, isFalse);
-    await tester.pump(const Duration(milliseconds: 600));
+          if (background == BlockBackgroundKind.card) {
+            expect(body().color!.a, 1);
+            expect(title.color!.a, 1);
+            expect(gutter.color.a, 1);
+            expect(body().elevation, greaterThan(0));
+          } else {
+            expect(gutter.color.a, 0);
+            expect(body().elevation, 0);
+          }
+          if (background == BlockBackgroundKind.transparent && !selected) {
+            expect(body().type, MaterialType.transparency);
+            expect(body().color, isNull);
+            expect(title.color!.a, 0);
+          }
+          if (background == BlockBackgroundKind.transparent && !active && !selected) {
+            expect(bodyBorder(), BorderSide.none);
+            expect((title.border! as Border).top, BorderSide.none);
+          } else {
+            expect(bodyBorder(), isNot(BorderSide.none));
+            expect((title.border! as Border).top, isNot(BorderSide.none));
+          }
+          if (background == BlockBackgroundKind.glass) {
+            expect(filters, findsNWidgets(2));
+            expect(body().color!.a, inExclusiveRange(0, 1));
+            expect(title.color!.a, inExclusiveRange(0, 1));
+            for (final filter in filters.evaluate()) {
+              final finder = find.byWidget(filter.widget);
+              final clip = find.ancestor(of: finder, matching: find.byType(ClipRRect)).first;
+              expect(tester.getSize(clip), tester.getSize(finder));
+              expect((filter.widget as BackdropFilter).backdropGroupKey, isNull);
+            }
+            if (selected) expect(body().color, isNot(previewColor));
+          } else {
+            expect(filters, findsNothing);
+          }
+        }
+      }
+      model
+        ..active = false
+        ..title = '';
+      await tester.pumpAndSettle();
+      expect(find.descendant(of: block, matching: find.byType(BackdropFilter)), findsOneWidget);
+      expect(tester.getRect(surface), originalBounds);
+      await tester.pumpWidget(const SizedBox());
+      await tester.pumpAndSettle();
+    }
   });
+
+  for (final background in BlockBackgroundKind.values) {
+    testWidgets('inactive ${background.name} code distinguishes editing clicks from drags', (
+      tester,
+    ) async {
+      final model = _codeModel(source: 'first line\nsecond line')..background = background;
+      addTearDown(model.dispose);
+      var movement = Offset.zero;
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: starlessLightThemeData,
+          home: Scaffold(
+            body: Align(
+              alignment: Alignment.topLeft,
+              child: CodeTool(
+                model: model,
+                onEdit: () {
+                  model.active = true;
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    if (!model.active) return;
+                    model.focusNode.unfocus();
+                    FocusManager.instance.applyFocusChangesIfNeeded();
+                    model.focusNode.requestFocus();
+                  });
+                },
+                onMove: (delta) => movement += delta,
+                onResize: (_) {},
+                onChangeBoundary: () {},
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+      model.controller.selection = const CodeLineSelection.collapsed(
+        index: 1,
+        offset: 11,
+      );
+
+      final surface = tester.getRect(
+        find.byKey(const ValueKey('code-block-surface')),
+      );
+      await tester.tapAt(surface.topLeft + const Offset(40, 20));
+      await tester.pump();
+      await tester.pump();
+
+      expect(model.active, isTrue);
+      expect(model.focusNode.hasFocus, isTrue);
+      expect(
+        model.controller.selection,
+        const CodeLineSelection.collapsed(index: 0, offset: 2),
+      );
+
+      final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
+      await mouse.addPointer(location: surface.center);
+      expect(
+        RendererBinding.instance.mouseTracker.debugDeviceActiveCursor(1),
+        SystemMouseCursors.text,
+      );
+
+      model
+        ..active = false
+        ..focusNode.unfocus();
+      await tester.pump();
+      expect(
+        RendererBinding.instance.mouseTracker.debugDeviceActiveCursor(1),
+        SystemMouseCursors.basic,
+      );
+      await mouse.removePointer();
+
+      const delta = Offset(80, 60);
+      final drag = await tester.startGesture(
+        surface.topLeft + const Offset(40, 20),
+        kind: PointerDeviceKind.mouse,
+      );
+      await drag.moveBy(delta / 2);
+      await tester.pump();
+      expect(model.controller.selection.isCollapsed, isTrue);
+      await drag.moveBy(delta / 2);
+      await tester.pump();
+      expect(model.controller.selection.isCollapsed, isTrue);
+      await drag.up();
+      await tester.pump();
+
+      expect(movement, delta);
+      expect(model.active, isFalse);
+      expect(model.focusNode.hasFocus, isFalse);
+      await tester.pump(const Duration(milliseconds: 600));
+    });
+  }
 }
 
 CodeBlockModel _codeModel({String source = ''}) => CodeBlockModel(

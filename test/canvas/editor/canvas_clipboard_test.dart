@@ -58,7 +58,7 @@ void main() {
 
   test('clipboard preserves text backgrounds and rejects the previous version', () {
     final text = _document.elements.whereType<TextElementData>().first.copy();
-    for (final background in TextBackgroundKind.values) {
+    for (final background in BlockBackgroundKind.values) {
       text.style = text.style.copyWith(background: background);
       final payload = encodeCanvasClipboard([text]);
       final restored = decodeCanvasClipboard(payload)!.single as TextElementData;
@@ -566,6 +566,7 @@ void _expectShifted(
       expect(result.language, source.language);
       expect(result.title, source.title);
       expect(result.showLineNumbers, source.showLineNumbers);
+      expect(result.background, source.background);
     case (final PenElementData source, final PenElementData result):
       expect(result.position, source.position + delta);
       expect(result.toJson()['points'], source.toJson()['points']);
@@ -607,6 +608,7 @@ final _document = CanvasDocument(
       source: 'void main() {}',
       title: 'main.dart',
       showLineNumbers: true,
+      background: BlockBackgroundKind.glass,
     ),
     PenElementData(
       id: 'pen',

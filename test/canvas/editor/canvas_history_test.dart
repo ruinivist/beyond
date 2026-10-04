@@ -3,6 +3,7 @@
 
 import 'package:elseplane/canvas/document/canvas_document.dart';
 import 'package:elseplane/canvas/editor/canvas_background.dart';
+import 'package:elseplane/canvas/tools/code/code_tool.dart';
 import 'package:elseplane/canvas/tools/pen/pen_tool.dart';
 import 'package:elseplane/canvas/tools/text/text_tool.dart';
 import 'package:flutter/material.dart';
@@ -130,7 +131,7 @@ void main() {
       await tester.pumpAndSettle();
     }
 
-    Future<void> expectPersisted(TextBackgroundKind background) async {
+    Future<void> expectPersisted(BlockBackgroundKind background) async {
       expect(model().style.background, background);
       await pumpPastSave(tester);
       expect((store.persisted!.elements.single as TextElementData).style.background, background);
@@ -145,26 +146,82 @@ void main() {
     expect(store.persisted, isNull);
 
     await choose('Transparent');
-    await expectPersisted(TextBackgroundKind.transparent);
+    await expectPersisted(BlockBackgroundKind.transparent);
     await choose('Card');
-    await expectPersisted(TextBackgroundKind.card);
+    await expectPersisted(BlockBackgroundKind.card);
     await choose('Glass');
-    await expectPersisted(TextBackgroundKind.glass);
+    await expectPersisted(BlockBackgroundKind.glass);
     await _shortcut(tester);
-    await expectPersisted(TextBackgroundKind.card);
+    await expectPersisted(BlockBackgroundKind.card);
     await _shortcut(tester);
-    await expectPersisted(TextBackgroundKind.transparent);
+    await expectPersisted(BlockBackgroundKind.transparent);
     await _shortcut(tester);
-    await expectPersisted(TextBackgroundKind.card);
+    await expectPersisted(BlockBackgroundKind.card);
     final original = model();
     await _shortcut(tester);
     expect(model(), same(original));
     await _shortcut(tester, redo: true);
-    await expectPersisted(TextBackgroundKind.transparent);
+    await expectPersisted(BlockBackgroundKind.transparent);
     await _shortcut(tester, redo: true);
-    await expectPersisted(TextBackgroundKind.card);
+    await expectPersisted(BlockBackgroundKind.card);
     await _shortcut(tester, redo: true);
-    await expectPersisted(TextBackgroundKind.glass);
+    await expectPersisted(BlockBackgroundKind.glass);
+  });
+
+  testWidgets('code background choices persist as individual undo steps', (tester) async {
+    final store = TestCanvasDocumentStore(_codeDocument());
+    await pumpCanvas(tester, store);
+    CodeBlockModel model() => tester
+        .widgetList<CodeTool>(find.byType(CodeTool))
+        .firstWhere((widget) => widget.model.data.id == 'code-0')
+        .model;
+    Future<void> choose(String label) async {
+      await tester.tap(
+        find.descendant(
+          of: find.byKey(const ValueKey('code-background-select')),
+          matching: find.byKey(const ValueKey('select-trigger')),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(MenuItemButton, label));
+      await tester.pumpAndSettle();
+      expect(model().active, isTrue);
+    }
+
+    Future<void> expectPersisted(BlockBackgroundKind background) async {
+      expect(model().background, background);
+      await pumpPastSave(tester);
+      expect((store.persisted!.elements.first as CodeElementData).background, background);
+      expect((store.persisted!.elements.last as CodeElementData).background, BlockBackgroundKind.card);
+    }
+
+    await tester.tap(find.byKey(const ValueKey('code-block-preview-surface')).first);
+    await tester.pumpAndSettle();
+    await choose('Card');
+    await pumpPastSave(tester);
+    expect(store.persisted, isNull);
+
+    await choose('Transparent');
+    await expectPersisted(BlockBackgroundKind.transparent);
+    await choose('Glass');
+    await expectPersisted(BlockBackgroundKind.glass);
+    await _shortcut(tester);
+    await expectPersisted(BlockBackgroundKind.transparent);
+    await _shortcut(tester);
+    await expectPersisted(BlockBackgroundKind.card);
+    final original = model();
+    await _shortcut(tester);
+    expect(model(), same(original));
+    await _shortcut(tester, redo: true);
+    await expectPersisted(BlockBackgroundKind.transparent);
+    await _shortcut(tester, redo: true);
+    await expectPersisted(BlockBackgroundKind.glass);
+
+    final saved = CanvasDocument.fromJson(store.persisted!.toJson());
+    await tester.pumpWidget(const SizedBox());
+    await pumpCanvas(tester, TestCanvasDocumentStore(saved));
+    expect(model().background, BlockBackgroundKind.glass);
+    expect(model().active, isFalse);
   });
 
   testWidgets('history retains only the latest 50 operations', (tester) async {
@@ -245,5 +302,21 @@ CanvasDocument _textDocument() => CanvasDocument(
         color: '#201C1A',
       ),
     ),
+  ],
+);
+
+CanvasDocument _codeDocument() => CanvasDocument(
+  background: CanvasBackgroundKind.plain,
+  elements: [
+    for (var index = 0; index < 2; index++)
+      CodeElementData(
+        id: 'code-$index',
+        position: Offset(180 + index * 320, 240),
+        size: const Size(280, 240),
+        language: CodeLanguage.dart,
+        source: 'void main() {}',
+        title: 'main.dart',
+        showLineNumbers: true,
+      ),
   ],
 );

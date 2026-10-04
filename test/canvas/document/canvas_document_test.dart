@@ -37,7 +37,7 @@ void main() {
           style: const TextNodeStyle(
             fontFamily: 'Inter',
             color: '#201C1A',
-            background: TextBackgroundKind.transparent,
+            background: BlockBackgroundKind.transparent,
           ),
         ),
         PenElementData(
@@ -110,7 +110,7 @@ void main() {
     expect(node.markdown, source);
     expect(node.style.fontFamily, 'Inter');
     expect(node.style.color, '#201C1A');
-    expect(node.style.background, TextBackgroundKind.transparent);
+    expect(node.style.background, BlockBackgroundKind.transparent);
 
     final pen = elements[2] as PenElementData;
     expect(pen.size, const Size(180, 90));
@@ -174,8 +174,8 @@ void main() {
 
   test('text backgrounds round-trip and reject invalid or legacy styles', () {
     const defaultStyle = TextNodeStyle(fontFamily: 'Inter', color: '#201C1A');
-    expect(defaultStyle.background, TextBackgroundKind.card);
-    for (final background in TextBackgroundKind.values) {
+    expect(defaultStyle.background, BlockBackgroundKind.card);
+    for (final background in BlockBackgroundKind.values) {
       final style = defaultStyle.copyWith(background: background);
       final restored = TextNodeStyle.fromJson(jsonDecode(jsonEncode(style.toJson())));
       expect(style.toJson()['background'], background.name);
@@ -208,6 +208,23 @@ void main() {
             as CodeElementData;
 
     expect(restored.rotation, 0);
+  });
+
+  test('code backgrounds default to card and survive serialization and copying', () {
+    final code = CodeElementData.fromJson(_encodedCode());
+    expect(code.background, BlockBackgroundKind.card);
+    for (final background in BlockBackgroundKind.values) {
+      code.background = background;
+      final restored = CodeElementData.fromJson(jsonDecode(jsonEncode(code.toJson())));
+      expect(restored.background, background);
+      expect(code.copy(id: 'copy').background, background);
+    }
+    for (final invalid in ['unsupported', true, 1]) {
+      expect(
+        () => CodeElementData.fromJson(_encodedCode()..['background'] = invalid),
+        throwsFormatException,
+      );
+    }
   });
 
   test('media rotation defaults to zero when omitted', () {

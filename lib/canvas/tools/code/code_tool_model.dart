@@ -85,6 +85,14 @@ class CodeBlockModel extends RotatableCanvasElementModel<CodeElementData> {
     notifyDocumentChanged();
   }
 
+  BlockBackgroundKind get background => data.background;
+
+  set background(BlockBackgroundKind value) {
+    if (data.background == value) return;
+    data.background = value;
+    notifyDocumentChanged();
+  }
+
   bool get showLineNumbers => data.showLineNumbers;
 
   set showLineNumbers(bool value) {

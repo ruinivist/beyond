@@ -48,8 +48,8 @@ class TextTool extends StatelessWidget {
         listenable: model,
         builder: (context, _) {
           assert(model.active || !model.editing, 'An inactive text block cannot be editing.');
-          final transparent = model.style.background == TextBackgroundKind.transparent;
-          final glass = model.style.background == TextBackgroundKind.glass;
+          final transparent = model.style.background == BlockBackgroundKind.transparent;
+          final glass = model.style.background == BlockBackgroundKind.glass;
           final body = model.editing
               ? TextMarkdownEditor(model: model, attachmentStore: attachmentStore)
               : TextMarkdownPreview(
@@ -142,14 +142,12 @@ class TextTool extends StatelessWidget {
                 ? DecoratedBox(
                     decoration: BoxDecoration(
                       borderRadius: theme.geo.radiusLarge,
-                      boxShadow: [
-                        BoxShadow(color: colors.shadow, blurRadius: 16, offset: const Offset(0, 4)),
-                      ],
+                      boxShadow: [theme.geo.glassShadow.copyWith(color: colors.shadow)],
                     ),
                     child: ClipRRect(
                       borderRadius: theme.geo.radiusLarge,
                       child: BackdropFilter(
-                        filter: ui.ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+                        filter: ui.ImageFilter.blur(sigmaX: theme.geo.glassBlurSigma, sigmaY: theme.geo.glassBlurSigma),
                         child: surface,
                       ),
                     ),

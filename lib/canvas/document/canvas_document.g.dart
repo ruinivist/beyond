@@ -145,7 +145,7 @@ TextNodeStyle _$TextNodeStyleFromJson(Map<String, dynamic> json) =>
         color: $checkedConvert('color', (v) => v as String),
         background: $checkedConvert(
           'background',
-          (v) => $enumDecode(_$TextBackgroundKindEnumMap, v),
+          (v) => $enumDecode(_$BlockBackgroundKindEnumMap, v),
         ),
       );
       return val;
@@ -155,13 +155,13 @@ Map<String, dynamic> _$TextNodeStyleToJson(TextNodeStyle instance) =>
     <String, dynamic>{
       'fontFamily': instance.fontFamily,
       'color': instance.color,
-      'background': _$TextBackgroundKindEnumMap[instance.background]!,
+      'background': _$BlockBackgroundKindEnumMap[instance.background]!,
     };
 
-const _$TextBackgroundKindEnumMap = {
-  TextBackgroundKind.transparent: 'transparent',
-  TextBackgroundKind.card: 'card',
-  TextBackgroundKind.glass: 'glass',
+const _$BlockBackgroundKindEnumMap = {
+  BlockBackgroundKind.transparent: 'transparent',
+  BlockBackgroundKind.card: 'card',
+  BlockBackgroundKind.glass: 'glass',
 };
 
 TextElementData _$TextElementDataFromJson(Map<String, dynamic> json) =>
@@ -220,6 +220,7 @@ CodeElementData _$CodeElementDataFromJson(Map<String, dynamic> json) =>
           'source',
           'title',
           'showLineNumbers',
+          'background',
           'rotation',
         ],
       );
@@ -241,6 +242,12 @@ CodeElementData _$CodeElementDataFromJson(Map<String, dynamic> json) =>
         source: $checkedConvert('source', (v) => v as String),
         title: $checkedConvert('title', (v) => v as String),
         showLineNumbers: $checkedConvert('showLineNumbers', (v) => v as bool),
+        background: $checkedConvert(
+          'background',
+          (v) =>
+              $enumDecodeNullable(_$BlockBackgroundKindEnumMap, v) ??
+              BlockBackgroundKind.card,
+        ),
         rotation: $checkedConvert(
           'rotation',
           (v) => (v as num?)?.toDouble() ?? 0.0,
@@ -259,6 +266,7 @@ Map<String, dynamic> _$CodeElementDataToJson(CodeElementData instance) =>
       'source': instance.source,
       'title': instance.title,
       'showLineNumbers': instance.showLineNumbers,
+      'background': _$BlockBackgroundKindEnumMap[instance.background]!,
       'rotation': instance.rotation,
     };
 
