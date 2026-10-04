@@ -941,7 +941,6 @@ class _CanvasPageState extends State<CanvasPage> {
     _contextMenuTargets = _selectedInStackingOrder;
     _clearElementEditing();
     _contextMenuView = (_canvasController.offset, _canvasController.scale);
-    setState(() {});
     // Build the captured targets before opening; editor release callbacks finish first.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted || _contextMenuTargets.isEmpty) return;

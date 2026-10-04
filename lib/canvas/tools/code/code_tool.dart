@@ -149,12 +149,11 @@ class _CodeToolState extends State<CodeTool> {
           selected: model.selected,
           child: SizedBox.fromSize(
             size: model.canvasSize,
-            child: Stack(
-              clipBehavior: Clip.none,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Positioned(
-                  top: 0,
-                  left: 0,
+                SizedBox(
+                  height: _codeTitleHeight,
                   child: IgnorePointer(
                     ignoring: !showTitle,
                     child: AnimatedSwitcher(
@@ -170,145 +169,141 @@ class _CodeToolState extends State<CodeTool> {
                     ),
                   ),
                 ),
-                Positioned(
-                  top: _codeTitleHeight,
-                  left: 0,
-                  child: CompositedTransformTarget(
-                    link: model.layerLink,
-                    child: SizedBox.fromSize(
-                      size: model.size,
-                      child: Stack(
-                        clipBehavior: Clip.none,
-                        children: [
-                          Positioned.fill(
-                            child: Material(
-                              key: const ValueKey('code-block-surface'),
-                              color: background,
-                              elevation: theme.geo.elevationLow,
-                              shadowColor: colors.shadow,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: theme.geo.radiusMedium,
-                                side: model.selected
-                                    ? BorderSide(color: colors.accent, width: 2)
-                                    : BorderSide(color: colors.borderSubtle),
-                              ),
-                              clipBehavior: Clip.antiAlias,
-                              child: Stack(
-                                children: [
-                                  Positioned.fill(
-                                    child: _previewInteraction(
-                                      PointerScrollBoundary(
-                                        child: CodeEditor(
-                                          controller: model.controller,
-                                          scrollController: model.scrollController,
-                                          focusNode: model.focusNode,
-                                          autofocus: false,
-                                          readOnly: !editing,
-                                          showCursorWhenReadOnly: false,
-                                          padding: const EdgeInsets.fromLTRB(
-                                            _codeEditorPadding,
-                                            _codeEditorPadding,
-                                            _codeEditorPadding,
-                                            _codeEditorPadding,
-                                          ),
-                                          style: CodeEditorStyle(
-                                            fontFamily: codeStyle.fontFamily,
-                                            fontFamilyFallback: codeStyle.fontFamilyFallback,
-                                            fontSize: codeStyle.fontSize,
-                                            fontHeight: codeStyle.height,
-                                            textColor: colors.textPrimary,
-                                            backgroundColor: background,
-                                            cursorColor: colors.accent,
-                                            selectionColor: colors.accentSubtle,
-                                            codeTheme: model.language.theme(theme.syntaxTheme),
-                                          ),
-                                          indicatorBuilder: model.showLineNumbers
-                                              ? (context, controller, chunkController, notifier) => ColoredBox(
-                                                  key: const ValueKey('code-line-numbers'),
-                                                  color: colors.surfaceSubtle,
-                                                  child: Padding(
-                                                    padding: const EdgeInsets.symmetric(horizontal: 10),
-                                                    child: DefaultCodeLineNumber(
-                                                      controller: controller,
-                                                      notifier: notifier,
-                                                      minNumberCount: 1,
-                                                      textStyle: codeStyle.copyWith(color: colors.textMuted),
-                                                      focusedTextStyle: codeStyle.copyWith(color: colors.textSecondary),
-                                                    ),
-                                                  ),
-                                                )
-                                              : null,
+                CompositedTransformTarget(
+                  link: model.layerLink,
+                  child: SizedBox.fromSize(
+                    size: model.size,
+                    child: Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        Positioned.fill(
+                          child: Material(
+                            key: const ValueKey('code-block-surface'),
+                            color: background,
+                            elevation: theme.geo.elevationLow,
+                            shadowColor: colors.shadow,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: theme.geo.radiusMedium,
+                              side: model.selected
+                                  ? BorderSide(color: colors.accent, width: 2)
+                                  : BorderSide(color: colors.borderSubtle),
+                            ),
+                            clipBehavior: Clip.antiAlias,
+                            child: Stack(
+                              children: [
+                                Positioned.fill(
+                                  child: _previewInteraction(
+                                    PointerScrollBoundary(
+                                      child: CodeEditor(
+                                        controller: model.controller,
+                                        scrollController: model.scrollController,
+                                        focusNode: model.focusNode,
+                                        autofocus: false,
+                                        readOnly: !editing,
+                                        showCursorWhenReadOnly: false,
+                                        padding: const EdgeInsets.fromLTRB(
+                                          _codeEditorPadding,
+                                          _codeEditorPadding,
+                                          _codeEditorPadding,
+                                          _codeEditorPadding,
                                         ),
-                                      ),
-                                    ),
-                                  ),
-                                  Positioned(
-                                    right: _codeControlInset,
-                                    top: _codeControlInset,
-                                    child: IgnorePointer(
-                                      ignoring: !editing,
-                                      child: AnimatedSwitcher(
-                                        duration: _codeControlAnimationDuration,
-                                        switchInCurve: Curves.easeOutCubic,
-                                        switchOutCurve: Curves.easeOutCubic,
-                                        transitionBuilder: _codeControlTransition,
-                                        child: editing
-                                            ? SearchableSelect<CodeLanguage>(
-                                                key: const ValueKey('code-language-picker'),
-                                                value: model.language,
-                                                preferredValues: CodeLanguage.values,
-                                                searchHint: 'Search languages…',
-                                                options: [
-                                                  for (final language in CodeLanguage.values)
-                                                    SelectOption(value: language, label: language.label),
-                                                ],
-                                                showBorder: false,
-                                                onChanged: (language) {
-                                                  widget.onChangeBoundary();
-                                                  model.language = language;
-                                                  widget.onChangeBoundary();
-                                                },
-                                              )
-                                            : const SizedBox(key: ValueKey('code-language-picker-hidden')),
-                                      ),
-                                    ),
-                                  ),
-                                  if (editing)
-                                    Positioned(
-                                      right: 0,
-                                      bottom: 0,
-                                      child: ResizeHandle(
-                                        key: const ValueKey('code-block-resize-handle'),
-                                        semanticLabel: 'Resize code block',
-                                        gestures: {
-                                          ScaleGestureRecognizer:
-                                              GestureRecognizerFactoryWithHandlers<ScaleGestureRecognizer>(
-                                                () => ScaleGestureRecognizer(
-                                                  allowedButtonsFilter: (buttons) => buttons == kPrimaryButton,
+                                        style: CodeEditorStyle(
+                                          fontFamily: codeStyle.fontFamily,
+                                          fontFamilyFallback: codeStyle.fontFamilyFallback,
+                                          fontSize: codeStyle.fontSize,
+                                          fontHeight: codeStyle.height,
+                                          textColor: colors.textPrimary,
+                                          backgroundColor: background,
+                                          cursorColor: colors.accent,
+                                          selectionColor: colors.accentSubtle,
+                                          codeTheme: model.language.theme(theme.syntaxTheme),
+                                        ),
+                                        indicatorBuilder: model.showLineNumbers
+                                            ? (context, controller, chunkController, notifier) => ColoredBox(
+                                                key: const ValueKey('code-line-numbers'),
+                                                color: colors.surfaceSubtle,
+                                                child: Padding(
+                                                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                                                  child: DefaultCodeLineNumber(
+                                                    controller: controller,
+                                                    notifier: notifier,
+                                                    minNumberCount: 1,
+                                                    textStyle: codeStyle.copyWith(color: colors.textMuted),
+                                                    focusedTextStyle: codeStyle.copyWith(color: colors.textSecondary),
+                                                  ),
                                                 ),
-                                                (recognizer) {
-                                                  recognizer.onUpdate = (details) =>
-                                                      widget.onResize(details.focalPointDelta);
-                                                },
-                                              ),
-                                        },
+                                              )
+                                            : null,
                                       ),
                                     ),
-                                ],
-                              ),
+                                  ),
+                                ),
+                                Positioned(
+                                  right: _codeControlInset,
+                                  top: _codeControlInset,
+                                  child: IgnorePointer(
+                                    ignoring: !editing,
+                                    child: AnimatedSwitcher(
+                                      duration: _codeControlAnimationDuration,
+                                      switchInCurve: Curves.easeOutCubic,
+                                      switchOutCurve: Curves.easeOutCubic,
+                                      transitionBuilder: _codeControlTransition,
+                                      child: editing
+                                          ? SearchableSelect<CodeLanguage>(
+                                              key: const ValueKey('code-language-picker'),
+                                              value: model.language,
+                                              preferredValues: CodeLanguage.values,
+                                              searchHint: 'Search languages…',
+                                              options: [
+                                                for (final language in CodeLanguage.values)
+                                                  SelectOption(value: language, label: language.label),
+                                              ],
+                                              showBorder: false,
+                                              onChanged: (language) {
+                                                widget.onChangeBoundary();
+                                                model.language = language;
+                                                widget.onChangeBoundary();
+                                              },
+                                            )
+                                          : const SizedBox(key: ValueKey('code-language-picker-hidden')),
+                                    ),
+                                  ),
+                                ),
+                                if (editing)
+                                  Positioned(
+                                    right: 0,
+                                    bottom: 0,
+                                    child: ResizeHandle(
+                                      key: const ValueKey('code-block-resize-handle'),
+                                      semanticLabel: 'Resize code block',
+                                      gestures: {
+                                        ScaleGestureRecognizer:
+                                            GestureRecognizerFactoryWithHandlers<ScaleGestureRecognizer>(
+                                              () => ScaleGestureRecognizer(
+                                                allowedButtonsFilter: (buttons) => buttons == kPrimaryButton,
+                                              ),
+                                              (recognizer) {
+                                                recognizer.onUpdate = (details) =>
+                                                    widget.onResize(details.focalPointDelta);
+                                              },
+                                            ),
+                                      },
+                                    ),
+                                  ),
+                              ],
                             ),
                           ),
-                          if (!editing)
-                            // re_editor hardcodes a text cursor in its code-field renderer.
-                            // Keep inactive blocks on the normal canvas pointer instead.
-                            const Positioned.fill(
-                              child: MouseRegion(
-                                cursor: SystemMouseCursors.basic,
-                                opaque: false,
-                              ),
+                        ),
+                        if (!editing)
+                          // re_editor hardcodes a text cursor in its code-field renderer.
+                          // Keep inactive blocks on the normal canvas pointer instead.
+                          const Positioned.fill(
+                            child: MouseRegion(
+                              cursor: SystemMouseCursors.basic,
+                              opaque: false,
                             ),
-                        ],
-                      ),
+                          ),
+                      ],
                     ),
                   ),
                 ),
