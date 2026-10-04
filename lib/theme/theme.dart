@@ -17,6 +17,8 @@ class BColors {
     required this.canvasBackground,
     required this.canvasGrid,
     required this.surface,
+    required this.glassSurface,
+    required this.glassBorder,
     required this.surfaceRaised,
     required this.surfaceSubtle,
     required this.surfaceHover,
@@ -40,6 +42,8 @@ class BColors {
   final Color canvasBackground;
   final Color canvasGrid;
   final Color surface;
+  final Color glassSurface;
+  final Color glassBorder;
   final Color surfaceRaised;
   final Color surfaceSubtle;
   final Color surfaceHover;
@@ -71,6 +75,8 @@ class BColors {
       )!,
       canvasGrid: Color.lerp(canvasGrid, other.canvasGrid, t)!,
       surface: Color.lerp(surface, other.surface, t)!,
+      glassSurface: Color.lerp(glassSurface, other.glassSurface, t)!,
+      glassBorder: Color.lerp(glassBorder, other.glassBorder, t)!,
       surfaceRaised: Color.lerp(surfaceRaised, other.surfaceRaised, t)!,
       surfaceSubtle: Color.lerp(surfaceSubtle, other.surfaceSubtle, t)!,
       surfaceHover: Color.lerp(surfaceHover, other.surfaceHover, t)!,

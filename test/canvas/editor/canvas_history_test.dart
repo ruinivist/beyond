@@ -148,6 +148,10 @@ void main() {
     await expectPersisted(TextBackgroundKind.transparent);
     await choose('Card');
     await expectPersisted(TextBackgroundKind.card);
+    await choose('Glass');
+    await expectPersisted(TextBackgroundKind.glass);
+    await _shortcut(tester);
+    await expectPersisted(TextBackgroundKind.card);
     await _shortcut(tester);
     await expectPersisted(TextBackgroundKind.transparent);
     await _shortcut(tester);
@@ -159,6 +163,8 @@ void main() {
     await expectPersisted(TextBackgroundKind.transparent);
     await _shortcut(tester, redo: true);
     await expectPersisted(TextBackgroundKind.card);
+    await _shortcut(tester, redo: true);
+    await expectPersisted(TextBackgroundKind.glass);
   });
 
   testWidgets('history retains only the latest 50 operations', (tester) async {

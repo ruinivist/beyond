@@ -53,7 +53,7 @@ enum ArrowStrokeStyle { solid, dashed }
 
 /// Identifies the background treatment of a text element.
 /// Used by text settings, rendering, and document serialization.
-enum TextBackgroundKind { transparent, card }
+enum TextBackgroundKind { transparent, card, glass }
 
 // ---------- Document models ----------
 

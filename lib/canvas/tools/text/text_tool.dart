@@ -1,6 +1,8 @@
 // Renders and resizes a persisted canvas text tool element.
 // Used by the canvas element stack for text display and editing.
 
+import 'dart:ui' as ui;
+
 import 'package:elseplane/canvas/document/canvas_document.dart';
 import 'package:elseplane/canvas/editor/widgets/pointer_scroll_boundary.dart';
 import 'package:elseplane/canvas/editor/widgets/resize_handle.dart';
@@ -47,6 +49,7 @@ class TextTool extends StatelessWidget {
         builder: (context, _) {
           assert(model.active || !model.editing, 'An inactive text block cannot be editing.');
           final transparent = model.style.background == TextBackgroundKind.transparent;
+          final glass = model.style.background == TextBackgroundKind.glass;
           final body = model.editing
               ? TextMarkdownEditor(model: model, attachmentStore: attachmentStore)
               : TextMarkdownPreview(
@@ -72,65 +75,86 @@ class TextTool extends StatelessWidget {
             (_) => CallbackDrag((delta) => onResize(context.size!, delta)),
           );
           const resizeRecognizer = ImmediateMultiDragGestureRecognizer;
-          return Semantics(
-            container: true,
-            selected: model.selected,
-            child: Material(
-              key: const ValueKey('text-block-surface'),
-              type: transparent && !model.selected ? MaterialType.transparency : MaterialType.canvas,
-              color: model.selected
-                  ? colors.accentSoft
-                  : transparent
-                  ? null
-                  : colors.surface,
-              elevation: transparent ? 0 : theme.geo.elevationLow,
-              shadowColor: colors.shadow,
-              shape: RoundedRectangleBorder(
-                borderRadius: theme.geo.radiusLarge,
-                side: model.selected
-                    ? BorderSide(color: colors.accent, width: 2)
-                    : transparent && !model.editing
-                    ? BorderSide.none
-                    : BorderSide(color: colors.borderSubtle),
-              ),
-              child: SizedBox(
-                width: model.node.width,
-                height: model.node.height,
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(minHeight: textNodeMinimumHeight),
-                  child: Stack(
-                    children: [
-                      if (model.node.height != null) Positioned.fill(child: visibleBody) else visibleBody,
-                      Positioned(
-                        right: 2,
-                        bottom: 2,
-                        child: IgnorePointer(
-                          ignoring: !model.active,
-                          child: AnimatedSwitcher(
-                            duration: const Duration(milliseconds: 260),
-                            reverseDuration: const Duration(milliseconds: 180),
-                            switchInCurve: Curves.easeOutCubic,
-                            switchOutCurve: Curves.easeOutCubic,
-                            transitionBuilder: _resizeHandleTransition,
-                            child: model.active
-                                ? TextFieldTapRegion(
-                                    child: ResizeHandle(
-                                      key: const ValueKey('text-block-resize-handle'),
-                                      semanticLabel: 'Resize text block',
-                                      gestures: {resizeRecognizer: resizeGestureFactory},
-                                    ),
-                                  )
-                                : const SizedBox(
-                                    key: ValueKey('text-block-resize-handle-hidden'),
+          final surface = Material(
+            key: const ValueKey('text-block-surface'),
+            type: transparent && !model.selected ? MaterialType.transparency : MaterialType.canvas,
+            color: glass
+                ? model.selected
+                      ? Color.alphaBlend(colors.accentSoft.withValues(alpha: 0.25), colors.glassSurface)
+                      : colors.glassSurface
+                : model.selected
+                ? colors.accentSoft
+                : transparent
+                ? null
+                : colors.surface,
+            elevation: transparent || glass ? 0 : theme.geo.elevationLow,
+            shadowColor: colors.shadow,
+            shape: RoundedRectangleBorder(
+              borderRadius: theme.geo.radiusLarge,
+              side: model.selected
+                  ? BorderSide(color: colors.accent, width: 2)
+                  : transparent && !model.editing
+                  ? BorderSide.none
+                  : BorderSide(color: glass ? colors.glassBorder : colors.borderSubtle),
+            ),
+            child: SizedBox(
+              width: model.node.width,
+              height: model.node.height,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(minHeight: textNodeMinimumHeight),
+                child: Stack(
+                  children: [
+                    if (model.node.height != null) Positioned.fill(child: visibleBody) else visibleBody,
+                    Positioned(
+                      right: 2,
+                      bottom: 2,
+                      child: IgnorePointer(
+                        ignoring: !model.active,
+                        child: AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 260),
+                          reverseDuration: const Duration(milliseconds: 180),
+                          switchInCurve: Curves.easeOutCubic,
+                          switchOutCurve: Curves.easeOutCubic,
+                          transitionBuilder: _resizeHandleTransition,
+                          child: model.active
+                              ? TextFieldTapRegion(
+                                  child: ResizeHandle(
+                                    key: const ValueKey('text-block-resize-handle'),
+                                    semanticLabel: 'Resize text block',
+                                    gestures: {resizeRecognizer: resizeGestureFactory},
                                   ),
-                          ),
+                                )
+                              : const SizedBox(
+                                  key: ValueKey('text-block-resize-handle-hidden'),
+                                ),
                         ),
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
             ),
+          );
+          return Semantics(
+            container: true,
+            selected: model.selected,
+            child: glass
+                ? DecoratedBox(
+                    decoration: BoxDecoration(
+                      borderRadius: theme.geo.radiusLarge,
+                      boxShadow: [
+                        BoxShadow(color: colors.shadow, blurRadius: 16, offset: const Offset(0, 4)),
+                      ],
+                    ),
+                    child: ClipRRect(
+                      borderRadius: theme.geo.radiusLarge,
+                      child: BackdropFilter(
+                        filter: ui.ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+                        child: surface,
+                      ),
+                    ),
+                  )
+                : surface,
           );
         },
       ),

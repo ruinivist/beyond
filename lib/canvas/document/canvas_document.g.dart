@@ -161,6 +161,7 @@ Map<String, dynamic> _$TextNodeStyleToJson(TextNodeStyle instance) =>
 const _$TextBackgroundKindEnumMap = {
   TextBackgroundKind.transparent: 'transparent',
   TextBackgroundKind.card: 'card',
+  TextBackgroundKind.glass: 'glass',
 };
 
 TextElementData _$TextElementDataFromJson(Map<String, dynamic> json) =>

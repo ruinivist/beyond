@@ -80,6 +80,7 @@ class TextToolSettings extends StatelessWidget {
               options: const [
                 SelectOption(value: TextBackgroundKind.transparent, label: 'Transparent'),
                 SelectOption(value: TextBackgroundKind.card, label: 'Card'),
+                SelectOption(value: TextBackgroundKind.glass, label: 'Glass'),
               ],
               onChanged: (background) {
                 onChangeBoundary();

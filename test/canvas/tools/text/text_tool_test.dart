@@ -938,7 +938,10 @@ Inline $x^2$''';
       final panelWidth = tester.getSize(find.byKey(const ValueKey('text-settings-panel'))).width;
       expect(tester.getSize(_selectTrigger('text-font-select')).width, panelWidth);
       expect(tester.getSize(_selectTrigger('text-background-select')).width, panelWidth);
-      for (final background in [TextBackgroundKind.transparent, TextBackgroundKind.card]) {
+      for (final background in TextBackgroundKind.values) {
+        await tester.tap(find.byKey(const ValueKey('text-markdown-preview-surface')));
+        await tester.pumpAndSettle();
+        expect(model.editing, isTrue);
         await _chooseBackground(tester, background);
         expect(model.style.background, background);
         expect(model.style.fontFamily, 'Inter');
@@ -1050,6 +1053,64 @@ Inline $x^2$''';
     expect(border(), isNot(BorderSide.none));
     expect(tester.widget<Material>(surface).type, MaterialType.canvas);
     expect(tester.widget<Material>(surface).color, isNotNull);
+  });
+
+  testWidgets('glass keeps a clipped backdrop in preview, editing, and selection', (tester) async {
+    for (final themeMode in [ThemeMode.light, ThemeMode.dark]) {
+      await tester.pumpWidget(
+        ElseplaneApp(
+          initialThemeMode: themeMode,
+          documentStore: TestCanvasDocumentStore(_rendererDocument()),
+        ),
+      );
+      await tester.pumpAndSettle();
+      final block = find.byType(TextTool);
+      final model = tester.widget<TextTool>(block).model;
+      final surface = find.byKey(const ValueKey('text-block-surface'));
+      final filter = find.descendant(of: block, matching: find.byType(BackdropFilter));
+
+      void expectGlass() {
+        expect(filter, findsOneWidget);
+        final clip = find.ancestor(of: filter, matching: find.byType(ClipRRect)).first;
+        expect(tester.getSize(clip), tester.getSize(surface));
+        expect(tester.widget<BackdropFilter>(filter).child, tester.widget<Material>(surface));
+        expect(tester.widget<BackdropFilter>(filter).backdropGroupKey, isNull);
+        expect(tester.widget<Material>(surface).color!.a, inExclusiveRange(0, 1));
+        expect(find.descendant(of: block, matching: find.byType(ImageFiltered)), findsNothing);
+      }
+
+      await tester.tap(find.byKey(const ValueKey('text-markdown-preview-surface')));
+      await tester.pumpAndSettle();
+      await _chooseBackground(tester, TextBackgroundKind.glass);
+      expect(model.active, isTrue);
+      expect(model.editing, isFalse);
+      expectGlass();
+
+      await tester.tapAt(const Offset(700, 500));
+      await tester.pumpAndSettle();
+      expect(model.active, isFalse);
+      expectGlass();
+
+      final previewColor = tester.widget<Material>(surface).color;
+      model.selected = true;
+      await tester.pump();
+      expectGlass();
+      expect(tester.widget<Material>(surface).color, isNot(previewColor));
+      expect((tester.widget<Material>(surface).shape! as RoundedRectangleBorder).side, isNot(BorderSide.none));
+
+      await tester.tap(find.byKey(const ValueKey('text-markdown-preview-surface')));
+      await tester.pumpAndSettle();
+      expect(model.editing, isTrue);
+      expectGlass();
+      expect(find.byKey(const ValueKey('text-markdown-editor')), findsOneWidget);
+
+      for (final background in [TextBackgroundKind.card, TextBackgroundKind.transparent]) {
+        await _chooseBackground(tester, background);
+        expect(filter, findsNothing);
+      }
+      await tester.pumpWidget(const SizedBox());
+      await tester.pumpAndSettle();
+    }
   });
 
   testWidgets('text editing is cleared by other blocks and empty canvas', (
@@ -1234,7 +1295,11 @@ Future<void> _chooseBackground(WidgetTester tester, TextBackgroundKind backgroun
   await tester.tap(_selectTrigger('text-background-select'));
   await tester.pumpAndSettle();
   await tester.tap(
-    find.widgetWithText(MenuItemButton, background == TextBackgroundKind.transparent ? 'Transparent' : 'Card'),
+    find.widgetWithText(MenuItemButton, switch (background) {
+      TextBackgroundKind.transparent => 'Transparent',
+      TextBackgroundKind.card => 'Card',
+      TextBackgroundKind.glass => 'Glass',
+    }),
   );
   await tester.pumpAndSettle();
 }
