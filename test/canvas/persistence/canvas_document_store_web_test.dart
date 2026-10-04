@@ -6,10 +6,10 @@ library;
 
 import 'dart:convert';
 
-import 'package:beyond/canvas/document/canvas_document.dart';
-import 'package:beyond/canvas/editor/canvas_background.dart';
-import 'package:beyond/canvas/persistence/canvas_document_store.dart';
-import 'package:beyond/canvas/persistence/canvas_library.dart';
+import 'package:elseplane/canvas/document/canvas_document.dart';
+import 'package:elseplane/canvas/editor/canvas_background.dart';
+import 'package:elseplane/canvas/persistence/canvas_document_store.dart';
+import 'package:elseplane/canvas/persistence/canvas_library.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:shared_preferences_web/shared_preferences_web.dart';

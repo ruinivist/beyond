@@ -1,8 +1,8 @@
 // Provides the app's compact HSV color picker.
 // Used by editor surfaces that need direct color selection.
 
-import 'package:beyond/theme/preset_colors.dart';
-import 'package:beyond/theme/theme.dart';
+import 'package:elseplane/theme/preset_colors.dart';
+import 'package:elseplane/theme/theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 

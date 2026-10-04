@@ -1,15 +1,15 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
-import 'package:beyond/canvas/document/canvas_document.dart';
-import 'package:beyond/canvas/editor/canvas_clipboard.dart';
-import 'package:beyond/canvas/editor/canvas_page.dart';
-import 'package:beyond/canvas/persistence/attachments/store.dart';
-import 'package:beyond/canvas/persistence/canvas_document_store.dart';
-import 'package:beyond/canvas/persistence/canvas_library.dart';
-import 'package:beyond/canvas/persistence/canvas_project_files.dart';
-import 'package:beyond/main.dart';
-import 'package:beyond/theme/starless.dart';
+import 'package:elseplane/canvas/document/canvas_document.dart';
+import 'package:elseplane/canvas/editor/canvas_clipboard.dart';
+import 'package:elseplane/canvas/editor/canvas_page.dart';
+import 'package:elseplane/canvas/persistence/attachments/store.dart';
+import 'package:elseplane/canvas/persistence/canvas_document_store.dart';
+import 'package:elseplane/canvas/persistence/canvas_library.dart';
+import 'package:elseplane/canvas/persistence/canvas_project_files.dart';
+import 'package:elseplane/main.dart';
+import 'package:elseplane/theme/starless.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -88,14 +88,14 @@ Future<void> pumpCanvas(
   await tester.pump();
 }
 
-Future<void> pumpBeyondApp(
+Future<void> pumpElseplaneApp(
   WidgetTester tester, {
   AttachmentStore? attachmentStore,
   CanvasDocumentStore? documentStore,
   CanvasProjectFiles? projectFiles,
 }) async {
   await tester.pumpWidget(
-    BeyondApp(
+    ElseplaneApp(
       attachmentStore: attachmentStore,
       documentStore: documentStore,
       projectFiles: projectFiles,

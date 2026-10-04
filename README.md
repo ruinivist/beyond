@@ -1,8 +1,8 @@
-# beyond
+# elseplane
 
-https://beyond.ruiny.de/
+https://elseplane.ruiny.de/
 
-Infinite canvas with first class support for code and markdown
+Infinite canvas with first-class support for code and Markdown.
 
 ## Why?
 

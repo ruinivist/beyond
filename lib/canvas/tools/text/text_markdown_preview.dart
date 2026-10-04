@@ -3,10 +3,10 @@
 
 import 'dart:typed_data';
 
-import 'package:beyond/canvas/document/canvas_document.dart';
-import 'package:beyond/canvas/persistence/attachments/store.dart';
-import 'package:beyond/canvas/tools/text/text_tool_settings.dart';
-import 'package:beyond/theme/theme.dart';
+import 'package:elseplane/canvas/document/canvas_document.dart';
+import 'package:elseplane/canvas/persistence/attachments/store.dart';
+import 'package:elseplane/canvas/tools/text/text_tool_settings.dart';
+import 'package:elseplane/theme/theme.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';

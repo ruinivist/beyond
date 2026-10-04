@@ -3,17 +3,17 @@
 
 import 'dart:math' as math;
 
-import 'package:beyond/canvas/document/canvas_document.dart';
-import 'package:beyond/canvas/editor/canvas_background.dart';
-import 'package:beyond/canvas/editor/widgets/element_transform_controls.dart';
-import 'package:beyond/canvas/persistence/attachments/store.dart';
-import 'package:beyond/canvas/persistence/canvas_document_store.dart';
-import 'package:beyond/canvas/tools/code/code_tool.dart';
-import 'package:beyond/canvas/tools/text/text_tool.dart';
-import 'package:beyond/main.dart';
-import 'package:beyond/theme/preset_colors.dart';
-import 'package:beyond/ui/common/color_picker.dart';
-import 'package:beyond/ui/common/select.dart';
+import 'package:elseplane/canvas/document/canvas_document.dart';
+import 'package:elseplane/canvas/editor/canvas_background.dart';
+import 'package:elseplane/canvas/editor/widgets/element_transform_controls.dart';
+import 'package:elseplane/canvas/persistence/attachments/store.dart';
+import 'package:elseplane/canvas/persistence/canvas_document_store.dart';
+import 'package:elseplane/canvas/tools/code/code_tool.dart';
+import 'package:elseplane/canvas/tools/text/text_tool.dart';
+import 'package:elseplane/main.dart';
+import 'package:elseplane/theme/preset_colors.dart';
+import 'package:elseplane/ui/common/color_picker.dart';
+import 'package:elseplane/ui/common/select.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
@@ -186,7 +186,7 @@ void main() {
   testWidgets('text editor keeps native select and delete actions', (
     tester,
   ) async {
-    await tester.pumpWidget(const BeyondApp());
+    await tester.pumpWidget(const ElseplaneApp());
     await tester.pump();
     await tester.pump();
     await _placeCodeBlock(tester, const Offset(300, 200));
@@ -219,7 +219,7 @@ void main() {
   testWidgets('code editor keeps native select and delete actions', (
     tester,
   ) async {
-    await tester.pumpWidget(const BeyondApp());
+    await tester.pumpWidget(const ElseplaneApp());
     await tester.pump();
     await tester.pump();
     await _placeCodeBlock(tester, const Offset(300, 200));
@@ -242,7 +242,7 @@ void main() {
   testWidgets('deleting code keeps unrelated text editing open', (
     tester,
   ) async {
-    await tester.pumpWidget(const BeyondApp());
+    await tester.pumpWidget(const ElseplaneApp());
     await tester.pump();
     await tester.pump();
     await _placeCodeBlock(tester, const Offset(300, 200));
@@ -1058,7 +1058,7 @@ Inline $x^2$''';
   testWidgets('editing a second text rebinds top-right settings', (
     tester,
   ) async {
-    await tester.pumpWidget(const BeyondApp());
+    await tester.pumpWidget(const ElseplaneApp());
     await tester.pump();
 
     final first = await _placeTextBlock(tester, const Offset(120, 200));
@@ -1085,7 +1085,7 @@ Inline $x^2$''';
   });
 
   testWidgets('text nodes restore from the saved document', (tester) async {
-    await tester.pumpWidget(const BeyondApp());
+    await tester.pumpWidget(const ElseplaneApp());
     await tester.pump();
     await tester.pump();
 
@@ -1148,7 +1148,7 @@ Inline $x^2$''';
     expect(canvas.childOrder, [first.node.id, second.node.id]);
     await tester.pumpWidget(const SizedBox());
     await tester.pump();
-    await tester.pumpWidget(const BeyondApp());
+    await tester.pumpWidget(const ElseplaneApp());
     await tester.pump();
     await tester.pump();
 
@@ -1174,7 +1174,7 @@ Inline $x^2$''';
     final preferences = SharedPreferencesAsync();
     await preferences.setString(CanvasDocumentStore.libraryKey, invalid);
 
-    await tester.pumpWidget(const BeyondApp());
+    await tester.pumpWidget(const ElseplaneApp());
     await tester.pump();
     await tester.pump();
 
@@ -1200,7 +1200,7 @@ Future<void> _addTextBlock(
   TargetPlatform? platform,
 }) async {
   if (platform == null) {
-    await pumpBeyondApp(tester, attachmentStore: attachmentStore);
+    await pumpElseplaneApp(tester, attachmentStore: attachmentStore);
   } else {
     await pumpCanvas(
       tester,

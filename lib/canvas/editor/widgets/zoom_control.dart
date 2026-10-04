@@ -1,9 +1,9 @@
 // Provides the canvas zoom readout and compact zoom actions.
 // Used by the editor as a viewport-anchored secondary control.
 
-import 'package:beyond/canvas/editor/widgets/toolbar_button.dart';
-import 'package:beyond/theme/theme.dart';
-import 'package:beyond/ui/common/surface.dart';
+import 'package:elseplane/canvas/editor/widgets/toolbar_button.dart';
+import 'package:elseplane/theme/theme.dart';
+import 'package:elseplane/ui/common/surface.dart';
 import 'package:flutter/material.dart';
 import 'package:infinite_lazy_grid/infinite_lazy_grid.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';

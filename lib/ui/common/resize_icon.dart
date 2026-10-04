@@ -1,7 +1,7 @@
 // Provides the shared resize affordance icon.
 // Used by resize handles across the application.
 
-import 'package:beyond/theme/theme.dart';
+import 'package:elseplane/theme/theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 

@@ -5,8 +5,8 @@ import 'dart:convert';
 import 'dart:typed_data';
 import 'dart:ui';
 
-import 'package:beyond/canvas/document/canvas_document.dart';
-import 'package:beyond/canvas/persistence/attachments/store.dart';
+import 'package:elseplane/canvas/document/canvas_document.dart';
+import 'package:elseplane/canvas/persistence/attachments/store.dart';
 import 'package:markdown/markdown.dart' as md;
 import 'package:uuid/uuid.dart';
 
@@ -101,7 +101,7 @@ Future<Uint8List> encodeCanvasProject(
   final bytes = Uint8List.fromList(
     utf8.encode(
       jsonEncode(<String, Object>{
-        'format': 'beyond-canvas',
+        'format': 'elseplane-canvas',
         'document': document.toJson(),
         'attachments': attachments,
       }),
@@ -123,8 +123,8 @@ Future<CanvasProject> decodeCanvasProject(Uint8List bytes) async {
     'project',
     allowedKeys: const {'format', 'document', 'attachments'},
   );
-  if (root['format'] != 'beyond-canvas') {
-    throw const FormatException('project.format must be beyond-canvas');
+  if (root['format'] != 'elseplane-canvas') {
+    throw const FormatException('project.format must be elseplane-canvas');
   }
 
   final document = CanvasDocument.fromJson(root['document']);

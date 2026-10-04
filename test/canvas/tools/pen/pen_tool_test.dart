@@ -4,23 +4,23 @@
 import 'dart:convert';
 import 'dart:math' as math;
 
-import 'package:beyond/canvas/document/canvas_document.dart';
-import 'package:beyond/canvas/editor/canvas_background.dart';
-import 'package:beyond/canvas/editor/canvas_element_model.dart';
-import 'package:beyond/canvas/editor/widgets/canvas_title.dart';
-import 'package:beyond/canvas/editor/widgets/element_transform_controls.dart';
-import 'package:beyond/canvas/editor/widgets/toolbar_button.dart';
-import 'package:beyond/canvas/persistence/canvas_document_store.dart';
-import 'package:beyond/canvas/persistence/canvas_library.dart';
-import 'package:beyond/canvas/tools/arrow/arrow_tool.dart';
-import 'package:beyond/canvas/tools/code/code_tool.dart';
-import 'package:beyond/canvas/tools/pen/pen_tool.dart';
-import 'package:beyond/canvas/tools/text/text_tool.dart';
-import 'package:beyond/main.dart';
-import 'package:beyond/theme/preset_colors.dart';
-import 'package:beyond/ui/common/color_picker.dart';
-import 'package:beyond/ui/common/labeled_switch.dart';
-import 'package:beyond/ui/common/select.dart';
+import 'package:elseplane/canvas/document/canvas_document.dart';
+import 'package:elseplane/canvas/editor/canvas_background.dart';
+import 'package:elseplane/canvas/editor/canvas_element_model.dart';
+import 'package:elseplane/canvas/editor/widgets/canvas_title.dart';
+import 'package:elseplane/canvas/editor/widgets/element_transform_controls.dart';
+import 'package:elseplane/canvas/editor/widgets/toolbar_button.dart';
+import 'package:elseplane/canvas/persistence/canvas_document_store.dart';
+import 'package:elseplane/canvas/persistence/canvas_library.dart';
+import 'package:elseplane/canvas/tools/arrow/arrow_tool.dart';
+import 'package:elseplane/canvas/tools/code/code_tool.dart';
+import 'package:elseplane/canvas/tools/pen/pen_tool.dart';
+import 'package:elseplane/canvas/tools/text/text_tool.dart';
+import 'package:elseplane/main.dart';
+import 'package:elseplane/theme/preset_colors.dart';
+import 'package:elseplane/ui/common/color_picker.dart';
+import 'package:elseplane/ui/common/labeled_switch.dart';
+import 'package:elseplane/ui/common/select.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -41,7 +41,7 @@ void main() {
   testWidgets('toolbar displays tool icons', (
     tester,
   ) async {
-    await tester.pumpWidget(const BeyondApp());
+    await tester.pumpWidget(const ElseplaneApp());
     await tester.pump();
     await tester.pump();
 
@@ -60,7 +60,7 @@ void main() {
   testWidgets('keyboard shortcuts toggle tools and escape disables them', (
     tester,
   ) async {
-    await tester.pumpWidget(const BeyondApp());
+    await tester.pumpWidget(const ElseplaneApp());
     await tester.pump();
     await tester.pump();
 
@@ -309,7 +309,7 @@ void main() {
   });
 
   testWidgets('all element types restore in document order', (tester) async {
-    await tester.pumpWidget(const BeyondApp());
+    await tester.pumpWidget(const ElseplaneApp());
     await tester.pump();
     await tester.pump();
 
@@ -410,7 +410,7 @@ void main() {
 
     await tester.pumpWidget(const SizedBox());
     await tester.pump();
-    await tester.pumpWidget(const BeyondApp());
+    await tester.pumpWidget(const ElseplaneApp());
     await tester.pump();
     await tester.pump();
 
@@ -458,7 +458,7 @@ void main() {
   });
 
   testWidgets('pen commits inactive strokes and stays enabled', (tester) async {
-    await tester.pumpWidget(const BeyondApp());
+    await tester.pumpWidget(const ElseplaneApp());
     await tester.pump();
 
     await tester.tap(find.byKey(const ValueKey('toolbar-draw')));
@@ -478,7 +478,7 @@ void main() {
   });
 
   testWidgets('inactive pen does not draw', (tester) async {
-    await tester.pumpWidget(const BeyondApp());
+    await tester.pumpWidget(const ElseplaneApp());
     await tester.pump();
 
     expect(find.byKey(const ValueKey('draw-settings-panel')), findsNothing);
@@ -523,7 +523,7 @@ void main() {
       CanvasDocumentStore.libraryKey,
       jsonEncode(CanvasLibrary.initial(document).toJson()),
     );
-    await tester.pumpWidget(const BeyondApp());
+    await tester.pumpWidget(const ElseplaneApp());
     await tester.pump();
     await tester.pump();
 
@@ -592,7 +592,7 @@ void main() {
   testWidgets('draw settings persist and affect only future strokes', (
     tester,
   ) async {
-    await tester.pumpWidget(const BeyondApp());
+    await tester.pumpWidget(const ElseplaneApp());
     await tester.pump();
 
     await tester.tap(find.byKey(const ValueKey('toolbar-draw')));
@@ -691,7 +691,7 @@ void main() {
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
-    await tester.pumpWidget(const BeyondApp());
+    await tester.pumpWidget(const ElseplaneApp());
     await tester.pump();
     await tester.tap(find.byKey(const ValueKey('toolbar-draw')));
     await tester.pump();
@@ -721,7 +721,7 @@ void main() {
   });
 
   testWidgets('ctrl-click selects only near stroke ink', (tester) async {
-    await tester.pumpWidget(const BeyondApp());
+    await tester.pumpWidget(const ElseplaneApp());
     await tester.pump();
 
     await tester.tap(find.byKey(const ValueKey('toolbar-draw')));
@@ -793,7 +793,7 @@ void main() {
   testWidgets('code places once, returns to select, and focuses editor', (
     tester,
   ) async {
-    await tester.pumpWidget(const BeyondApp());
+    await tester.pumpWidget(const ElseplaneApp());
     await tester.pump();
     await tester.pump();
 
@@ -826,7 +826,7 @@ void main() {
   testWidgets('code controls follow editing and persisted display settings', (
     tester,
   ) async {
-    await tester.pumpWidget(const BeyondApp());
+    await tester.pumpWidget(const ElseplaneApp());
     await tester.pump();
     await _placeCodeBlock(tester, const Offset(120, 140));
     await tester.pump();
@@ -920,7 +920,7 @@ void main() {
   testWidgets('active code blocks move and rotate from floating controls', (
     tester,
   ) async {
-    await tester.pumpWidget(const BeyondApp());
+    await tester.pumpWidget(const ElseplaneApp());
     await tester.pump();
     await _placeCodeBlock(tester, const Offset(120, 140));
     await tester.pump();
@@ -967,7 +967,7 @@ void main() {
   testWidgets('code title grows and drags in screen coordinates under rotation and zoom', (
     tester,
   ) async {
-    await tester.pumpWidget(const BeyondApp());
+    await tester.pumpWidget(const ElseplaneApp());
     await tester.pump();
     await _placeCodeBlock(tester, const Offset(120, 140));
     await tester.pump();
@@ -1009,7 +1009,7 @@ void main() {
   testWidgets('delete removes an active unselected code block', (
     tester,
   ) async {
-    await tester.pumpWidget(const BeyondApp());
+    await tester.pumpWidget(const ElseplaneApp());
     await tester.pump();
     await _placeCodeBlock(tester, const Offset(120, 140));
 
@@ -1028,7 +1028,7 @@ void main() {
   testWidgets('primary+A selects and deletes offscreen mixed children', (
     tester,
   ) async {
-    await tester.pumpWidget(const BeyondApp());
+    await tester.pumpWidget(const ElseplaneApp());
     await tester.pump();
     await tester.pump();
 
@@ -1093,7 +1093,7 @@ void main() {
   });
 
   testWidgets('enabling pen stops text editing', (tester) async {
-    await tester.pumpWidget(const BeyondApp());
+    await tester.pumpWidget(const ElseplaneApp());
     await tester.pump();
     await tester.tap(find.byKey(const ValueKey('toolbar-text')));
     await tester.pump();
@@ -1116,7 +1116,7 @@ void main() {
   testWidgets('code blocks resize from the bottom-right handle', (
     tester,
   ) async {
-    await tester.pumpWidget(const BeyondApp());
+    await tester.pumpWidget(const ElseplaneApp());
     await tester.pump();
 
     await _placeCodeBlock(tester, const Offset(40, 120));
@@ -1163,7 +1163,7 @@ void main() {
   });
 
   testWidgets('code scroll boundary does not pan canvas', (tester) async {
-    await tester.pumpWidget(const BeyondApp());
+    await tester.pumpWidget(const ElseplaneApp());
     await tester.pump();
     await _placeCodeBlock(tester, const Offset(120, 140));
 
@@ -1200,7 +1200,7 @@ void main() {
   testWidgets('inactive code blocks move from the surface without selecting', (
     tester,
   ) async {
-    await tester.pumpWidget(const BeyondApp());
+    await tester.pumpWidget(const ElseplaneApp());
     await tester.pump();
 
     await _placeCodeBlock(tester, const Offset(120, 140));
@@ -1232,7 +1232,7 @@ void main() {
   testWidgets('ctrl-click multi-selects without activating blocks', (
     tester,
   ) async {
-    await tester.pumpWidget(const BeyondApp());
+    await tester.pumpWidget(const ElseplaneApp());
     await tester.pump();
 
     await tester.tap(find.byKey(const ValueKey('toolbar-text')));
@@ -1310,7 +1310,7 @@ void main() {
   testWidgets('dragging a selected mixed group moves once under zoom', (
     tester,
   ) async {
-    await tester.pumpWidget(const BeyondApp());
+    await tester.pumpWidget(const ElseplaneApp());
     await tester.pump();
 
     await tester.tap(find.byKey(const ValueKey('toolbar-text')));
@@ -1391,7 +1391,7 @@ void main() {
   testWidgets('resizing a selected widget clears the rest of the selection', (
     tester,
   ) async {
-    await tester.pumpWidget(const BeyondApp());
+    await tester.pumpWidget(const ElseplaneApp());
     await tester.pump();
 
     await tester.tap(find.byKey(const ValueKey('toolbar-text')));
@@ -1439,7 +1439,7 @@ void main() {
   testWidgets('dragging an unselected child clears selection and moves alone', (
     tester,
   ) async {
-    await tester.pumpWidget(const BeyondApp());
+    await tester.pumpWidget(const ElseplaneApp());
     await tester.pump();
 
     await tester.tap(find.byKey(const ValueKey('toolbar-text')));
@@ -1488,7 +1488,7 @@ void main() {
   testWidgets('drag marquee selects overlaps and ctrl toggles hits', (
     tester,
   ) async {
-    await tester.pumpWidget(const BeyondApp());
+    await tester.pumpWidget(const ElseplaneApp());
     await tester.pump();
 
     await tester.tap(find.byKey(const ValueKey('toolbar-text')));
@@ -1573,7 +1573,7 @@ void main() {
   testWidgets('marquee uses rotated bounds after pointer drag threshold', (
     tester,
   ) async {
-    await tester.pumpWidget(const BeyondApp());
+    await tester.pumpWidget(const ElseplaneApp());
     await tester.pump();
     await _placeCodeBlock(tester, const Offset(200, 200));
 
@@ -1615,7 +1615,7 @@ void main() {
   });
 
   testWidgets('right and middle drag pan over block controls', (tester) async {
-    await tester.pumpWidget(const BeyondApp());
+    await tester.pumpWidget(const ElseplaneApp());
     await tester.pump();
     await _placeCodeBlock(tester, const Offset(120, 140));
 
@@ -1663,7 +1663,7 @@ void main() {
   testWidgets('right drag pans instead of drawing in Draw mode', (
     tester,
   ) async {
-    await tester.pumpWidget(const BeyondApp());
+    await tester.pumpWidget(const ElseplaneApp());
     await tester.pump();
     await tester.tap(find.byKey(const ValueKey('toolbar-draw')));
     await tester.pump();
@@ -1685,7 +1685,7 @@ void main() {
   testWidgets('space temporarily hands dragging back to the canvas', (
     tester,
   ) async {
-    await tester.pumpWidget(const BeyondApp());
+    await tester.pumpWidget(const ElseplaneApp());
     await tester.pump();
     await tester.tap(find.byKey(const ValueKey('toolbar-draw')));
     await tester.pump();
@@ -1770,7 +1770,7 @@ void main() {
       CanvasDocumentStore.libraryKey,
       jsonEncode(CanvasLibrary.initial(document).toJson()),
     );
-    await tester.pumpWidget(const BeyondApp());
+    await tester.pumpWidget(const ElseplaneApp());
     await tester.pump();
     await tester.pump();
 

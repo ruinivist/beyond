@@ -3,8 +3,8 @@
 
 import 'dart:convert';
 
-import 'package:beyond/canvas/document/canvas_document.dart';
-import 'package:beyond/canvas/persistence/canvas_library.dart';
+import 'package:elseplane/canvas/document/canvas_document.dart';
+import 'package:elseplane/canvas/persistence/canvas_library.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 // ---------- Persistence ----------
@@ -12,7 +12,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 class CanvasDocumentStore {
   // ---------- Constants ----------
 
-  static const libraryKey = 'beyond.canvas.library.v1';
+  static const libraryKey = 'elseplane.canvas.library.v1';
 
   // ---------- State ----------
 

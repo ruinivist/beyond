@@ -3,14 +3,14 @@
 
 import 'dart:math' as math;
 
-import 'package:beyond/canvas/document/canvas_document.dart';
-import 'package:beyond/canvas/editor/canvas_element_model.dart';
-import 'package:beyond/canvas/editor/widgets/pointer_scroll_boundary.dart';
-import 'package:beyond/canvas/editor/widgets/resize_handle.dart';
-import 'package:beyond/canvas/tools/code/code_language.dart';
-import 'package:beyond/theme/theme.dart';
-import 'package:beyond/ui/common/labeled_switch.dart';
-import 'package:beyond/ui/common/select.dart';
+import 'package:elseplane/canvas/document/canvas_document.dart';
+import 'package:elseplane/canvas/editor/canvas_element_model.dart';
+import 'package:elseplane/canvas/editor/widgets/pointer_scroll_boundary.dart';
+import 'package:elseplane/canvas/editor/widgets/resize_handle.dart';
+import 'package:elseplane/canvas/tools/code/code_language.dart';
+import 'package:elseplane/theme/theme.dart';
+import 'package:elseplane/ui/common/labeled_switch.dart';
+import 'package:elseplane/ui/common/select.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:re_editor/re_editor.dart';

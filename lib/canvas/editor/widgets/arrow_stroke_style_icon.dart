@@ -1,8 +1,8 @@
 // Renders the solid and dashed arrow-style option icons.
 // Used by the arrow settings panel.
 
-import 'package:beyond/canvas/document/canvas_document.dart';
-import 'package:beyond/theme/theme.dart';
+import 'package:elseplane/canvas/document/canvas_document.dart';
+import 'package:elseplane/theme/theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 

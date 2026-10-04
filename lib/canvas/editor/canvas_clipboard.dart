@@ -5,15 +5,15 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
 
-import 'package:beyond/canvas/document/canvas_document.dart';
-import 'package:beyond/canvas/persistence/attachments/store.dart';
+import 'package:elseplane/canvas/document/canvas_document.dart';
+import 'package:elseplane/canvas/persistence/attachments/store.dart';
 import 'package:super_clipboard/super_clipboard.dart';
 
 // ---------- Clipboard format ----------
 
-const _format = 'beyond-canvas-clipboard';
+const _format = 'elseplane-canvas-clipboard';
 final _formatMarker = RegExp(
-  r'"format"\s*:\s*"beyond-canvas-clipboard"',
+  r'"format"\s*:\s*"elseplane-canvas-clipboard"',
 );
 
 const canvasClipboardVersion = 2;
@@ -64,7 +64,7 @@ List<CanvasElementData>? decodeCanvasClipboard(String text) {
     decoded = jsonDecode(text);
   } on FormatException {
     if (_formatMarker.hasMatch(text)) {
-      throw const FormatException('Malformed Beyond clipboard payload');
+      throw const FormatException('Malformed elseplane clipboard payload');
     }
     return null;
   }
@@ -74,7 +74,7 @@ List<CanvasElementData>? decodeCanvasClipboard(String text) {
       ) ||
       decoded['version'] != canvasClipboardVersion ||
       decoded['elements'] is! List) {
-    throw const FormatException('Malformed Beyond clipboard payload');
+    throw const FormatException('Malformed elseplane clipboard payload');
   }
   final elements = (decoded['elements'] as List).map(CanvasElementData.fromJson).toList();
   if (elements.isEmpty) {

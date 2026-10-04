@@ -1,15 +1,15 @@
 // Verifies shape creation, editing, rendering, and toolbar behavior.
 // Exercises the shape tool through model and canvas widget flows.
 
-import 'package:beyond/canvas/document/canvas_document.dart';
-import 'package:beyond/canvas/editor/canvas_background.dart';
-import 'package:beyond/canvas/editor/widgets/toolbar_button.dart';
-import 'package:beyond/canvas/tools/arrow/arrow_tool.dart';
-import 'package:beyond/canvas/tools/shape/shape_tool.dart';
-import 'package:beyond/theme/preset_colors.dart';
-import 'package:beyond/theme/starless.dart';
-import 'package:beyond/ui/common/color_picker.dart';
-import 'package:beyond/ui/common/discrete_slider.dart';
+import 'package:elseplane/canvas/document/canvas_document.dart';
+import 'package:elseplane/canvas/editor/canvas_background.dart';
+import 'package:elseplane/canvas/editor/widgets/toolbar_button.dart';
+import 'package:elseplane/canvas/tools/arrow/arrow_tool.dart';
+import 'package:elseplane/canvas/tools/shape/shape_tool.dart';
+import 'package:elseplane/theme/preset_colors.dart';
+import 'package:elseplane/theme/starless.dart';
+import 'package:elseplane/ui/common/color_picker.dart';
+import 'package:elseplane/ui/common/discrete_slider.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';

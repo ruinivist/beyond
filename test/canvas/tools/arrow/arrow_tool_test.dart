@@ -1,12 +1,12 @@
 // Verifies arrow creation, editing, rendering, and toolbar behavior.
 // Exercises the arrow tool through model and canvas widget flows.
 
-import 'package:beyond/canvas/document/canvas_document.dart';
-import 'package:beyond/canvas/editor/canvas_background.dart';
-import 'package:beyond/canvas/editor/widgets/toolbar_button.dart';
-import 'package:beyond/canvas/persistence/canvas_document_store.dart';
-import 'package:beyond/canvas/tools/arrow/arrow_tool.dart';
-import 'package:beyond/theme/preset_colors.dart';
+import 'package:elseplane/canvas/document/canvas_document.dart';
+import 'package:elseplane/canvas/editor/canvas_background.dart';
+import 'package:elseplane/canvas/editor/widgets/toolbar_button.dart';
+import 'package:elseplane/canvas/persistence/canvas_document_store.dart';
+import 'package:elseplane/canvas/tools/arrow/arrow_tool.dart';
+import 'package:elseplane/theme/preset_colors.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -401,7 +401,7 @@ void main() {
   testWidgets('arrows place once, select by click and marquee, and move', (
     tester,
   ) async {
-    await pumpBeyondApp(tester);
+    await pumpElseplaneApp(tester);
 
     await tester.tap(find.byKey(const ValueKey('toolbar-arrow')));
     await tester.pumpAndSettle();

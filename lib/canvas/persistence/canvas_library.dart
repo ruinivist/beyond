@@ -1,8 +1,8 @@
 // Defines the browser's named canvases and folder hierarchy.
 // Used by canvas persistence and the file picker.
 
-import 'package:beyond/canvas/document/canvas_document.dart';
-import 'package:beyond/canvas/editor/canvas_background.dart';
+import 'package:elseplane/canvas/document/canvas_document.dart';
+import 'package:elseplane/canvas/editor/canvas_background.dart';
 import 'package:uuid/uuid.dart';
 
 // ---------- Entries ----------

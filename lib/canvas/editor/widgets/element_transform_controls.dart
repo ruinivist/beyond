@@ -3,8 +3,8 @@
 
 import 'dart:math' as math;
 
-import 'package:beyond/theme/theme.dart';
-import 'package:beyond/ui/common/icon_drag.dart';
+import 'package:elseplane/theme/theme.dart';
+import 'package:elseplane/ui/common/icon_drag.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 

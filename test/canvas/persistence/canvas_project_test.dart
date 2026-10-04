@@ -4,11 +4,11 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
-import 'package:beyond/canvas/document/canvas_document.dart';
-import 'package:beyond/canvas/editor/canvas_background.dart';
-import 'package:beyond/canvas/persistence/attachments/store.dart';
-import 'package:beyond/canvas/persistence/canvas_project.dart';
-import 'package:beyond/canvas/tools/code/code_language.dart';
+import 'package:elseplane/canvas/document/canvas_document.dart';
+import 'package:elseplane/canvas/editor/canvas_background.dart';
+import 'package:elseplane/canvas/persistence/attachments/store.dart';
+import 'package:elseplane/canvas/persistence/canvas_project.dart';
+import 'package:elseplane/canvas/tools/code/code_language.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -231,7 +231,7 @@ MediaElementData _media(String url) => MediaElementData(
 );
 
 Map<String, Object?> _validProjectJson() => {
-  'format': 'beyond-canvas',
+  'format': 'elseplane-canvas',
   'document': _document(markdown: '').toJson(),
   'attachments': <String, Object?>{},
 };

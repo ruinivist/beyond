@@ -5,10 +5,10 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:archive/archive.dart';
-import 'package:beyond/canvas/document/canvas_document.dart';
-import 'package:beyond/canvas/persistence/attachments/store.dart';
-import 'package:beyond/canvas/persistence/canvas_library.dart';
-import 'package:beyond/canvas/persistence/canvas_project.dart';
+import 'package:elseplane/canvas/document/canvas_document.dart';
+import 'package:elseplane/canvas/persistence/attachments/store.dart';
+import 'package:elseplane/canvas/persistence/canvas_library.dart';
+import 'package:elseplane/canvas/persistence/canvas_project.dart';
 import 'package:uuid/uuid.dart';
 
 // ---------- Models ----------

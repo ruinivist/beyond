@@ -1,10 +1,10 @@
 // Previews the canvas file-tree popup with temporary interactive data.
 // Used by Flutter widget previews for isolated tree layout and disclosure.
 
-import 'package:beyond/canvas/editor/widgets/file_tree_popup.dart';
-import 'package:beyond/canvas/persistence/canvas_library.dart';
-import 'package:beyond/theme/theme.dart';
-import 'package:beyond/ui/previews/theme_preview.dart';
+import 'package:elseplane/canvas/editor/widgets/file_tree_popup.dart';
+import 'package:elseplane/canvas/persistence/canvas_library.dart';
+import 'package:elseplane/theme/theme.dart';
+import 'package:elseplane/ui/previews/theme_preview.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/widget_previews.dart';
 

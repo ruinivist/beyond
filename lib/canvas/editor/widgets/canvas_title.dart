@@ -1,7 +1,7 @@
 // Provides the canvas name with a hover-revealed breadcrumb path.
 // Used by the canvas editor UI and its isolated component preview.
 
-import 'package:beyond/theme/theme.dart';
+import 'package:elseplane/theme/theme.dart';
 import 'package:flutter/material.dart';
 
 // ---------- Canvas title ----------

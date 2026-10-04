@@ -5,39 +5,39 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:math' as math;
 
-import 'package:beyond/canvas/document/canvas_document.dart';
-import 'package:beyond/canvas/editor/browser_touch_observer.dart'
-    if (dart.library.js_interop) 'package:beyond/canvas/editor/browser_touch_observer_web.dart';
-import 'package:beyond/canvas/editor/canvas_background.dart';
-import 'package:beyond/canvas/editor/canvas_clipboard.dart';
-import 'package:beyond/canvas/editor/canvas_element_model.dart';
-import 'package:beyond/canvas/editor/widgets/arrow_stroke_style_icon.dart';
-import 'package:beyond/canvas/editor/widgets/canvas_chrome.dart';
-import 'package:beyond/canvas/editor/widgets/canvas_file_picker.dart';
-import 'package:beyond/canvas/editor/widgets/canvas_title.dart';
-import 'package:beyond/canvas/editor/widgets/canvas_toolbar.dart';
-import 'package:beyond/canvas/editor/widgets/element_transform_controls.dart';
-import 'package:beyond/canvas/editor/widgets/toolbar_button.dart';
-import 'package:beyond/canvas/editor/widgets/zoom_control.dart';
-import 'package:beyond/canvas/persistence/attachments/store.dart';
-import 'package:beyond/canvas/persistence/canvas_document_store.dart';
-import 'package:beyond/canvas/persistence/canvas_library.dart';
-import 'package:beyond/canvas/persistence/canvas_library_archive.dart';
-import 'package:beyond/canvas/persistence/canvas_project.dart';
-import 'package:beyond/canvas/persistence/canvas_project_files.dart';
-import 'package:beyond/canvas/tools/arrow/arrow_tool.dart';
-import 'package:beyond/canvas/tools/code/code_tool.dart';
-import 'package:beyond/canvas/tools/media/media_tool.dart';
-import 'package:beyond/canvas/tools/pen/pen_tool.dart';
-import 'package:beyond/canvas/tools/shape/shape_tool.dart';
-import 'package:beyond/canvas/tools/text/text_tool.dart';
-import 'package:beyond/settings/settings_dialog.dart';
-import 'package:beyond/theme/preset_colors.dart';
-import 'package:beyond/theme/theme.dart';
-import 'package:beyond/ui/common/color_picker.dart';
-import 'package:beyond/ui/common/context_menu.dart';
-import 'package:beyond/ui/common/discrete_slider.dart';
-import 'package:beyond/ui/common/surface.dart';
+import 'package:elseplane/canvas/document/canvas_document.dart';
+import 'package:elseplane/canvas/editor/browser_touch_observer.dart'
+    if (dart.library.js_interop) 'package:elseplane/canvas/editor/browser_touch_observer_web.dart';
+import 'package:elseplane/canvas/editor/canvas_background.dart';
+import 'package:elseplane/canvas/editor/canvas_clipboard.dart';
+import 'package:elseplane/canvas/editor/canvas_element_model.dart';
+import 'package:elseplane/canvas/editor/widgets/arrow_stroke_style_icon.dart';
+import 'package:elseplane/canvas/editor/widgets/canvas_chrome.dart';
+import 'package:elseplane/canvas/editor/widgets/canvas_file_picker.dart';
+import 'package:elseplane/canvas/editor/widgets/canvas_title.dart';
+import 'package:elseplane/canvas/editor/widgets/canvas_toolbar.dart';
+import 'package:elseplane/canvas/editor/widgets/element_transform_controls.dart';
+import 'package:elseplane/canvas/editor/widgets/toolbar_button.dart';
+import 'package:elseplane/canvas/editor/widgets/zoom_control.dart';
+import 'package:elseplane/canvas/persistence/attachments/store.dart';
+import 'package:elseplane/canvas/persistence/canvas_document_store.dart';
+import 'package:elseplane/canvas/persistence/canvas_library.dart';
+import 'package:elseplane/canvas/persistence/canvas_library_archive.dart';
+import 'package:elseplane/canvas/persistence/canvas_project.dart';
+import 'package:elseplane/canvas/persistence/canvas_project_files.dart';
+import 'package:elseplane/canvas/tools/arrow/arrow_tool.dart';
+import 'package:elseplane/canvas/tools/code/code_tool.dart';
+import 'package:elseplane/canvas/tools/media/media_tool.dart';
+import 'package:elseplane/canvas/tools/pen/pen_tool.dart';
+import 'package:elseplane/canvas/tools/shape/shape_tool.dart';
+import 'package:elseplane/canvas/tools/text/text_tool.dart';
+import 'package:elseplane/settings/settings_dialog.dart';
+import 'package:elseplane/theme/preset_colors.dart';
+import 'package:elseplane/theme/theme.dart';
+import 'package:elseplane/ui/common/color_picker.dart';
+import 'package:elseplane/ui/common/context_menu.dart';
+import 'package:elseplane/ui/common/discrete_slider.dart';
+import 'package:elseplane/ui/common/surface.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
@@ -1851,7 +1851,7 @@ class _CanvasPageState extends State<CanvasPage> {
     try {
       final snapshot = _currentDocument();
       final bytes = await encodeCanvasProject(snapshot, _attachmentStore);
-      if (await _projectFiles.save(bytes, suggestedName: 'canvas.beyond.json', mimeType: 'application/json')) {
+      if (await _projectFiles.save(bytes, suggestedName: 'canvas.elseplane.json', mimeType: 'application/json')) {
         _showProjectSnackBar('Canvas exported');
       }
     } on Object {
@@ -1870,7 +1870,7 @@ class _CanvasPageState extends State<CanvasPage> {
       final library = _documentStore.library;
       final snapshot = library.replace(library.current.copyWith(document: _currentDocument()));
       final bytes = await encodeCanvasLibraryArchive(snapshot, _attachmentStore);
-      if (await _projectFiles.save(bytes, suggestedName: 'library.beyond.zip', mimeType: 'application/zip')) {
+      if (await _projectFiles.save(bytes, suggestedName: 'library.elseplane.zip', mimeType: 'application/zip')) {
         _showProjectSnackBar('Library backed up');
       }
     } on FormatException catch (error) {

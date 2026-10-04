@@ -3,9 +3,9 @@
 
 import 'dart:math' as math;
 
-import 'package:beyond/canvas/editor/widgets/toolbar_button.dart';
-import 'package:beyond/theme/sizes.dart';
-import 'package:beyond/ui/common/surface.dart';
+import 'package:elseplane/canvas/editor/widgets/toolbar_button.dart';
+import 'package:elseplane/theme/sizes.dart';
+import 'package:elseplane/ui/common/surface.dart';
 import 'package:flutter/material.dart';
 
 // ---------- Canvas toolbar ----------

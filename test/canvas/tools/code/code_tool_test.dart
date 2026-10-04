@@ -1,9 +1,9 @@
 // Verifies inactive code blocks distinguish caret clicks from movement drags.
 // Exercises CodeTool directly without the canvas persistence boundary.
 
-import 'package:beyond/canvas/document/canvas_document.dart';
-import 'package:beyond/canvas/tools/code/code_tool.dart';
-import 'package:beyond/theme/starless.dart';
+import 'package:elseplane/canvas/document/canvas_document.dart';
+import 'package:elseplane/canvas/tools/code/code_tool.dart';
+import 'package:elseplane/theme/starless.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';

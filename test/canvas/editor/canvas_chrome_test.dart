@@ -1,12 +1,12 @@
 // Verifies responsive controls against the original toolbar's geometry.
 // Exercises title anchoring, wrapping, and pointer access in canvas chrome.
 
-import 'package:beyond/canvas/editor/widgets/canvas_chrome.dart';
-import 'package:beyond/canvas/editor/widgets/canvas_title.dart';
-import 'package:beyond/canvas/editor/widgets/canvas_toolbar.dart';
-import 'package:beyond/canvas/editor/widgets/toolbar_button.dart';
-import 'package:beyond/theme/starless.dart';
-import 'package:beyond/ui/common/surface.dart';
+import 'package:elseplane/canvas/editor/widgets/canvas_chrome.dart';
+import 'package:elseplane/canvas/editor/widgets/canvas_title.dart';
+import 'package:elseplane/canvas/editor/widgets/canvas_toolbar.dart';
+import 'package:elseplane/canvas/editor/widgets/toolbar_button.dart';
+import 'package:elseplane/theme/starless.dart';
+import 'package:elseplane/ui/common/surface.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';

@@ -1,7 +1,7 @@
-// Provides Beyond's themed surface container.
+// Provides elseplane's themed surface container.
 // Used by canvas editors, floating controls, and tool option panels.
 
-import 'package:beyond/theme/theme.dart';
+import 'package:elseplane/theme/theme.dart';
 import 'package:flutter/material.dart';
 
 // ---------- Widgets ----------

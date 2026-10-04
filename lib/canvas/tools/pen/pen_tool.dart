@@ -1,9 +1,9 @@
 // Provides freehand stroke sampling, geometry, rendering, and editing state.
 // Used by the canvas pen tool and persisted pen elements.
 
-import 'package:beyond/canvas/document/canvas_document.dart';
-import 'package:beyond/canvas/editor/canvas_element_model.dart';
-import 'package:beyond/theme/theme.dart';
+import 'package:elseplane/canvas/document/canvas_document.dart';
+import 'package:elseplane/canvas/editor/canvas_element_model.dart';
+import 'package:elseplane/theme/theme.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:perfect_freehand/perfect_freehand.dart' as pf;

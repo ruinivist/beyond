@@ -1,11 +1,11 @@
 // Renders the settings panel for the canvas text tool.
 // Used by the editor's tool-options overlay for the active text element.
 
-import 'package:beyond/canvas/document/canvas_document.dart';
-import 'package:beyond/canvas/tools/text/text_block_model.dart';
-import 'package:beyond/theme/theme.dart';
-import 'package:beyond/ui/common/color_picker.dart';
-import 'package:beyond/ui/common/select.dart';
+import 'package:elseplane/canvas/document/canvas_document.dart';
+import 'package:elseplane/canvas/tools/text/text_block_model.dart';
+import 'package:elseplane/theme/theme.dart';
+import 'package:elseplane/ui/common/color_picker.dart';
+import 'package:elseplane/ui/common/select.dart';
 import 'package:flutter/material.dart';
 
 // ---------- Font options ----------

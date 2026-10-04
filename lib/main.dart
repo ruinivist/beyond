@@ -1,11 +1,11 @@
-// Boots the Beyond application and owns its root theme state.
+// Boots the elseplane application and owns its root theme state.
 // Used as the Flutter entry point for the canvas editor.
 
-import 'package:beyond/canvas/editor/canvas_page.dart';
-import 'package:beyond/canvas/persistence/attachments/store.dart';
-import 'package:beyond/canvas/persistence/canvas_document_store.dart';
-import 'package:beyond/canvas/persistence/canvas_project_files.dart';
-import 'package:beyond/theme/starless.dart';
+import 'package:elseplane/canvas/editor/canvas_page.dart';
+import 'package:elseplane/canvas/persistence/attachments/store.dart';
+import 'package:elseplane/canvas/persistence/canvas_document_store.dart';
+import 'package:elseplane/canvas/persistence/canvas_project_files.dart';
+import 'package:elseplane/theme/starless.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -13,7 +13,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 // ---------- Theme preference ----------
 
-const themePreferenceKey = 'beyond.theme.mode';
+const themePreferenceKey = 'elseplane.theme.mode';
 
 Future<ThemeMode> loadThemeMode(SharedPreferencesAsync preferences) async {
   try {
@@ -31,15 +31,15 @@ Future<void> main() async {
   // TODO(dev): bundle it instead of fetching fonts at runtime.
   await loadFonts();
   final preferences = SharedPreferencesAsync();
-  runApp(BeyondApp(initialThemeMode: await loadThemeMode(preferences), preferences: preferences));
+  runApp(ElseplaneApp(initialThemeMode: await loadThemeMode(preferences), preferences: preferences));
 }
 
 // ---------- Root application ----------
 
 /// Hosts the canvas editor under the application theme.
 /// Used as the root widget created by the application bootstrap.
-class BeyondApp extends StatefulWidget {
-  const BeyondApp({
+class ElseplaneApp extends StatefulWidget {
+  const ElseplaneApp({
     this.initialThemeMode = ThemeMode.light,
     this.preferences,
     this.attachmentStore,
@@ -55,10 +55,10 @@ class BeyondApp extends StatefulWidget {
   final CanvasProjectFiles? projectFiles;
 
   @override
-  State<BeyondApp> createState() => _BeyondAppState();
+  State<ElseplaneApp> createState() => _ElseplaneAppState();
 }
 
-class _BeyondAppState extends State<BeyondApp> {
+class _ElseplaneAppState extends State<ElseplaneApp> {
   // ---------- State and persistence ----------
 
   late ThemeMode _themeMode = widget.initialThemeMode;
@@ -77,6 +77,7 @@ class _BeyondAppState extends State<BeyondApp> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      title: 'elseplane',
       debugShowCheckedModeBanner: false,
       theme: starlessLightThemeData,
       darkTheme: starlessDarkThemeData,

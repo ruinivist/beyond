@@ -4,9 +4,9 @@
 import 'dart:math' as math;
 import 'dart:typed_data';
 
-import 'package:beyond/canvas/document/canvas_document.dart';
-import 'package:beyond/canvas/editor/canvas_element_model.dart';
-import 'package:beyond/canvas/persistence/attachments/store.dart';
+import 'package:elseplane/canvas/document/canvas_document.dart';
+import 'package:elseplane/canvas/editor/canvas_element_model.dart';
+import 'package:elseplane/canvas/persistence/attachments/store.dart';
 import 'package:flutter/material.dart';
 import 'package:scroll_animator/scroll_animator.dart';
 import 'package:uuid/uuid.dart';

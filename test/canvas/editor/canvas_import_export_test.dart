@@ -4,17 +4,17 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:beyond/canvas/document/canvas_document.dart';
-import 'package:beyond/canvas/editor/canvas_background.dart';
-import 'package:beyond/canvas/persistence/canvas_library.dart';
-import 'package:beyond/canvas/persistence/canvas_library_archive.dart';
-import 'package:beyond/canvas/persistence/canvas_project.dart';
-import 'package:beyond/canvas/persistence/canvas_project_files.dart';
-import 'package:beyond/canvas/tools/arrow/arrow_tool.dart';
-import 'package:beyond/canvas/tools/code/code_tool.dart';
-import 'package:beyond/canvas/tools/pen/pen_tool.dart';
-import 'package:beyond/canvas/tools/text/text_tool.dart';
-import 'package:beyond/ui/common/select.dart';
+import 'package:elseplane/canvas/document/canvas_document.dart';
+import 'package:elseplane/canvas/editor/canvas_background.dart';
+import 'package:elseplane/canvas/persistence/canvas_library.dart';
+import 'package:elseplane/canvas/persistence/canvas_library_archive.dart';
+import 'package:elseplane/canvas/persistence/canvas_project.dart';
+import 'package:elseplane/canvas/persistence/canvas_project_files.dart';
+import 'package:elseplane/canvas/tools/arrow/arrow_tool.dart';
+import 'package:elseplane/canvas/tools/code/code_tool.dart';
+import 'package:elseplane/canvas/tools/pen/pen_tool.dart';
+import 'package:elseplane/canvas/tools/text/text_tool.dart';
+import 'package:elseplane/ui/common/select.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -34,7 +34,7 @@ void main() {
     final attachments = _FakeAttachmentStore({_path0: onePixelPngBytes});
     final files = _FakeProjectFiles();
 
-    await pumpBeyondApp(
+    await pumpElseplaneApp(
       tester,
       documentStore: documentStore,
       attachmentStore: attachments,
@@ -46,7 +46,7 @@ void main() {
 
     expect(files.saved, isNotNull);
     final root = jsonDecode(utf8.decode(files.saved!)) as Map<String, dynamic>;
-    expect(root['format'], 'beyond-canvas');
+    expect(root['format'], 'elseplane-canvas');
     expect(root['document'], document.toJson());
     expect(root['attachments'], {_path0: base64Encode(onePixelPngBytes)});
     expect(find.text('Canvas exported'), findsOneWidget);
@@ -55,7 +55,7 @@ void main() {
   testWidgets('backs up the full library including live edits', (tester) async {
     final store = _FakeDocumentStore(_document(markdown: 'before'));
     final files = _FakeProjectFiles();
-    await pumpBeyondApp(tester, documentStore: store, attachmentStore: _FakeAttachmentStore(), projectFiles: files);
+    await pumpElseplaneApp(tester, documentStore: store, attachmentStore: _FakeAttachmentStore(), projectFiles: files);
     final current = store.library.current;
     store.library = CanvasLibrary(
       currentId: current.id,
@@ -76,7 +76,7 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('library-backup-button')));
     await tester.pumpAndSettle();
 
-    expect(files.savedName, 'library.beyond.zip');
+    expect(files.savedName, 'library.elseplane.zip');
     expect(files.savedMime, 'application/zip');
     final backup = await decodeCanvasLibraryArchive(files.saved!);
     expect(backup.library.path(backup.library.files.last.id).map((file) => file.name), ['Work', 'Second']);
@@ -101,7 +101,7 @@ void main() {
     );
     final files = _FakeProjectFiles()
       ..opened = await encodeCanvasLibraryArchive(imported, _FakeAttachmentStore({_path0: _newBytes}));
-    await pumpBeyondApp(tester, documentStore: store, attachmentStore: attachments, projectFiles: files);
+    await pumpElseplaneApp(tester, documentStore: store, attachmentStore: attachments, projectFiles: files);
     final oldId = store.library.currentId;
     await _openCanvasSettings(tester);
 
@@ -137,7 +137,7 @@ void main() {
 
   testWidgets('canceled file operations are silent', (tester) async {
     final files = _FakeProjectFiles()..cancelOpen = true;
-    await pumpBeyondApp(
+    await pumpElseplaneApp(
       tester,
       documentStore: _FakeDocumentStore(_document(markdown: '')),
       attachmentStore: _FakeAttachmentStore(),
@@ -163,7 +163,7 @@ void main() {
     final store = _FakeDocumentStore(_document(markdown: 'original'));
     final files = _FakeProjectFiles()
       ..opened = await encodeCanvasProject(_document(markdown: 'replacement'), _FakeAttachmentStore());
-    await pumpBeyondApp(tester, documentStore: store, attachmentStore: _FakeAttachmentStore(), projectFiles: files);
+    await pumpElseplaneApp(tester, documentStore: store, attachmentStore: _FakeAttachmentStore(), projectFiles: files);
     await _openCanvasSettings(tester);
     await tester.tap(find.byKey(const ValueKey('canvas-import-button')));
     await tester.pumpAndSettle();
@@ -191,7 +191,7 @@ void main() {
         _FakeAttachmentStore({_path0: _newBytes}),
       );
 
-    await pumpBeyondApp(
+    await pumpElseplaneApp(
       tester,
       documentStore: documentStore,
       attachmentStore: attachments,
@@ -240,7 +240,7 @@ void main() {
     );
 
     documentStore.initial = documentStore.persisted;
-    await pumpBeyondApp(
+    await pumpElseplaneApp(
       tester,
       documentStore: documentStore,
       attachmentStore: attachments,
@@ -274,7 +274,7 @@ void main() {
           _FakeAttachmentStore({_path0: _newBytes}),
         );
 
-      await pumpBeyondApp(
+      await pumpElseplaneApp(
         tester,
         documentStore: documentStore,
         attachmentStore: attachments,
@@ -339,7 +339,7 @@ void main() {
           _FakeAttachmentStore(),
         );
 
-      await pumpBeyondApp(
+      await pumpElseplaneApp(
         tester,
         documentStore: documentStore,
         attachmentStore: attachments,
@@ -367,7 +367,7 @@ void main() {
       expect(documentStore.persisted, isNotNull);
 
       documentStore.initial = documentStore.persisted;
-      await pumpBeyondApp(
+      await pumpElseplaneApp(
         tester,
         documentStore: documentStore,
         attachmentStore: attachments,
@@ -396,7 +396,7 @@ void main() {
         _FakeAttachmentStore({_path0: _newBytes}),
       );
 
-    await pumpBeyondApp(
+    await pumpElseplaneApp(
       tester,
       documentStore: documentStore,
       attachmentStore: attachments,
@@ -435,7 +435,7 @@ void main() {
     tester,
   ) async {
     final files = _FakeProjectFiles()..opened = Uint8List.fromList(utf8.encode('{"format":"wrong"}'));
-    await pumpBeyondApp(
+    await pumpElseplaneApp(
       tester,
       documentStore: _FakeDocumentStore(_document(markdown: 'unchanged')),
       attachmentStore: _FakeAttachmentStore(),

@@ -3,18 +3,18 @@
 
 import 'dart:async';
 
-import 'package:beyond/canvas/document/canvas_document.dart';
-import 'package:beyond/canvas/editor/canvas_background.dart';
-import 'package:beyond/canvas/editor/canvas_clipboard.dart';
-import 'package:beyond/canvas/editor/canvas_element_model.dart';
-import 'package:beyond/canvas/editor/widgets/canvas_title.dart';
-import 'package:beyond/canvas/persistence/attachments/store.dart';
-import 'package:beyond/canvas/tools/arrow/arrow_tool.dart';
-import 'package:beyond/canvas/tools/code/code_tool.dart';
-import 'package:beyond/canvas/tools/media/media_tool.dart';
-import 'package:beyond/canvas/tools/pen/pen_tool.dart';
-import 'package:beyond/canvas/tools/shape/shape_tool.dart';
-import 'package:beyond/canvas/tools/text/text_tool.dart';
+import 'package:elseplane/canvas/document/canvas_document.dart';
+import 'package:elseplane/canvas/editor/canvas_background.dart';
+import 'package:elseplane/canvas/editor/canvas_clipboard.dart';
+import 'package:elseplane/canvas/editor/canvas_element_model.dart';
+import 'package:elseplane/canvas/editor/widgets/canvas_title.dart';
+import 'package:elseplane/canvas/persistence/attachments/store.dart';
+import 'package:elseplane/canvas/tools/arrow/arrow_tool.dart';
+import 'package:elseplane/canvas/tools/code/code_tool.dart';
+import 'package:elseplane/canvas/tools/media/media_tool.dart';
+import 'package:elseplane/canvas/tools/pen/pen_tool.dart';
+import 'package:elseplane/canvas/tools/shape/shape_tool.dart';
+import 'package:elseplane/canvas/tools/text/text_tool.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -42,13 +42,13 @@ void main() {
       expect(decodeCanvasClipboard('ordinary clipboard text'), isNull);
       expect(
         () => decodeCanvasClipboard(
-          '{"format":"beyond-canvas-clipboard","version":1}',
+          '{"format":"elseplane-canvas-clipboard","version":1}',
         ),
         throwsFormatException,
       );
       expect(
         () => decodeCanvasClipboard(
-          '{"format":"beyond-canvas-clipboard",',
+          '{"format":"elseplane-canvas-clipboard",',
         ),
         throwsFormatException,
       );

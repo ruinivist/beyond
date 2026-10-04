@@ -3,8 +3,8 @@
 
 import 'dart:async';
 
-import 'package:beyond/settings/settings_dialog.dart';
-import 'package:beyond/theme/starless.dart';
+import 'package:elseplane/settings/settings_dialog.dart';
+import 'package:elseplane/theme/starless.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 

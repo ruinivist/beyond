@@ -1,11 +1,11 @@
 {
-    "name": "beyond",
-    "short_name": "beyond",
+    "name": "elseplane",
+    "short_name": "elseplane",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
     "theme_color": "#0175C2",
-    "description": "beyond",
+    "description": "Infinite canvas with first-class support for code and Markdown.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

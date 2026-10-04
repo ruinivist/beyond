@@ -1,7 +1,7 @@
-// Provides Beyond's themed context menu and action model.
+// Provides elseplane's themed context menu and action model.
 // Used by interactive surfaces that expose grouped pointer actions.
 
-import 'package:beyond/theme/theme.dart';
+import 'package:elseplane/theme/theme.dart';
 import 'package:flutter/material.dart';
 
 // ---------- Models ----------

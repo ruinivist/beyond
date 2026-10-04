@@ -3,8 +3,8 @@
 
 import 'dart:ui';
 
-import 'package:beyond/canvas/editor/canvas_background.dart';
-import 'package:beyond/canvas/tools/code/code_language.dart';
+import 'package:elseplane/canvas/editor/canvas_background.dart';
+import 'package:elseplane/canvas/tools/code/code_language.dart';
 import 'package:json_annotation/json_annotation.dart';
 
 part 'canvas_document.g.dart';

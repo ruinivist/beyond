@@ -1,14 +1,14 @@
 // Checks file creation, naming, switching, and persistence failure behavior.
 // Exercises the file picker through the canvas title and browser-backed UI.
 
-import 'package:beyond/canvas/document/canvas_document.dart';
-import 'package:beyond/canvas/editor/canvas_background.dart';
-import 'package:beyond/canvas/editor/widgets/canvas_file_picker.dart';
-import 'package:beyond/canvas/editor/widgets/canvas_title.dart';
-import 'package:beyond/canvas/editor/widgets/file_tree_popup.dart';
-import 'package:beyond/canvas/persistence/canvas_library.dart';
-import 'package:beyond/canvas/tools/text/text_tool.dart';
-import 'package:beyond/theme/starless.dart';
+import 'package:elseplane/canvas/document/canvas_document.dart';
+import 'package:elseplane/canvas/editor/canvas_background.dart';
+import 'package:elseplane/canvas/editor/widgets/canvas_file_picker.dart';
+import 'package:elseplane/canvas/editor/widgets/canvas_title.dart';
+import 'package:elseplane/canvas/editor/widgets/file_tree_popup.dart';
+import 'package:elseplane/canvas/persistence/canvas_library.dart';
+import 'package:elseplane/canvas/tools/text/text_tool.dart';
+import 'package:elseplane/theme/starless.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';

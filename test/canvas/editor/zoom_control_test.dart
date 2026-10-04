@@ -1,8 +1,8 @@
 // Verifies the canvas zoom control's reveal and scale behavior.
 // Exercises the viewport control against the real lazy canvas controller.
 
-import 'package:beyond/canvas/editor/widgets/zoom_control.dart';
-import 'package:beyond/theme/starless.dart';
+import 'package:elseplane/canvas/editor/widgets/zoom_control.dart';
+import 'package:elseplane/theme/starless.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';

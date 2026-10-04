@@ -1,8 +1,8 @@
-// Provides Beyond's raised text action.
+// Provides elseplane's raised text action.
 // Used for app-wide actions that need a text label.
 
-import 'package:beyond/theme/theme.dart';
-import 'package:beyond/ui/common/surface.dart';
+import 'package:elseplane/theme/theme.dart';
+import 'package:elseplane/ui/common/surface.dart';
 import 'package:flutter/material.dart';
 
 // ---------- Widgets ----------

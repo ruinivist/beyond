@@ -1,9 +1,9 @@
 // Verifies controlled disclosure and action routing in the file-tree popup.
 // Exercises the canvas popup independently of document persistence.
 
-import 'package:beyond/canvas/editor/widgets/file_tree_popup.dart';
-import 'package:beyond/theme/starless.dart';
-import 'package:beyond/ui/common/context_menu.dart';
+import 'package:elseplane/canvas/editor/widgets/file_tree_popup.dart';
+import 'package:elseplane/theme/starless.dart';
+import 'package:elseplane/ui/common/context_menu.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';

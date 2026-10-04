@@ -1,9 +1,9 @@
 // Provides the canvas file-tree popup and its controlled node model.
 // Used by the canvas file picker and isolated previews.
 
-import 'package:beyond/theme/theme.dart';
-import 'package:beyond/ui/common/context_menu.dart';
-import 'package:beyond/ui/common/surface.dart';
+import 'package:elseplane/theme/theme.dart';
+import 'package:elseplane/ui/common/context_menu.dart';
+import 'package:elseplane/ui/common/surface.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';

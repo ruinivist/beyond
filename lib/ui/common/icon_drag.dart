@@ -1,7 +1,7 @@
-// Provides Beyond's draggable icon control.
+// Provides elseplane's draggable icon control.
 // Used by canvas controls that start pointer transformations.
 
-import 'package:beyond/theme/sizes.dart';
+import 'package:elseplane/theme/sizes.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 

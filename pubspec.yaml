@@ -1,5 +1,5 @@
-name: beyond
-description: beyond
+name: elseplane
+description: Infinite canvas with first-class support for code and Markdown.
 publish_to: none
 version: 1.0.0+1
 

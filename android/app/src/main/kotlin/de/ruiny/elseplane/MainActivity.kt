@@ -1,4 +1,4 @@
-package de.ruiny.beyond
+package de.ruiny.elseplane
 
 import io.flutter.embedding.android.FlutterActivity
 

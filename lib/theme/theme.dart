@@ -3,11 +3,11 @@
 
 import 'package:flutter/material.dart';
 
-export 'package:beyond/theme/sizes.dart';
+export 'package:elseplane/theme/sizes.dart';
 
 // ---------- Semantic tokens ----------
 
-/// Holds semantic colors shared by Beyond components.
+/// Holds semantic colors shared by elseplane components.
 /// Supplied by concrete app themes and consumed through [BTheme].
 @immutable
 class BColors {
@@ -93,7 +93,7 @@ class BColors {
   }
 }
 
-/// Holds semantic typography roles shared by Beyond components.
+/// Holds semantic typography roles shared by elseplane components.
 /// Supplied by concrete app themes and consumed through [BTheme].
 @immutable
 class BTypo {
@@ -130,7 +130,7 @@ class BTypo {
   }
 }
 
-/// Holds reusable geometry and elevation values for Beyond components.
+/// Holds reusable geometry and elevation values for elseplane components.
 /// Supplied by concrete app themes and consumed through [BTheme].
 @immutable
 class BGeo {
@@ -164,7 +164,7 @@ class BGeo {
   }
 }
 
-/// Registers Beyond's semantic tokens as a Material theme extension.
+/// Registers elseplane's semantic tokens as a Material theme extension.
 /// Read by foundation and editor widgets from their build context.
 @immutable
 class BTheme extends ThemeExtension<BTheme> {

@@ -3,9 +3,9 @@
 
 import 'dart:math' as math;
 
-import 'package:beyond/canvas/editor/canvas_background.dart';
-import 'package:beyond/theme/theme.dart';
-import 'package:beyond/ui/common/select.dart';
+import 'package:elseplane/canvas/editor/canvas_background.dart';
+import 'package:elseplane/theme/theme.dart';
+import 'package:elseplane/ui/common/select.dart';
 import 'package:flutter/material.dart';
 
 // ---------- Dialog ----------
@@ -346,7 +346,7 @@ class _SettingsDialogState extends State<SettingsDialog> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'beyond - dev build',
+          'elseplane - dev build',
           style: theme.typo.body.copyWith(color: theme.colors.textSecondary),
         ),
       ],

@@ -1,8 +1,8 @@
-// Provides Beyond's pressable icon control.
+// Provides elseplane's pressable icon control.
 // Used by canvas controls that expose a click action.
 
-import 'package:beyond/theme/theme.dart';
-import 'package:beyond/ui/common/surface.dart';
+import 'package:elseplane/theme/theme.dart';
+import 'package:elseplane/ui/common/surface.dart';
 import 'package:flutter/material.dart';
 
 // ---------- Widgets ----------

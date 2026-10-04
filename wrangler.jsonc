@@ -1,5 +1,8 @@
 {
-  "name": "beyond",
+  "name": "elseplane",
+  "routes": [
+    { "pattern": "elseplane.ruiny.de", "custom_domain": true }
+  ],
   "compatibility_date": "2026-08-25",
   "assets": {
     "directory": "./build/web",

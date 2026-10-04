@@ -1,7 +1,7 @@
 // Defines the shared mutable model contract for canvas elements.
 // Extended by each interactive element tool and renderer.
 
-import 'package:beyond/canvas/document/canvas_document.dart';
+import 'package:elseplane/canvas/document/canvas_document.dart';
 import 'package:flutter/material.dart';
 
 // ---------- Model contract ----------

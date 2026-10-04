@@ -1,7 +1,7 @@
 // Provides the canvas toolbar's button styles and sizing.
 // Used by toolbar actions and tool option buttons.
 
-import 'package:beyond/theme/theme.dart';
+import 'package:elseplane/theme/theme.dart';
 import 'package:flutter/material.dart';
 
 // ---------- Widgets ----------

@@ -1,14 +1,14 @@
 // Verifies app-wide theme switching, storage, and failure handling.
 // Exercises settings through the root app without changing canvas content.
 
-import 'package:beyond/canvas/document/canvas_document.dart';
-import 'package:beyond/canvas/editor/canvas_background.dart';
-import 'package:beyond/canvas/editor/canvas_page.dart';
-import 'package:beyond/canvas/tools/text/text_tool.dart';
-import 'package:beyond/main.dart';
-import 'package:beyond/settings/settings_dialog.dart';
-import 'package:beyond/theme/theme.dart';
-import 'package:beyond/ui/previews/theme_preview.dart';
+import 'package:elseplane/canvas/document/canvas_document.dart';
+import 'package:elseplane/canvas/editor/canvas_background.dart';
+import 'package:elseplane/canvas/editor/canvas_page.dart';
+import 'package:elseplane/canvas/tools/text/text_tool.dart';
+import 'package:elseplane/main.dart';
+import 'package:elseplane/settings/settings_dialog.dart';
+import 'package:elseplane/theme/theme.dart';
+import 'package:elseplane/ui/previews/theme_preview.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:infinite_lazy_grid/infinite_lazy_grid.dart';
@@ -63,7 +63,7 @@ void main() {
         ],
       ),
     );
-    await tester.pumpWidget(BeyondApp(preferences: preferences, documentStore: store));
+    await tester.pumpWidget(ElseplaneApp(preferences: preferences, documentStore: store));
     await tester.pumpAndSettle();
     final canvasState = tester.state(find.byType(CanvasPage));
     final controller = tester.widget<LazyCanvas>(find.byType(LazyCanvas)).controller;
@@ -82,7 +82,7 @@ void main() {
 
     await tester.pumpWidget(const SizedBox());
     await tester.pumpWidget(
-      BeyondApp(initialThemeMode: await loadThemeMode(preferences), preferences: preferences, documentStore: store),
+      ElseplaneApp(initialThemeMode: await loadThemeMode(preferences), preferences: preferences, documentStore: store),
     );
     await tester.pumpAndSettle();
     expect(Theme.of(tester.element(find.byType(CanvasPage))).brightness, Brightness.dark);
@@ -96,7 +96,7 @@ void main() {
     var fail = true;
     final preferences = _FailingPreferences(() => fail);
     expect(await loadThemeMode(preferences), ThemeMode.light);
-    await tester.pumpWidget(BeyondApp(preferences: preferences, documentStore: TestCanvasDocumentStore()));
+    await tester.pumpWidget(ElseplaneApp(preferences: preferences, documentStore: TestCanvasDocumentStore()));
     await tester.pumpAndSettle();
     await _openAppearance(tester);
     await _selectTheme(tester, 'Dark');

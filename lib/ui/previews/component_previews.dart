@@ -1,17 +1,17 @@
 // Gives each app-wide UI component an independently discovered preview.
 // Interactive wrappers keep each preview responsible for only its own state.
 
-import 'package:beyond/theme/theme.dart';
-import 'package:beyond/ui/common/color_picker.dart';
-import 'package:beyond/ui/common/context_menu.dart';
-import 'package:beyond/ui/common/discrete_slider.dart';
-import 'package:beyond/ui/common/icon_drag.dart';
-import 'package:beyond/ui/common/labeled_switch.dart';
-import 'package:beyond/ui/common/select.dart';
-import 'package:beyond/ui/common/surface.dart';
-import 'package:beyond/ui/common/surface_icon_button.dart';
-import 'package:beyond/ui/common/surface_text_button.dart';
-import 'package:beyond/ui/previews/theme_preview.dart';
+import 'package:elseplane/theme/theme.dart';
+import 'package:elseplane/ui/common/color_picker.dart';
+import 'package:elseplane/ui/common/context_menu.dart';
+import 'package:elseplane/ui/common/discrete_slider.dart';
+import 'package:elseplane/ui/common/icon_drag.dart';
+import 'package:elseplane/ui/common/labeled_switch.dart';
+import 'package:elseplane/ui/common/select.dart';
+import 'package:elseplane/ui/common/surface.dart';
+import 'package:elseplane/ui/common/surface_icon_button.dart';
+import 'package:elseplane/ui/common/surface_text_button.dart';
+import 'package:elseplane/ui/previews/theme_preview.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widget_previews.dart';

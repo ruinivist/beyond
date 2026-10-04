@@ -1,7 +1,7 @@
-// Provides Beyond's compact labeled switch button.
+// Provides elseplane's compact labeled switch button.
 // Used by app-wide desktop settings and preference surfaces.
 
-import 'package:beyond/theme/theme.dart';
+import 'package:elseplane/theme/theme.dart';
 import 'package:flutter/material.dart';
 
 // ---------- Geometry ----------

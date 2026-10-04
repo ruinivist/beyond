@@ -1,8 +1,8 @@
 // Provides the animated surface that hosts active tool options.
 // Used by the canvas toolbar when switching editing tools.
 
-import 'package:beyond/theme/sizes.dart';
-import 'package:beyond/ui/common/surface.dart';
+import 'package:elseplane/theme/sizes.dart';
+import 'package:elseplane/ui/common/surface.dart';
 import 'package:flutter/material.dart';
 
 // ---------- Widgets ----------
