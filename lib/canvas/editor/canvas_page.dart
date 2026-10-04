@@ -119,15 +119,18 @@ class _CanvasPageState extends State<CanvasPage> {
   ({int pointer, Offset start, CanvasElementModel? model, double slop})? _secondaryClick;
   (Offset, double)? _contextMenuView;
   Offset? _contextMenuPosition;
+  bool _arrangeMenuOpen = false;
   int _documentGeneration = 0;
   final _geometryListeners = <CanvasElementModel, VoidCallback>{};
   CanvasElementModel? _activeElement;
   TextBlockModel? _editingTextBlock;
-  CanvasElementModel? _editingChromeModel;
+  final _editingChromeModel = ValueNotifier<CanvasElementModel?>(null);
   final ValueNotifier<bool> _selectionModifierPressed = ValueNotifier(false);
   final _interactiveCanvasPointerIds = <int>{};
   final _selectionBeforeWidgetPointer = <Object>{};
   final _selectionKeys = <Object, GlobalKey>{};
+  final _controlsOverlayController = OverlayPortalController();
+  final GlobalKey _controlsPortalKey = GlobalKey();
   final _selectionBeforeDrag = <Object>{};
   int? _widgetPointer;
   int? _dragSelectionPointer;
@@ -229,6 +232,7 @@ class _CanvasPageState extends State<CanvasPage> {
   @override
   void initState() {
     super.initState();
+    _controlsOverlayController.show();
     _canvasController
       ..rawPointerDownListener = _handleCanvasPointerDown
       ..rawPointerMoveListener = _handleCanvasPointerMove
@@ -303,6 +307,7 @@ class _CanvasPageState extends State<CanvasPage> {
       ..unregisterPasteEventListener(_handleWebPaste);
     _activeTool.dispose();
     _selectionModifierPressed.dispose();
+    _editingChromeModel.dispose();
     _canvasPointerPosition.dispose();
     _penTool.dispose();
     _arrowTool
@@ -772,9 +777,13 @@ class _CanvasPageState extends State<CanvasPage> {
 
   void _finishWidgetPointer(int pointer) {
     if (pointer != _widgetPointer) return;
-    _widgetPointer = null;
-    _selectionBeforeWidgetPointer.clear();
-    _finishHistoryOperation();
+    // Tap callbacks run after the raw up listener and still need the selection snapshot.
+    scheduleMicrotask(() {
+      if (!mounted || pointer != _widgetPointer) return;
+      _widgetPointer = null;
+      _selectionBeforeWidgetPointer.clear();
+      _finishHistoryOperation();
+    });
   }
 
   bool _toggleSelectionIfModifierPressed(CanvasElementModel model) {
@@ -874,7 +883,7 @@ class _CanvasPageState extends State<CanvasPage> {
     _setActiveElement(editing);
     setState(() {
       _editingTextBlock = editing;
-      _editingChromeModel = editing;
+      _editingChromeModel.value = editing;
       for (final model in _elements.whereType<TextBlockModel>()) {
         model.editing = identical(model, editing);
       }
@@ -903,7 +912,7 @@ class _CanvasPageState extends State<CanvasPage> {
       _activeElement?.active = false;
       _activeElement = model;
       model?.active = true;
-      if (model != null) _editingChromeModel = model;
+      if (model != null) _editingChromeModel.value = model;
     });
   }
 
@@ -946,10 +955,28 @@ class _CanvasPageState extends State<CanvasPage> {
     );
   }
 
-  void _openCanvasContextMenu(CanvasElementModel? model, Offset position) {
+  void _openArrangeMenu(CanvasElementModel model, Rect buttonBounds) {
+    if (_canvasInputBlocked || !_elements.contains(model) || _activeTool.value != _CanvasTool.select) return;
+    final selection = _widgetPointer == null ? _selectedModels() : _selectionBeforeWidgetPointer;
+    if (selection.contains(model) && selection.length > 1) {
+      _setSelection(selection);
+      // TODO(zero): Selected groups need their own menu for move, rotate, arrange, and delete.
+      throw UnimplementedError('Arrange controls for selected groups');
+    }
+    _setSelection({model});
+    final left = buttonBounds.left - ContextMenu.width - 4;
+    final position = Offset(
+      left >= MediaQuery.paddingOf(context).left ? left : buttonBounds.right + 4,
+      buttonBounds.top,
+    );
+    _openCanvasContextMenu(model, position, arrangeOnly: true);
+  }
+
+  void _openCanvasContextMenu(CanvasElementModel? model, Offset position, {bool arrangeOnly = false}) {
     if ((model != null && !_elements.contains(model)) || _activeTool.value != _CanvasTool.select) return;
     if (model != null && !model.selected) _setSelection({model});
     _contextMenuTargets = model == null ? const [] : _selectedInStackingOrder;
+    _arrangeMenuOpen = arrangeOnly;
     final box = _contextMenuKey.currentContext!.findRenderObject()! as RenderBox;
     _contextMenuPosition = _screenToCanvas(box.globalToLocal(position));
     _clearElementEditing();
@@ -967,6 +994,7 @@ class _CanvasPageState extends State<CanvasPage> {
     _contextMenuTargets = const [];
     _contextMenuView = null;
     _contextMenuPosition = null;
+    _arrangeMenuOpen = false;
     _contextMenuFocusNode.unfocus();
   }
 
@@ -1025,25 +1053,47 @@ class _CanvasPageState extends State<CanvasPage> {
     action();
   }
 
+  List<List<ContextMenuAction>> _arrangeContextMenuActions() {
+    final targets = _contextMenuTargets;
+    final macOS = Theme.of(context).platform == TargetPlatform.macOS;
+    var focusFirst = _arrangeMenuOpen;
+    ContextMenuAction arrange(CanvasArrange action, String label, IconData icon) {
+      final enabled = _canArrange(action, targets);
+      final focusNode = focusFirst && enabled ? _contextMenuFocusNode : null;
+      if (enabled) focusFirst = false;
+      return ContextMenuAction(
+        label: label,
+        icon: icon,
+        focusNode: focusNode,
+        onPressed: enabled ? () => _dispatchContextMenuAction(() => _arrange(action, targets)) : null,
+        shortcut: SingleActivator(
+          action == CanvasArrange.forward || action == CanvasArrange.front
+              ? LogicalKeyboardKey.bracketRight
+              : LogicalKeyboardKey.bracketLeft,
+          meta: macOS,
+          control: !macOS,
+          shift: action == CanvasArrange.front || action == CanvasArrange.back,
+        ),
+      );
+    }
+
+    return [
+      [
+        arrange(CanvasArrange.forward, 'Bring Forward', LucideIcons.arrowUp),
+        arrange(CanvasArrange.backward, 'Send Backward', LucideIcons.arrowDown),
+      ],
+      [
+        arrange(CanvasArrange.front, 'Bring to Front', LucideIcons.bringToFront),
+        arrange(CanvasArrange.back, 'Send to Back', LucideIcons.sendToBack),
+      ],
+    ];
+  }
+
   List<List<ContextMenuAction>> _objectContextMenuActions() {
     final targets = _contextMenuTargets;
     final position = _contextMenuPosition;
     final macOS = Theme.of(context).platform == TargetPlatform.macOS;
-    SingleActivator shortcut(LogicalKeyboardKey key, {bool shift = false}) =>
-        SingleActivator(key, meta: macOS, control: !macOS, shift: shift);
-    ContextMenuAction arrange(CanvasArrange action, String label, IconData icon) => ContextMenuAction(
-      label: label,
-      icon: icon,
-      onPressed: _canArrange(action, targets)
-          ? () => _dispatchContextMenuAction(() => _arrange(action, targets))
-          : null,
-      shortcut: shortcut(
-        action == CanvasArrange.forward || action == CanvasArrange.front
-            ? LogicalKeyboardKey.bracketRight
-            : LogicalKeyboardKey.bracketLeft,
-        shift: action == CanvasArrange.front || action == CanvasArrange.back,
-      ),
-    );
+    SingleActivator shortcut(LogicalKeyboardKey key) => SingleActivator(key, meta: macOS, control: !macOS);
     return [
       [
         if (targets.isNotEmpty) ...[
@@ -1081,16 +1131,7 @@ class _CanvasPageState extends State<CanvasPage> {
             label: 'Arrange',
             icon: LucideIcons.layers,
             focusNode: !_canCopyDirectly && !_canPasteDirectly ? _contextMenuFocusNode : null,
-            groups: [
-              [
-                arrange(CanvasArrange.forward, 'Bring Forward', LucideIcons.arrowUp),
-                arrange(CanvasArrange.backward, 'Send Backward', LucideIcons.arrowDown),
-              ],
-              [
-                arrange(CanvasArrange.front, 'Bring to Front', LucideIcons.bringToFront),
-                arrange(CanvasArrange.back, 'Send to Back', LucideIcons.sendToBack),
-              ],
-            ],
+            groups: _arrangeContextMenuActions(),
           ),
         ],
         [
@@ -1360,7 +1401,18 @@ class _CanvasPageState extends State<CanvasPage> {
     };
     _canvasController.addChild(
       model.canvasPosition,
-      child,
+      // The portal must sit beneath the canvas transform to read current layout geometry.
+      ListenableBuilder(
+        listenable: Listenable.merge([_editingChromeModel, model]),
+        child: child,
+        builder: (context, child) => Stack(
+          clipBehavior: Clip.none,
+          children: [
+            child!,
+            if (identical(_editingChromeModel.value, model)) Positioned.fill(child: _buildControlsPortal()),
+          ],
+        ),
+      ),
       id: model.data.id,
       childSize: model.canvasSize,
       rotation: model is RotatableCanvasElementModel ? model.rotation : 0,
@@ -1763,11 +1815,11 @@ class _CanvasPageState extends State<CanvasPage> {
     if (modelsToDispose.any(_contextMenuTargets.contains)) _closeContextMenu();
 
     final removesEditingElement = modelsToDispose.any(
-      (model) => identical(model, _editingTextBlock) || identical(model, _editingChromeModel),
+      (model) => identical(model, _editingTextBlock) || identical(model, _editingChromeModel.value),
     );
     if (removesEditingElement) {
       _clearTextEditing();
-      setState(() => _editingChromeModel = null);
+      setState(() => _editingChromeModel.value = null);
     }
     if (modelsToDispose.contains(_activeElement)) _setActiveElement(null);
     for (final model in modelsToDispose) {
@@ -2095,7 +2147,7 @@ class _CanvasPageState extends State<CanvasPage> {
     _dragArrowPointer = null;
     _dragArrow = null;
     _editingTextBlock = null;
-    _editingChromeModel = null;
+    _editingChromeModel.value = null;
 
     for (final model in oldElements) {
       model.removeListener(_geometryListeners.remove(model)!);
@@ -2428,9 +2480,88 @@ class _CanvasPageState extends State<CanvasPage> {
 
   // ---------- Rendering ----------
 
+  Widget _buildControlsPortal() => OverlayPortal.overlayChildLayoutBuilder(
+    key: _controlsPortalKey,
+    controller: _controlsOverlayController,
+    overlayChildBuilder: (context, _) {
+      final anchor = _editingChromeModel.value;
+      final box = _selectionKeys[anchor]?.currentContext?.findRenderObject();
+      if (box is! RenderBox || !box.attached || !box.hasSize) return const SizedBox.shrink();
+      final overlay = Overlay.of(context).context.findRenderObject()!;
+      final bodyOffset = anchor is CodeBlockModel ? box.size.height - anchor.size.height : 0.0;
+      return Positioned(
+        left: 0,
+        top: 0,
+        child: Transform(
+          transform: box.getTransformTo(overlay),
+          child: Transform.translate(
+            offset: Offset(-ElementTransformControls.size.width - 10, bodyOffset),
+            child: SizedBox.fromSize(
+              size: ElementTransformControls.size,
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 260),
+                reverseDuration: const Duration(milliseconds: 180),
+                switchInCurve: Curves.easeOutCubic,
+                switchOutCurve: Curves.easeOutCubic,
+                transitionBuilder: _textEditingChromeTransition,
+                child: switch (_activeElement) {
+                  final CanvasElementModel editing => ListenableBuilder(
+                    key: ValueKey(editing.data.id),
+                    listenable: editing,
+                    builder: (context, child) => IgnorePointer(
+                      ignoring: !editing.active,
+                      child: child,
+                    ),
+                    child: Listener(
+                      onPointerDown: _handleObjectControlPointerDown,
+                      child: ElementTransformControls(
+                        key: ValueKey(editing.data.id),
+                        elementName: editing.data.type,
+                        rotation: switch (editing) {
+                          final RotatableCanvasElementModel model => model.rotation,
+                          _ => 0,
+                        },
+                        tapRegionGroupId: editing is MediaModel ? editing : null,
+                        onMove: (delta) => _moveSelectedChildren(editing, delta),
+                        onArrange: (bounds) => _openArrangeMenu(editing, bounds),
+                        onRotate: switch (editing) {
+                          final RotatableCanvasElementModel model when model.canRotate => (angle) => _rotateElement(
+                            model,
+                            angle,
+                          ),
+                          _ => null,
+                        },
+                        onDelete: () {
+                          if (!_canvasInputBlocked) _removeElements([editing]);
+                        },
+                        onTransformStart: () {
+                          if (_canvasInputBlocked) return;
+                          if (editing is TextBlockModel) {
+                            _clearTextEditing();
+                          } else {
+                            _finishHistoryOperation();
+                          }
+                        },
+                        onTransformEnd: _finishHistoryOperation,
+                        rotationCenter: () => _elementCenter(editing),
+                      ),
+                    ),
+                  ),
+                  _ => const SizedBox(
+                    key: ValueKey('text-editing-chrome-hidden'),
+                  ),
+                },
+              ),
+            ),
+          ),
+        ),
+      );
+    },
+    child: const SizedBox.shrink(),
+  );
+
   Widget _buildCanvasViewport(BuildContext context, Widget viewport) {
     final colors = BTheme.of(context).colors;
-    final editingChromeModel = _editingChromeModel;
     final activeArrow = _activeArrow;
     final canvas = Overlay.wrap(
       clipBehavior: Clip.none,
@@ -2511,72 +2642,6 @@ class _CanvasPageState extends State<CanvasPage> {
                 ),
               ),
             ),
-          if (editingChromeModel case final anchor?)
-            ListenableBuilder(
-              listenable: anchor,
-              builder: (context, _) => CompositedTransformFollower(
-                link: anchor.layerLink,
-                showWhenUnlinked: false,
-                followerAnchor: Alignment.topRight,
-                offset: const Offset(-10, 0),
-                child: SizedBox.fromSize(
-                  size: ElementTransformControls.size,
-                  child: AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 260),
-                    reverseDuration: const Duration(milliseconds: 180),
-                    switchInCurve: Curves.easeOutCubic,
-                    switchOutCurve: Curves.easeOutCubic,
-                    transitionBuilder: _textEditingChromeTransition,
-                    child: switch (_activeElement) {
-                      final CanvasElementModel editing => ListenableBuilder(
-                        key: ValueKey(editing.data.id),
-                        listenable: editing,
-                        builder: (context, child) => IgnorePointer(
-                          ignoring: !editing.active,
-                          child: child,
-                        ),
-                        child: Listener(
-                          onPointerDown: _handleObjectControlPointerDown,
-                          child: ElementTransformControls(
-                            key: ValueKey(editing.data.id),
-                            elementName: editing.data.type,
-                            rotation: switch (editing) {
-                              final RotatableCanvasElementModel model => model.rotation,
-                              _ => 0,
-                            },
-                            tapRegionGroupId: editing is MediaModel ? editing : null,
-                            onMove: (delta) => _moveSelectedChildren(editing, delta),
-                            onRotate: switch (editing) {
-                              final RotatableCanvasElementModel model when model.canRotate => (angle) => _rotateElement(
-                                model,
-                                angle,
-                              ),
-                              _ => null,
-                            },
-                            onDelete: () {
-                              if (!_canvasInputBlocked) _removeElements([editing]);
-                            },
-                            onTransformStart: () {
-                              if (_canvasInputBlocked) return;
-                              if (editing is TextBlockModel) {
-                                _clearTextEditing();
-                              } else {
-                                _finishHistoryOperation();
-                              }
-                            },
-                            onTransformEnd: _finishHistoryOperation,
-                            rotationCenter: () => _elementCenter(editing),
-                          ),
-                        ),
-                      ),
-                      _ => const SizedBox(
-                        key: ValueKey('text-editing-chrome-hidden'),
-                      ),
-                    },
-                  ),
-                ),
-              ),
-            ),
           if (activeArrow != null)
             Positioned.fill(
               child: ListenableBuilder(
@@ -2601,7 +2666,8 @@ class _CanvasPageState extends State<CanvasPage> {
       key: _contextMenuKey,
       controller: _contextMenuController,
       onClose: _contextMenuClosed,
-      groups: _objectContextMenuActions(),
+      title: _arrangeMenuOpen ? 'Arrange' : null,
+      groups: _arrangeMenuOpen ? _arrangeContextMenuActions() : _objectContextMenuActions(),
       tapRegionGroupId: _activeElement,
       child: canvas,
     );
@@ -3118,7 +3184,6 @@ class _CanvasElementHost extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final target = model is CodeBlockModel ? child : CompositedTransformTarget(link: model.layerLink, child: child);
     final listener = Listener(
       onPointerDown: (event) {
         if (activeTool.value == _CanvasTool.select) {
@@ -3132,7 +3197,7 @@ class _CanvasElementHost extends StatelessWidget {
           absorbing: activeTool.value != _CanvasTool.select || modifierPressed.value && model is! PenStrokeModel,
           child: child,
         ),
-        child: target,
+        child: child,
       ),
     );
     return listener;

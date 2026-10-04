@@ -5,6 +5,7 @@ import 'dart:math' as math;
 
 import 'package:elseplane/canvas/document/canvas_document.dart';
 import 'package:elseplane/canvas/editor/canvas_background.dart';
+import 'package:elseplane/canvas/editor/canvas_element_model.dart';
 import 'package:elseplane/canvas/editor/widgets/canvas_file_picker.dart';
 import 'package:elseplane/canvas/editor/widgets/canvas_title.dart';
 import 'package:elseplane/canvas/editor/widgets/element_transform_controls.dart';
@@ -13,6 +14,9 @@ import 'package:elseplane/canvas/tools/code/code_tool.dart';
 import 'package:elseplane/canvas/tools/media/media_tool.dart';
 import 'package:elseplane/canvas/tools/shape/shape_tool.dart';
 import 'package:elseplane/canvas/tools/text/text_tool.dart';
+import 'package:elseplane/theme/theme.dart';
+import 'package:elseplane/ui/common/glass_surface.dart';
+import 'package:elseplane/ui/common/menu_surface.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
@@ -28,52 +32,337 @@ import '../test_helpers.dart';
 void main() {
   setUp(() => SharedPreferencesAsyncWeb.registerWith(null));
 
-  for (final group in [false, true]) {
+  testWidgets('direct heading is noninteractive and navigation skips disabled commands', (tester) async {
+    await pumpCanvas(tester, TestCanvasDocumentStore(_document()));
+    await tester.tapAt(const Offset(375, 375));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Arrange'));
+    await tester.pumpAndSettle();
+    expect(find.ancestor(of: find.text('Arrange'), matching: find.byType(MenuItemButton)), findsNothing);
+    expect(_button(tester, 'Bring Forward').onPressed, isNull);
+    expect(_button(tester, 'Bring to Front').onPressed, isNull);
+    expect(_button(tester, 'Send Backward').focusNode!.hasFocus, isTrue);
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+    await tester.pumpAndSettle();
+    expect(Focus.of(tester.element(find.text('Send to Back'))).hasFocus, isTrue);
+    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+    await tester.pumpAndSettle();
+    expect(_canvas(tester).childOrder, ['d', 'a', 'b', 'c']);
+    expect(find.byType(MenuSurface), findsNothing);
+  });
+
+  testWidgets('direct menu with no available commands can dismiss without saving', (tester) async {
+    final document = _document()..elements.removeRange(1, 4);
+    final store = TestCanvasDocumentStore(document);
+    await pumpCanvas(tester, store);
+    await tester.tapAt(const Offset(305, 305));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Arrange'));
+    await tester.pumpAndSettle();
+    for (final button in tester.widgetList<MenuItemButton>(find.byType(MenuItemButton))) {
+      expect(button.onPressed, isNull);
+    }
+    await tester.tap(find.text('Bring Forward'));
+    await tester.pumpAndSettle();
+    expect(find.byType(MenuSurface), findsOneWidget);
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await tester.pumpAndSettle();
+    expect(find.byType(MenuSurface), findsNothing);
+    expect(_models(tester)['a']!.selected, isTrue);
+    await pumpPastSave(tester);
+    expect(store.persisted, isNull);
+  });
+
+  for (final escape in [false, true]) {
+    testWidgets('direct ${escape ? 'Escape' : 'click-away'} preserves single selection', (tester) async {
+      await pumpCanvas(tester, TestCanvasDocumentStore(_document()));
+      await tester.tapAt(const Offset(305, 305));
+      await tester.pumpAndSettle();
+      _models(tester)['c']!.selected = true;
+      _models(tester)['d']!.selected = true;
+      await tester.tap(find.byTooltip('Arrange'));
+      await tester.pumpAndSettle();
+      expect(_models(tester).values.where((model) => model.selected).map((model) => model.data.id), ['a']);
+      if (escape) {
+        await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+      } else {
+        await tester.tapAt(const Offset(790, 590));
+      }
+      await tester.pumpAndSettle();
+      expect(find.byType(MenuSurface), findsNothing);
+      expect(_models(tester)['a']!.selected, isTrue);
+      expect(_models(tester)['a']!.active, isFalse);
+    });
+  }
+
+  testWidgets('direct group placeholder restores pre-pointer selection and leaves activation intact', (tester) async {
+    final store = TestCanvasDocumentStore(_document());
+    await pumpCanvas(tester, store);
+    await tester.tapAt(const Offset(305, 305));
+    await tester.pumpAndSettle();
+    final models = _models(tester);
+    models['a']!.selected = true;
+    models['c']!.selected = true;
+    await tester.pump();
+    final click = await tester.startGesture(tester.getCenter(find.byTooltip('Arrange')));
+    expect(models['a']!.selected, isFalse);
+    expect(models['c']!.selected, isFalse);
+    await click.up();
+    expect(tester.takeException(), isA<UnimplementedError>());
+    await tester.pumpAndSettle();
+    expect(models['a']!.selected, isTrue);
+    expect(models['c']!.selected, isTrue);
+    expect(models['b']!.selected, isFalse);
+    expect(models['a']!.active, isTrue);
+    expect(find.byType(MenuSurface), findsNothing);
+    expect(find.byType(ElementTransformControls), findsOneWidget);
+    await pumpPastSave(tester);
+    expect(store.persisted, isNull);
+  });
+
+  for (final editor in ['text', 'code', 'title', 'media']) {
+    testWidgets('direct $editor Arrange ends editing and transfers focus', (tester) async {
+      await pumpCanvas(tester, TestCanvasDocumentStore(_editorDocument(editor)));
+      final surface = switch (editor) {
+        'text' => find.byKey(const ValueKey('text-markdown-preview')),
+        'title' => find.byKey(const ValueKey('code-title-text')),
+        'code' => find.byKey(const ValueKey('code-block-preview-surface')),
+        _ => find.byKey(const ValueKey('media-url-field')),
+      };
+      await tester.tapAt(tester.getCenter(surface));
+      await tester.pumpAndSettle();
+      final focus = switch (editor) {
+        'text' => tester.widget<TextTool>(find.byType(TextTool)).model.focusNode,
+        'code' || 'title' => tester.widget<CodeTool>(find.byType(CodeTool)).model.focusNode,
+        _ => tester.widget<MediaTool>(find.byType(MediaTool)).model.focusNode,
+      };
+      await tester.tap(find.byTooltip('Arrange'));
+      await tester.pumpAndSettle();
+      expect(focus.hasFocus, isFalse);
+      expect(find.byType(ElementTransformControls), findsNothing);
+      expect(_button(tester, 'Bring to Front').focusNode!.hasFocus, isTrue);
+      if (editor == 'text') {
+        final model = tester.widget<TextTool>(find.byType(TextTool)).model;
+        expect(model.editing, isFalse);
+        expect(model.controller.text, 'contents');
+      } else if (editor == 'code' || editor == 'title') {
+        final model = tester.widget<CodeTool>(find.byType(CodeTool)).model;
+        expect(model.controller.text, 'contents');
+        expect(model.title, 'Title');
+      }
+      await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+      await tester.pumpAndSettle();
+      expect(focus.hasFocus, isFalse);
+    });
+  }
+
+  testWidgets('direct shortcuts use captured targets and navigation dismisses the popover', (tester) async {
+    await pumpCanvas(tester, TestCanvasDocumentStore(_document()));
+    await tester.tapAt(const Offset(305, 305));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Arrange'));
+    await tester.pumpAndSettle();
+    _models(tester)['a']!.selected = false;
+    _models(tester)['c']!.selected = true;
+    await _shortcut(tester, LogicalKeyboardKey.bracketRight, shift: true);
+    expect(_canvas(tester).childOrder, ['b', 'c', 'd', 'a']);
+    expect(find.byType(MenuSurface), findsNothing);
+    await tester.tapAt(const Offset(305, 305));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Arrange'));
+    await tester.pumpAndSettle();
+    _canvas(tester).updateScalebyDelta(0.1);
+    await tester.pumpAndSettle();
+    expect(find.byType(MenuSurface), findsNothing);
+  });
+
+  for (final style in SurfaceStyle.values) {
+    for (final (position, rotation, scale) in [
+      (const Offset(100, 130), 0.0, 1.0),
+      (const Offset(650, 330), 0.0, 1.0),
+      (const Offset(500, 470), 0.0, 1.0),
+      (const Offset(240, 130), math.pi / 4, 1.5),
+    ]) {
+      testWidgets('direct $style popover stays upright and bounded at $position, $rotation, $scale', (tester) async {
+        final document = _editorDocument('code')..elements.removeLast();
+        (document.elements.first as CodeElementData)
+          ..position = position
+          ..rotation = rotation
+          ..size = codeBlockMinimumSize;
+        await pumpCanvas(tester, TestCanvasDocumentStore(document));
+        final app = tester.widget<MaterialApp>(find.byType(MaterialApp));
+        await tester.pumpWidget(
+          MaterialApp(
+            theme: app.theme!.copyWith(extensions: [app.theme!.extension<BTheme>()!.copyWith(surfaceStyle: style)]),
+            home: app.home,
+          ),
+        );
+        _canvas(tester).updateScalebyDelta(scale - 1, focalPoint: Offset.zero);
+        await tester.pumpAndSettle();
+        await tester.tapAt(tester.getCenter(find.byKey(const ValueKey('code-title-text'))));
+        await tester.pumpAndSettle();
+        final trigger = tester.renderObject<RenderBox>(find.byTooltip('Arrange'));
+        final bounds = MatrixUtils.transformRect(trigger.getTransformTo(null), Offset.zero & trigger.size);
+        await tester.tap(find.byTooltip('Arrange'));
+        await tester.pumpAndSettle();
+        final menu = tester.getRect(find.byType(MenuSurface));
+        expect(menu.left, greaterThanOrEqualTo(0));
+        expect(menu.top, greaterThanOrEqualTo(0));
+        expect(menu.right, lessThanOrEqualTo(800));
+        expect(menu.bottom, lessThanOrEqualTo(600));
+        if (position.dx == 100) {
+          expect(menu.left, greaterThan(bounds.right));
+        } else {
+          expect(menu.right, lessThan(bounds.left));
+        }
+        final row = tester.getRect(find.byType(MenuItemButton).first);
+        expect(row.width, greaterThan(row.height));
+        expect(
+          find.descendant(of: find.byType(MenuSurface), matching: find.byType(GlassSurface)),
+          style == SurfaceStyle.glass ? findsOneWidget : findsNothing,
+        );
+      });
+    }
+  }
+
+  for (final (group, direct) in [(false, false), (true, false), (false, true)]) {
     for (final (label, target, expected) in [
       ('Bring Forward', 'a', group ? ['b', 'd', 'a', 'c'] : ['b', 'a', 'c', 'd']),
       ('Send Backward', 'd', group ? ['b', 'd', 'a', 'c'] : ['a', 'b', 'd', 'c']),
       ('Bring to Front', 'a', group ? ['b', 'd', 'a', 'c'] : ['b', 'c', 'd', 'a']),
       ('Send to Back', 'd', group ? ['b', 'd', 'a', 'c'] : ['d', 'a', 'b', 'c']),
     ]) {
-      testWidgets('$label persists ${group ? 'group' : 'single'} order and one undo step', (tester) async {
-        final store = TestCanvasDocumentStore(_document());
-        await pumpCanvas(tester, store);
-        final canvas = _canvas(tester);
-        final before = _models(tester);
-        final original = {for (final data in store.initial!.elements) data.id: data.toJson()};
-        if (group) {
-          before[target]!.selected = true;
-          before[target == 'a' ? 'c' : 'b']!.selected = true;
-        }
-        final position = before[target]!.data.position + const Offset(5, 5);
-        await _open(tester, position);
-        await _openArrange(tester);
-        await tester.tap(find.text(label));
-        await tester.pumpAndSettle();
-        expect(canvas.childOrder, expected);
-        final after = _models(tester);
-        for (final id in before.keys) {
-          expect(after[id], same(before[id]));
-          expect(after[id]!.data.toJson(), original[id]);
-        }
-        expect(after[target]!.selected, isTrue);
-        expect(after[target]!.active, isFalse);
-        await pumpPastSave(tester);
-        expect(_order(store.persisted!), expected);
-        await _shortcut(tester, LogicalKeyboardKey.keyZ);
-        expect(canvas.childOrder, ['a', 'b', 'c', 'd']);
-        await _shortcut(tester, LogicalKeyboardKey.keyZ, shift: true);
-        expect(canvas.childOrder, expected);
-        await _shortcut(tester, LogicalKeyboardKey.keyZ);
-        await _shortcut(tester, LogicalKeyboardKey.keyZ);
-        expect(canvas.childOrder, ['a', 'b', 'c', 'd']);
-        await _shortcut(tester, LogicalKeyboardKey.keyZ, shift: true);
-        await pumpPastSave(tester);
-        await tester.pumpWidget(const SizedBox());
-        await pumpCanvas(tester, TestCanvasDocumentStore(store.persisted));
-        expect(_canvas(tester).childOrder, expected);
-      });
+      testWidgets(
+        '${direct ? 'direct' : 'submenu'} $label saves ${group ? 'group' : 'single'} order',
+        (tester) async {
+          final store = TestCanvasDocumentStore(_document());
+          await pumpCanvas(tester, store);
+          final canvas = _canvas(tester);
+          final before = _models(tester);
+          final original = {for (final data in store.initial!.elements) data.id: data.toJson()};
+          if (group) {
+            before[target]!.selected = true;
+            before[target == 'a' ? 'c' : 'b']!.selected = true;
+          }
+          final position = before[target]!.data.position + const Offset(5, 5);
+          if (direct) {
+            await tester.tapAt(position);
+            await tester.pumpAndSettle();
+            expect(before[target]!.active, isTrue);
+            await tester.tap(find.byTooltip('Arrange'));
+            await tester.pumpAndSettle();
+            expect(find.byType(SubmenuButton), findsNothing);
+            expect(find.byType(MenuItemButton), findsNWidgets(4));
+            expect(find.text('Arrange'), findsOneWidget);
+            expect(find.byType(ElementTransformControls), findsNothing);
+            expect(before[target]!.active, isFalse);
+            expect(before[target]!.selected, isTrue);
+            expect(canvas.childOrder, ['a', 'b', 'c', 'd']);
+            expect(tester.widget<LazyCanvas>(find.byType(LazyCanvas)).foregroundChildId, isNull);
+          } else {
+            await _open(tester, position);
+            await _openArrange(tester);
+          }
+          await tester.tap(find.text(label));
+          await tester.pumpAndSettle();
+          expect(find.byType(MenuSurface), findsNothing);
+          expect(canvas.childOrder, expected);
+          final after = _models(tester);
+          for (final id in before.keys) {
+            expect(after[id], same(before[id]));
+            expect(after[id]!.data.toJson(), original[id]);
+          }
+          expect(after[target]!.selected, isTrue);
+          expect(after[target]!.active, isFalse);
+          await pumpPastSave(tester);
+          expect(_order(store.persisted!), expected);
+          await _shortcut(tester, LogicalKeyboardKey.keyZ);
+          expect(canvas.childOrder, ['a', 'b', 'c', 'd']);
+          await _shortcut(tester, LogicalKeyboardKey.keyZ, shift: true);
+          expect(canvas.childOrder, expected);
+          await _shortcut(tester, LogicalKeyboardKey.keyZ);
+          await _shortcut(tester, LogicalKeyboardKey.keyZ);
+          expect(canvas.childOrder, ['a', 'b', 'c', 'd']);
+          await _shortcut(tester, LogicalKeyboardKey.keyZ, shift: true);
+          await pumpPastSave(tester);
+          await tester.pumpWidget(const SizedBox());
+          await pumpCanvas(tester, TestCanvasDocumentStore(store.persisted));
+          expect(_canvas(tester).childOrder, expected);
+        },
+      );
     }
+  }
+
+  for (final tool in ['media', 'code']) {
+    testWidgets('$tool Arrange tooltip follows layout through transforms', (tester) async {
+      await pumpCanvas(
+        tester,
+        TestCanvasDocumentStore(_editorDocument(tool)),
+        attachmentStore: TestAttachmentStore(),
+      );
+      if (tool == 'media') {
+        final model = tester.widget<MediaTool>(find.byType(MediaTool)).model;
+        await tester.runAsync(() => model.setDeviceImage(onePixelPngBytes, 'png'));
+      }
+      await tester.pumpAndSettle();
+      final surface = find.byKey(ValueKey(tool == 'media' ? 'media-image' : 'code-block-preview-surface'));
+      await tester.tap(surface);
+      await tester.pumpAndSettle();
+      final model =
+          (tool == 'media'
+                  ? tester.widget<MediaTool>(find.byType(MediaTool)).model
+                  : tester.widget<CodeTool>(find.byType(CodeTool)).model)
+              as CanvasElementModel;
+      final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
+      await mouse.addPointer(location: const Offset(790, 590));
+
+      Future<void> hoverArrange() async {
+        await mouse.moveTo(tester.getCenter(find.byTooltip('Arrange')));
+        await tester.pump(const Duration(seconds: 1));
+        await tester.pumpAndSettle();
+        expect(find.text('Arrange'), findsOneWidget);
+        expect(tester.takeException(), isNull);
+      }
+
+      void expectAttached() {
+        final body = tester.renderObject<RenderBox>(
+          find.byKey(ValueKey(tool == 'media' ? 'media-image' : 'code-block-surface')),
+        );
+        final controls = tester.renderObject<RenderBox>(find.byType(ElementTransformControls));
+        final expected = body.localToGlobal(Offset(-ElementTransformControls.size.width - 10, 0));
+        expect((controls.localToGlobal(Offset.zero) - expected).distance, lessThan(0.001));
+      }
+
+      expectAttached();
+      await hoverArrange();
+      await mouse.moveTo(const Offset(790, 590));
+      await tester.pumpAndSettle();
+      final controls = tester.widget<ElementTransformControls>(find.byType(ElementTransformControls));
+      controls.onMove(const Offset(20, -110));
+      controls.onRotate!(math.pi / 6);
+      _canvas(tester).updateScalebyDelta(0.25, focalPoint: Offset.zero);
+      await tester.pumpAndSettle();
+      expectAttached();
+      final resizeHandle = find.byKey(ValueKey(tool == 'media' ? 'media-resize-handle' : 'code-block-resize-handle'));
+      final oldSize = model.canvasSize;
+      final resize = await tester.startGesture(tester.getCenter(resizeHandle), kind: PointerDeviceKind.mouse);
+      for (var step = 0; step < 2; step++) {
+        await resize.moveBy(const Offset(15, 20));
+        await tester.pump();
+        expectAttached();
+      }
+      await resize.up();
+      await tester.pumpAndSettle();
+      expect(model.canvasSize.width, greaterThan(oldSize.width));
+      await hoverArrange();
+      await mouse.down(tester.getCenter(find.byTooltip('Arrange')));
+      await mouse.up();
+      await tester.pumpAndSettle();
+      expect(find.byType(MenuSurface), findsOneWidget);
+      expect(model.active, isFalse);
+      expect(tester.takeException(), isNull);
+      await mouse.removePointer();
+    });
   }
 
   testWidgets('code title and body share temporary foreground and saved arrangement', (tester) async {
@@ -182,6 +471,9 @@ void main() {
         if (model.active) {
           final controls = tester.widget<ElementTransformControls>(find.byType(ElementTransformControls));
           expect((controls.rotationCenter() - center).distance, lessThan(0.001));
+          final controlsBox = tester.renderObject<RenderBox>(find.byType(ElementTransformControls));
+          final anchor = body().localToGlobal(Offset(-ElementTransformControls.size.width - 10, 0));
+          expect((controlsBox.localToGlobal(Offset.zero) - anchor).distance, lessThan(0.001));
         }
       }
 

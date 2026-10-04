@@ -5,7 +5,7 @@ Text, code, and media blocks share three independent interaction states.
 | State | Meaning | Behavior |
 | --- | --- | --- |
 | Inactive | A normal canvas object | Content is not editable. Clicking activates the block; dragging moves it without activating it. Options, transform controls, and resize handles are hidden. |
-| Active | The primary object being worked on | Options and move, rotate, delete, and resize controls are available. |
+| Active | The primary object being worked on | Options and move, rotate, arrange, delete, and resize controls are available. |
 | Selected | Part of the canvas selection | The block receives an accent highlight and participates in group movement without becoming active or editable. |
 
 The important distinction is:
@@ -31,7 +31,7 @@ Shapes follow the same state separation: clicking or creating a shape makes it a
 
 - Clicking the read-only code surface or title activates the block and makes its source and title editable.
 - Dragging the inactive surface or title moves the block without activating it or leaving a code selection behind.
-- The active state exposes the editable source and title, language picker, resize handle, and move, rotate, and delete controls.
+- The active state exposes the editable source and title, language picker, resize handle, and move, rotate, arrange, and delete controls.
 - The options panel controls line-number visibility and background. The Background dropdown offers Transparent, Card, and Glass; new code blocks use Card. The choice applies to the body, title, and line-number area. Transparent removes fills, shadows, and inactive borders while retaining editing borders and selection highlighting. Glass blurs the canvas behind the rounded body and visible title, with a translucent surface, fine border, and soft shadow in inactive and active states. Selected Glass retains its blur and translucency with an accent tint and outline. Each background change affects only the active block and is one undoable operation.
 - Moving or rotating through the floating controls keeps the block active and editable.
 - Clicking away or pressing Escape returns the block to its read-only preview. An empty title is hidden while inactive. The title belongs to the block's layout and stacking layer; its strip remains reserved when hidden without changing the body's position, dimensions, or rotation pivot.
@@ -39,8 +39,8 @@ Shapes follow the same state separation: clicking or creating a shape makes it a
 ## Media blocks
 
 - Media does not switch between separate preview and editor surfaces: the image remains visible in both inactive and active states.
-- Clicking an image activates it and reveals its URL panel, resize handle, and top-left transform controls. Dragging an inactive image moves it without activating it.
-- A URL-only media block keeps its URL field visible. While active it exposes move and delete controls; rotation becomes available after an image resolves.
+- Clicking an image activates it and reveals its URL panel, resize handle, and top-left transform controls, including Arrange. Dragging an inactive image moves it without activating it.
+- A URL-only media block keeps its URL field visible. While active it exposes move, arrange, and delete controls; rotation becomes available after an image resolves.
 - Moving, rotating, or resizing keeps the block active. Resizing preserves the image aspect ratio and follows the element's rotated axes.
 - Clicking empty canvas or another block, changing tools, or pressing Escape deactivates the block and hides its active controls.
 
@@ -80,6 +80,8 @@ Shapes follow the same state separation: clicking or creating a shape makes it a
 - Activation temporarily brings the whole block, including its title, above the stack for painting and pointer targeting. Clicking away, Escape, or changing tools removes this lift. Moving, rotating, or resizing an active block keeps its lift.
 - Selection and dragging inactive blocks preserve their layers. Activation never changes document order, persistence, or undo history. Saving and reopening preserve document order.
 - Entering Arrange ends editing and activation and reveals the saved order before the menu opens or a shortcut changes it. Arrange changes stay visible after dismissal.
+- The Layers control between Rotate and Delete opens a titled Arrange popover beside the active block's controls, preferring the left when it fits. It selects that block, ends editing and activation, and hides its controls. The popover stays upright and within the viewport under zoom and rotation and uses the app's Solid or Glass surface. Dismissal leaves the block selected and inactive.
+- The new Arrange control currently throws `UnimplementedError` when the active block belongs to a multi-object selection, preserving that selection and activation. Selected groups need their own menu for move, rotate, arrange, and delete; existing context menus and shortcuts still support group arrangement.
 - Arrange offers Bring Forward, Send Backward, Bring to Front, and Send to Back. Forward and Backward cross the nearest overlapping object; Front and Back move to the ends of the stack. Groups retain their internal order, and other objects retain theirs.
 - Each successful Arrange command saves the new order and creates one undo step. Commands that cannot change order are disabled and make no history entry. If an object's layout size is not known, overlap commands are disabled; stack-end commands remain available.
 - Cmd on macOS, or Ctrl elsewhere, plus `]` brings forward and `[` sends backward. Adding Shift brings to front or sends to back. Shortcuts target the selection, falling back to the active object, and support key repeat. A fallback object becomes selected before deactivation so repeated shortcuts retain their target. Focused editors keep these keys while the menu is closed.

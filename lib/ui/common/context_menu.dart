@@ -36,6 +36,7 @@ class ContextMenu extends StatelessWidget {
     required this.groups,
     required this.child,
     this.semanticLabel,
+    this.title,
     this.controller,
     this.onClose,
     this.tapRegionGroupId,
@@ -45,11 +46,13 @@ class ContextMenu extends StatelessWidget {
   final List<List<ContextMenuAction>> groups;
   final Widget child;
   final String? semanticLabel;
+  final String? title;
   final MenuController? controller;
   final VoidCallback? onClose;
   final Object? tapRegionGroupId;
 
   static const _menuWidth = 224.0;
+  static const double width = _menuWidth + 8; // Includes the menu surface's padding.
 
   // ---------- Styling ----------
 
@@ -147,7 +150,18 @@ class ContextMenu extends StatelessWidget {
       style: menuShellStyle(),
       controller: controller,
       onClose: onClose,
-      menuChildren: [MenuSurface(children: _items(context, groups))],
+      menuChildren: [
+        MenuSurface(
+          children: [
+            if (title case final title?)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(10, 8, 10, 4),
+                child: Text(title, style: theme.typo.label.copyWith(color: theme.colors.textMuted)),
+              ),
+            ..._items(context, groups),
+          ],
+        ),
+      ],
       builder: (context, menuController, child) => controller != null
           ? child!
           : Semantics(

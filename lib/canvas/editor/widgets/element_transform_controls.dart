@@ -1,4 +1,4 @@
-// Renders shared movement, rotation, and deletion controls for canvas elements.
+// Renders shared movement, rotation, arrangement, and deletion controls for canvas elements.
 // Used by the canvas overlay for active elements.
 
 import 'dart:math' as math;
@@ -7,6 +7,7 @@ import 'package:elseplane/theme/theme.dart';
 import 'package:elseplane/ui/common/icon_drag.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 // ---------- Controls ----------
 
@@ -16,6 +17,7 @@ class ElementTransformControls extends StatelessWidget {
     required this.rotation,
     required this.onMove,
     required this.onDelete,
+    required this.onArrange,
     required this.onTransformStart,
     required this.onTransformEnd,
     required this.rotationCenter,
@@ -29,12 +31,13 @@ class ElementTransformControls extends StatelessWidget {
   final ValueChanged<Offset> onMove;
   final ValueChanged<double>? onRotate;
   final VoidCallback onDelete;
+  final ValueChanged<Rect> onArrange;
   final VoidCallback onTransformStart;
   final VoidCallback onTransformEnd;
   final ValueGetter<Offset> rotationCenter;
   final Object? tapRegionGroupId;
 
-  static final size = Size(BSizes.defaultIconButtonSize.width, 120);
+  static final size = Size(BSizes.defaultIconButtonSize.width, BSizes.defaultIconButtonSize.height * 4);
 
   @override
   Widget build(BuildContext context) {
@@ -70,6 +73,30 @@ class ElementTransformControls extends StatelessWidget {
                 },
                 icon: const Icon(Icons.rotate_right, size: 20),
               ),
+            Tooltip(
+              message: 'Arrange',
+              child: Builder(
+                builder: (context) => MouseRegion(
+                  key: ValueKey('$elementName-block-arrange-control'),
+                  cursor: SystemMouseCursors.click,
+                  child: Semantics(
+                    button: true,
+                    label: 'Arrange $elementName block',
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: () {
+                        final box = context.findRenderObject()! as RenderBox;
+                        onArrange(MatrixUtils.transformRect(box.getTransformTo(null), Offset.zero & box.size));
+                      },
+                      child: SizedBox.fromSize(
+                        size: BSizes.defaultIconButtonSize,
+                        child: Icon(LucideIcons.layers, size: 20, color: BTheme.of(context).colors.textSecondary),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
             MouseRegion(
               key: ValueKey('$elementName-block-delete-control'),
               cursor: SystemMouseCursors.click,

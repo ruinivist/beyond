@@ -276,48 +276,43 @@ class _CodeToolState extends State<CodeTool> {
                     ),
                   ),
                 ),
-                CompositedTransformTarget(
-                  link: model.layerLink,
-                  child: SizedBox.fromSize(
-                    size: model.size,
-                    child: Stack(
-                      clipBehavior: Clip.none,
-                      children: [
-                        Positioned.fill(
-                          child: model.background == BlockBackgroundKind.glass
-                              ? GlassSurface(
-                                  key: const ValueKey('code-block-surface'),
-                                  selected: model.selected,
+                SizedBox.fromSize(
+                  size: model.size,
+                  child: Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      Positioned.fill(
+                        child: model.background == BlockBackgroundKind.glass
+                            ? GlassSurface(
+                                key: const ValueKey('code-block-surface'),
+                                selected: model.selected,
+                                borderRadius: theme.geo.radiusMedium,
+                                child: codeBody,
+                              )
+                            : Material(
+                                key: const ValueKey('code-block-surface'),
+                                type: transparent && !model.selected ? MaterialType.transparency : MaterialType.canvas,
+                                color: transparent && !model.selected ? null : background,
+                                elevation: card ? theme.geo.elevationLow : 0,
+                                shadowColor: colors.shadow,
+                                shape: RoundedRectangleBorder(
                                   borderRadius: theme.geo.radiusMedium,
-                                  child: codeBody,
-                                )
-                              : Material(
-                                  key: const ValueKey('code-block-surface'),
-                                  type: transparent && !model.selected
-                                      ? MaterialType.transparency
-                                      : MaterialType.canvas,
-                                  color: transparent && !model.selected ? null : background,
-                                  elevation: card ? theme.geo.elevationLow : 0,
-                                  shadowColor: colors.shadow,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: theme.geo.radiusMedium,
-                                    side: _codeSurfaceBorder(colors, model),
-                                  ),
-                                  clipBehavior: Clip.antiAlias,
-                                  child: codeBody,
+                                  side: _codeSurfaceBorder(colors, model),
                                 ),
-                        ),
-                        if (!editing)
-                          // re_editor hardcodes a text cursor in its code-field renderer.
-                          // Keep inactive blocks on the normal canvas pointer instead.
-                          const Positioned.fill(
-                            child: MouseRegion(
-                              cursor: SystemMouseCursors.basic,
-                              opaque: false,
-                            ),
+                                clipBehavior: Clip.antiAlias,
+                                child: codeBody,
+                              ),
+                      ),
+                      if (!editing)
+                        // re_editor hardcodes a text cursor in its code-field renderer.
+                        // Keep inactive blocks on the normal canvas pointer instead.
+                        const Positioned.fill(
+                          child: MouseRegion(
+                            cursor: SystemMouseCursors.basic,
+                            opaque: false,
                           ),
-                      ],
-                    ),
+                        ),
+                    ],
                   ),
                 ),
               ],

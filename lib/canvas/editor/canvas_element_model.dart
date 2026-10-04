@@ -16,7 +16,6 @@ abstract class CanvasElementModel<T extends CanvasElementData> extends ChangeNot
   // ---------- State ----------
 
   final T data;
-  final layerLink = LayerLink();
   final ValueNotifier<int> _documentRevision = ValueNotifier(0);
   bool _selected = false;
   bool _active = false;
@@ -60,7 +59,8 @@ abstract class CanvasElementModel<T extends CanvasElementData> extends ChangeNot
   }
 }
 
-/// Adds center rotation and a composited anchor to canvas element models.
+/// Adds center rotation to canvas element models.
+/// Floating controls anchor to the element's laid-out render box.
 /// Used by elements that share the editor's floating transform controls.
 abstract class RotatableCanvasElementModel<T extends CanvasElementData> extends CanvasElementModel<T> {
   RotatableCanvasElementModel(super.data);
