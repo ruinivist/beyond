@@ -69,7 +69,7 @@ void main() {
       BoxDecoration titleDecoration() =>
           tester
                   .widget<Container>(
-                    find.byKey(ValueKey(model.active ? 'code-title-input-tab' : 'code-title-tab')),
+                    find.byKey(ValueKey(model.active ? 'code-title-input-tab-surface' : 'code-title-tab-surface')),
                   )
                   .decoration!
               as BoxDecoration;

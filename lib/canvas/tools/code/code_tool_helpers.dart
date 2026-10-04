@@ -44,9 +44,18 @@ Widget _withCodeBackdrop(
   CodeBlockModel model,
   BTheme theme,
   BorderRadius borderRadius,
-  Widget child,
-) {
-  if (model.background != BlockBackgroundKind.glass) return child;
+  Widget child, {
+  CustomClipper<Path>? clipper,
+}) {
+  final glass = model.background == BlockBackgroundKind.glass;
+  final surface = glass
+      ? BackdropFilter(
+          filter: ui.ImageFilter.blur(sigmaX: theme.geo.glassBlurSigma, sigmaY: theme.geo.glassBlurSigma),
+          child: child,
+        )
+      : child;
+  final clippedSurface = clipper == null ? surface : ClipPath(clipper: clipper, child: surface);
+  if (!glass) return clippedSurface;
   return DecoratedBox(
     decoration: BoxDecoration(
       borderRadius: borderRadius,
@@ -54,10 +63,7 @@ Widget _withCodeBackdrop(
     ),
     child: ClipRRect(
       borderRadius: borderRadius,
-      child: BackdropFilter(
-        filter: ui.ImageFilter.blur(sigmaX: theme.geo.glassBlurSigma, sigmaY: theme.geo.glassBlurSigma),
-        child: child,
-      ),
+      child: clippedSurface,
     ),
   );
 }
@@ -84,22 +90,34 @@ class _CodeTitleTab extends StatelessWidget {
       topRight: theme.geo.radiusMedium.topRight,
     );
     return IntrinsicWidth(
-      child: _withCodeBackdrop(
-        model,
-        theme,
-        borderRadius,
-        Container(
-          constraints: BoxConstraints(minWidth: 76, maxWidth: model.size.width),
-          key: ValueKey(editing ? 'code-title-input-tab' : 'code-title-tab'),
-          height: 34,
-          decoration: BoxDecoration(
-            color: _codeSurfaceColor(colors, model),
-            border: Border(top: border, left: border, right: border),
-            borderRadius: borderRadius,
+      child: Stack(
+        key: ValueKey(editing ? 'code-title-input-tab' : 'code-title-tab'),
+        clipBehavior: Clip.none,
+        children: [
+          Positioned.fill(
+            bottom: -theme.geo.radiusMedium.topLeft.y,
+            child: _withCodeBackdrop(
+              model,
+              theme,
+              borderRadius,
+              Container(
+                key: ValueKey(editing ? 'code-title-input-tab-surface' : 'code-title-tab-surface'),
+                decoration: BoxDecoration(
+                  color: _codeSurfaceColor(colors, model),
+                  border: Border(top: border, left: border, right: border),
+                  borderRadius: borderRadius,
+                ),
+              ),
+              clipper: _CodeTitleSurfaceClipper(
+                theme.geo.radiusMedium.toRRect(const Offset(0, _codeTitleHeight) & model.size),
+              ),
+            ),
           ),
-          alignment: Alignment.centerLeft,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12),
+          Container(
+            constraints: BoxConstraints(minWidth: 76, maxWidth: model.size.width),
+            height: _codeTitleHeight,
+            alignment: Alignment.centerLeft,
+            padding: EdgeInsets.fromLTRB(12 + border.width, border.width, 12 + border.width, 0),
             child: Semantics(
               label: editing ? null : model.title,
               child: ExcludeSemantics(
@@ -128,10 +146,27 @@ class _CodeTitleTab extends StatelessWidget {
               ),
             ),
           ),
-        ),
+        ],
       ),
     );
   }
+}
+
+/// Keeps the extended title surface outside the body's rounded outline.
+class _CodeTitleSurfaceClipper extends CustomClipper<Path> {
+  const _CodeTitleSurfaceClipper(this.body);
+
+  final RRect body;
+
+  @override
+  Path getClip(Size size) => Path.combine(
+    PathOperation.difference,
+    Path()..addRect(Offset.zero & size),
+    Path()..addRRect(body),
+  );
+
+  @override
+  bool shouldReclip(_CodeTitleSurfaceClipper oldClipper) => body != oldClipper.body;
 }
 
 // ---------- Settings ----------
