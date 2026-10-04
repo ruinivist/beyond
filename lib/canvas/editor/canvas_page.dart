@@ -1295,6 +1295,7 @@ class _CanvasPageState extends State<CanvasPage> {
           onMove: (delta) => _moveSelectedChildren(code, delta),
           onResize: (delta) => _resizeCodeBlock(code, delta),
           onChangeBoundary: _finishHistoryOperation,
+          onControlPointerDown: _handleObjectControlPointerDown,
           canHandlePointer: _canHandleCanvasPointer,
         ),
       ),

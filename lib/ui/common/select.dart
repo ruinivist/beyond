@@ -394,6 +394,7 @@ class SearchableSelect<T> extends StatefulWidget {
     required this.options,
     required this.searchHint,
     required this.onChanged,
+    this.onMenuPointerDown,
     this.preferredValues = const [],
     this.showBorder = true,
     super.key,
@@ -404,6 +405,7 @@ class SearchableSelect<T> extends StatefulWidget {
   final List<T> preferredValues;
   final String searchHint;
   final ValueChanged<T>? onChanged;
+  final ValueChanged<PointerDownEvent>? onMenuPointerDown;
   final bool showBorder;
 
   @override
@@ -532,63 +534,72 @@ class _SearchableSelectState<T> extends State<SearchableSelect<T>> {
         theme: _theme,
         width: () => compact ? _preferredWidth : _triggerWidth,
       ),
-      menuChildren: [
-        SizedBox(
-          width: menuWidth,
-          child: TextField(
-            key: const ValueKey('searchable-select-search'),
-            controller: _searchController,
-            focusNode: _searchFocusNode,
-            style: _textStyle,
-            decoration: InputDecoration(
-              hintText: widget.searchHint,
-              hintStyle: _textStyle.copyWith(color: _colors.textMuted),
-              isDense: true,
-              filled: true,
-              fillColor: _colors.surface,
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 12,
-                vertical: 8,
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: _theme.geo.radiusSmall,
-                borderSide: BorderSide(color: _colors.borderSubtle),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: _theme.geo.radiusSmall,
-                borderSide: BorderSide(color: _colors.focusRing, width: 2),
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(height: 4),
-        if (visibleOptions.isEmpty)
-          SizedBox(
-            width: menuWidth,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-              child: Text(
-                'No results',
-                style: _textStyle.copyWith(color: _colors.textSecondary),
-              ),
-            ),
-          )
-        else
-          SizedBox(
-            width: menuWidth,
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxHeight: 280),
-              child: ListView(
-                padding: EdgeInsets.zero,
-                primary: false,
-                shrinkWrap: true,
-                children: [
-                  for (var i = 0; i < visibleOptions.length; i++) _buildSearchableOption(visibleOptions[i], i),
-                ],
-              ),
-            ),
-          ),
-      ],
+      menuChildren:
+          <Widget>[
+                SizedBox(
+                  width: menuWidth,
+                  child: TextField(
+                    key: const ValueKey('searchable-select-search'),
+                    controller: _searchController,
+                    focusNode: _searchFocusNode,
+                    style: _textStyle,
+                    decoration: InputDecoration(
+                      hintText: widget.searchHint,
+                      hintStyle: _textStyle.copyWith(color: _colors.textMuted),
+                      isDense: true,
+                      filled: true,
+                      fillColor: _colors.surface,
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: _theme.geo.radiusSmall,
+                        borderSide: BorderSide(color: _colors.borderSubtle),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: _theme.geo.radiusSmall,
+                        borderSide: BorderSide(color: _colors.focusRing, width: 2),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 4),
+                if (visibleOptions.isEmpty)
+                  SizedBox(
+                    width: menuWidth,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                      child: Text(
+                        'No results',
+                        style: _textStyle.copyWith(color: _colors.textSecondary),
+                      ),
+                    ),
+                  )
+                else
+                  SizedBox(
+                    width: menuWidth,
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxHeight: 280),
+                      child: ListView(
+                        padding: EdgeInsets.zero,
+                        primary: false,
+                        shrinkWrap: true,
+                        children: [
+                          for (var i = 0; i < visibleOptions.length; i++) _buildSearchableOption(visibleOptions[i], i),
+                        ],
+                      ),
+                    ),
+                  ),
+              ]
+              .map(
+                (child) => Listener(
+                  behavior: HitTestBehavior.opaque,
+                  onPointerDown: widget.onMenuPointerDown,
+                  child: child,
+                ),
+              )
+              .toList(),
       builder: (context, controller, child) => _buildSelectTrigger(
         triggerKey: _triggerKey,
         focusNode: _triggerFocusNode,

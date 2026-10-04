@@ -33,6 +33,7 @@ class CodeTool extends StatefulWidget {
     required this.onMove,
     required this.onResize,
     required this.onChangeBoundary,
+    this.onControlPointerDown,
     this.canHandlePointer,
     super.key,
   });
@@ -42,6 +43,7 @@ class CodeTool extends StatefulWidget {
   final ValueChanged<Offset> onMove;
   final ValueChanged<Offset> onResize;
   final VoidCallback onChangeBoundary;
+  final ValueChanged<PointerDownEvent>? onControlPointerDown;
   final bool Function(PointerEvent event)? canHandlePointer;
 
   @override
@@ -260,6 +262,7 @@ class _CodeToolState extends State<CodeTool> {
                                                 value: model.language,
                                                 preferredValues: CodeLanguage.values,
                                                 searchHint: 'Search languages…',
+                                                onMenuPointerDown: widget.onControlPointerDown,
                                                 options: [
                                                   for (final language in CodeLanguage.values)
                                                     SelectOption(value: language, label: language.label),
