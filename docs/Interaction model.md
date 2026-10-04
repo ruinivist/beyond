@@ -83,7 +83,7 @@ Shapes follow the same state separation: clicking or creating a shape makes it a
 
 ## Object context menu
 
-- In the Select tool, secondary-button release on an object opens a menu containing only Arrange when movement stays within Flutter's mouse drag threshold. Right-drag pans; right-clicking empty canvas opens nothing. Touch long-press has no object menu.
+- In the Select tool, secondary-button release on an object opens a menu containing only Arrange when movement stays within 4 logical pixels of the press position. The canvas stays still within that distance; crossing it commits to panning, even if the pointer returns to the press position. Right-clicking empty canvas opens nothing. Touch long-press has no object menu.
 - Right-clicking a selected object targets its selected group. Right-clicking an unselected object makes it the sole selection. Neither activates an object nor enters editing.
 - Right-clicking an editor preserves content and activation, closes Markdown source editing, and transfers keyboard focus to the menu. Editor context menus do not compete with Arrange. Menu clicks count as object-control interaction, including for active media.
 - Menus stay upright and use screen coordinates under zoom and rotation. Hover, click, arrow keys, Enter, and Escape use Flutter's menu navigation. While open, the menu owns keyboard input and Arrange shortcuts use the targets captured on opening.

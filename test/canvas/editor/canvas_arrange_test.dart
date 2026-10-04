@@ -111,7 +111,7 @@ void main() {
     expect(model.active, isTrue);
     await _open(tester, const Offset(305, 305));
     final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
-    await mouse.addPointer(location: const Offset(790, 590));
+    await mouse.moveTo(const Offset(790, 590));
     await mouse.moveTo(tester.getCenter(find.text('Arrange')));
     await tester.pumpAndSettle();
     expect(find.text('Bring Forward'), findsOneWidget);
@@ -121,6 +121,145 @@ void main() {
     expect(model.active, isTrue);
     expect(find.text('Arrange'), findsNothing);
     await mouse.removePointer();
+  });
+
+  for (final scale in [1.0, 2.0]) {
+    for (final jitter in [3.0, 4.0]) {
+      testWidgets('right-click tolerates $jitter pixels of jitter at zoom $scale', (tester) async {
+        await pumpCanvas(tester, TestCanvasDocumentStore(_document()));
+        final canvas = _canvas(tester)..updateScalebyDelta(scale - 1);
+        await tester.pumpAndSettle();
+        final models = _models(tester);
+        models['a']!.selected = true;
+        final before = canvas.offset;
+        final position = canvas.getInfo('c').ssPosition + const Offset(5, 5);
+        final click = await tester.startGesture(position, kind: PointerDeviceKind.mouse, buttons: kSecondaryButton);
+        for (final delta in [Offset(jitter, 0), Offset(-jitter, 0), Offset(jitter, 0)]) {
+          await click.moveBy(delta);
+          await tester.pump();
+          expect(canvas.offset, before);
+          expect(models['a']!.selected, isTrue);
+          expect(find.text('Arrange'), findsNothing);
+        }
+        await click.up();
+        await tester.pumpAndSettle();
+        expect(canvas.offset, before);
+        expect(find.text('Arrange'), findsOneWidget);
+        expect(models['a']!.selected, isFalse);
+        expect(models['c']!.selected, isTrue);
+        expect(models['c']!.active, isFalse);
+      });
+    }
+
+    testWidgets('right-drag commits beyond four pixels even when returning to the press at zoom $scale', (
+      tester,
+    ) async {
+      await pumpCanvas(tester, TestCanvasDocumentStore(_document()));
+      final canvas = _canvas(tester)..updateScalebyDelta(scale - 1);
+      await tester.pumpAndSettle();
+      final model = _models(tester)['a']!..selected = true;
+      final before = canvas.offset;
+      final position = canvas.getInfo('c').ssPosition + const Offset(5, 5);
+      final drag = await tester.startGesture(position, kind: PointerDeviceKind.mouse, buttons: kSecondaryButton);
+      await drag.moveBy(const Offset(3, 0));
+      expect(canvas.offset, before);
+      await drag.moveBy(const Offset(2, 0));
+      expect(canvas.offset, before - const Offset(5, 0) / scale);
+      await drag.moveTo(position);
+      expect(canvas.offset, before);
+      await drag.up();
+      await tester.pumpAndSettle();
+      expect(find.text('Arrange'), findsNothing);
+      expect(model.selected, isTrue);
+      await _open(tester, position);
+      expect(find.text('Arrange'), findsOneWidget);
+    });
+  }
+
+  testWidgets('empty-canvas right-click jitter preserves activation and selection', (tester) async {
+    await pumpCanvas(tester, TestCanvasDocumentStore(_document()));
+    await tester.tapAt(const Offset(305, 305));
+    await tester.pumpAndSettle();
+    final model = _models(tester)['a']!..selected = true;
+    final canvas = _canvas(tester);
+    final before = canvas.offset;
+    final click = await tester.startGesture(
+      const Offset(750, 500),
+      kind: PointerDeviceKind.mouse,
+      buttons: kSecondaryButton,
+    );
+    await click.moveBy(const Offset(3, 0));
+    await click.up();
+    await tester.pumpAndSettle();
+    expect(canvas.offset, before);
+    expect(model.active, isTrue);
+    expect(model.selected, isTrue);
+    expect(find.text('Arrange'), findsNothing);
+  });
+
+  for (final displacement in [const Offset(3, 0), const Offset(30, 0)]) {
+    testWidgets('canceling right-click or pan at $displacement clears the gesture without inertia', (tester) async {
+      await pumpCanvas(tester, TestCanvasDocumentStore(_document()));
+      final canvas = _canvas(tester);
+      final drag = await tester.startGesture(
+        const Offset(355, 355),
+        kind: PointerDeviceKind.mouse,
+        buttons: kSecondaryButton,
+      );
+      await drag.moveBy(displacement, timeStamp: const Duration(milliseconds: 16));
+      await drag.moveBy(displacement, timeStamp: const Duration(milliseconds: 32));
+      await drag.cancel();
+      final frozen = canvas.offset;
+      await tester.pump(const Duration(milliseconds: 200));
+      expect(canvas.offset, frozen);
+      expect(find.text('Arrange'), findsNothing);
+      await _open(tester, canvas.getInfo('c').ssPosition + const Offset(5, 5));
+      expect(find.text('Arrange'), findsOneWidget);
+    });
+  }
+
+  testWidgets('tool changes cancel a right-drag through final release', (tester) async {
+    await pumpCanvas(tester, TestCanvasDocumentStore(_document()));
+    final canvas = _canvas(tester);
+    final drag = await tester.startGesture(
+      const Offset(355, 355),
+      kind: PointerDeviceKind.mouse,
+      buttons: kSecondaryButton,
+    );
+    await drag.moveBy(const Offset(30, 0));
+    await tester.sendKeyEvent(LogicalKeyboardKey.keyP);
+    await tester.sendKeyEvent(LogicalKeyboardKey.keyP);
+    final frozen = canvas.offset;
+    await drag.moveBy(const Offset(30, 0));
+    await drag.up();
+    await tester.pump(const Duration(milliseconds: 200));
+    expect(canvas.offset, frozen);
+    expect(find.text('Arrange'), findsNothing);
+    await _open(tester, canvas.getInfo('c').ssPosition + const Offset(5, 5));
+    expect(find.text('Arrange'), findsOneWidget);
+  });
+
+  testWidgets('right-click stops existing inertia before deciding whether to pan', (tester) async {
+    await pumpCanvas(tester, TestCanvasDocumentStore(_document()));
+    final canvas = _canvas(tester)
+      ..onScaleStart(ScaleStartDetails())
+      ..onScaleEnd(ScaleEndDetails(velocity: const Velocity(pixelsPerSecond: Offset(500, 0))));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 16));
+    expect(canvas.offset, isNot(Offset.zero));
+    final before = canvas.offset;
+    final click = await tester.startGesture(
+      canvas.getInfo('c').ssPosition + const Offset(5, 5),
+      kind: PointerDeviceKind.mouse,
+      buttons: kSecondaryButton,
+    );
+    await click.moveBy(const Offset(3, 0));
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(canvas.offset, before);
+    await click.up();
+    await tester.pumpAndSettle();
+    expect(canvas.offset, before);
+    expect(find.text('Arrange'), findsOneWidget);
   });
 
   testWidgets('right-click replaces selection and right-drag still pans', (tester) async {
@@ -230,7 +369,9 @@ void main() {
       await tester.pumpAndSettle();
       await _shortcut(tester, LogicalKeyboardKey.bracketRight, shift: true);
       expect(_canvas(tester).childOrder, ['editor', 'other']);
-      await _open(tester, tester.getCenter(editingSurface));
+      final before = _canvas(tester).offset;
+      await _open(tester, tester.getCenter(editingSurface), jitter: const Offset(3, 0));
+      expect(_canvas(tester).offset, before);
       expect(find.text('Arrange'), findsOneWidget);
       expect(focus.hasFocus, isFalse);
       expect(find.byType(AdaptiveTextSelectionToolbar), findsNothing);
@@ -427,8 +568,10 @@ MenuItemButton _button(WidgetTester tester, String label) => tester.widget<MenuI
   find.ancestor(of: find.text(label), matching: find.byType(MenuItemButton)),
 );
 
-Future<void> _open(WidgetTester tester, Offset position) async {
-  await tester.tapAt(position, buttons: kSecondaryButton);
+Future<void> _open(WidgetTester tester, Offset position, {Offset jitter = Offset.zero}) async {
+  final click = await tester.startGesture(position, kind: PointerDeviceKind.mouse, buttons: kSecondaryButton);
+  if (jitter != Offset.zero) await click.moveBy(jitter);
+  await click.up();
   await tester.pumpAndSettle();
 }
 

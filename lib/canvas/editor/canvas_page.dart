@@ -96,6 +96,7 @@ class _CanvasPageState extends State<CanvasPage> {
   // ---------- Constants ----------
 
   static const _historyLimit = 50;
+  static const _secondaryPanSlop = 4.0;
 
   // ---------- State ----------
 
@@ -153,8 +154,8 @@ class _CanvasPageState extends State<CanvasPage> {
   final _blockedCanvasPointers = <int>{};
   var _touchNavigationActive = false;
   ({int pointer, Offset start, _CanvasTool tool, double slop})? _touchPlacement;
-  ({int pointer, Offset start, double slop, VelocityTracker velocity})? _touchPan;
-  var _touchPanStarted = false;
+  ({int pointer, Offset start, double slop, VelocityTracker velocity})? _pointerPan;
+  var _pointerPanStarted = false;
   var _touchControlsVisible = false;
   var _touchSelectionEnabled = false;
   final _pageTouchPointers = <int>{};
@@ -318,8 +319,8 @@ class _CanvasPageState extends State<CanvasPage> {
     final enabling = _activeTool.value != tool;
     _cancelDrawingTools();
     _touchPlacement = null;
-    if (_touchPan case final pan?) _blockedCanvasPointers.add(pan.pointer);
-    _touchPan = null;
+    if (_pointerPan case final pan?) _blockedCanvasPointers.add(pan.pointer);
+    _pointerPan = null;
     if (_dragSelectionPointer case final pointer?) _blockedCanvasPointers.add(pointer);
     _finishDragSelection(canceled: true);
     _finishHistoryOperation();
@@ -412,7 +413,7 @@ class _CanvasPageState extends State<CanvasPage> {
       _blockedCanvasPointers.addAll(_canvasPointers.keys);
       _cancelDrawingTools();
       _touchPlacement = null;
-      _touchPan = null;
+      _pointerPan = null;
       _eraserPointer = null;
       _dragArrowPointer = null;
       _dragArrow = null;
@@ -468,6 +469,19 @@ class _CanvasPageState extends State<CanvasPage> {
       _penTool.onPointerDown(event);
       return;
     }
+    if (event.kind == PointerDeviceKind.mouse &&
+        event.buttons == kSecondaryButton &&
+        _activeTool.value == _CanvasTool.select) {
+      _canvasController.stopAnimation();
+      _pointerPan = (
+        pointer: event.pointer,
+        start: event.localPosition,
+        slop: _secondaryPanSlop,
+        velocity: VelocityTracker.withKind(event.kind)..addPosition(event.timeStamp, event.localPosition),
+      );
+      _pointerPanStarted = false;
+      return;
+    }
     if (event.buttons != kPrimaryButton) return;
     final onInteractiveChild = _interactiveCanvasPointerIds.remove(
       event.pointer,
@@ -505,13 +519,13 @@ class _CanvasPageState extends State<CanvasPage> {
         _activeTool.value == _CanvasTool.select &&
         !_touchSelectionEnabled &&
         !_spaceHeld) {
-      _touchPan = (
+      _pointerPan = (
         pointer: event.pointer,
         start: event.localPosition,
         slop: computePanSlop(event.kind, MediaQuery.maybeGestureSettingsOf(context)),
         velocity: VelocityTracker.withKind(event.kind)..addPosition(event.timeStamp, event.localPosition),
       );
-      _touchPanStarted = false;
+      _pointerPanStarted = false;
       return;
     }
     final touchSelection = event.kind == PointerDeviceKind.touch && _touchSelectionEnabled;
@@ -537,20 +551,20 @@ class _CanvasPageState extends State<CanvasPage> {
       if ((event.position - click.start).distance > click.slop) _secondaryClick = null;
     }
     if (!_canHandleCanvasPointer(event)) return;
-    if (_touchPan case final pan? when pan.pointer == event.pointer) {
+    if (_pointerPan case final pan? when pan.pointer == event.pointer) {
       pan.velocity.addPosition(event.timeStamp, event.localPosition);
       final displacement = event.localPosition - pan.start;
-      if (!_touchPanStarted && displacement.distance <= pan.slop) return;
-      if (!_touchPanStarted) {
+      if (!_pointerPanStarted && displacement.distance <= pan.slop) return;
+      if (!_pointerPanStarted) {
         _canvasController.onScaleStart(ScaleStartDetails(localFocalPoint: pan.start));
       }
       _canvasController.onScaleUpdate(
         ScaleUpdateDetails(
           localFocalPoint: event.localPosition,
-          focalPointDelta: _touchPanStarted ? event.localDelta : displacement,
+          focalPointDelta: _pointerPanStarted ? event.localDelta : displacement,
         ),
       );
-      _touchPanStarted = true;
+      _pointerPanStarted = true;
       return;
     }
     if (_touchPlacement case final placement? when placement.pointer == event.pointer) {
@@ -598,12 +612,12 @@ class _CanvasPageState extends State<CanvasPage> {
     }
     _releaseCanvasPointer(event.pointer);
     if (!_canHandleCanvasPointer(event)) return;
-    if (_touchPan case final pan? when pan.pointer == event.pointer) {
-      _touchPan = null;
-      if (_touchPanStarted) {
+    if (_pointerPan case final pan? when pan.pointer == event.pointer) {
+      _pointerPan = null;
+      if (_pointerPanStarted) {
         pan.velocity.addPosition(event.timeStamp, event.localPosition);
         _canvasController.onScaleEnd(ScaleEndDetails(velocity: pan.velocity.getVelocity()));
-      } else if ((event.localPosition - pan.start).distance <= pan.slop) {
+      } else if (event.kind == PointerDeviceKind.touch && (event.localPosition - pan.start).distance <= pan.slop) {
         _clearElementEditing();
         _clearSelection();
       }
@@ -657,7 +671,7 @@ class _CanvasPageState extends State<CanvasPage> {
     if (_secondaryClick?.pointer == event.pointer) _secondaryClick = null;
     _releaseCanvasPointer(event.pointer);
     if (_touchPlacement?.pointer == event.pointer) _touchPlacement = null;
-    if (_touchPan?.pointer == event.pointer) _touchPan = null;
+    if (_pointerPan?.pointer == event.pointer) _pointerPan = null;
     if (!_canHandleCanvasPointer(event)) return;
     if (_penEnabled) {
       _penTool.onPointerCancel(event);
@@ -906,7 +920,9 @@ class _CanvasPageState extends State<CanvasPage> {
       pointer: event.pointer,
       start: event.position,
       model: model,
-      slop: computePanSlop(event.kind, MediaQuery.maybeGestureSettingsOf(context)),
+      slop: event.kind == PointerDeviceKind.mouse
+          ? _secondaryPanSlop
+          : computePanSlop(event.kind, MediaQuery.maybeGestureSettingsOf(context)),
     );
   }
 
@@ -1960,7 +1976,7 @@ class _CanvasPageState extends State<CanvasPage> {
     FocusManager.instance.primaryFocus?.unfocus();
     _cancelDrawingTools();
     _touchPlacement = null;
-    _touchPan = null;
+    _pointerPan = null;
     _blockedCanvasPointers.addAll(_canvasPointers.keys);
     _activeTool.value = _CanvasTool.select;
     _touchSelectionEnabled = false;
@@ -2484,7 +2500,10 @@ class _CanvasPageState extends State<CanvasPage> {
                   touchNavigationMode: TouchNavigationMode.twoFinger,
                   onTouchNavigationChanged: _handleTouchNavigationChanged,
                   viewportBuilder: _buildCanvasViewport,
-                  mousePanButtons: kSecondaryMouseButton | kMiddleMouseButton | (_spaceHeld ? kPrimaryMouseButton : 0),
+                  mousePanButtons:
+                      (_activeTool.value == _CanvasTool.select ? 0 : kSecondaryMouseButton) |
+                      kMiddleMouseButton |
+                      (_spaceHeld ? kPrimaryMouseButton : 0),
                 ),
               ),
             ),
