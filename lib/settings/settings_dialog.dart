@@ -6,6 +6,7 @@ import 'dart:math' as math;
 import 'package:elseplane/canvas/editor/canvas_background.dart';
 import 'package:elseplane/theme/theme.dart';
 import 'package:elseplane/ui/common/select.dart';
+import 'package:elseplane/ui/common/surface_dialog.dart';
 import 'package:flutter/material.dart';
 
 // ---------- Dialog ----------
@@ -17,6 +18,7 @@ class SettingsDialog extends StatefulWidget {
 
   const SettingsDialog({
     this.themeMode = ThemeMode.light,
+    this.onSurfaceStyleChanged,
     this.onThemeModeChanged,
     this.canvasBackgroundKind = CanvasBackgroundKind.dotGrid,
     this.onCanvasBackgroundChanged,
@@ -28,6 +30,7 @@ class SettingsDialog extends StatefulWidget {
   });
 
   final ThemeMode themeMode;
+  final Future<void> Function(SurfaceStyle)? onSurfaceStyleChanged;
   final Future<void> Function(ThemeMode)? onThemeModeChanged;
   final CanvasBackgroundKind canvasBackgroundKind;
   final ValueChanged<CanvasBackgroundKind>? onCanvasBackgroundChanged;
@@ -67,6 +70,18 @@ class _SettingsDialogState extends State<SettingsDialog> {
     }
   }
 
+  Future<void> _changeSurfaceStyle(SurfaceStyle style) async {
+    try {
+      await widget.onSurfaceStyleChanged?.call(style);
+    } on Object {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not save surface style preference.')),
+        );
+      }
+    }
+  }
+
   // ---------- Transfer actions ----------
 
   Future<T?> _runTransfer<T>(Future<T> Function()? callback) async {
@@ -88,20 +103,11 @@ class _SettingsDialogState extends State<SettingsDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = BTheme.of(context);
-    final colors = theme.colors;
     final viewport = MediaQuery.sizeOf(context);
     final width = math.min(800, math.max(0, viewport.width - 32)).toDouble();
     final height = math.min(540, math.max(0, viewport.height - 32)).toDouble();
 
-    return Dialog(
-      backgroundColor: colors.surfaceRaised,
-      surfaceTintColor: Colors.transparent,
-      elevation: theme.geo.elevationMedium,
-      shadowColor: colors.shadow,
-      insetPadding: const EdgeInsets.all(16),
-      clipBehavior: Clip.antiAlias,
-      shape: RoundedRectangleBorder(borderRadius: theme.geo.radiusLarge),
+    return SurfaceDialog(
       child: SizedBox(
         width: width,
         height: height,
@@ -324,6 +330,19 @@ class _SettingsDialogState extends State<SettingsDialog> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        Text('Surface style', style: theme.typo.label),
+        const SizedBox(height: 10),
+        Select<SurfaceStyle>(
+          key: const ValueKey('surface-style-select'),
+          value: theme.surfaceStyle,
+          options: const [
+            SelectOption(value: SurfaceStyle.solid, label: 'Solid'),
+            SelectOption(value: SurfaceStyle.glass, label: 'Glass'),
+          ],
+          showBorder: false,
+          onChanged: widget.onSurfaceStyleChanged == null ? null : _changeSurfaceStyle,
+        ),
+        const SizedBox(height: 20),
         Text('Theme', style: theme.typo.label),
         const SizedBox(height: 10),
         Select<ThemeMode>(

@@ -4,6 +4,7 @@
 import 'dart:math' as math;
 
 import 'package:elseplane/theme/theme.dart';
+import 'package:elseplane/ui/common/menu_surface.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -135,28 +136,6 @@ ButtonStyle _selectOptionStyle({
     shape: WidgetStatePropertyAll(
       RoundedRectangleBorder(borderRadius: theme.geo.radiusSmall),
     ),
-  );
-}
-
-MenuStyle _selectMenuStyle({
-  required BTheme theme,
-  required double Function() width,
-}) {
-  final colors = theme.colors;
-  return MenuStyle(
-    backgroundColor: WidgetStatePropertyAll(colors.surfaceRaised),
-    shadowColor: WidgetStatePropertyAll(colors.shadow),
-    elevation: WidgetStatePropertyAll(theme.geo.elevationMedium),
-    padding: const WidgetStatePropertyAll(EdgeInsets.all(4)),
-    minimumSize: const WidgetStatePropertyAll(Size.zero),
-    fixedSize: WidgetStateProperty.resolveWith((_) => Size.fromWidth(width())),
-    maximumSize: const WidgetStatePropertyAll(Size.infinite),
-    visualDensity: VisualDensity.standard,
-    side: WidgetStatePropertyAll(BorderSide(color: colors.borderSubtle)),
-    shape: WidgetStatePropertyAll(
-      RoundedRectangleBorder(borderRadius: theme.geo.radiusMedium),
-    ),
-    alignment: AlignmentDirectional.bottomStart,
   );
 }
 
@@ -350,9 +329,11 @@ class _SelectState<T> extends State<Select<T>> {
       onOpen: _focusSelectedOption,
       alignmentOffset: const Offset(0, 4),
       crossAxisUnconstrained: false,
-      style: _selectMenuStyle(theme: _theme, width: () => _triggerWidth),
+      style: menuShellStyle(width: () => _triggerWidth, alignment: AlignmentDirectional.bottomStart),
       menuChildren: [
-        for (var i = 0; i < widget.options.length; i++) _buildOption(widget.options[i], i),
+        MenuSurface(
+          children: [for (var i = 0; i < widget.options.length; i++) _buildOption(widget.options[i], i)],
+        ),
       ],
       builder: (context, controller, child) => _buildSelectTrigger(
         triggerKey: _triggerKey,
@@ -530,76 +511,75 @@ class _SearchableSelectState<T> extends State<SearchableSelect<T>> {
       onOpen: _prepareSearch,
       alignmentOffset: const Offset(0, 4),
       crossAxisUnconstrained: false,
-      style: _selectMenuStyle(
-        theme: _theme,
+      style: menuShellStyle(
+        alignment: AlignmentDirectional.bottomStart,
         width: () => compact ? _preferredWidth : _triggerWidth,
       ),
-      menuChildren:
-          <Widget>[
+      menuChildren: [
+        Listener(
+          behavior: HitTestBehavior.opaque,
+          onPointerDown: widget.onMenuPointerDown,
+          child: MenuSurface(
+            children: <Widget>[
+              SizedBox(
+                width: menuWidth,
+                child: TextField(
+                  key: const ValueKey('searchable-select-search'),
+                  controller: _searchController,
+                  focusNode: _searchFocusNode,
+                  style: _textStyle,
+                  decoration: InputDecoration(
+                    hintText: widget.searchHint,
+                    hintStyle: _textStyle.copyWith(color: _colors.textMuted),
+                    isDense: true,
+                    filled: true,
+                    fillColor: _colors.surface,
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: _theme.geo.radiusSmall,
+                      borderSide: BorderSide(color: _colors.borderSubtle),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: _theme.geo.radiusSmall,
+                      borderSide: BorderSide(color: _colors.focusRing, width: 2),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 4),
+              if (visibleOptions.isEmpty)
                 SizedBox(
                   width: menuWidth,
-                  child: TextField(
-                    key: const ValueKey('searchable-select-search'),
-                    controller: _searchController,
-                    focusNode: _searchFocusNode,
-                    style: _textStyle,
-                    decoration: InputDecoration(
-                      hintText: widget.searchHint,
-                      hintStyle: _textStyle.copyWith(color: _colors.textMuted),
-                      isDense: true,
-                      filled: true,
-                      fillColor: _colors.surface,
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 8,
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: _theme.geo.radiusSmall,
-                        borderSide: BorderSide(color: _colors.borderSubtle),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: _theme.geo.radiusSmall,
-                        borderSide: BorderSide(color: _colors.focusRing, width: 2),
-                      ),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                    child: Text(
+                      'No results',
+                      style: _textStyle.copyWith(color: _colors.textSecondary),
+                    ),
+                  ),
+                )
+              else
+                SizedBox(
+                  width: menuWidth,
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxHeight: 280),
+                    child: ListView(
+                      padding: EdgeInsets.zero,
+                      primary: false,
+                      shrinkWrap: true,
+                      children: [
+                        for (var i = 0; i < visibleOptions.length; i++) _buildSearchableOption(visibleOptions[i], i),
+                      ],
                     ),
                   ),
                 ),
-                const SizedBox(height: 4),
-                if (visibleOptions.isEmpty)
-                  SizedBox(
-                    width: menuWidth,
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                      child: Text(
-                        'No results',
-                        style: _textStyle.copyWith(color: _colors.textSecondary),
-                      ),
-                    ),
-                  )
-                else
-                  SizedBox(
-                    width: menuWidth,
-                    child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxHeight: 280),
-                      child: ListView(
-                        padding: EdgeInsets.zero,
-                        primary: false,
-                        shrinkWrap: true,
-                        children: [
-                          for (var i = 0; i < visibleOptions.length; i++) _buildSearchableOption(visibleOptions[i], i),
-                        ],
-                      ),
-                    ),
-                  ),
-              ]
-              .map(
-                (child) => Listener(
-                  behavior: HitTestBehavior.opaque,
-                  onPointerDown: widget.onMenuPointerDown,
-                  child: child,
-                ),
-              )
-              .toList(),
+            ],
+          ),
+        ),
+      ],
       builder: (context, controller, child) => _buildSelectTrigger(
         triggerKey: _triggerKey,
         focusNode: _triggerFocusNode,

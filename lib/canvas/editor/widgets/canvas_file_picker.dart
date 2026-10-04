@@ -7,6 +7,7 @@ import 'package:elseplane/canvas/editor/widgets/file_tree_popup.dart';
 import 'package:elseplane/canvas/persistence/canvas_library.dart';
 import 'package:elseplane/theme/theme.dart';
 import 'package:elseplane/ui/common/context_menu.dart';
+import 'package:elseplane/ui/common/surface_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
@@ -193,7 +194,7 @@ class _CanvasFilePickerState extends State<CanvasFilePicker> {
   Future<void> _delete(CanvasFile file) async {
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (context) => SurfaceConfirmationDialog(
         title: Text('Delete “${file.name}”?'),
         content: Text(file.isFolder ? 'This deletes the folder and all its canvases.' : 'This canvas will be deleted.'),
         actions: [

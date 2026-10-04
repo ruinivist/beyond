@@ -2,6 +2,7 @@
 // Used by interactive surfaces that expose grouped pointer actions.
 
 import 'package:elseplane/theme/theme.dart';
+import 'package:elseplane/ui/common/menu_surface.dart';
 import 'package:flutter/material.dart';
 
 // ---------- Models ----------
@@ -52,21 +53,6 @@ class ContextMenu extends StatelessWidget {
 
   // ---------- Styling ----------
 
-  MenuStyle _menuStyle(BTheme theme) {
-    final colors = theme.colors;
-    return MenuStyle(
-      backgroundColor: WidgetStatePropertyAll(colors.surfaceRaised),
-      shadowColor: WidgetStatePropertyAll(colors.shadow),
-      elevation: WidgetStatePropertyAll(theme.geo.elevationMedium),
-      padding: const WidgetStatePropertyAll(EdgeInsets.all(4)),
-      minimumSize: const WidgetStatePropertyAll(Size(_menuWidth, 0)),
-      side: WidgetStatePropertyAll(BorderSide(color: colors.borderSubtle)),
-      shape: WidgetStatePropertyAll(
-        RoundedRectangleBorder(borderRadius: theme.geo.radiusMedium),
-      ),
-    );
-  }
-
   ButtonStyle _itemStyle(BTheme theme, {required bool destructive}) {
     final colors = theme.colors;
     final foreground = destructive ? colors.destructive : colors.textPrimary;
@@ -114,9 +100,9 @@ class ContextMenu extends StatelessWidget {
         ? SubmenuButton(
             focusNode: action.focusNode,
             style: style,
-            menuStyle: _menuStyle(theme),
+            menuStyle: menuShellStyle(),
             leadingIcon: Icon(action.icon, size: 16),
-            menuChildren: _items(context, action.groups),
+            menuChildren: [MenuSurface(children: _items(context, action.groups))],
             child: label,
           )
         : MenuItemButton(
@@ -158,10 +144,10 @@ class ContextMenu extends StatelessWidget {
     final theme = BTheme.of(context);
     return MenuAnchor(
       consumeOutsideTap: true,
-      style: _menuStyle(theme),
+      style: menuShellStyle(),
       controller: controller,
       onClose: onClose,
-      menuChildren: _items(context, groups),
+      menuChildren: [MenuSurface(children: _items(context, groups))],
       builder: (context, menuController, child) => controller != null
           ? child!
           : Semantics(

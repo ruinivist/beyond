@@ -6,6 +6,7 @@ import 'package:elseplane/canvas/persistence/attachments/store.dart';
 import 'package:elseplane/canvas/persistence/canvas_document_store.dart';
 import 'package:elseplane/canvas/persistence/canvas_project_files.dart';
 import 'package:elseplane/theme/starless.dart';
+import 'package:elseplane/theme/theme.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -14,6 +15,15 @@ import 'package:shared_preferences/shared_preferences.dart';
 // ---------- Theme preference ----------
 
 const themePreferenceKey = 'elseplane.theme.mode';
+const surfaceStylePreferenceKey = 'elseplane.surface.style';
+
+Future<SurfaceStyle> loadSurfaceStyle(SharedPreferencesAsync preferences) async {
+  try {
+    return await preferences.getString(surfaceStylePreferenceKey) == 'glass' ? SurfaceStyle.glass : SurfaceStyle.solid;
+  } on Object {
+    return SurfaceStyle.solid;
+  }
+}
 
 Future<ThemeMode> loadThemeMode(SharedPreferencesAsync preferences) async {
   try {
@@ -31,7 +41,13 @@ Future<void> main() async {
   // TODO(dev): bundle it instead of fetching fonts at runtime.
   await loadFonts();
   final preferences = SharedPreferencesAsync();
-  runApp(ElseplaneApp(initialThemeMode: await loadThemeMode(preferences), preferences: preferences));
+  runApp(
+    ElseplaneApp(
+      initialThemeMode: await loadThemeMode(preferences),
+      initialSurfaceStyle: await loadSurfaceStyle(preferences),
+      preferences: preferences,
+    ),
+  );
 }
 
 // ---------- Root application ----------
@@ -41,6 +57,7 @@ Future<void> main() async {
 class ElseplaneApp extends StatefulWidget {
   const ElseplaneApp({
     this.initialThemeMode = ThemeMode.light,
+    this.initialSurfaceStyle = SurfaceStyle.solid,
     this.preferences,
     this.attachmentStore,
     this.documentStore,
@@ -49,6 +66,7 @@ class ElseplaneApp extends StatefulWidget {
   });
 
   final ThemeMode initialThemeMode;
+  final SurfaceStyle initialSurfaceStyle;
   final SharedPreferencesAsync? preferences;
   final AttachmentStore? attachmentStore;
   final CanvasDocumentStore? documentStore;
@@ -62,6 +80,7 @@ class _ElseplaneAppState extends State<ElseplaneApp> {
   // ---------- State and persistence ----------
 
   late ThemeMode _themeMode = widget.initialThemeMode;
+  late SurfaceStyle _surfaceStyle = widget.initialSurfaceStyle;
   late final SharedPreferencesAsync _preferences = widget.preferences ?? SharedPreferencesAsync();
   Future<void> _saveQueue = Future<void>.value();
 
@@ -72,6 +91,17 @@ class _ElseplaneAppState extends State<ElseplaneApp> {
     return save;
   }
 
+  Future<void> _setSurfaceStyle(SurfaceStyle style) {
+    setState(() => _surfaceStyle = style);
+    final save = _saveQueue.then((_) => _preferences.setString(surfaceStylePreferenceKey, style.name));
+    _saveQueue = save.catchError((Object _) {});
+    return save;
+  }
+
+  ThemeData _styledTheme(ThemeData theme) => theme.copyWith(
+    extensions: [theme.extension<BTheme>()!.copyWith(surfaceStyle: _surfaceStyle)],
+  );
+
   // ---------- Rendering ----------
 
   @override
@@ -79,15 +109,20 @@ class _ElseplaneAppState extends State<ElseplaneApp> {
     return MaterialApp(
       title: 'elseplane',
       debugShowCheckedModeBanner: false,
-      theme: starlessLightThemeData,
-      darkTheme: starlessDarkThemeData,
+      theme: _styledTheme(starlessLightThemeData),
+      darkTheme: _styledTheme(starlessDarkThemeData),
       themeMode: _themeMode,
+      builder: (context, child) => Theme(
+        data: _styledTheme(Theme.of(context)),
+        child: child!,
+      ),
       home: CanvasPage(
         attachmentStore: widget.attachmentStore,
         documentStore: widget.documentStore,
         projectFiles: widget.projectFiles,
         themeMode: _themeMode,
         onThemeModeChanged: _setThemeMode,
+        onSurfaceStyleChanged: _setSurfaceStyle,
       ),
     );
   }

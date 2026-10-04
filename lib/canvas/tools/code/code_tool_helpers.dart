@@ -23,11 +23,6 @@ Widget _codeControlTransition(Widget child, Animation<double> animation) {
 // ---------- Backgrounds ----------
 
 Color _codeSurfaceColor(BColors colors, CodeBlockModel model) {
-  if (model.background == BlockBackgroundKind.glass) {
-    return model.selected
-        ? Color.alphaBlend(colors.accentSoft.withValues(alpha: 0.25), colors.glassSurface)
-        : colors.glassSurface;
-  }
   if (model.selected) return colors.accentSoft;
   return model.background == BlockBackgroundKind.transparent ? Colors.transparent : colors.surface;
 }
@@ -36,35 +31,7 @@ BorderSide _codeSurfaceBorder(BColors colors, CodeBlockModel model) {
   if (model.selected) return BorderSide(color: colors.accent, width: 2);
   if (model.background == BlockBackgroundKind.transparent && !model.active) return BorderSide.none;
   return BorderSide(
-    color: model.background == BlockBackgroundKind.glass ? colors.glassBorder : colors.borderSubtle,
-  );
-}
-
-Widget _withCodeBackdrop(
-  CodeBlockModel model,
-  BTheme theme,
-  BorderRadius borderRadius,
-  Widget child, {
-  CustomClipper<Path>? clipper,
-}) {
-  final glass = model.background == BlockBackgroundKind.glass;
-  final surface = glass
-      ? BackdropFilter(
-          filter: ui.ImageFilter.blur(sigmaX: theme.geo.glassBlurSigma, sigmaY: theme.geo.glassBlurSigma),
-          child: child,
-        )
-      : child;
-  final clippedSurface = clipper == null ? surface : ClipPath(clipper: clipper, child: surface);
-  if (!glass) return clippedSurface;
-  return DecoratedBox(
-    decoration: BoxDecoration(
-      borderRadius: borderRadius,
-      boxShadow: [theme.geo.glassShadow.copyWith(color: theme.colors.shadow)],
-    ),
-    child: ClipRRect(
-      borderRadius: borderRadius,
-      child: clippedSurface,
-    ),
+    color: colors.borderSubtle,
   );
 }
 
@@ -96,22 +63,29 @@ class _CodeTitleTab extends StatelessWidget {
         children: [
           Positioned.fill(
             bottom: -theme.geo.radiusMedium.topLeft.y,
-            child: _withCodeBackdrop(
-              model,
-              theme,
-              borderRadius,
-              Container(
-                key: ValueKey(editing ? 'code-title-input-tab-surface' : 'code-title-tab-surface'),
-                decoration: BoxDecoration(
-                  color: _codeSurfaceColor(colors, model),
-                  border: Border(top: border, left: border, right: border),
-                  borderRadius: borderRadius,
-                ),
-              ),
-              clipper: _CodeTitleSurfaceClipper(
-                theme.geo.radiusMedium.toRRect(const Offset(0, _codeTitleHeight) & model.size),
-              ),
-            ),
+            child: model.background == BlockBackgroundKind.glass
+                ? GlassSurface(
+                    key: ValueKey(editing ? 'code-title-input-tab-surface' : 'code-title-tab-surface'),
+                    selected: model.selected,
+                    borderRadius: borderRadius,
+                    clipper: _CodeTitleSurfaceClipper(
+                      theme.geo.radiusMedium.toRRect(const Offset(0, _codeTitleHeight) & model.size),
+                    ),
+                    child: const SizedBox.expand(),
+                  )
+                : ClipPath(
+                    clipper: _CodeTitleSurfaceClipper(
+                      theme.geo.radiusMedium.toRRect(const Offset(0, _codeTitleHeight) & model.size),
+                    ),
+                    child: Container(
+                      key: ValueKey(editing ? 'code-title-input-tab-surface' : 'code-title-tab-surface'),
+                      decoration: BoxDecoration(
+                        color: _codeSurfaceColor(colors, model),
+                        border: Border(top: border, left: border, right: border),
+                        borderRadius: borderRadius,
+                      ),
+                    ),
+                  ),
           ),
           Container(
             constraints: BoxConstraints(minWidth: 76, maxWidth: model.size.width),

@@ -65,14 +65,21 @@ void main() {
       final surface = find.byKey(const ValueKey('code-block-surface'));
       final originalBounds = tester.getRect(surface);
 
-      Material body() => tester.widget<Material>(surface);
-      BoxDecoration titleDecoration() =>
-          tester
-                  .widget<Container>(
-                    find.byKey(ValueKey(model.active ? 'code-title-input-tab-surface' : 'code-title-tab-surface')),
-                  )
-                  .decoration!
-              as BoxDecoration;
+      Material body() => tester.widget<Material>(
+        model.background == BlockBackgroundKind.glass
+            ? find.descendant(of: surface, matching: find.byType(Material)).first
+            : surface,
+      );
+      BoxDecoration titleDecoration() {
+        final title = find.byKey(ValueKey(model.active ? 'code-title-input-tab-surface' : 'code-title-tab-surface'));
+        if (model.background != BlockBackgroundKind.glass) {
+          return tester.widget<Container>(title).decoration! as BoxDecoration;
+        }
+        final material = tester.widget<Material>(find.descendant(of: title, matching: find.byType(Material)));
+        final shape = material.shape! as RoundedRectangleBorder;
+        return BoxDecoration(color: material.color, border: Border.fromBorderSide(shape.side));
+      }
+
       BorderSide bodyBorder() => (body().shape! as RoundedRectangleBorder).side;
 
       for (final background in BlockBackgroundKind.values) {

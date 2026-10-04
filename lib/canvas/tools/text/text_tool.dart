@@ -1,8 +1,6 @@
 // Renders and resizes a persisted canvas text tool element.
 // Used by the canvas element stack for text display and editing.
 
-import 'dart:ui' as ui;
-
 import 'package:elseplane/canvas/document/canvas_document.dart';
 import 'package:elseplane/canvas/editor/widgets/pointer_scroll_boundary.dart';
 import 'package:elseplane/canvas/editor/widgets/resize_handle.dart';
@@ -11,6 +9,7 @@ import 'package:elseplane/canvas/tools/text/text_block_model.dart';
 import 'package:elseplane/canvas/tools/text/text_markdown_editor.dart';
 import 'package:elseplane/canvas/tools/text/text_markdown_preview.dart';
 import 'package:elseplane/theme/theme.dart';
+import 'package:elseplane/ui/common/glass_surface.dart';
 import 'package:elseplane/ui/common/icon_drag.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
@@ -75,19 +74,52 @@ class TextTool extends StatelessWidget {
             (_) => CallbackDrag((delta) => onResize(context.size!, delta)),
           );
           const resizeRecognizer = ImmediateMultiDragGestureRecognizer;
+          final surfaceBody = SizedBox(
+            width: model.node.width,
+            height: model.node.height,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(minHeight: textNodeMinimumHeight),
+              child: Stack(
+                children: [
+                  if (model.node.height != null) Positioned.fill(child: visibleBody) else visibleBody,
+                  Positioned(
+                    right: 2,
+                    bottom: 2,
+                    child: IgnorePointer(
+                      ignoring: !model.active,
+                      child: AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 260),
+                        reverseDuration: const Duration(milliseconds: 180),
+                        switchInCurve: Curves.easeOutCubic,
+                        switchOutCurve: Curves.easeOutCubic,
+                        transitionBuilder: _resizeHandleTransition,
+                        child: model.active
+                            ? TextFieldTapRegion(
+                                child: ResizeHandle(
+                                  key: const ValueKey('text-block-resize-handle'),
+                                  semanticLabel: 'Resize text block',
+                                  gestures: {resizeRecognizer: resizeGestureFactory},
+                                ),
+                              )
+                            : const SizedBox(
+                                key: ValueKey('text-block-resize-handle-hidden'),
+                              ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
           final surface = Material(
             key: const ValueKey('text-block-surface'),
             type: transparent && !model.selected ? MaterialType.transparency : MaterialType.canvas,
-            color: glass
-                ? model.selected
-                      ? Color.alphaBlend(colors.accentSoft.withValues(alpha: 0.25), colors.glassSurface)
-                      : colors.glassSurface
-                : model.selected
+            color: model.selected
                 ? colors.accentSoft
                 : transparent
                 ? null
                 : colors.surface,
-            elevation: transparent || glass ? 0 : theme.geo.elevationLow,
+            elevation: transparent ? 0 : theme.geo.elevationLow,
             shadowColor: colors.shadow,
             shape: RoundedRectangleBorder(
               borderRadius: theme.geo.radiusLarge,
@@ -95,62 +127,18 @@ class TextTool extends StatelessWidget {
                   ? BorderSide(color: colors.accent, width: 2)
                   : transparent && !model.editing
                   ? BorderSide.none
-                  : BorderSide(color: glass ? colors.glassBorder : colors.borderSubtle),
+                  : BorderSide(color: colors.borderSubtle),
             ),
-            child: SizedBox(
-              width: model.node.width,
-              height: model.node.height,
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(minHeight: textNodeMinimumHeight),
-                child: Stack(
-                  children: [
-                    if (model.node.height != null) Positioned.fill(child: visibleBody) else visibleBody,
-                    Positioned(
-                      right: 2,
-                      bottom: 2,
-                      child: IgnorePointer(
-                        ignoring: !model.active,
-                        child: AnimatedSwitcher(
-                          duration: const Duration(milliseconds: 260),
-                          reverseDuration: const Duration(milliseconds: 180),
-                          switchInCurve: Curves.easeOutCubic,
-                          switchOutCurve: Curves.easeOutCubic,
-                          transitionBuilder: _resizeHandleTransition,
-                          child: model.active
-                              ? TextFieldTapRegion(
-                                  child: ResizeHandle(
-                                    key: const ValueKey('text-block-resize-handle'),
-                                    semanticLabel: 'Resize text block',
-                                    gestures: {resizeRecognizer: resizeGestureFactory},
-                                  ),
-                                )
-                              : const SizedBox(
-                                  key: ValueKey('text-block-resize-handle-hidden'),
-                                ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
+            child: surfaceBody,
           );
           return Semantics(
             container: true,
             selected: model.selected,
             child: glass
-                ? DecoratedBox(
-                    decoration: BoxDecoration(
-                      borderRadius: theme.geo.radiusLarge,
-                      boxShadow: [theme.geo.glassShadow.copyWith(color: colors.shadow)],
-                    ),
-                    child: ClipRRect(
-                      borderRadius: theme.geo.radiusLarge,
-                      child: BackdropFilter(
-                        filter: ui.ImageFilter.blur(sigmaX: theme.geo.glassBlurSigma, sigmaY: theme.geo.glassBlurSigma),
-                        child: surface,
-                      ),
-                    ),
+                ? GlassSurface(
+                    key: const ValueKey('text-block-surface'),
+                    selected: model.selected,
+                    child: surfaceBody,
                   )
                 : surface,
           );

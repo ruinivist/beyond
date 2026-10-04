@@ -38,6 +38,7 @@ import 'package:elseplane/ui/common/color_picker.dart';
 import 'package:elseplane/ui/common/context_menu.dart';
 import 'package:elseplane/ui/common/discrete_slider.dart';
 import 'package:elseplane/ui/common/surface.dart';
+import 'package:elseplane/ui/common/surface_dialog.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
@@ -76,6 +77,7 @@ class CanvasPage extends StatefulWidget {
     this.readClipboard,
     this.writeClipboardText,
     this.themeMode = ThemeMode.light,
+    this.onSurfaceStyleChanged,
     this.onThemeModeChanged,
     super.key,
   });
@@ -86,6 +88,7 @@ class CanvasPage extends StatefulWidget {
   final Future<CanvasClipboardSnapshot> Function()? readClipboard;
   final Future<void> Function(String text)? writeClipboardText;
   final ThemeMode themeMode;
+  final Future<void> Function(SurfaceStyle)? onSurfaceStyleChanged;
   final Future<void> Function(ThemeMode)? onThemeModeChanged;
 
   @override
@@ -1835,6 +1838,7 @@ class _CanvasPageState extends State<CanvasPage> {
         builder: (_) => SettingsDialog(
           themeMode: widget.themeMode,
           onThemeModeChanged: widget.onThemeModeChanged,
+          onSurfaceStyleChanged: widget.onSurfaceStyleChanged,
           canvasBackgroundKind: _canvasBackgroundKind,
           onCanvasBackgroundChanged: _setCanvasBackground,
           onImportCanvas: _importProject,
@@ -1887,7 +1891,7 @@ class _CanvasPageState extends State<CanvasPage> {
     if (!mounted) return false;
     return await showDialog<bool>(
           context: context,
-          builder: (context) => AlertDialog(
+          builder: (context) => SurfaceConfirmationDialog(
             title: Text(title),
             content: Text(message),
             actions: [

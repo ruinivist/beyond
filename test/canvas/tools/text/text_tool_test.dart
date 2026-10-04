@@ -1066,7 +1066,8 @@ Inline $x^2$''';
       await tester.pumpAndSettle();
       final block = find.byType(TextTool);
       final model = tester.widget<TextTool>(block).model;
-      final surface = find.byKey(const ValueKey('text-block-surface'));
+      final bounds = find.byKey(const ValueKey('text-block-surface'));
+      final surface = find.descendant(of: bounds, matching: find.byType(Material)).first;
       final filter = find.descendant(of: block, matching: find.byType(BackdropFilter));
 
       void expectGlass() {

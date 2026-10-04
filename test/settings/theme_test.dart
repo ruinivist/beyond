@@ -8,6 +8,7 @@ import 'package:elseplane/canvas/tools/text/text_tool.dart';
 import 'package:elseplane/main.dart';
 import 'package:elseplane/settings/settings_dialog.dart';
 import 'package:elseplane/theme/theme.dart';
+import 'package:elseplane/ui/common/glass_surface.dart';
 import 'package:elseplane/ui/previews/theme_preview.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -23,8 +24,12 @@ void main() {
   setUp(() async {
     SharedPreferencesAsyncWeb.registerWith(null);
     await SharedPreferencesAsync().remove(themePreferenceKey);
+    await SharedPreferencesAsync().remove(surfaceStylePreferenceKey);
   });
-  tearDown(() => SharedPreferencesAsync().remove(themePreferenceKey));
+  tearDown(() async {
+    await SharedPreferencesAsync().remove(themePreferenceKey);
+    await SharedPreferencesAsync().remove(surfaceStylePreferenceKey);
+  });
 
   testWidgets('preview theme follows preview brightness and supplies app semantics', (tester) async {
     for (final brightness in Brightness.values) {
@@ -92,6 +97,81 @@ void main() {
     expect(await loadThemeMode(preferences), ThemeMode.light);
   });
 
+  testWidgets('surface style defaults, switches live, and reloads without changing canvas state', (tester) async {
+    final preferences = SharedPreferencesAsync();
+    expect(await loadSurfaceStyle(preferences), SurfaceStyle.solid);
+    await preferences.setString(surfaceStylePreferenceKey, 'unknown');
+    expect(await loadSurfaceStyle(preferences), SurfaceStyle.solid);
+    final store = TestCanvasDocumentStore(
+      CanvasDocument(
+        background: CanvasBackgroundKind.dotGrid,
+        elements: [
+          TextElementData(
+            id: 'text',
+            position: const Offset(80, 140),
+            width: 420,
+            height: 108,
+            markdown: 'Content',
+            style: const TextNodeStyle(fontFamily: 'Source Serif 4', color: '#201C1A'),
+          ),
+        ],
+      ),
+    );
+    await tester.pumpWidget(ElseplaneApp(preferences: preferences, documentStore: store));
+    await tester.pumpAndSettle();
+    final state = tester.state(find.byType(CanvasPage));
+    final canvas = tester.widget<LazyCanvas>(find.byType(LazyCanvas)).controller;
+    final model = tester.widget<TextTool>(find.byType(TextTool)).model..selected = true;
+    final original = model.data.toJson();
+    await _openAppearance(tester);
+    expect(_surfaceStyle(tester), SurfaceStyle.solid);
+    await _selectSurfaceStyle(tester, 'Glass');
+    expect(_surfaceStyle(tester), SurfaceStyle.glass);
+    expect(find.descendant(of: find.byType(SettingsDialog), matching: find.byType(GlassSurface)), findsOneWidget);
+    expect(await preferences.getString(surfaceStylePreferenceKey), 'glass');
+    expect(tester.state(find.byType(CanvasPage)), same(state));
+    expect(tester.widget<LazyCanvas>(find.byType(LazyCanvas)).controller, same(canvas));
+    expect(tester.widget<TextTool>(find.byType(TextTool)).model, same(model));
+    expect(model.data.toJson(), original);
+    expect(model.selected, isTrue);
+    expect(store.persisted, isNull);
+    await _selectTheme(tester, 'Dark');
+    expect(_surfaceStyle(tester), SurfaceStyle.glass);
+    expect(_brightness(tester), Brightness.dark);
+    await tester.pumpWidget(const SizedBox());
+    await tester.pumpWidget(
+      ElseplaneApp(
+        initialSurfaceStyle: await loadSurfaceStyle(preferences),
+        preferences: preferences,
+        documentStore: store,
+      ),
+    );
+    await tester.pumpAndSettle();
+    await _openAppearance(tester);
+    expect(_surfaceStyle(tester), SurfaceStyle.glass);
+    await _selectSurfaceStyle(tester, 'Solid');
+    expect(_surfaceStyle(tester), SurfaceStyle.solid);
+    expect(await loadSurfaceStyle(preferences), SurfaceStyle.solid);
+    expect(find.descendant(of: find.byType(SettingsDialog), matching: find.byType(GlassSurface)), findsNothing);
+  });
+
+  testWidgets('surface storage failure retains the live style and permits later saves', (tester) async {
+    var fail = true;
+    final preferences = _FailingPreferences(() => fail);
+    expect(await loadSurfaceStyle(preferences), SurfaceStyle.solid);
+    await tester.pumpWidget(ElseplaneApp(preferences: preferences, documentStore: TestCanvasDocumentStore()));
+    await tester.pumpAndSettle();
+    await _openAppearance(tester);
+    await _selectSurfaceStyle(tester, 'Glass');
+    expect(_surfaceStyle(tester), SurfaceStyle.glass);
+    expect(find.text('Could not save surface style preference.'), findsOneWidget);
+    fail = false;
+    await _selectSurfaceStyle(tester, 'Solid');
+    expect(await preferences.getString(surfaceStylePreferenceKey), 'solid');
+    await _selectTheme(tester, 'Dark');
+    expect(await preferences.getString(themePreferenceKey), 'dark');
+  });
+
   testWidgets('storage failure keeps the chosen theme and allows a later save', (tester) async {
     var fail = true;
     final preferences = _FailingPreferences(() => fail);
@@ -143,4 +223,15 @@ class _FailingPreferences extends SharedPreferencesAsync {
     if (shouldFail()) throw StateError('Storage unavailable');
     await super.setString(key, value);
   }
+}
+
+SurfaceStyle _surfaceStyle(WidgetTester tester) => BTheme.of(tester.element(find.byType(SettingsDialog))).surfaceStyle;
+
+Future<void> _selectSurfaceStyle(WidgetTester tester, String label) async {
+  await tester.tap(
+    find.descendant(of: find.byKey(const ValueKey('surface-style-select')), matching: find.byType(TextButton)),
+  );
+  await tester.pumpAndSettle();
+  await tester.tap(find.text(label).last);
+  await tester.pumpAndSettle();
 }

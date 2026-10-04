@@ -7,6 +7,8 @@ export 'package:elseplane/theme/sizes.dart';
 
 // ---------- Semantic tokens ----------
 
+enum SurfaceStyle { solid, glass }
+
 /// Holds semantic colors shared by elseplane components.
 /// Supplied by concrete app themes and consumed through [BTheme].
 @immutable
@@ -187,12 +189,14 @@ class BTheme extends ThemeExtension<BTheme> {
     required this.typo,
     required this.geo,
     required this.syntaxTheme,
+    this.surfaceStyle = SurfaceStyle.solid,
   });
 
   final BColors colors;
   final BTypo typo;
   final BGeo geo;
   final Map<String, TextStyle> syntaxTheme;
+  final SurfaceStyle surfaceStyle;
 
   // ---------- Lookup ----------
 
@@ -214,12 +218,14 @@ class BTheme extends ThemeExtension<BTheme> {
     BTypo? typo,
     BGeo? geo,
     Map<String, TextStyle>? syntaxTheme,
+    SurfaceStyle? surfaceStyle,
   }) {
     return BTheme(
       colors: colors ?? this.colors,
       typo: typo ?? this.typo,
       geo: geo ?? this.geo,
       syntaxTheme: syntaxTheme ?? this.syntaxTheme,
+      surfaceStyle: surfaceStyle ?? this.surfaceStyle,
     );
   }
 
@@ -231,6 +237,7 @@ class BTheme extends ThemeExtension<BTheme> {
       typo: typo.lerp(other.typo, t),
       geo: geo.lerp(other.geo, t),
       syntaxTheme: t < 0.5 ? syntaxTheme : other.syntaxTheme,
+      surfaceStyle: t < 0.5 ? surfaceStyle : other.surfaceStyle,
     );
   }
 }

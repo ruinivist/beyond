@@ -2,7 +2,6 @@
 // Used by the canvas code tool and element renderer.
 
 import 'dart:math' as math;
-import 'dart:ui' as ui;
 
 import 'package:elseplane/canvas/document/canvas_document.dart';
 import 'package:elseplane/canvas/editor/canvas_element_model.dart';
@@ -10,6 +9,7 @@ import 'package:elseplane/canvas/editor/widgets/pointer_scroll_boundary.dart';
 import 'package:elseplane/canvas/editor/widgets/resize_handle.dart';
 import 'package:elseplane/canvas/tools/code/code_language.dart';
 import 'package:elseplane/theme/theme.dart';
+import 'package:elseplane/ui/common/glass_surface.dart';
 import 'package:elseplane/ui/common/labeled_switch.dart';
 import 'package:elseplane/ui/common/select.dart';
 import 'package:flutter/gestures.dart';
@@ -149,6 +149,108 @@ class _CodeToolState extends State<CodeTool> {
         final editing = model.active;
         final showTitle = editing || model.title.trim().isNotEmpty;
         final titleTab = _CodeTitleTab(model: model, editing: editing);
+        final codeBody = Stack(
+          children: [
+            Positioned.fill(
+              child: _previewInteraction(
+                PointerScrollBoundary(
+                  child: CodeEditor(
+                    controller: model.controller,
+                    scrollController: model.scrollController,
+                    focusNode: model.focusNode,
+                    autofocus: false,
+                    readOnly: !editing,
+                    showCursorWhenReadOnly: false,
+                    padding: const EdgeInsets.fromLTRB(
+                      _codeEditorPadding,
+                      _codeEditorPadding,
+                      _codeEditorPadding,
+                      _codeEditorPadding,
+                    ),
+                    style: CodeEditorStyle(
+                      fontFamily: codeStyle.fontFamily,
+                      fontFamilyFallback: codeStyle.fontFamilyFallback,
+                      fontSize: codeStyle.fontSize,
+                      fontHeight: codeStyle.height,
+                      textColor: colors.textPrimary,
+                      backgroundColor: Colors.transparent,
+                      cursorColor: colors.accent,
+                      selectionColor: colors.accentSubtle,
+                      codeTheme: model.language.theme(theme.syntaxTheme),
+                    ),
+                    indicatorBuilder: model.showLineNumbers
+                        ? (context, controller, chunkController, notifier) => ColoredBox(
+                            key: const ValueKey('code-line-numbers'),
+                            color: card ? colors.surfaceSubtle : Colors.transparent,
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 10),
+                              child: DefaultCodeLineNumber(
+                                controller: controller,
+                                notifier: notifier,
+                                minNumberCount: 1,
+                                textStyle: codeStyle.copyWith(color: colors.textMuted),
+                                focusedTextStyle: codeStyle.copyWith(color: colors.textSecondary),
+                              ),
+                            ),
+                          )
+                        : null,
+                  ),
+                ),
+              ),
+            ),
+            Positioned(
+              right: _codeControlInset,
+              top: _codeControlInset,
+              child: IgnorePointer(
+                ignoring: !editing,
+                child: AnimatedSwitcher(
+                  duration: _codeControlAnimationDuration,
+                  switchInCurve: Curves.easeOutCubic,
+                  switchOutCurve: Curves.easeOutCubic,
+                  transitionBuilder: _codeControlTransition,
+                  child: editing
+                      ? SearchableSelect<CodeLanguage>(
+                          key: const ValueKey('code-language-picker'),
+                          value: model.language,
+                          preferredValues: CodeLanguage.values,
+                          searchHint: 'Search languages…',
+                          onMenuPointerDown: widget.onControlPointerDown,
+                          options: [
+                            for (final language in CodeLanguage.values)
+                              SelectOption(value: language, label: language.label),
+                          ],
+                          showBorder: false,
+                          onChanged: (language) {
+                            widget.onChangeBoundary();
+                            model.language = language;
+                            widget.onChangeBoundary();
+                          },
+                        )
+                      : const SizedBox(key: ValueKey('code-language-picker-hidden')),
+                ),
+              ),
+            ),
+            if (editing)
+              Positioned(
+                right: 0,
+                bottom: 0,
+                child: ResizeHandle(
+                  key: const ValueKey('code-block-resize-handle'),
+                  semanticLabel: 'Resize code block',
+                  gestures: {
+                    ScaleGestureRecognizer: GestureRecognizerFactoryWithHandlers<ScaleGestureRecognizer>(
+                      () => ScaleGestureRecognizer(
+                        allowedButtonsFilter: (buttons) => buttons == kPrimaryButton,
+                      ),
+                      (recognizer) {
+                        recognizer.onUpdate = (details) => widget.onResize(details.focalPointDelta);
+                      },
+                    ),
+                  },
+                ),
+              ),
+          ],
+        );
         return Semantics(
           container: true,
           selected: model.selected,
@@ -182,127 +284,28 @@ class _CodeToolState extends State<CodeTool> {
                       clipBehavior: Clip.none,
                       children: [
                         Positioned.fill(
-                          child: _withCodeBackdrop(
-                            model,
-                            theme,
-                            theme.geo.radiusMedium,
-                            Material(
-                              key: const ValueKey('code-block-surface'),
-                              type: transparent && !model.selected ? MaterialType.transparency : MaterialType.canvas,
-                              color: transparent && !model.selected ? null : background,
-                              elevation: card ? theme.geo.elevationLow : 0,
-                              shadowColor: colors.shadow,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: theme.geo.radiusMedium,
-                                side: _codeSurfaceBorder(colors, model),
-                              ),
-                              clipBehavior: Clip.antiAlias,
-                              child: Stack(
-                                children: [
-                                  Positioned.fill(
-                                    child: _previewInteraction(
-                                      PointerScrollBoundary(
-                                        child: CodeEditor(
-                                          controller: model.controller,
-                                          scrollController: model.scrollController,
-                                          focusNode: model.focusNode,
-                                          autofocus: false,
-                                          readOnly: !editing,
-                                          showCursorWhenReadOnly: false,
-                                          padding: const EdgeInsets.fromLTRB(
-                                            _codeEditorPadding,
-                                            _codeEditorPadding,
-                                            _codeEditorPadding,
-                                            _codeEditorPadding,
-                                          ),
-                                          style: CodeEditorStyle(
-                                            fontFamily: codeStyle.fontFamily,
-                                            fontFamilyFallback: codeStyle.fontFamilyFallback,
-                                            fontSize: codeStyle.fontSize,
-                                            fontHeight: codeStyle.height,
-                                            textColor: colors.textPrimary,
-                                            backgroundColor: Colors.transparent,
-                                            cursorColor: colors.accent,
-                                            selectionColor: colors.accentSubtle,
-                                            codeTheme: model.language.theme(theme.syntaxTheme),
-                                          ),
-                                          indicatorBuilder: model.showLineNumbers
-                                              ? (context, controller, chunkController, notifier) => ColoredBox(
-                                                  key: const ValueKey('code-line-numbers'),
-                                                  color: card ? colors.surfaceSubtle : Colors.transparent,
-                                                  child: Padding(
-                                                    padding: const EdgeInsets.symmetric(horizontal: 10),
-                                                    child: DefaultCodeLineNumber(
-                                                      controller: controller,
-                                                      notifier: notifier,
-                                                      minNumberCount: 1,
-                                                      textStyle: codeStyle.copyWith(color: colors.textMuted),
-                                                      focusedTextStyle: codeStyle.copyWith(color: colors.textSecondary),
-                                                    ),
-                                                  ),
-                                                )
-                                              : null,
-                                        ),
-                                      ),
-                                    ),
+                          child: model.background == BlockBackgroundKind.glass
+                              ? GlassSurface(
+                                  key: const ValueKey('code-block-surface'),
+                                  selected: model.selected,
+                                  borderRadius: theme.geo.radiusMedium,
+                                  child: codeBody,
+                                )
+                              : Material(
+                                  key: const ValueKey('code-block-surface'),
+                                  type: transparent && !model.selected
+                                      ? MaterialType.transparency
+                                      : MaterialType.canvas,
+                                  color: transparent && !model.selected ? null : background,
+                                  elevation: card ? theme.geo.elevationLow : 0,
+                                  shadowColor: colors.shadow,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: theme.geo.radiusMedium,
+                                    side: _codeSurfaceBorder(colors, model),
                                   ),
-                                  Positioned(
-                                    right: _codeControlInset,
-                                    top: _codeControlInset,
-                                    child: IgnorePointer(
-                                      ignoring: !editing,
-                                      child: AnimatedSwitcher(
-                                        duration: _codeControlAnimationDuration,
-                                        switchInCurve: Curves.easeOutCubic,
-                                        switchOutCurve: Curves.easeOutCubic,
-                                        transitionBuilder: _codeControlTransition,
-                                        child: editing
-                                            ? SearchableSelect<CodeLanguage>(
-                                                key: const ValueKey('code-language-picker'),
-                                                value: model.language,
-                                                preferredValues: CodeLanguage.values,
-                                                searchHint: 'Search languages…',
-                                                onMenuPointerDown: widget.onControlPointerDown,
-                                                options: [
-                                                  for (final language in CodeLanguage.values)
-                                                    SelectOption(value: language, label: language.label),
-                                                ],
-                                                showBorder: false,
-                                                onChanged: (language) {
-                                                  widget.onChangeBoundary();
-                                                  model.language = language;
-                                                  widget.onChangeBoundary();
-                                                },
-                                              )
-                                            : const SizedBox(key: ValueKey('code-language-picker-hidden')),
-                                      ),
-                                    ),
-                                  ),
-                                  if (editing)
-                                    Positioned(
-                                      right: 0,
-                                      bottom: 0,
-                                      child: ResizeHandle(
-                                        key: const ValueKey('code-block-resize-handle'),
-                                        semanticLabel: 'Resize code block',
-                                        gestures: {
-                                          ScaleGestureRecognizer:
-                                              GestureRecognizerFactoryWithHandlers<ScaleGestureRecognizer>(
-                                                () => ScaleGestureRecognizer(
-                                                  allowedButtonsFilter: (buttons) => buttons == kPrimaryButton,
-                                                ),
-                                                (recognizer) {
-                                                  recognizer.onUpdate = (details) =>
-                                                      widget.onResize(details.focalPointDelta);
-                                                },
-                                              ),
-                                        },
-                                      ),
-                                    ),
-                                ],
-                              ),
-                            ),
-                          ),
+                                  clipBehavior: Clip.antiAlias,
+                                  child: codeBody,
+                                ),
                         ),
                         if (!editing)
                           // re_editor hardcodes a text cursor in its code-field renderer.
