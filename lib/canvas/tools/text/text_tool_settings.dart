@@ -16,7 +16,7 @@ final List<SelectOption<String>> textFontOptions = [
 
 // ---------- Settings ----------
 
-/// Presents font and color controls for the active text element.
+/// Presents font, color, and background controls for the active text element.
 /// Used by the canvas tool-options overlay during text editing.
 class TextToolSettings extends StatelessWidget {
   const TextToolSettings({
@@ -42,7 +42,7 @@ class TextToolSettings extends StatelessWidget {
         final selectedColor = colorFromHex(style.color);
         return Column(
           key: const ValueKey('text-settings-panel'),
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           mainAxisSize: MainAxisSize.min,
           children: [
             Text('Font', style: theme.typo.label),
@@ -72,15 +72,18 @@ class TextToolSettings extends StatelessWidget {
               },
             ),
             const SizedBox(height: 10),
-            CheckboxListTile(
-              key: const ValueKey('text-no-fill'),
-              value: style.noFill,
-              contentPadding: EdgeInsets.zero,
-              controlAffinity: ListTileControlAffinity.leading,
-              title: Text('No Fill', style: theme.typo.label),
-              onChanged: (noFill) {
+            Text('Background', style: theme.typo.label),
+            const SizedBox(height: 6),
+            Select<TextBackgroundKind>(
+              key: const ValueKey('text-background-select'),
+              value: style.background,
+              options: const [
+                SelectOption(value: TextBackgroundKind.transparent, label: 'Transparent'),
+                SelectOption(value: TextBackgroundKind.card, label: 'Card'),
+              ],
+              onChanged: (background) {
                 onChangeBoundary();
-                model.style = style.copyWith(noFill: noFill);
+                model.style = style.copyWith(background: background);
                 onChangeBoundary();
               },
             ),

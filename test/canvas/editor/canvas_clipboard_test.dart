@@ -2,6 +2,7 @@
 // Exercises serialized elements and external clipboard content in the editor.
 
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:elseplane/canvas/document/canvas_document.dart';
 import 'package:elseplane/canvas/editor/canvas_background.dart';
@@ -54,6 +55,19 @@ void main() {
       );
     },
   );
+
+  test('clipboard preserves text backgrounds and rejects the previous version', () {
+    final text = _document.elements.whereType<TextElementData>().first.copy();
+    for (final background in TextBackgroundKind.values) {
+      text.style = text.style.copyWith(background: background);
+      final payload = encodeCanvasClipboard([text]);
+      final restored = decodeCanvasClipboard(payload)!.single as TextElementData;
+      expect(restored.style.background, background);
+      final previous = jsonDecode(payload) as Map<String, dynamic>;
+      previous['version'] = canvasClipboardVersion - 1;
+      expect(() => decodeCanvasClipboard(jsonEncode(previous)), throwsFormatException);
+    }
+  });
 
   test('clipboard preserves shape geometry', () {
     final shape = ShapeElementData(

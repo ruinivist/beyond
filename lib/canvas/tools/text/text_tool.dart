@@ -46,7 +46,7 @@ class TextTool extends StatelessWidget {
         listenable: model,
         builder: (context, _) {
           assert(model.active || !model.editing, 'An inactive text block cannot be editing.');
-          final noFill = model.style.noFill;
+          final transparent = model.style.background == TextBackgroundKind.transparent;
           final body = model.editing
               ? TextMarkdownEditor(model: model, attachmentStore: attachmentStore)
               : TextMarkdownPreview(
@@ -77,19 +77,19 @@ class TextTool extends StatelessWidget {
             selected: model.selected,
             child: Material(
               key: const ValueKey('text-block-surface'),
-              type: noFill && !model.selected ? MaterialType.transparency : MaterialType.canvas,
+              type: transparent && !model.selected ? MaterialType.transparency : MaterialType.canvas,
               color: model.selected
                   ? colors.accentSoft
-                  : noFill
+                  : transparent
                   ? null
                   : colors.surface,
-              elevation: noFill ? 0 : theme.geo.elevationLow,
+              elevation: transparent ? 0 : theme.geo.elevationLow,
               shadowColor: colors.shadow,
               shape: RoundedRectangleBorder(
                 borderRadius: theme.geo.radiusLarge,
                 side: model.selected
                     ? BorderSide(color: colors.accent, width: 2)
-                    : noFill && !model.editing
+                    : transparent && !model.editing
                     ? BorderSide.none
                     : BorderSide(color: colors.borderSubtle),
               ),

@@ -51,6 +51,10 @@ enum ShapeKind {
 /// Used by arrow tools, models, and document serialization.
 enum ArrowStrokeStyle { solid, dashed }
 
+/// Identifies the background treatment of a text element.
+/// Used by text settings, rendering, and document serialization.
+enum TextBackgroundKind { transparent, card }
+
 // ---------- Document models ----------
 
 /// Holds the background and ordered elements of a persisted canvas.
@@ -83,7 +87,7 @@ class CanvasDocument {
 
   // ---------- Constants ----------
 
-  static const version = 7;
+  static const version = 8;
 
   // ---------- State ----------
 
@@ -279,7 +283,7 @@ class MediaElementData extends CanvasElementData {
   );
 }
 
-/// Stores the font and color settings applied to a text element.
+/// Stores the font, color, and background settings applied to a text element.
 /// Used by text element data and the text editor model.
 @_strictJson
 class TextNodeStyle {
@@ -288,13 +292,13 @@ class TextNodeStyle {
   const TextNodeStyle({
     required this.fontFamily,
     required this.color,
-    this.noFill = false,
+    this.background = TextBackgroundKind.card,
   });
 
   const TextNodeStyle._json({
     required this.fontFamily,
     required this.color,
-    required this.noFill,
+    required this.background,
   });
 
   factory TextNodeStyle.fromJson(Object? json) {
@@ -312,19 +316,19 @@ class TextNodeStyle {
 
   final String fontFamily;
   final String color;
-  final bool noFill;
+  final TextBackgroundKind background;
 
   // ---------- Copying ----------
 
   TextNodeStyle copyWith({
     String? fontFamily,
     String? color,
-    bool? noFill,
+    TextBackgroundKind? background,
   }) {
     return TextNodeStyle(
       fontFamily: fontFamily ?? this.fontFamily,
       color: color ?? this.color,
-      noFill: noFill ?? this.noFill,
+      background: background ?? this.background,
     );
   }
 

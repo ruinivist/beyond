@@ -37,7 +37,7 @@ void main() {
           style: const TextNodeStyle(
             fontFamily: 'Inter',
             color: '#201C1A',
-            noFill: true,
+            background: TextBackgroundKind.transparent,
           ),
         ),
         PenElementData(
@@ -110,7 +110,7 @@ void main() {
     expect(node.markdown, source);
     expect(node.style.fontFamily, 'Inter');
     expect(node.style.color, '#201C1A');
-    expect(node.style.noFill, isTrue);
+    expect(node.style.background, TextBackgroundKind.transparent);
 
     final pen = elements[2] as PenElementData;
     expect(pen.size, const Size(180, 90));
@@ -163,12 +163,39 @@ void main() {
 
   test('unknown document versions are rejected', () {
     expect(
-      () => CanvasDocument.fromJson(_document(version: 1)),
+      () => CanvasDocument.fromJson(_document(version: CanvasDocument.version - 1)),
       throwsA(isA<FormatException>()),
     );
     expect(
       () => CanvasDocument.fromJson(_document()..['version'] = 2.5),
       throwsA(isA<FormatException>()),
+    );
+  });
+
+  test('text backgrounds round-trip and reject invalid or legacy styles', () {
+    const defaultStyle = TextNodeStyle(fontFamily: 'Inter', color: '#201C1A');
+    expect(defaultStyle.background, TextBackgroundKind.card);
+    for (final background in TextBackgroundKind.values) {
+      final style = defaultStyle.copyWith(background: background);
+      final restored = TextNodeStyle.fromJson(jsonDecode(jsonEncode(style.toJson())));
+      expect(style.toJson()['background'], background.name);
+      expect(restored.background, background);
+      expect(restored.fontFamily, defaultStyle.fontFamily);
+      expect(restored.color, defaultStyle.color);
+    }
+    for (final background in ['unsupported', null, true]) {
+      expect(
+        () => TextNodeStyle.fromJson(defaultStyle.toJson()..['background'] = background),
+        throwsFormatException,
+      );
+    }
+    expect(
+      () => TextNodeStyle.fromJson(
+        defaultStyle.toJson()
+          ..remove('background')
+          ..['noFill'] = false,
+      ),
+      throwsFormatException,
     );
   });
 
@@ -493,7 +520,7 @@ Map<String, Object?> _encodedText({
         {
           'fontFamily': fontFamily,
           'color': color,
-          'noFill': false,
+          'background': 'card',
         },
   };
 }

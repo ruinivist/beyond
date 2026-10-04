@@ -16,7 +16,7 @@ final _formatMarker = RegExp(
   r'"format"\s*:\s*"elseplane-canvas-clipboard"',
 );
 
-const canvasClipboardVersion = 2;
+const canvasClipboardVersion = 3;
 
 const _imageFormats = <FileFormat, String>{
   Formats.png: 'png',

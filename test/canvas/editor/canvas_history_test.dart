@@ -114,6 +114,53 @@ void main() {
     );
   });
 
+  testWidgets('text background choices persist as individual undo steps', (tester) async {
+    final store = TestCanvasDocumentStore(_textDocument());
+    await pumpCanvas(tester, store);
+    TextBlockModel model() => tester.widget<TextTool>(find.byType(TextTool)).model;
+    Future<void> choose(String label) async {
+      await tester.tap(
+        find.descendant(
+          of: find.byKey(const ValueKey('text-background-select')),
+          matching: find.byKey(const ValueKey('select-trigger')),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(MenuItemButton, label));
+      await tester.pumpAndSettle();
+    }
+
+    Future<void> expectPersisted(TextBackgroundKind background) async {
+      expect(model().style.background, background);
+      await pumpPastSave(tester);
+      expect((store.persisted!.elements.single as TextElementData).style.background, background);
+    }
+
+    await tester.tap(find.byKey(const ValueKey('text-markdown-preview')));
+    await tester.pumpAndSettle();
+    await choose('Card');
+    expect(model().active, isTrue);
+    expect(model().editing, isFalse);
+    await pumpPastSave(tester);
+    expect(store.persisted, isNull);
+
+    await choose('Transparent');
+    await expectPersisted(TextBackgroundKind.transparent);
+    await choose('Card');
+    await expectPersisted(TextBackgroundKind.card);
+    await _shortcut(tester);
+    await expectPersisted(TextBackgroundKind.transparent);
+    await _shortcut(tester);
+    await expectPersisted(TextBackgroundKind.card);
+    final original = model();
+    await _shortcut(tester);
+    expect(model(), same(original));
+    await _shortcut(tester, redo: true);
+    await expectPersisted(TextBackgroundKind.transparent);
+    await _shortcut(tester, redo: true);
+    await expectPersisted(TextBackgroundKind.card);
+  });
+
   testWidgets('history retains only the latest 50 operations', (tester) async {
     await pumpCanvas(tester, TestCanvasDocumentStore(_penDocument(51)));
 

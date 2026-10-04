@@ -136,11 +136,17 @@ Map<String, dynamic> _$MediaElementDataToJson(MediaElementData instance) =>
 
 TextNodeStyle _$TextNodeStyleFromJson(Map<String, dynamic> json) =>
     $checkedCreate('TextNodeStyle', json, ($checkedConvert) {
-      $checkKeys(json, allowedKeys: const ['fontFamily', 'color', 'noFill']);
+      $checkKeys(
+        json,
+        allowedKeys: const ['fontFamily', 'color', 'background'],
+      );
       final val = TextNodeStyle._json(
         fontFamily: $checkedConvert('fontFamily', (v) => v as String),
         color: $checkedConvert('color', (v) => v as String),
-        noFill: $checkedConvert('noFill', (v) => v as bool),
+        background: $checkedConvert(
+          'background',
+          (v) => $enumDecode(_$TextBackgroundKindEnumMap, v),
+        ),
       );
       return val;
     });
@@ -149,8 +155,13 @@ Map<String, dynamic> _$TextNodeStyleToJson(TextNodeStyle instance) =>
     <String, dynamic>{
       'fontFamily': instance.fontFamily,
       'color': instance.color,
-      'noFill': instance.noFill,
+      'background': _$TextBackgroundKindEnumMap[instance.background]!,
     };
+
+const _$TextBackgroundKindEnumMap = {
+  TextBackgroundKind.transparent: 'transparent',
+  TextBackgroundKind.card: 'card',
+};
 
 TextElementData _$TextElementDataFromJson(Map<String, dynamic> json) =>
     $checkedCreate('TextElementData', json, ($checkedConvert) {

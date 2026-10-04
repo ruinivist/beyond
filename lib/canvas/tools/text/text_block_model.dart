@@ -136,5 +136,5 @@ class TextBlockModel extends RotatableCanvasElementModel<TextElementData> {
 // ---------- Helpers ----------
 
 bool _sameStyle(TextNodeStyle first, TextNodeStyle second) {
-  return first.fontFamily == second.fontFamily && first.color == second.color && first.noFill == second.noFill;
+  return first.fontFamily == second.fontFamily && first.color == second.color && first.background == second.background;
 }

@@ -892,7 +892,7 @@ Inline $x^2$''';
         findsOneWidget,
       );
 
-      await tester.tap(find.byKey(const ValueKey('select-trigger')));
+      await tester.tap(_selectTrigger('text-font-select'));
       await tester.pump();
       await tester.tap(find.text('Inter'));
       await tester.pumpAndSettle();
@@ -933,6 +933,20 @@ Inline $x^2$''';
       expect(model.style.color, colorToHex(orange.color));
       expect(model.node.markdown, source);
       expect(model.editing, isFalse);
+
+      expect(model.style.background, TextBackgroundKind.card);
+      final panelWidth = tester.getSize(find.byKey(const ValueKey('text-settings-panel'))).width;
+      expect(tester.getSize(_selectTrigger('text-font-select')).width, panelWidth);
+      expect(tester.getSize(_selectTrigger('text-background-select')).width, panelWidth);
+      for (final background in [TextBackgroundKind.transparent, TextBackgroundKind.card]) {
+        await _chooseBackground(tester, background);
+        expect(model.style.background, background);
+        expect(model.style.fontFamily, 'Inter');
+        expect(model.style.color, colorToHex(orange.color));
+        expect(model.node.markdown, source);
+        expect(model.active, isTrue);
+        expect(model.editing, isFalse);
+      }
     },
   );
 
@@ -995,22 +1009,25 @@ Inline $x^2$''';
     expect(tester.getSize(panel), collapsedSize);
   });
 
-  testWidgets('no fill keeps editing and selection borders', (tester) async {
+  testWidgets('transparent background keeps editing and selection borders', (tester) async {
     await _addTextBlock(tester, const Offset(120, 200));
+    await tester.pumpAndSettle();
     final model = tester.widget<TextTool>(find.byType(TextTool)).model;
     final surface = find.byKey(const ValueKey('text-block-surface'));
 
     BorderSide border() => (tester.widget<Material>(surface).shape! as RoundedRectangleBorder).side;
 
-    expect(model.style.noFill, isFalse);
-    tester
-        .widget<CheckboxListTile>(
-          find.byKey(const ValueKey('text-no-fill')),
-        )
-        .onChanged!(true);
-    await tester.pump();
+    expect(model.style.background, TextBackgroundKind.card);
+    await _chooseBackground(tester, TextBackgroundKind.transparent);
+    expect(model.style.background, TextBackgroundKind.transparent);
+    expect(model.active, isTrue);
+    expect(model.editing, isFalse);
+    expect(model.focusNode.hasFocus, isFalse);
+    expect(border(), BorderSide.none);
 
-    expect(model.style.noFill, isTrue);
+    await tester.tap(find.byKey(const ValueKey('text-markdown-preview-surface')));
+    await tester.pumpAndSettle();
+    expect(model.editing, isTrue);
     expect(tester.widget<Material>(surface).type, MaterialType.transparency);
     expect(
       find.descendant(
@@ -1069,6 +1086,9 @@ Inline $x^2$''';
     await tester.pump();
     expect(second.style.fontFamily, 'Inter');
     expect(first.style.fontFamily, 'Source Serif 4');
+    await _chooseBackground(tester, TextBackgroundKind.transparent);
+    expect(second.style.background, TextBackgroundKind.transparent);
+    expect(first.style.background, TextBackgroundKind.card);
 
     await tester.tap(
       find.byKey(const ValueKey('text-markdown-preview-surface')).first,
@@ -1082,6 +1102,14 @@ Inline $x^2$''';
     await tester.pump();
     expect(first.style.fontFamily, 'Roboto Mono');
     expect(second.style.fontFamily, 'Inter');
+    expect(
+      tester.widget<Select<TextBackgroundKind>>(find.byKey(const ValueKey('text-background-select'))).value,
+      TextBackgroundKind.card,
+    );
+    await _chooseBackground(tester, TextBackgroundKind.transparent);
+    await _chooseBackground(tester, TextBackgroundKind.card);
+    expect(first.style.background, TextBackgroundKind.card);
+    expect(second.style.background, TextBackgroundKind.transparent);
   });
 
   testWidgets('text nodes restore from the saved document', (tester) async {
@@ -1128,6 +1156,8 @@ Inline $x^2$''';
     );
     await tester.pump();
 
+    await _chooseBackground(tester, TextBackgroundKind.transparent);
+
     await tester.tapAt(const Offset(150, 220));
     await tester.pump();
     FocusManager.instance.primaryFocus?.unfocus();
@@ -1143,6 +1173,8 @@ Inline $x^2$''';
     expect(savedNodes.last.width, second.node.width);
     expect(savedNodes.last.height, second.node.height);
     expect(savedNodes.last.style.fontFamily, 'Inter');
+    expect(savedNodes.first.style.background, TextBackgroundKind.card);
+    expect(savedNodes.last.style.background, TextBackgroundKind.transparent);
     expect(savedNodes.last.style.color, isNot(savedNodes.first.style.color));
     final canvas = tester.widget<LazyCanvas>(find.byType(LazyCanvas)).controller;
     expect(canvas.childOrder, [first.node.id, second.node.id]);
@@ -1192,6 +1224,20 @@ Inline $x^2$''';
 }
 
 // ---------- Test helpers ----------
+
+Finder _selectTrigger(String key) => find.descendant(
+  of: find.byKey(ValueKey(key)),
+  matching: find.byKey(const ValueKey('select-trigger')),
+);
+
+Future<void> _chooseBackground(WidgetTester tester, TextBackgroundKind background) async {
+  await tester.tap(_selectTrigger('text-background-select'));
+  await tester.pumpAndSettle();
+  await tester.tap(
+    find.widgetWithText(MenuItemButton, background == TextBackgroundKind.transparent ? 'Transparent' : 'Card'),
+  );
+  await tester.pumpAndSettle();
+}
 
 Future<void> _addTextBlock(
   WidgetTester tester,

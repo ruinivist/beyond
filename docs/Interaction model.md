@@ -25,7 +25,7 @@ Shapes follow the same state separation: clicking or creating a shape makes it a
 - Using an option or starting a move or rotation closes the source editor but leaves the block active. Options and transform controls remain available.
 - Resizing is available whenever the block is active, including while editing.
 - Clicking empty canvas or another block, changing tools, or pressing Escape returns the block to its inactive preview.
-- Text options control font, color, and fill visibility.
+- Text options control font, color, and background. The Background dropdown offers Transparent and Card; new text blocks use Card. Transparent hides the surface, shadow, and preview border while preserving editing borders and selection highlighting.
 
 ## Code blocks
 
