@@ -1,14 +1,24 @@
-include: package:very_good_analysis/analysis_options.10.3.0.yaml
+include: package:very_good_analysis/analysis_options.11.0.0.yaml
 
 formatter:
   page_width: 120
+  trailing_commas: preserve
 
 analyzer:
   exclude:
     - '**/*.g.dart'
+    - build/**
+    - android/**
+    - ios/**
+    - web/**
+    - windows/**
+    - macos/**
+    - linux/**
 
 linter:
   rules:
     # This is an application, not a package published for external use.
     public_member_api_docs: false
     lines_longer_than_80_chars: false
+    # Keep explicit type names in constructor declarations.
+    unnecessary_type_name_in_constructor: false

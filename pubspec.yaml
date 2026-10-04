@@ -4,24 +4,24 @@ publish_to: none
 version: 1.0.0+1
 
 environment:
-  sdk: ^3.12.2
+  sdk: ^3.13.0
 
 dependencies:
   archive: ^4.3.0
-  cupertino_icons: ^1.0.8
+  cupertino_icons: ^2.0.0
   file_selector: ^1.1.0
   flutter:
     sdk: flutter
   flutter_markdown_plus: ^1.0.12
   flutter_markdown_plus_latex: ^1.0.5
   flutter_svg: ^2.3.0
-  google_fonts: ^6.3.3
+  google_fonts: ^9.0.0
   infinite_lazy_grid:
     git:
       url: https://github.com/ruinivist/infinite_lazy_grid.git
       ref: main
   json_annotation: ^4.12.0
-  lucide_icons_flutter: ^3.1.17
+  lucide_icons_flutter: ^3.1.21
   markdown: ^7.3.1
   perfect_freehand: ^2.5.2+1
   re_editor: ^0.10.0
@@ -29,12 +29,12 @@ dependencies:
   scroll_animator: 0.3.0
   shared_preferences: ^2.5.5
   super_clipboard: ^0.9.1
-  url_launcher: ^6.3.2
+  url_launcher: ^6.3.3
   uuid: ^4.6.0
   web: ^1.1.1
 
 dev_dependencies:
-  build_runner: ^2.15.1
+  build_runner: ^2.16.1
   flutter_math_fork: ^0.7.4
   flutter_test:
     sdk: flutter
@@ -42,7 +42,7 @@ dev_dependencies:
   # Used by web tests to register the browser storage implementation.
   shared_preferences_web: ^2.4.3
   url_launcher_platform_interface: ^2.3.2
-  very_good_analysis: ^10.3.0
+  very_good_analysis: ^11.0.0
 
 flutter:
   uses-material-design: true

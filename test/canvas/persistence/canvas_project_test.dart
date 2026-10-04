@@ -170,7 +170,7 @@ class _CountingAttachmentStore extends TestAttachmentStore {
   @override
   Future<Uint8List> read(String path) async {
     reads++;
-    return super.read(path);
+    return await super.read(path);
   }
 }
 

@@ -91,7 +91,10 @@ class CanvasLibrary {
   }
 
   CanvasLibrary replace(CanvasFile replacement) => CanvasLibrary(
-    files: [for (final entry in files) entry.id == replacement.id ? replacement : entry],
+    files: [
+      for (final entry in files)
+        if (entry.id == replacement.id) replacement else entry,
+    ],
     currentId: currentId,
   );
 

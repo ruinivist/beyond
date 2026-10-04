@@ -56,7 +56,7 @@ enum CodeLanguage {
   markdown('Markdown'),
   plainText('Plain text');
 
-  const CodeLanguage(this.label);
+  CodeLanguage(this.label);
 
   // ---------- State ----------
 

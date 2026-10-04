@@ -7,6 +7,8 @@ import 'package:beyond/canvas/editor/canvas_page.dart';
 import 'package:beyond/canvas/tools/text/text_tool.dart';
 import 'package:beyond/main.dart';
 import 'package:beyond/settings/settings_dialog.dart';
+import 'package:beyond/theme/theme.dart';
+import 'package:beyond/ui/previews/theme_preview.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:infinite_lazy_grid/infinite_lazy_grid.dart';
@@ -23,6 +25,22 @@ void main() {
     await SharedPreferencesAsync().remove(themePreferenceKey);
   });
   tearDown(() => SharedPreferencesAsync().remove(themePreferenceKey));
+
+  testWidgets('preview theme follows preview brightness and supplies app semantics', (tester) async {
+    for (final brightness in Brightness.values) {
+      await tester.pumpWidget(
+        MediaQuery(
+          data: MediaQueryData(platformBrightness: brightness),
+          child: Builder(
+            builder: (context) => previewTheme().apply(context, const SizedBox(key: ValueKey('preview-child'))),
+          ),
+        ),
+      );
+      final theme = Theme.of(tester.element(find.byKey(const ValueKey('preview-child'))));
+      expect(theme.brightness, brightness);
+      expect(theme.extension<BTheme>(), isNotNull);
+    }
+  });
 
   testWidgets('theme switches live, persists, and keeps canvas content fixed', (tester) async {
     final preferences = SharedPreferencesAsync();
@@ -117,7 +135,7 @@ class _FailingPreferences extends SharedPreferencesAsync {
   @override
   Future<String?> getString(String key) async {
     if (shouldFail()) throw StateError('Storage unavailable');
-    return super.getString(key);
+    return await super.getString(key);
   }
 
   @override

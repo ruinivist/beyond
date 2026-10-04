@@ -713,13 +713,11 @@ Inline $x^2$''';
     final preview = tester.widget<MarkdownBody>(
       find.byKey(const ValueKey('text-markdown-preview')),
     );
-    final imagePadding =
-        preview.imageBuilder!(
-              Uri.parse('https://example.com/fails.png'),
-              null,
-              'failed',
-            )
-            as Padding;
+    final imagePadding = preview.imageBuilder!(
+      Uri.parse('https://example.com/fails.png'),
+      null,
+      'failed',
+    ) as Padding;
     final image = imagePadding.child! as Image;
     final fallback = image.errorBuilder!(
       tester.element(find.byKey(const ValueKey('text-markdown-preview'))),
@@ -1256,7 +1254,7 @@ class _FakeAttachmentStore extends TestAttachmentStore {
   @override
   Future<Uint8List> read(String path) async {
     readPaths.add(path);
-    return super.read(path);
+    return await super.read(path);
   }
 }
 

@@ -8,8 +8,16 @@ import 'package:flutter/widget_previews.dart';
 
 // ---------- Preview theme ----------
 
-PreviewThemeData previewTheme() {
-  return PreviewThemeData(materialLight: starlessLightThemeData, materialDark: starlessDarkThemeData);
+PreviewThemeData previewTheme() => const _AppPreviewTheme();
+
+final class _AppPreviewTheme extends PreviewThemeData {
+  const _AppPreviewTheme();
+
+  @override
+  Widget apply(BuildContext context, Widget child) => Theme(
+    data: MediaQuery.platformBrightnessOf(context) == Brightness.dark ? starlessDarkThemeData : starlessLightThemeData,
+    child: child,
+  );
 }
 
 // ---------- Theme preview ----------

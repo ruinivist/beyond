@@ -603,7 +603,7 @@ class _FakeProjectFiles implements CanvasProjectFiles {
   Future<Uint8List?> open() async {
     openCalls++;
     final completer = openCompleter;
-    if (completer != null) return completer.future;
+    if (completer != null) return await completer.future;
     if (cancelOpen) return null;
     return opened;
   }

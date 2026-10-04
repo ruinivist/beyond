@@ -23,7 +23,7 @@ CanvasProjectFiles createCanvasProjectFiles() => _PlatformCanvasProjectFiles();
 
 final class _PlatformCanvasProjectFiles implements CanvasProjectFiles {
   @override
-  Future<Uint8List?> open() async => (await openFile())?.readAsBytes();
+  Future<Uint8List?> open() async => await (await openFile())?.readAsBytes();
 
   @override
   Future<bool> save(Uint8List bytes, {required String suggestedName, required String mimeType}) async {

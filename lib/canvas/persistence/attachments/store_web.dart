@@ -53,7 +53,7 @@ class PlatformAttachmentStore implements AttachmentStore {
           FileSystemGetDirectoryOptions(create: create),
         )
         .toDart;
-    return attachments
+    return await attachments
         .getFileHandle(
           fileName,
           FileSystemGetFileOptions(create: create),
