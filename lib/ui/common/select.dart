@@ -119,32 +119,12 @@ ButtonStyle _selectOptionStyle({
     foregroundColor: _selectForegroundColor(colors),
     backgroundColor: WidgetStateProperty.resolveWith((states) {
       if (states.contains(WidgetState.disabled)) return Colors.transparent;
-      if (isSelected) return Colors.transparent;
-      if (states.contains(WidgetState.pressed)) return colors.surfacePressed;
+      if (isSelected || states.contains(WidgetState.pressed)) return colors.surfacePressed;
       if (states.contains(WidgetState.hovered) || states.contains(WidgetState.focused)) {
         return colors.surfaceHover;
       }
       return Colors.transparent;
     }),
-    backgroundBuilder: isSelected
-        ? (context, states, child) => Stack(
-            children: [
-              if (!states.contains(WidgetState.disabled))
-                Positioned.fill(
-                  child: Padding(
-                    padding: const EdgeInsets.all(2),
-                    child: DecoratedBox(
-                      decoration: BoxDecoration(
-                        color: colors.surfacePressed,
-                        borderRadius: theme.geo.radiusSmall,
-                      ),
-                    ),
-                  ),
-                ),
-              child ?? const SizedBox.shrink(),
-            ],
-          )
-        : null,
     textStyle: WidgetStatePropertyAll(theme.typo.body),
     padding: const WidgetStatePropertyAll(
       EdgeInsets.symmetric(horizontal: 12, vertical: 10),
