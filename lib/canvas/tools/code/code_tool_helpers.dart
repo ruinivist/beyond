@@ -64,6 +64,7 @@ class _CodeTitleTab extends StatelessWidget {
                 ignoring: !editing,
                 child: TextFormField(
                   key: ValueKey(editing ? 'code-title-input' : 'code-title-text'),
+                  contextMenuBuilder: null,
                   initialValue: model.title,
                   style: style,
                   cursorColor: colors.accent,

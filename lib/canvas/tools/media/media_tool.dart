@@ -38,6 +38,7 @@ class MediaTool extends StatefulWidget {
     required this.onResize,
     required this.onActivate,
     required this.onDeactivate,
+    this.onPanelPointerDown,
     super.key,
   });
 
@@ -46,6 +47,7 @@ class MediaTool extends StatefulWidget {
   final ValueChanged<Offset> onResize;
   final VoidCallback onActivate;
   final VoidCallback onDeactivate;
+  final PointerDownEventListener? onPanelPointerDown;
 
   @override
   State<MediaTool> createState() => _MediaToolState();
@@ -155,10 +157,13 @@ class _MediaToolState extends State<MediaTool> {
                           child: model.active && model.hasImage
                               ? TapRegion(
                                   groupId: model,
-                                  child: _MediaUrlPanel(
-                                    model: model,
-                                    onActivate: widget.onActivate,
-                                    onPickImage: _pickImage,
+                                  child: Listener(
+                                    onPointerDown: widget.onPanelPointerDown,
+                                    child: _MediaUrlPanel(
+                                      model: model,
+                                      onActivate: widget.onActivate,
+                                      onPickImage: _pickImage,
+                                    ),
                                   ),
                                 )
                               : const SizedBox(

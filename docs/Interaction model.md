@@ -71,12 +71,23 @@ Shapes follow the same state separation: clicking or creating a shape makes it a
 - Movement remains aligned with screen direction under canvas zoom and element rotation. Screen deltas are converted to canvas coordinates before persistence.
 - Transform controls rotate with their block and remain anchored to its top-left corner.
 - Scrolling inside bounded text or code content does not pan the canvas.
-- Only the primary mouse button performs block interactions; other pointer gestures retain their canvas behavior.
+- Primary-button gestures perform block activation, editing, and movement. In the Select tool, a secondary click opens the object menu; secondary dragging still pans. Drawing tools retain their secondary-button gestures.
 
 ## Stacking order
 
 - Document order runs from back to front. New and pasted objects append at the front; pasted objects preserve their internal order.
 - Activation, selection, editing, movement, rotation, and resizing preserve stacking order. Saving and reopening preserve document order.
+- Arrange offers Bring Forward, Send Backward, Bring to Front, and Send to Back. Forward and Backward cross the nearest overlapping object; Front and Back move to the ends of the stack. Groups retain their internal order, and other objects retain theirs.
+- Each successful Arrange command saves the new order and creates one undo step. Commands that cannot change order are disabled and make no history entry. If an object's layout size is not known, overlap commands are disabled; stack-end commands remain available.
+- Cmd on macOS, or Ctrl elsewhere, plus `]` brings forward and `[` sends backward. Adding Shift brings to front or sends to back. Shortcuts target the selection, falling back to the active object, and support key repeat. Focused editors keep these keys while the menu is closed.
+
+## Object context menu
+
+- In the Select tool, secondary-button release on an object opens a menu containing only Arrange when movement stays within Flutter's mouse drag threshold. Right-drag pans; right-clicking empty canvas opens nothing. Touch long-press has no object menu.
+- Right-clicking a selected object targets its selected group. Right-clicking an unselected object makes it the sole selection. Neither activates an object nor enters editing.
+- Right-clicking an editor preserves content and activation, closes Markdown source editing, and transfers keyboard focus to the menu. Editor context menus do not compete with Arrange. Menu clicks count as object-control interaction, including for active media.
+- Menus stay upright and use screen coordinates under zoom and rotation. Hover, click, arrow keys, Enter, and Escape use Flutter's menu navigation. While open, the menu owns keyboard input and Arrange shortcuts use the targets captured on opening.
+- Dismissing the menu preserves selection and activation. Navigation, tool changes, file-picker opening, target deletion, document replacement, and leaving the page close it.
 
 ## Touch navigation
 

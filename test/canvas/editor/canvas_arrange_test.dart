@@ -1,0 +1,510 @@
+// Verifies object Arrange menus, shortcuts, persistence, and history.
+// Exercises ordering through the canvas rather than reproducing the library algorithm.
+
+import 'dart:math' as math;
+
+import 'package:beyond/canvas/document/canvas_document.dart';
+import 'package:beyond/canvas/editor/canvas_background.dart';
+import 'package:beyond/canvas/editor/widgets/canvas_file_picker.dart';
+import 'package:beyond/canvas/editor/widgets/canvas_title.dart';
+import 'package:beyond/canvas/editor/widgets/element_transform_controls.dart';
+import 'package:beyond/canvas/editor/widgets/toolbar_button.dart';
+import 'package:beyond/canvas/tools/code/code_tool.dart';
+import 'package:beyond/canvas/tools/media/media_tool.dart';
+import 'package:beyond/canvas/tools/shape/shape_tool.dart';
+import 'package:beyond/canvas/tools/text/text_tool.dart';
+import 'package:flutter/gestures.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:infinite_lazy_grid/infinite_lazy_grid.dart';
+import 'package:shared_preferences_web/shared_preferences_web.dart';
+
+import '../test_helpers.dart';
+
+// ---------- Tests ----------
+
+void main() {
+  setUp(() => SharedPreferencesAsyncWeb.registerWith(null));
+
+  for (final group in [false, true]) {
+    for (final (label, target, expected) in [
+      ('Bring Forward', 'a', group ? ['b', 'd', 'a', 'c'] : ['b', 'a', 'c', 'd']),
+      ('Send Backward', 'd', group ? ['b', 'd', 'a', 'c'] : ['a', 'b', 'd', 'c']),
+      ('Bring to Front', 'a', group ? ['b', 'd', 'a', 'c'] : ['b', 'c', 'd', 'a']),
+      ('Send to Back', 'd', group ? ['b', 'd', 'a', 'c'] : ['d', 'a', 'b', 'c']),
+    ]) {
+      testWidgets('$label persists ${group ? 'group' : 'single'} order and one undo step', (tester) async {
+        final store = TestCanvasDocumentStore(_document());
+        await pumpCanvas(tester, store);
+        final canvas = _canvas(tester);
+        final before = _models(tester);
+        final original = {for (final data in store.initial!.elements) data.id: data.toJson()};
+        if (group) {
+          before[target]!.selected = true;
+          before[target == 'a' ? 'c' : 'b']!.selected = true;
+        }
+        final position = before[target]!.data.position + const Offset(5, 5);
+        await _open(tester, position);
+        await tester.tap(find.text(label));
+        await tester.pumpAndSettle();
+        expect(canvas.childOrder, expected);
+        final after = _models(tester);
+        for (final id in before.keys) {
+          expect(after[id], same(before[id]));
+          expect(after[id]!.data.toJson(), original[id]);
+        }
+        expect(after[target]!.selected, isTrue);
+        expect(after[target]!.active, isFalse);
+        await pumpPastSave(tester);
+        expect(_order(store.persisted!), expected);
+        await _shortcut(tester, LogicalKeyboardKey.keyZ);
+        expect(canvas.childOrder, ['a', 'b', 'c', 'd']);
+        await _shortcut(tester, LogicalKeyboardKey.keyZ, shift: true);
+        expect(canvas.childOrder, expected);
+        await _shortcut(tester, LogicalKeyboardKey.keyZ);
+        await _shortcut(tester, LogicalKeyboardKey.keyZ);
+        expect(canvas.childOrder, ['a', 'b', 'c', 'd']);
+        await _shortcut(tester, LogicalKeyboardKey.keyZ, shift: true);
+        await pumpPastSave(tester);
+        await tester.pumpWidget(const SizedBox());
+        await pumpCanvas(tester, TestCanvasDocumentStore(store.persisted));
+        expect(_canvas(tester).childOrder, expected);
+      });
+    }
+  }
+
+  testWidgets('submenu has native keyboard navigation and disabled actions', (tester) async {
+    await pumpCanvas(tester, TestCanvasDocumentStore(_document()));
+    await _open(tester, const Offset(375, 375));
+    expect(find.text('Arrange'), findsOneWidget);
+    expect(find.text('Bring Forward'), findsOneWidget);
+    expect(_models(tester)['d']!.selected, isTrue);
+    await tester.tap(find.text('Arrange'));
+    await tester.pumpAndSettle();
+    expect(find.text('Bring Forward'), findsNothing);
+    await tester.tap(find.text('Arrange'));
+    await tester.pumpAndSettle();
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
+    await tester.pumpAndSettle();
+    expect(find.text('Bring Forward'), findsOneWidget);
+    expect(_button(tester, 'Bring Forward').onPressed, isNull);
+    expect(_button(tester, 'Bring to Front').onPressed, isNull);
+    expect(_button(tester, 'Send Backward').onPressed, isNotNull);
+    expect(_button(tester, 'Send to Back').onPressed, isNotNull);
+    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+    await tester.pumpAndSettle();
+    expect(_canvas(tester).childOrder, ['a', 'b', 'd', 'c']);
+    expect(find.text('Arrange'), findsNothing);
+    await _open(tester, const Offset(375, 375));
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await tester.pumpAndSettle();
+    expect(find.text('Arrange'), findsNothing);
+    expect(_models(tester)['c']!.selected, isTrue);
+  });
+
+  testWidgets('hover opens the submenu and click-away preserves state', (tester) async {
+    await pumpCanvas(tester, TestCanvasDocumentStore(_document()));
+    await tester.tapAt(const Offset(305, 305));
+    await tester.pumpAndSettle();
+    final model = _models(tester)['a']!;
+    expect(model.active, isTrue);
+    await _open(tester, const Offset(305, 305));
+    final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
+    await mouse.addPointer(location: const Offset(790, 590));
+    await mouse.moveTo(tester.getCenter(find.text('Arrange')));
+    await tester.pumpAndSettle();
+    expect(find.text('Bring Forward'), findsOneWidget);
+    await tester.tapAt(const Offset(790, 590));
+    await tester.pumpAndSettle();
+    expect(model.selected, isTrue);
+    expect(model.active, isTrue);
+    expect(find.text('Arrange'), findsNothing);
+    await mouse.removePointer();
+  });
+
+  testWidgets('right-click replaces selection and right-drag still pans', (tester) async {
+    await pumpCanvas(tester, TestCanvasDocumentStore(_document()));
+    final before = _models(tester);
+    before['a']!.selected = true;
+    before['b']!.selected = true;
+    final drag = await tester.startGesture(
+      const Offset(355, 355),
+      kind: PointerDeviceKind.mouse,
+      buttons: kSecondaryButton,
+    );
+    await drag.moveBy(const Offset(50, 20));
+    await drag.moveBy(const Offset(40, 20));
+    await drag.up();
+    await tester.pumpAndSettle();
+    expect(_canvas(tester).offset, isNot(Offset.zero));
+    expect(find.text('Arrange'), findsNothing);
+    expect(before['a']!.selected, isTrue);
+    expect(before['b']!.selected, isTrue);
+    expect(before['c']!.data.position, const Offset(350, 350));
+    final position = _canvas(tester).getInfo('c').ssPosition + const Offset(5, 5);
+    await _open(tester, position);
+    expect(before['a']!.selected, isFalse);
+    expect(before['b']!.selected, isFalse);
+    expect(before['c']!.selected, isTrue);
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await tester.pumpAndSettle();
+    await _open(tester, const Offset(750, 500));
+    expect(find.text('Arrange'), findsNothing);
+  });
+
+  for (final platform in [TargetPlatform.macOS, TargetPlatform.linux]) {
+    testWidgets('$platform shortcuts support all commands, repeats, and active fallback', (tester) async {
+      await pumpCanvas(tester, TestCanvasDocumentStore(_document()), platform: platform);
+      await tester.tapAt(const Offset(305, 305));
+      await tester.pumpAndSettle();
+      final model = _models(tester)['a']!;
+      final canvas = _canvas(tester);
+      await _shortcut(tester, LogicalKeyboardKey.bracketRight, platform: platform);
+      expect(canvas.childOrder, ['b', 'a', 'c', 'd']);
+      await _shortcut(tester, LogicalKeyboardKey.bracketRight, platform: platform, repeat: true);
+      expect(canvas.childOrder, ['b', 'c', 'd', 'a']);
+      await _shortcut(tester, LogicalKeyboardKey.bracketLeft, platform: platform);
+      expect(canvas.childOrder, ['b', 'c', 'a', 'd']);
+      await _shortcut(tester, LogicalKeyboardKey.bracketLeft, platform: platform, shift: true);
+      expect(canvas.childOrder, ['a', 'b', 'c', 'd']);
+      await _shortcut(tester, LogicalKeyboardKey.bracketRight, platform: platform, shift: true);
+      expect(canvas.childOrder, ['b', 'c', 'd', 'a']);
+      expect(_models(tester)['a'], same(model));
+      expect(model.active, isTrue);
+      expect(model.selected, isFalse);
+      await _shortcut(tester, LogicalKeyboardKey.braceLeft, platform: platform, shift: true);
+      expect(canvas.childOrder, ['a', 'b', 'c', 'd']);
+      await _shortcut(tester, LogicalKeyboardKey.braceRight, platform: platform, shift: true);
+      expect(canvas.childOrder, ['b', 'c', 'd', 'a']);
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.altLeft);
+      await _shortcut(tester, LogicalKeyboardKey.bracketLeft, platform: platform, shift: true);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.altLeft);
+      expect(canvas.childOrder, ['b', 'c', 'd', 'a']);
+      await _shortcut(
+        tester,
+        LogicalKeyboardKey.bracketLeft,
+        platform: platform == TargetPlatform.macOS ? TargetPlatform.linux : TargetPlatform.macOS,
+        shift: true,
+      );
+      expect(canvas.childOrder, ['b', 'c', 'd', 'a']);
+    });
+  }
+
+  testWidgets('menu shortcuts use captured targets and block unrelated canvas keys', (tester) async {
+    await pumpCanvas(tester, TestCanvasDocumentStore(_document()));
+    await _open(tester, const Offset(305, 305));
+    _models(tester)['a']!.selected = false;
+    _models(tester)['c']!.selected = true;
+    await tester.sendKeyEvent(LogicalKeyboardKey.delete);
+    await tester.sendKeyEvent(LogicalKeyboardKey.keyT);
+    await _shortcut(tester, LogicalKeyboardKey.bracketRight, shift: true);
+    expect(_canvas(tester).childOrder, ['b', 'c', 'd', 'a']);
+    expect(find.text('Arrange'), findsOneWidget);
+  });
+
+  for (final editor in ['text', 'code', 'title', 'media']) {
+    testWidgets('$editor right-click transfers focus without changing content or activation', (tester) async {
+      final store = TestCanvasDocumentStore(_editorDocument(editor));
+      await pumpCanvas(tester, store);
+      final surface = switch (editor) {
+        'text' => find.byKey(const ValueKey('text-markdown-preview')),
+        'title' => find.byKey(const ValueKey('code-title-text')),
+        'code' => find.byKey(const ValueKey('code-block-preview-surface')),
+        _ => find.byKey(const ValueKey('media-url-field')),
+      };
+      await tester.tapAt(tester.getCenter(surface));
+      await tester.pumpAndSettle();
+      final focus = switch (editor) {
+        'text' => tester.widget<TextTool>(find.byType(TextTool)).model.focusNode,
+        'code' || 'title' => tester.widget<CodeTool>(find.byType(CodeTool)).model.focusNode,
+        _ => tester.widget<MediaTool>(find.byType(MediaTool)).model.focusNode,
+      };
+      final editingSurface = switch (editor) {
+        'text' => find.byKey(const ValueKey('text-markdown-editor')),
+        'title' => find.byKey(const ValueKey('code-title-input')),
+        'code' => find.byKey(const ValueKey('code-block-preview-surface')),
+        _ => find.byKey(const ValueKey('media-url-field')),
+      };
+      await tester.tap(editingSurface);
+      await tester.pumpAndSettle();
+      await _shortcut(tester, LogicalKeyboardKey.bracketRight, shift: true);
+      expect(_canvas(tester).childOrder, ['editor', 'other']);
+      await _open(tester, tester.getCenter(editingSurface));
+      expect(find.text('Arrange'), findsOneWidget);
+      expect(focus.hasFocus, isFalse);
+      expect(find.byType(AdaptiveTextSelectionToolbar), findsNothing);
+      if (editor == 'text') {
+        final model = tester.widget<TextTool>(find.byType(TextTool)).model;
+        expect(model.active, isTrue);
+        expect(model.editing, isFalse);
+        expect(model.controller.text, 'contents');
+      } else if (editor == 'code' || editor == 'title') {
+        final model = tester.widget<CodeTool>(find.byType(CodeTool)).model;
+        expect(model.active, isTrue);
+        expect(model.controller.text, 'contents');
+        expect(model.title, 'Title');
+      } else {
+        expect(tester.widget<MediaTool>(find.byType(MediaTool)).model.active, isTrue);
+      }
+      await _shortcut(tester, LogicalKeyboardKey.bracketRight, shift: true);
+      expect(_canvas(tester).childOrder, ['other', 'editor']);
+      await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+      await tester.pumpAndSettle();
+      expect(find.text('Arrange'), findsNothing);
+      expect(focus.hasFocus, isFalse);
+      expect(_canvas(tester).childOrder, ['other', 'editor']);
+    });
+  }
+
+  testWidgets('active image menu and URL panel preserve media activation', (tester) async {
+    await pumpCanvas(tester, TestCanvasDocumentStore(_editorDocument('media')), attachmentStore: TestAttachmentStore());
+    final model = tester.widget<MediaTool>(find.byType(MediaTool)).model;
+    await tester.runAsync(() => model.setDeviceImage(onePixelPngBytes, 'png'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('media-image')));
+    await tester.pumpAndSettle();
+    expect(model.active, isTrue);
+    await _open(tester, tester.getCenter(find.byKey(const ValueKey('media-image'))));
+    await tester.tap(find.text('Bring to Front'));
+    await tester.pumpAndSettle();
+    expect(model.active, isTrue);
+    expect(model.selected, isTrue);
+    expect(_canvas(tester).childOrder, ['other', 'editor']);
+    await _open(tester, tester.getCenter(find.byKey(const ValueKey('media-url-field'))));
+    expect(find.text('Arrange'), findsOneWidget);
+    expect(model.active, isTrue);
+    expect(model.focusNode.hasFocus, isFalse);
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await tester.pumpAndSettle();
+    expect(model.active, isTrue);
+  });
+
+  testWidgets('unknown layout sizes disable overlap commands but allow ends', (tester) async {
+    final document = _document();
+    document.elements.add(_text('unknown', const Offset(100000, 100000)));
+    await pumpCanvas(tester, TestCanvasDocumentStore(document));
+    final canvas = _canvas(tester);
+    final info = canvas.getInfo('unknown');
+    canvas
+      ..removeChild('unknown')
+      ..addChild(info.gsPosition, info.child, id: 'unknown');
+    expect(canvas.getInfo('unknown').childSize, isNull);
+    await _open(tester, const Offset(375, 375));
+    expect(_button(tester, 'Bring Forward').onPressed, isNull);
+    expect(_button(tester, 'Bring to Front').onPressed, isNotNull);
+    await tester.tap(find.text('Bring to Front'));
+    await tester.pumpAndSettle();
+    expect(_canvas(tester).childOrder, ['a', 'b', 'c', 'unknown', 'd']);
+  });
+
+  testWidgets('unknown size disables Backward shortcut without affecting Send to Back', (tester) async {
+    final document = _document();
+    document.elements.add(_text('unknown', const Offset(100000, 100000)));
+    final store = TestCanvasDocumentStore(document);
+    await pumpCanvas(tester, store);
+    final canvas = _canvas(tester);
+    final info = canvas.getInfo('unknown');
+    canvas
+      ..removeChild('unknown')
+      ..addChild(info.gsPosition, info.child, id: 'unknown')
+      ..sendToBack(['unknown']);
+    _models(tester)['a']!.selected = true;
+    await _shortcut(tester, LogicalKeyboardKey.bracketLeft);
+    expect(canvas.childOrder, ['unknown', 'a', 'b', 'c', 'd']);
+    expect(store.persisted, isNull);
+    await _open(tester, const Offset(305, 305));
+    expect(_button(tester, 'Send Backward').onPressed, isNull);
+    expect(_button(tester, 'Send to Back').onPressed, isNotNull);
+    await tester.tap(find.text('Send to Back'));
+    await tester.pumpAndSettle();
+    expect(canvas.childOrder, ['a', 'unknown', 'b', 'c', 'd']);
+  });
+
+  testWidgets('overlap steps skip distant objects; no-op does not save or consume redo', (tester) async {
+    final document = _document();
+    (document.elements[1] as ShapeElementData).position = const Offset(650, 450);
+    final store = TestCanvasDocumentStore(document);
+    await pumpCanvas(tester, store);
+    _models(tester)['a']!.selected = true;
+    await _shortcut(tester, LogicalKeyboardKey.bracketLeft);
+    await pumpPastSave(tester);
+    expect(store.persisted, isNull);
+    await _shortcut(tester, LogicalKeyboardKey.bracketRight);
+    expect(_canvas(tester).childOrder, ['b', 'c', 'a', 'd']);
+    await _shortcut(tester, LogicalKeyboardKey.keyZ);
+    _models(tester)['a']!.selected = true;
+    await _shortcut(tester, LogicalKeyboardKey.bracketLeft, shift: true);
+    await _shortcut(tester, LogicalKeyboardKey.keyZ, shift: true);
+    expect(_canvas(tester).childOrder, ['b', 'c', 'a', 'd']);
+  });
+
+  testWidgets('rotated object menu stays in screen coordinates under zoom near edges', (tester) async {
+    final document = _editorDocument('code');
+    (document.elements.first as CodeElementData)
+      ..position = const Offset(200, 140)
+      ..rotation = math.pi / 4;
+    await pumpCanvas(tester, TestCanvasDocumentStore(document));
+    _canvas(tester).updateScalebyDelta(0.5);
+    await tester.pump();
+    await _open(tester, tester.getCenter(find.byKey(const ValueKey('code-block-surface'))));
+    final rect = tester.getRect(find.byType(SubmenuButton));
+    expect(rect.width, greaterThan(rect.height));
+    expect(rect.right, lessThanOrEqualTo(800));
+    expect(rect.bottom, lessThanOrEqualTo(600));
+    for (final label in ['Bring Forward', 'Send Backward', 'Bring to Front', 'Send to Back']) {
+      final bounds = tester.getRect(find.text(label));
+      expect(bounds.left, greaterThanOrEqualTo(0));
+      expect(bounds.right, lessThanOrEqualTo(800));
+      expect(bounds.bottom, lessThanOrEqualTo(600));
+    }
+  });
+
+  testWidgets('navigation, tools, file picker, and disposal close menus', (tester) async {
+    final store = TestCanvasDocumentStore(_document());
+    await pumpCanvas(tester, store);
+    await _open(tester, const Offset(305, 305));
+    _canvas(tester).updateScalebyDelta(0.1);
+    await tester.pumpAndSettle();
+    expect(find.text('Arrange'), findsNothing);
+    await _open(tester, _canvas(tester).getInfo('a').ssPosition + const Offset(5, 5));
+    tester.widget<ToolbarButton>(find.byKey(const ValueKey('toolbar-draw'))).onPressed!();
+    await tester.pumpAndSettle();
+    expect(find.text('Arrange'), findsNothing);
+    await tester.tap(find.byKey(const ValueKey('toolbar-draw')));
+    await tester.pumpAndSettle();
+    await _open(tester, _canvas(tester).getInfo('a').ssPosition + const Offset(5, 5));
+    tester.widget<CanvasTitle>(find.byType(CanvasTitle)).onPressed!();
+    await tester.pumpAndSettle();
+    expect(find.text('Arrange'), findsNothing);
+    expect(find.byType(CanvasFilePicker), findsOneWidget);
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await tester.pumpAndSettle();
+    await _open(tester, _canvas(tester).getInfo('a').ssPosition + const Offset(5, 5));
+    await tester.pumpWidget(const SizedBox());
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('target deletion and document replacement close menus', (tester) async {
+    await pumpCanvas(tester, TestCanvasDocumentStore(_document()));
+    await tester.tapAt(const Offset(305, 305));
+    await tester.pumpAndSettle();
+    expect(_models(tester)['a']!.active, isTrue);
+    await _open(tester, const Offset(305, 305));
+    tester.widget<ElementTransformControls>(find.byType(ElementTransformControls)).onDelete();
+    await tester.pumpAndSettle();
+    expect(_canvas(tester).childOrder, isNot(contains('a')));
+    expect(find.text('Arrange'), findsNothing);
+    await _shortcut(tester, LogicalKeyboardKey.keyZ);
+    await _open(tester, _canvas(tester).getInfo('a').ssPosition + const Offset(5, 5));
+    tester.widget<CanvasTitle>(find.byType(CanvasTitle)).onPressed!();
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('New canvas'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField), 'Fresh');
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.pumpAndSettle();
+    expect(_canvas(tester).childOrder, isEmpty);
+    expect(find.text('Arrange'), findsNothing);
+    await tester.pumpWidget(const SizedBox());
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+  });
+}
+
+// ---------- Helpers ----------
+
+LazyCanvasController _canvas(WidgetTester tester) => tester.widget<LazyCanvas>(find.byType(LazyCanvas)).controller;
+
+Map<String, ShapeModel> _models(WidgetTester tester) => {
+  for (final widget in tester.widgetList<Shape>(find.byType(Shape))) widget.model.data.id: widget.model,
+};
+
+List<String> _order(CanvasDocument document) => document.elements.map((element) => element.id).toList();
+
+MenuItemButton _button(WidgetTester tester, String label) => tester.widget<MenuItemButton>(
+  find.ancestor(of: find.text(label), matching: find.byType(MenuItemButton)),
+);
+
+Future<void> _open(WidgetTester tester, Offset position) async {
+  await tester.tapAt(position, buttons: kSecondaryButton);
+  await tester.pumpAndSettle();
+}
+
+Future<void> _shortcut(
+  WidgetTester tester,
+  LogicalKeyboardKey key, {
+  TargetPlatform platform = TargetPlatform.linux,
+  bool shift = false,
+  bool repeat = false,
+}) async {
+  final modifier = platform == TargetPlatform.macOS ? LogicalKeyboardKey.metaLeft : LogicalKeyboardKey.controlLeft;
+  await tester.sendKeyDownEvent(modifier);
+  if (shift) await tester.sendKeyDownEvent(LogicalKeyboardKey.shiftLeft);
+  final physicalKey = switch (key) {
+    LogicalKeyboardKey.braceLeft => PhysicalKeyboardKey.bracketLeft,
+    LogicalKeyboardKey.braceRight => PhysicalKeyboardKey.bracketRight,
+    _ => null,
+  };
+  await tester.sendKeyDownEvent(key, physicalKey: physicalKey);
+  if (repeat) await tester.sendKeyRepeatEvent(key, physicalKey: physicalKey);
+  await tester.sendKeyUpEvent(key, physicalKey: physicalKey);
+  if (shift) await tester.sendKeyUpEvent(LogicalKeyboardKey.shiftLeft);
+  await tester.sendKeyUpEvent(modifier);
+  await tester.pump();
+}
+
+CanvasDocument _document() => CanvasDocument(
+  background: CanvasBackgroundKind.plain,
+  elements: [
+    for (var index = 0; index < 4; index++)
+      ShapeElementData(
+        id: ['a', 'b', 'c', 'd'][index],
+        kind: ShapeKind.rectangle,
+        position: Offset(300 + index * 25, 300 + index * 25),
+        size: const Size(140, 120),
+        strokeColor: 0xff000000,
+        fillColor: 0xffffffff,
+        strokeWidth: 2,
+      ),
+  ],
+);
+
+TextElementData _text(String id, Offset position) => TextElementData(
+  id: id,
+  position: position,
+  width: 280,
+  height: null,
+  markdown: 'contents',
+  style: const TextNodeStyle(fontFamily: 'Inter', color: '#201C1A'),
+);
+
+CanvasDocument _editorDocument(String editor) => CanvasDocument(
+  background: CanvasBackgroundKind.plain,
+  elements: [
+    if (editor == 'text')
+      _text('editor', const Offset(150, 230))
+    else if (editor == 'media')
+      MediaElementData(id: 'editor', position: const Offset(150, 230), width: 280, url: '')
+    else
+      CodeElementData(
+        id: 'editor',
+        position: const Offset(150, 230),
+        size: const Size(300, 220),
+        language: CodeLanguage.plainText,
+        source: 'contents',
+        title: 'Title',
+        showLineNumbers: false,
+      ),
+    ShapeElementData(
+      id: 'other',
+      kind: ShapeKind.rectangle,
+      position: const Offset(550, 400),
+      size: const Size(80, 80),
+      strokeColor: 0xff000000,
+      fillColor: 0xffffffff,
+      strokeWidth: 2,
+    ),
+  ],
+);

@@ -32,6 +32,7 @@ class _MediaUrlPanel extends StatelessWidget {
           children: [
             TextField(
               key: const ValueKey('media-url-field'),
+              contextMenuBuilder: null,
               controller: model.controller,
               focusNode: model.focusNode,
               onTap: onActivate,

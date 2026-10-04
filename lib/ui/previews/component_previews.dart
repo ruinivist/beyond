@@ -122,7 +122,15 @@ Widget contextMenuPreview() => Builder(
               shortcut: const SingleActivator(LogicalKeyboardKey.keyD, control: true),
               onPressed: () {},
             ),
-            const ContextMenuAction(label: 'Unavailable', icon: Icons.block, onPressed: null),
+            const ContextMenuAction(label: 'Unavailable', icon: Icons.block),
+            ContextMenuAction(
+              label: 'Arrange',
+              icon: Icons.layers_outlined,
+              groups: [
+                [ContextMenuAction(label: 'Bring Forward', icon: Icons.arrow_upward, onPressed: () {})],
+                [ContextMenuAction(label: 'Bring to Front', icon: Icons.flip_to_front, onPressed: () {})],
+              ],
+            ),
           ],
           [
             ContextMenuAction(

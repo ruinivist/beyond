@@ -91,6 +91,7 @@ class _TextMarkdownEditorState extends State<TextMarkdownEditor> {
       onKeyEvent: _onKeyEvent,
       child: TextField(
         key: const ValueKey('text-markdown-editor'),
+        contextMenuBuilder: null,
         controller: widget.model.controller,
         focusNode: widget.model.focusNode,
         scrollController: widget.model.scrollController,

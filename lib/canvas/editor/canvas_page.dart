@@ -35,6 +35,7 @@ import 'package:beyond/settings/settings_dialog.dart';
 import 'package:beyond/theme/preset_colors.dart';
 import 'package:beyond/theme/theme.dart';
 import 'package:beyond/ui/common/color_picker.dart';
+import 'package:beyond/ui/common/context_menu.dart';
 import 'package:beyond/ui/common/discrete_slider.dart';
 import 'package:beyond/ui/common/surface.dart';
 import 'package:flutter/foundation.dart';
@@ -107,6 +108,12 @@ class _CanvasPageState extends State<CanvasPage> {
   late final AttachmentStore _attachmentStore = widget.attachmentStore ?? createAttachmentStore();
   late final CanvasProjectFiles _projectFiles = widget.projectFiles ?? createCanvasProjectFiles();
   final _elements = <CanvasElementModel>[];
+  final MenuController _contextMenuController = MenuController();
+  final GlobalKey _contextMenuKey = GlobalKey();
+  final _arrangeFocusNode = FocusNode(debugLabel: 'Arrange');
+  List<CanvasElementModel> _contextMenuTargets = const [];
+  ({int pointer, Offset start, CanvasElementModel model, double slop})? _secondaryClick;
+  (Offset, double)? _contextMenuView;
   final _geometryListeners = <CanvasElementModel, VoidCallback>{};
   CanvasElementModel? _activeElement;
   TextBlockModel? _editingTextBlock;
@@ -217,7 +224,8 @@ class _CanvasPageState extends State<CanvasPage> {
       ..rawPointerDownListener = _handleCanvasPointerDown
       ..rawPointerMoveListener = _handleCanvasPointerMove
       ..rawPointerUpListener = _handleCanvasPointerUp
-      ..rawPointerCancelListener = _handleCanvasPointerCancel;
+      ..rawPointerCancelListener = _handleCanvasPointerCancel
+      ..addListener(_closeContextMenuOnNavigation);
     _penTool = PenTool(onStroke: _addStroke)..setStrokeWidth(_penWidth);
     _arrowTool = ArrowTool(onArrow: _addArrow)..addListener(_handleDrawingToolChanged);
     _shapeTool = ShapeTool(onShape: _addShape)..addListener(_handleDrawingToolChanged);
@@ -262,6 +270,9 @@ class _CanvasPageState extends State<CanvasPage> {
 
   @override
   void dispose() {
+    _closeContextMenu();
+    _arrangeFocusNode.dispose();
+    _canvasController.removeListener(_closeContextMenuOnNavigation);
     _saveTimer?.cancel();
     _saveTimer = null;
     if (_documentLoaded && _documentDirty) {
@@ -303,6 +314,7 @@ class _CanvasPageState extends State<CanvasPage> {
 
   void _toggleTool(_CanvasTool tool) {
     if (!_documentLoaded) return;
+    _closeContextMenu();
     final enabling = _activeTool.value != tool;
     _cancelDrawingTools();
     _touchPlacement = null;
@@ -396,6 +408,7 @@ class _CanvasPageState extends State<CanvasPage> {
   void _handleTouchNavigationChanged(bool active) {
     _touchNavigationActive = active;
     if (active) {
+      _closeContextMenu();
       _blockedCanvasPointers.addAll(_canvasPointers.keys);
       _cancelDrawingTools();
       _touchPlacement = null;
@@ -437,6 +450,8 @@ class _CanvasPageState extends State<CanvasPage> {
   Offset _screenToCanvas(Offset screenPosition) => _canvasController.offset + screenPosition / _canvasController.scale;
 
   void _handleCanvasPointerDown(PointerDownEvent event) {
+    // Menu overlays share this raw listener; their clicks and dismissal own the pointer.
+    if (_contextMenuController.isOpen) return;
     final allowed = _canHandleCanvasPointer(event);
     _canvasPointers[event.pointer] = event.kind;
     if (_canvasInputBlocked) _blockedCanvasPointers.add(event.pointer);
@@ -518,6 +533,9 @@ class _CanvasPageState extends State<CanvasPage> {
   }
 
   void _handleCanvasPointerMove(PointerMoveEvent event) {
+    if (_secondaryClick case final click? when click.pointer == event.pointer) {
+      if ((event.position - click.start).distance > click.slop) _secondaryClick = null;
+    }
     if (!_canHandleCanvasPointer(event)) return;
     if (_touchPan case final pan? when pan.pointer == event.pointer) {
       pan.velocity.addPosition(event.timeStamp, event.localPosition);
@@ -572,6 +590,12 @@ class _CanvasPageState extends State<CanvasPage> {
   }
 
   void _handleCanvasPointerUp(PointerUpEvent event) {
+    if (_secondaryClick case final click? when click.pointer == event.pointer) {
+      _secondaryClick = null;
+      if (_canHandleCanvasPointer(event) && (event.position - click.start).distance <= click.slop) {
+        _openObjectContextMenu(click.model, event.position);
+      }
+    }
     _releaseCanvasPointer(event.pointer);
     if (!_canHandleCanvasPointer(event)) return;
     if (_touchPan case final pan? when pan.pointer == event.pointer) {
@@ -630,6 +654,7 @@ class _CanvasPageState extends State<CanvasPage> {
   }
 
   void _handleCanvasPointerCancel(PointerCancelEvent event) {
+    if (_secondaryClick?.pointer == event.pointer) _secondaryClick = null;
     _releaseCanvasPointer(event.pointer);
     if (_touchPlacement?.pointer == event.pointer) _touchPlacement = null;
     if (_touchPan?.pointer == event.pointer) _touchPan = null;
@@ -862,6 +887,135 @@ class _CanvasPageState extends State<CanvasPage> {
     ..._elements.where((model) => model.selected),
   };
 
+  // ---------- Object context menu and ordering ----------
+
+  List<CanvasElementModel> get _arrangeTargets {
+    if (_contextMenuController.isOpen) return _contextMenuTargets;
+    final selected = _selectedInStackingOrder;
+    return selected.isNotEmpty ? selected : [?_activeElement];
+  }
+
+  void _handleObjectSecondaryDown(CanvasElementModel model, PointerDownEvent event) {
+    if (!_documentLoaded ||
+        !_canHandleCanvasPointer(event) ||
+        _activeTool.value != _CanvasTool.select ||
+        event.buttons != kSecondaryButton) {
+      return;
+    }
+    _secondaryClick = (
+      pointer: event.pointer,
+      start: event.position,
+      model: model,
+      slop: computePanSlop(event.kind, MediaQuery.maybeGestureSettingsOf(context)),
+    );
+  }
+
+  void _openObjectContextMenu(CanvasElementModel model, Offset position) {
+    if (!_elements.contains(model) || _activeTool.value != _CanvasTool.select) return;
+    if (!model.selected) _setSelection({model});
+    _clearTextEditing();
+    FocusManager.instance.primaryFocus?.unfocus();
+    _contextMenuTargets = _selectedInStackingOrder;
+    _contextMenuView = (_canvasController.offset, _canvasController.scale);
+    setState(() {});
+    // Build the captured targets before opening; editor release callbacks finish first.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || _contextMenuTargets.isEmpty) return;
+      final box = _contextMenuKey.currentContext!.findRenderObject()! as RenderBox;
+      _contextMenuController.open(position: box.globalToLocal(position));
+      _arrangeFocusNode.requestFocus();
+    });
+  }
+
+  void _contextMenuClosed() {
+    _contextMenuTargets = const [];
+    _contextMenuView = null;
+    _arrangeFocusNode.unfocus();
+  }
+
+  void _closeContextMenu() {
+    _secondaryClick = null;
+    _contextMenuController.close();
+    _contextMenuClosed();
+  }
+
+  void _closeContextMenuOnNavigation() {
+    if (_contextMenuView case final view? when view != (_canvasController.offset, _canvasController.scale)) {
+      _closeContextMenu();
+    }
+  }
+
+  bool _canArrange(CanvasArrange action, List<CanvasElementModel> targets) {
+    if (targets.any((model) => !_elements.contains(model))) return false;
+    try {
+      return _canvasController.canArrange(targets.map((model) => model.data.id), action);
+      // The ordering API documents unknown layout sizes as a StateError.
+      // ignore: avoid_catching_errors
+    } on StateError {
+      if (action == CanvasArrange.forward || action == CanvasArrange.backward) {
+        return false;
+      }
+      rethrow;
+    }
+  }
+
+  void _arrange(CanvasArrange action, List<CanvasElementModel> targets) {
+    if (!_canArrange(action, targets)) return;
+    _finishHistoryOperation();
+    final ids = targets.map((model) => model.data.id);
+    final changed = switch (action) {
+      CanvasArrange.forward => _canvasController.bringForward(ids),
+      CanvasArrange.backward => _canvasController.sendBackward(ids),
+      CanvasArrange.front => _canvasController.bringToFront(ids),
+      CanvasArrange.back => _canvasController.sendToBack(ids),
+    };
+    if (!changed) return;
+    final models = {for (final model in _elements) model.data.id: model};
+    _elements
+      ..clear()
+      ..addAll(_canvasController.childOrder.map((id) => models[id]!));
+    _scheduleDocumentSave();
+    _finishHistoryOperation();
+    setState(() {});
+  }
+
+  List<List<ContextMenuAction>> _objectContextMenuActions() {
+    final targets = _contextMenuTargets;
+    final macOS = Theme.of(context).platform == TargetPlatform.macOS;
+    ContextMenuAction action(CanvasArrange action, String label, IconData icon) => ContextMenuAction(
+      label: label,
+      icon: icon,
+      onPressed: _canArrange(action, targets) ? () => _arrange(action, targets) : null,
+      shortcut: SingleActivator(
+        action == CanvasArrange.forward || action == CanvasArrange.front
+            ? LogicalKeyboardKey.bracketRight
+            : LogicalKeyboardKey.bracketLeft,
+        meta: macOS,
+        control: !macOS,
+        shift: action == CanvasArrange.front || action == CanvasArrange.back,
+      ),
+    );
+    return [
+      [
+        ContextMenuAction(
+          label: 'Arrange',
+          icon: LucideIcons.layers,
+          focusNode: _arrangeFocusNode,
+          groups: [
+            [
+              action(CanvasArrange.forward, 'Bring Forward', LucideIcons.arrowUp),
+              action(CanvasArrange.backward, 'Send Backward', LucideIcons.arrowDown),
+            ],
+            [
+              action(CanvasArrange.front, 'Bring to Front', LucideIcons.bringToFront),
+              action(CanvasArrange.back, 'Send to Back', LucideIcons.sendToBack),
+            ],
+          ],
+        ),
+      ],
+    ];
+  }
+
   // ---------- Element transforms ----------
 
   GlobalKey _selectionKey(Object model) => _selectionKeys.putIfAbsent(model, GlobalKey.new);
@@ -1028,6 +1182,7 @@ class _CanvasPageState extends State<CanvasPage> {
         model: text,
         activeTool: _activeTool,
         modifierPressed: _selectionModifierPressed,
+        onSecondaryPointerDown: (event) => _handleObjectSecondaryDown(model, event),
         onPointerDown: (event) => _handleTextBlockPointerDown(text, event),
         child: TextTool(
           model: text,
@@ -1042,6 +1197,7 @@ class _CanvasPageState extends State<CanvasPage> {
         model: code,
         activeTool: _activeTool,
         modifierPressed: _selectionModifierPressed,
+        onSecondaryPointerDown: (event) => _handleObjectSecondaryDown(model, event),
         onPointerDown: (event) => _handleCodeBlockPointerDown(code, event),
         child: CodeTool(
           model: code,
@@ -1050,7 +1206,10 @@ class _CanvasPageState extends State<CanvasPage> {
           onResize: (delta) => _resizeCodeBlock(code, delta),
           onChangeBoundary: _finishHistoryOperation,
           canHandlePointer: _canHandleCanvasPointer,
-          onTitlePointerDown: (event) => _handleCodeBlockPointerDown(code, event),
+          onTitlePointerDown: (event) {
+            _handleObjectSecondaryDown(code, event);
+            _handleCodeBlockPointerDown(code, event);
+          },
         ),
       ),
       final MediaModel media => _CanvasElementHost(
@@ -1058,13 +1217,16 @@ class _CanvasPageState extends State<CanvasPage> {
         model: media,
         activeTool: _activeTool,
         modifierPressed: _selectionModifierPressed,
+        onSecondaryPointerDown: (event) => _handleObjectSecondaryDown(model, event),
         onPointerDown: (event) => _handleSelectableElementPointerDown(media, event),
         child: MediaTool(
           model: media,
           onActivate: () => _activateElement(media),
           onMove: (delta) => _moveSelectedChildren(media, delta),
           onResize: (delta) => _resizeMedia(media, delta),
+          onPanelPointerDown: (event) => _handleObjectSecondaryDown(media, event),
           onDeactivate: () {
+            if (_contextMenuController.isOpen || _secondaryClick != null) return;
             if (identical(_activeElement, media)) _setActiveElement(null);
           },
         ),
@@ -1074,6 +1236,7 @@ class _CanvasPageState extends State<CanvasPage> {
         model: shape,
         activeTool: _activeTool,
         modifierPressed: _selectionModifierPressed,
+        onSecondaryPointerDown: (event) => _handleObjectSecondaryDown(model, event),
         onPointerDown: (event) => _handleSelectableElementPointerDown(shape, event),
         child: Shape(
           model: shape,
@@ -1087,6 +1250,7 @@ class _CanvasPageState extends State<CanvasPage> {
         model: pen,
         activeTool: _activeTool,
         modifierPressed: _selectionModifierPressed,
+        onSecondaryPointerDown: (event) => _handleObjectSecondaryDown(model, event),
         onPointerDown: (event) => _handleStrokePointerDown(pen, event),
         child: PenStroke(
           model: pen,
@@ -1098,6 +1262,7 @@ class _CanvasPageState extends State<CanvasPage> {
         model: arrow,
         activeTool: _activeTool,
         modifierPressed: _selectionModifierPressed,
+        onSecondaryPointerDown: (event) => _handleObjectSecondaryDown(model, event),
         onPointerDown: (event) => _handleArrowPointerDown(arrow, event),
         child: Arrow(model: arrow),
       ),
@@ -1314,7 +1479,7 @@ class _CanvasPageState extends State<CanvasPage> {
   void _handleWebCut(ClipboardWriteEvent event) => unawaited(_copySelection(event, cut: true));
 
   void _handleWebPaste(ClipboardReadEvent event) {
-    if (!_documentLoaded || _filePickerOpen || _editingElement) return;
+    if (!_documentLoaded || _filePickerOpen || _contextMenuController.isOpen || _editingElement) return;
     unawaited(_pasteSelection(event.getClipboardReader()));
   }
 
@@ -1322,7 +1487,7 @@ class _CanvasPageState extends State<CanvasPage> {
     ClipboardWriter? writer, {
     bool cut = false,
   }) async {
-    if (!_documentLoaded || _filePickerOpen || _editingElement) return;
+    if (!_documentLoaded || _filePickerOpen || _contextMenuController.isOpen || _editingElement) return;
     final selected = _selectedInStackingOrder;
     final documentId = _documentStore.library.currentId;
     if (selected.isEmpty) return;
@@ -1480,6 +1645,7 @@ class _CanvasPageState extends State<CanvasPage> {
     if (!_documentLoaded) return;
     final modelsToDispose = models.where(_elements.contains).toList();
     if (modelsToDispose.isEmpty) return;
+    if (modelsToDispose.any(_contextMenuTargets.contains)) _closeContextMenu();
 
     final removesEditingElement = modelsToDispose.any(
       (model) => identical(model, _editingTextBlock) || identical(model, _editingChromeModel),
@@ -1515,6 +1681,7 @@ class _CanvasPageState extends State<CanvasPage> {
 
   Future<void> _showFilePicker() async {
     if (!_documentLoaded || _projectTransferActive || _filePickerOpen) return;
+    _closeContextMenu();
     setState(() => _filePickerOpen = true);
     _clearElementEditing();
     FocusManager.instance.primaryFocus?.unfocus();
@@ -1787,6 +1954,7 @@ class _CanvasPageState extends State<CanvasPage> {
   }
 
   void _replaceLiveModels(CanvasDocument document) {
+    _closeContextMenu();
     final oldElements = List<CanvasElementModel>.of(_elements);
     _clearTextEditing();
     FocusManager.instance.primaryFocus?.unfocus();
@@ -1865,6 +2033,31 @@ class _CanvasPageState extends State<CanvasPage> {
         !HardwareKeyboard.instance.isMetaPressed &&
         !HardwareKeyboard.instance.isAltPressed &&
         !HardwareKeyboard.instance.isShiftPressed;
+    final keyboard = HardwareKeyboard.instance;
+    final macOS = Theme.of(context).platform == TargetPlatform.macOS;
+    final arrangeModifier = macOS
+        ? keyboard.isMetaPressed && !keyboard.isControlPressed
+        : keyboard.isControlPressed && !keyboard.isMetaPressed;
+    if ((!_editingElement || _contextMenuController.isOpen) &&
+        (event is KeyDownEvent || event is KeyRepeatEvent) &&
+        arrangeModifier &&
+        !keyboard.isAltPressed) {
+      final action = switch (event.logicalKey) {
+        LogicalKeyboardKey.bracketRight => keyboard.isShiftPressed ? CanvasArrange.front : CanvasArrange.forward,
+        LogicalKeyboardKey.bracketLeft => keyboard.isShiftPressed ? CanvasArrange.back : CanvasArrange.backward,
+        LogicalKeyboardKey.braceRight when keyboard.isShiftPressed => CanvasArrange.front,
+        LogicalKeyboardKey.braceLeft when keyboard.isShiftPressed => CanvasArrange.back,
+        _ => null,
+      };
+      if (action != null) {
+        _arrange(action, _arrangeTargets);
+        return true;
+      }
+    }
+    if (_contextMenuController.isOpen) {
+      if (unmodifiedKeyDown && event.logicalKey == LogicalKeyboardKey.escape) _closeContextMenu();
+      return false;
+    }
     if (unmodifiedKeyDown && event.logicalKey == LogicalKeyboardKey.escape) {
       if (_editingElement || _activeElement != null) {
         _clearElementEditing();
@@ -2095,7 +2288,7 @@ class _CanvasPageState extends State<CanvasPage> {
     final colors = BTheme.of(context).colors;
     final editingChromeModel = _editingChromeModel;
     final activeArrow = _activeArrow;
-    return Overlay.wrap(
+    final canvas = Overlay.wrap(
       clipBehavior: Clip.none,
       child: Stack(
         children: [
@@ -2259,6 +2452,14 @@ class _CanvasPageState extends State<CanvasPage> {
             ),
         ],
       ),
+    );
+    return ContextMenu(
+      key: _contextMenuKey,
+      controller: _contextMenuController,
+      onClose: _contextMenuClosed,
+      groups: _objectContextMenuActions(),
+      tapRegionGroupId: _activeElement,
+      child: canvas,
     );
   }
 
@@ -2755,6 +2956,7 @@ class _CanvasElementHost extends StatelessWidget {
     required this.activeTool,
     required this.modifierPressed,
     required this.onPointerDown,
+    required this.onSecondaryPointerDown,
     required this.child,
     super.key,
   });
@@ -2763,6 +2965,7 @@ class _CanvasElementHost extends StatelessWidget {
   final ValueListenable<_CanvasTool> activeTool;
   final ValueListenable<bool> modifierPressed;
   final ValueChanged<PointerDownEvent> onPointerDown;
+  final ValueChanged<PointerDownEvent> onSecondaryPointerDown;
   final Widget child;
 
   @override
@@ -2770,7 +2973,10 @@ class _CanvasElementHost extends StatelessWidget {
     final target = CompositedTransformTarget(link: model.layerLink, child: child);
     final listener = Listener(
       onPointerDown: (event) {
-        if (activeTool.value == _CanvasTool.select) onPointerDown(event);
+        if (activeTool.value == _CanvasTool.select) {
+          onSecondaryPointerDown(event);
+          onPointerDown(event);
+        }
       },
       child: ListenableBuilder(
         listenable: Listenable.merge([activeTool, modifierPressed]),
