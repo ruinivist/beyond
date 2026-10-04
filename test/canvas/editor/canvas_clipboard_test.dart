@@ -93,6 +93,8 @@ void main() {
     await _shortcut(tester, LogicalKeyboardKey.keyV);
     await pumpPastSave(tester);
     final copied = store.persisted!;
+    final renderer = tester.widget<LazyCanvas>(find.byType(LazyCanvas)).controller;
+    expect(renderer.childOrder, copied.elements.map((element) => element.id));
     expect(copied.elements, hasLength(8));
     expect(_types(copied.elements), [
       ..._types(_document.elements),

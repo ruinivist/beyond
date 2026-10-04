@@ -56,6 +56,7 @@ class _CodeToolState extends State<CodeTool> {
   Offset? _previewPointerPosition;
   double _previewDragSlop = 0;
   bool _previewDragging = false;
+  Offset? _titleDragPosition;
 
   @override
   void initState() {
@@ -184,7 +185,14 @@ class _CodeToolState extends State<CodeTool> {
                                       behavior: HitTestBehavior.opaque,
                                       dragStartBehavior: DragStartBehavior.down,
                                       onTap: widget.onEdit,
-                                      onPanUpdate: (details) => widget.onMove(details.delta),
+                                      onPanStart: (details) => _titleDragPosition = details.globalPosition,
+                                      onPanUpdate: (details) {
+                                        final previous = _titleDragPosition!;
+                                        _titleDragPosition = details.globalPosition;
+                                        widget.onMove(details.globalPosition - previous);
+                                      },
+                                      onPanEnd: (_) => _titleDragPosition = null,
+                                      onPanCancel: () => _titleDragPosition = null,
                                       child: titleTab,
                                     )
                             : const SizedBox(key: ValueKey('code-title-hidden')),

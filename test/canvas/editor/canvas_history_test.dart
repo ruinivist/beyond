@@ -8,6 +8,7 @@ import 'package:beyond/canvas/tools/text/text_tool.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:infinite_lazy_grid/infinite_lazy_grid.dart';
 import 'package:shared_preferences_web/shared_preferences_web.dart';
 
 import '../test_helpers.dart';
@@ -37,13 +38,21 @@ void main() {
     final store = TestCanvasDocumentStore(_document());
     await pumpCanvas(tester, store);
 
-    _stroke(tester).selected = true;
+    final controller = tester.widget<LazyCanvas>(find.byType(LazyCanvas)).controller;
+    final removed = _stroke(tester)..selected = true;
     await tester.sendKeyEvent(LogicalKeyboardKey.delete);
+    // Removed models remain alive until their widgets unmount, without a renderer listener.
+    removed.moveBy(const Offset(10, 10));
+    expect(controller.childOrder, isEmpty);
     await tester.pump();
     expect(find.byType(PenStroke), findsNothing);
 
     await _shortcut(tester);
     expect(find.byType(PenStroke), findsOneWidget);
+    final restored = _stroke(tester);
+    expect(restored, isNot(same(removed)));
+    expect(controller.getInfo(restored.data.id).gsPosition, restored.canvasPosition);
+    expect(controller.childOrder, ['pen-0']);
     await pumpPastSave(tester);
     expect(store.persisted!.elements, hasLength(1));
 
@@ -51,6 +60,10 @@ void main() {
     expect(find.byType(PenStroke), findsNothing);
     await pumpPastSave(tester);
     expect(store.persisted!.elements, isEmpty);
+    await _shortcut(tester);
+    final afterRedo = _stroke(tester)..moveBy(const Offset(20, 10));
+    expect(controller.getInfo(afterRedo.data.id).gsPosition, afterRedo.canvasPosition);
+    await tester.pump();
   });
 
   testWidgets('a drag is one step and a new operation clears redo', (

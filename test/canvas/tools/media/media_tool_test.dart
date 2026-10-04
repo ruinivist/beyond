@@ -131,6 +131,8 @@ void main() {
     await tester.pump();
 
     final model = tester.widget<MediaTool>(find.byType(MediaTool)).model;
+    final controller = tester.widget<LazyCanvas>(find.byType(LazyCanvas)).controller;
+    final urlPanelSize = controller.getInfo(model.data.id).childSize;
     final bytes = onePixelPngBytes;
     await tester.runAsync(() => model.setDeviceImage(bytes, 'PNG'));
     await tester.pumpAndSettle();
@@ -139,6 +141,12 @@ void main() {
     expect(attachments.files, {model.data.url: bytes});
     expect(model.image, isA<MemoryImage>());
     expect(model.canvasSize, const Size.square(mediaNodeDefaultWidth));
+    expect(controller.getInfo(model.data.id).childSize, model.canvasSize);
+    expect(controller.getInfo(model.data.id).childSize, isNot(urlPanelSize));
+    model.rotate(math.pi / 4);
+    expect(controller.getInfo(model.data.id).rotation, model.rotation);
+    expect(controller.getInfo(model.data.id).childSize, model.canvasSize);
+    await tester.pump();
     expect(find.byKey(const ValueKey('media-image')), findsOneWidget);
     expect(model.active, isTrue);
   });

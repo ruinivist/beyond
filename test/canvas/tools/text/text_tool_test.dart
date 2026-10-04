@@ -4,6 +4,7 @@
 import 'dart:math' as math;
 
 import 'package:beyond/canvas/document/canvas_document.dart';
+import 'package:beyond/canvas/editor/canvas_background.dart';
 import 'package:beyond/canvas/editor/widgets/element_transform_controls.dart';
 import 'package:beyond/canvas/persistence/attachments/store.dart';
 import 'package:beyond/canvas/persistence/canvas_document_store.dart';
@@ -44,6 +45,77 @@ void main() {
   });
 
   tearDown(() => UrlLauncherPlatform.instance = originalLauncher);
+
+  testWidgets('renderer owns initial and live rotation with rotated pointer targets', (tester) async {
+    await pumpCanvas(tester, TestCanvasDocumentStore(_rendererDocument(rotation: math.pi / 2)));
+    final block = find.byType(TextTool);
+    final model = tester.widget<TextTool>(block).model;
+    final controller = tester.widget<LazyCanvas>(find.byType(LazyCanvas)).controller;
+    expect(controller.getInfo(model.data.id).rotation, math.pi / 2);
+    expect(controller.getInfo(model.data.id).gsPosition, model.canvasPosition);
+
+    // The rotated left end lies above the unrotated layout rectangle.
+    await tester.tapAt(const Offset(320, 190));
+    await tester.pumpAndSettle();
+    expect(model.active, isTrue);
+    expect(model.editing, isTrue);
+    expect(find.byKey(const ValueKey('text-block-handle')).hitTestable(), findsOneWidget);
+
+    model.rotate(math.pi);
+    expect(controller.getInfo(model.data.id).rotation, math.pi);
+    await tester.pump();
+    controller.updateScalebyDelta(-0.25, focalPoint: Offset.zero);
+    await tester.pump();
+    final before = model.canvasPosition;
+    await tester.drag(
+      find.byKey(const ValueKey('text-block-handle')),
+      const Offset(30, 15),
+      kind: PointerDeviceKind.mouse,
+    );
+    await tester.pump();
+    expect(model.canvasPosition, before + const Offset(40, 20));
+    expect(controller.getInfo(model.data.id).gsPosition, model.canvasPosition);
+    expect(controller.childOrder, ['renderer-text']);
+    await tester.pumpAndSettle();
+  });
+
+  testWidgets('auto-height measurements survive transient changes, rotation, and culling', (tester) async {
+    await pumpCanvas(tester, TestCanvasDocumentStore(_rendererDocument(autoHeight: true)));
+    final model = tester.widget<TextTool>(find.byType(TextTool)).model;
+    final controller = tester.widget<LazyCanvas>(find.byType(LazyCanvas)).controller;
+    final measured = tester.getSize(find.byType(TextTool));
+    expect(measured.height, greaterThan(model.canvasSize.height));
+    expect(controller.getInfo(model.data.id).childSize, measured);
+
+    model
+      ..selected = true
+      ..active = true;
+    expect(controller.getInfo(model.data.id).childSize, measured);
+    model
+      ..active = false
+      ..rotate(math.pi / 4);
+    expect(controller.getInfo(model.data.id).childSize, measured);
+    await tester.pump();
+    controller.scrollBy(const Offset(10000, 10000));
+    await tester.pumpAndSettle();
+    expect(find.byType(TextTool), findsNothing);
+    model
+      ..selected = false
+      ..rotate(math.pi / 2)
+      ..moveBy(const Offset(20, 10));
+    expect(controller.getInfo(model.data.id).childSize, measured);
+    expect(controller.getInfo(model.data.id).gsPosition, model.canvasPosition);
+    expect(controller.getInfo(model.data.id).rotation, math.pi / 2);
+    controller.scrollBy(const Offset(-10000, -10000));
+    await tester.pumpAndSettle();
+    expect(find.byType(TextTool), findsOneWidget);
+    expect(controller.getInfo(model.data.id).childSize, measured);
+
+    model.resize(measured, const Offset(20, 30));
+    expect(controller.getInfo(model.data.id).childSize, model.canvasSize);
+    await tester.pump();
+    expect(tester.getSize(find.byType(TextTool)), model.canvasSize);
+  });
 
   testWidgets('text places one focused source editor', (tester) async {
     await _addTextBlock(tester, const Offset(120, 200));
@@ -1067,56 +1139,28 @@ Inline $x^2$''';
     final savedDocument = (await CanvasDocumentStore().load())!;
     final savedNodes = savedDocument.elements.whereType<TextElementData>().toList();
     expect(savedNodes, hasLength(2));
-    expect(savedNodes.first.id, second.node.id);
-    expect(savedNodes.last.id, first.node.id);
-    expect(savedNodes.first.markdown, secondSource);
-    expect(savedNodes.last.markdown, firstSource);
-    expect(savedNodes.first.position, second.node.position);
-    expect(savedNodes.first.width, second.node.width);
-    expect(savedNodes.first.height, second.node.height);
-    expect(savedNodes.first.style.fontFamily, 'Inter');
-    expect(
-      savedNodes.first.style.color,
-      isNot(savedNodes.last.style.color),
-    );
+    expect(savedNodes.map((node) => node.id), [first.node.id, second.node.id]);
+    expect(savedNodes.map((node) => node.markdown), [firstSource, secondSource]);
+    expect(savedNodes.last.position, second.node.position);
+    expect(savedNodes.last.width, second.node.width);
+    expect(savedNodes.last.height, second.node.height);
+    expect(savedNodes.last.style.fontFamily, 'Inter');
+    expect(savedNodes.last.style.color, isNot(savedNodes.first.style.color));
+    final canvas = tester.widget<LazyCanvas>(find.byType(LazyCanvas)).controller;
+    expect(canvas.childOrder, [first.node.id, second.node.id]);
     await tester.pumpWidget(const SizedBox());
     await tester.pump();
     await tester.pumpWidget(const BeyondApp());
     await tester.pump();
     await tester.pump();
 
-    final restoredBlocks = tester.widgetList<TextTool>(
-      find.byType(TextTool),
-    );
+    final restoredBlocks = tester.widgetList<TextTool>(find.byType(TextTool));
     final restoredNodes = restoredBlocks.map((block) => block.model.node);
-    expect(restoredNodes.map((node) => node.id).toList(), [
-      second.node.id,
-      first.node.id,
-    ]);
-    expect(restoredNodes.map((node) => node.markdown).toList(), [
-      secondSource,
-      firstSource,
-    ]);
-    expect(restoredNodes.map((node) => node.position).toList(), [
-      second.node.position,
-      first.node.position,
-    ]);
-    expect(restoredNodes.map((node) => node.width).toList(), [
-      second.node.width,
-      first.node.width,
-    ]);
-    expect(restoredNodes.map((node) => node.height).toList(), [
-      second.node.height,
-      first.node.height,
-    ]);
-    expect(restoredNodes.map((node) => node.style.fontFamily).toList(), [
-      second.node.style.fontFamily,
-      first.node.style.fontFamily,
-    ]);
-    expect(restoredNodes.map((node) => node.style.color).toList(), [
-      second.node.style.color,
-      first.node.style.color,
-    ]);
+    expect(restoredNodes.map((node) => node.toJson()), savedNodes.map((node) => node.toJson()));
+    expect(
+      tester.widget<LazyCanvas>(find.byType(LazyCanvas)).controller.childOrder,
+      [first.node.id, second.node.id],
+    );
     for (final block in restoredBlocks) {
       expect(block.model.editing, isFalse);
       expect(block.model.focusNode.hasFocus, isFalse);
@@ -1215,3 +1259,18 @@ class _FakeAttachmentStore extends TestAttachmentStore {
     return super.read(path);
   }
 }
+
+CanvasDocument _rendererDocument({double rotation = 0, bool autoHeight = false}) => CanvasDocument(
+  background: CanvasBackgroundKind.plain,
+  elements: [
+    TextElementData(
+      id: 'renderer-text',
+      position: const Offset(200, 250),
+      width: 240,
+      height: autoHeight ? null : 80,
+      rotation: rotation,
+      markdown: autoHeight ? List.filled(8, 'Measured paragraph.').join('\n\n') : 'rotated text',
+      style: const TextNodeStyle(fontFamily: 'Inter', color: '#201C1A'),
+    ),
+  ],
+);

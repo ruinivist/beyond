@@ -396,8 +396,8 @@ packages:
     dependency: "direct main"
     description:
       path: "."
-      ref: HEAD
-      resolved-ref: "6695314b65bdafdc757d6ab4c37ae54f7c9a59ff"
+      ref: main
+      resolved-ref: "8c92a59b45adeaee936e3a05c0ccfbd55cfbc8aa"
       url: "https://github.com/ruinivist/infinite_lazy_grid.git"
     source: git
     version: "1.0.5"

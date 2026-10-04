@@ -73,6 +73,11 @@ Shapes follow the same state separation: clicking or creating a shape makes it a
 - Scrolling inside bounded text or code content does not pan the canvas.
 - Only the primary mouse button performs block interactions; other pointer gestures retain their canvas behavior.
 
+## Stacking order
+
+- Document order runs from back to front. New and pasted objects append at the front; pasted objects preserve their internal order.
+- Activation, selection, editing, movement, rotation, and resizing preserve stacking order. Saving and reopening preserve document order.
+
 ## Touch navigation
 
 | Action | Select off | Select on |

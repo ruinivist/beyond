@@ -43,6 +43,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:infinite_lazy_grid/infinite_lazy_grid.dart';
+import 'package:infinite_lazy_grid/utils/conversions.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:super_clipboard/super_clipboard.dart';
 import 'package:uuid/uuid.dart';
@@ -106,6 +107,7 @@ class _CanvasPageState extends State<CanvasPage> {
   late final AttachmentStore _attachmentStore = widget.attachmentStore ?? createAttachmentStore();
   late final CanvasProjectFiles _projectFiles = widget.projectFiles ?? createCanvasProjectFiles();
   final _elements = <CanvasElementModel>[];
+  final _geometryListeners = <CanvasElementModel, VoidCallback>{};
   CanvasElementModel? _activeElement;
   TextBlockModel? _editingTextBlock;
   CanvasElementModel? _editingChromeModel;
@@ -268,6 +270,7 @@ class _CanvasPageState extends State<CanvasPage> {
     unawaited(_saveQueue);
     for (final model in _elements) {
       _editorFocusNode(model)?.removeListener(_finishHistoryOperation);
+      model.removeListener(_geometryListeners.remove(model)!);
       model.documentChanges.removeListener(_scheduleDocumentSave);
       model.dispose();
     }
@@ -668,24 +671,10 @@ class _CanvasPageState extends State<CanvasPage> {
     if (_dragSelectionEnd == null) _clearElementEditing();
     setState(() => _dragSelectionEnd = end);
     final rect = Rect.fromPoints(start, end);
-    final positions = {
-      for (final child in _canvasController.widgetsWithScreenPositions()) child.id: child.ssPosition,
-    };
-
     bool selected(CanvasElementModel model) {
-      final id = model.data.id;
-      final position = positions[id];
-      final renderObject = _selectionKey(
-        model,
-      ).currentContext?.findRenderObject();
-      final overlaps =
-          position != null &&
-          renderObject is RenderBox &&
-          _selectionRectOverlaps(
-            rect,
-            position & (renderObject.size * _canvasController.scale),
-            model is RotatableCanvasElementModel ? model.rotation : 0,
-          );
+      final info = _canvasController.getInfo(model.data.id);
+      final size = info.childSize;
+      final overlaps = size != null && _selectionRectOverlaps(rect, info, size);
       return _toggleDragSelection ? _selectionBeforeDrag.contains(model) != overlaps : overlaps;
     }
 
@@ -694,15 +683,14 @@ class _CanvasPageState extends State<CanvasPage> {
     }
   }
 
-  bool _selectionRectOverlaps(Rect selection, Rect element, double rotation) {
-    if (rotation == 0) return selection.overlaps(element);
-    final center = element.center;
-    final transform = Matrix4.identity()
-      ..translateByDouble(center.dx, center.dy, 0, 1)
-      ..rotateZ(rotation)
-      ..translateByDouble(-center.dx, -center.dy, 0, 1);
-    final elementPath = (Path()..addRect(element)).transform(
-      transform.storage,
+  bool _selectionRectOverlaps(Rect selection, ChildInfo info, Size size) {
+    final elementPath = (Path()..addRect(Offset.zero & size)).transform(
+      childTransform(
+        info.ssPosition,
+        size,
+        info.rotation,
+        scale: _canvasController.scale,
+      ).storage,
     );
     final overlap = Path.combine(
       PathOperation.intersect,
@@ -750,7 +738,6 @@ class _CanvasPageState extends State<CanvasPage> {
     if (!model.active) _setActiveElement(null);
     if (model.focusNode.hasFocus) _finishHistoryOperation();
     _clearTextEditing();
-    _bringElementToFront(model);
   }
 
   void _editCodeBlock(CodeBlockModel model) {
@@ -788,7 +775,6 @@ class _CanvasPageState extends State<CanvasPage> {
       FocusManager.instance.primaryFocus?.unfocus();
       _clearTextEditing();
     }
-    _bringElementToFront(model);
   }
 
   void _handleSelectableElementPointerDown(
@@ -807,7 +793,6 @@ class _CanvasPageState extends State<CanvasPage> {
     if (!model.active) _setActiveElement(null);
     FocusManager.instance.primaryFocus?.unfocus();
     _clearTextEditing();
-    _bringElementToFront(model);
   }
 
   void _activateElement(CanvasElementModel model) {
@@ -824,15 +809,6 @@ class _CanvasPageState extends State<CanvasPage> {
     }
     _startTextEditing(model);
     model.focusNode.requestFocus();
-  }
-
-  void _bringElementToFront(CanvasElementModel model) {
-    if (!_documentLoaded || !_elements.contains(model)) return;
-    _elements
-      ..remove(model)
-      ..add(model);
-    _canvasController.bringToFront(model.data.id);
-    _scheduleDocumentSave();
   }
 
   void _startTextEditing(TextBlockModel editing) {
@@ -1132,7 +1108,22 @@ class _CanvasPageState extends State<CanvasPage> {
       child,
       id: model.data.id,
       childSize: model.canvasSize,
+      rotation: model is RotatableCanvasElementModel ? model.rotation : 0,
     );
+    var declaredSize = model.canvasSize;
+    void syncGeometry() {
+      final size = model.canvasSize;
+      _canvasController.update(
+        model.data.id,
+        position: model.canvasPosition,
+        rotation: model is RotatableCanvasElementModel ? model.rotation : 0,
+        childSize: size != declaredSize ? size : null,
+      );
+      declaredSize = size;
+    }
+
+    _geometryListeners[model] = syncGeometry;
+    model.addListener(syncGeometry);
     _editorFocusNode(model)?.addListener(_finishHistoryOperation);
     if (requestFocus) {
       WidgetsBinding.instance.addPostFrameCallback(
@@ -1238,7 +1229,6 @@ class _CanvasPageState extends State<CanvasPage> {
     _interactiveCanvasPointerIds.add(event.pointer);
     if (_toggleSelectionIfModifierPressed(model)) return;
     _setActiveElement(model);
-    _bringElementToFront(model);
     _clearTextEditing();
     _dragArrowPointer = event.pointer;
     _dragArrow = model;
@@ -1264,8 +1254,7 @@ class _CanvasPageState extends State<CanvasPage> {
   ) {
     if (_canvasInputBlocked) return;
     if (!_documentLoaded || !identical(_activeElement, model) || !_elements.contains(model)) return;
-    if (!model.setPoint(point, position)) return;
-    _canvasController.updatePosition(model.data.id, model.canvasPosition);
+    model.setPoint(point, position);
   }
 
   void _handleStrokePointerDown(
@@ -1284,7 +1273,6 @@ class _CanvasPageState extends State<CanvasPage> {
     _interactiveCanvasPointerIds.add(event.pointer);
     if (_toggleSelectionIfModifierPressed(model)) return;
     _clearElementEditing();
-    _bringElementToFront(model);
   }
 
   // ---------- Editing commands ----------
@@ -1504,6 +1492,7 @@ class _CanvasPageState extends State<CanvasPage> {
     for (final model in modelsToDispose) {
       _editorFocusNode(model)?.unfocus();
       _editorFocusNode(model)?.removeListener(_finishHistoryOperation);
+      model.removeListener(_geometryListeners.remove(model)!);
       _canvasController.removeChild(model.data.id);
       _elements.remove(model);
       _selectionKeys.remove(model);
@@ -1824,6 +1813,7 @@ class _CanvasPageState extends State<CanvasPage> {
     _editingChromeModel = null;
 
     for (final model in oldElements) {
+      model.removeListener(_geometryListeners.remove(model)!);
       model.documentChanges.removeListener(_scheduleDocumentSave);
       _editorFocusNode(model)?.removeListener(_finishHistoryOperation);
     }
@@ -2791,17 +2781,7 @@ class _CanvasElementHost extends StatelessWidget {
         child: target,
       ),
     );
-    return switch (model) {
-      final RotatableCanvasElementModel rotationModel => ListenableBuilder(
-        listenable: rotationModel,
-        builder: (context, child) => Transform.rotate(
-          angle: rotationModel.rotation,
-          child: child,
-        ),
-        child: listener,
-      ),
-      _ => listener,
-    };
+    return listener;
   }
 }
 

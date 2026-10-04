@@ -14,6 +14,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:infinite_lazy_grid/infinite_lazy_grid.dart';
 import 'package:shared_preferences_web/shared_preferences_web.dart';
 
 import '../../test_helpers.dart';
@@ -354,6 +355,17 @@ void main() {
     );
     await tester.pump();
     expect(first.data.size, originalSize + const Offset(40, 30));
+
+    final controller = tester.widget<LazyCanvas>(find.byType(LazyCanvas)).controller
+      ..updateScalebyDelta(-0.5, focalPoint: Offset.zero);
+    await tester.pump();
+    final beforeDrag = first.canvasPosition;
+    final order = controller.childOrder;
+    await tester.drag(firstFinder, const Offset(30, 20), kind: PointerDeviceKind.mouse);
+    await tester.pump();
+    expect(first.canvasPosition, beforeDrag + const Offset(60, 40));
+    expect(controller.getInfo(first.data.id).gsPosition, first.canvasPosition);
+    expect(controller.childOrder, order);
 
     await tester.tap(find.byKey(const ValueKey('shape-block-delete-control')));
     await tester.pump();

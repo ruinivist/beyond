@@ -6,6 +6,7 @@ import 'dart:math' as math;
 
 import 'package:beyond/canvas/document/canvas_document.dart';
 import 'package:beyond/canvas/editor/canvas_background.dart';
+import 'package:beyond/canvas/editor/canvas_element_model.dart';
 import 'package:beyond/canvas/editor/widgets/canvas_title.dart';
 import 'package:beyond/canvas/editor/widgets/element_transform_controls.dart';
 import 'package:beyond/canvas/editor/widgets/toolbar_button.dart';
@@ -489,7 +490,7 @@ void main() {
     expect(find.byType(PenStroke), findsNothing);
   });
 
-  testWidgets('pen and arrow clicks update order without modifier reorder', (
+  testWidgets('pen and arrow interactions preserve stacking order', (
     tester,
   ) async {
     final document = CanvasDocument(
@@ -541,7 +542,7 @@ void main() {
 
     await tester.tapAt(tester.getCenter(penFinder));
     await tester.pump();
-    expect(elementIds(), ['arrow', 'pen']);
+    expect(elementIds(), ['pen', 'arrow']);
     expect(pen.active, isFalse);
     expect(pen.selected, isFalse);
     expect(find.byKey(const ValueKey('pen-block-handle')), findsNothing);
@@ -963,7 +964,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 100));
   });
 
-  testWidgets('code title grows to the code block width', (
+  testWidgets('code title grows and drags in screen coordinates under rotation and zoom', (
     tester,
   ) async {
     await tester.pumpWidget(const BeyondApp());
@@ -986,6 +987,23 @@ void main() {
 
     expect(tester.getSize(tab).width, greaterThan(shortWidth));
     expect(tester.getSize(tab).width, tester.getSize(surface).width);
+    final model = tester.widget<CodeTool>(find.byType(CodeTool)).model..rotate(math.pi / 2);
+    final controller = tester.widget<LazyCanvas>(find.byType(LazyCanvas)).controller
+      ..updateScalebyDelta(-0.5, focalPoint: Offset.zero);
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await tester.pumpAndSettle();
+    final before = model.canvasPosition;
+    final order = controller.childOrder;
+    await tester.drag(
+      find.byKey(const ValueKey('code-title-tab')),
+      const Offset(30, 20),
+      kind: PointerDeviceKind.mouse,
+    );
+    await tester.pump();
+    expect(model.canvasPosition, before + const Offset(60, 40));
+    expect(controller.getInfo(model.data.id).gsPosition, model.canvasPosition);
+    expect(model.active, isFalse);
+    expect(controller.childOrder, order);
   });
 
   testWidgets('delete removes an active unselected code block', (
@@ -1021,8 +1039,7 @@ void main() {
     await tester.pump();
     final text = tester.widget<TextTool>(find.byType(TextTool)).model;
     final canvas = tester.widget<LazyCanvas>(find.byType(LazyCanvas));
-    final textId = canvas.controller.widgetsWithScreenPositions().single.id;
-    canvas.controller.updatePosition(textId, const Offset(10000, 10000));
+    text.moveBy(const Offset(10000, 10000) - text.canvasPosition);
     await tester.pump();
 
     await tester.tap(find.byKey(const ValueKey('toolbar-draw')));
@@ -1061,7 +1078,7 @@ void main() {
     expect(find.byType(TextTool), findsNothing);
     expect(find.byType(CodeTool), findsNothing);
     expect(find.byType(PenStroke), findsNothing);
-    expect(canvas.controller.hasChild(textId), isFalse);
+    expect(canvas.controller.hasChild(text.data.id), isFalse);
     for (final id in visibleIds) {
       expect(canvas.controller.hasChild(id), isFalse);
     }
@@ -1128,11 +1145,13 @@ void main() {
 
     final clampedSize = model.size;
     model.rotate(-math.pi / 4);
+    final controller = tester.widget<LazyCanvas>(find.byType(LazyCanvas)).controller
+      ..updateScalebyDelta(-0.25, focalPoint: Offset.zero);
     await tester.pump();
 
     await tester.drag(
       find.byKey(const ValueKey('code-block-resize-handle')),
-      Offset.fromDirection(-math.pi / 4, 80),
+      Offset.fromDirection(-math.pi / 4, 80 * controller.scale),
       kind: PointerDeviceKind.mouse,
     );
     await tester.pump();
@@ -1288,7 +1307,7 @@ void main() {
     expect(code.selected, isFalse);
   });
 
-  testWidgets('dragging a selected mixed group moves every child', (
+  testWidgets('dragging a selected mixed group moves once under zoom', (
     tester,
   ) async {
     await tester.pumpWidget(const BeyondApp());
@@ -1317,6 +1336,12 @@ void main() {
     final text = tester.widget<TextTool>(textFinder).model;
     final code = tester.widget<CodeTool>(codeFinder).model;
     final stroke = tester.widget<PenStroke>(strokeFinder).model;
+    final controller = tester.widget<LazyCanvas>(find.byType(LazyCanvas)).controller
+      ..updateScalebyDelta(-0.5, focalPoint: Offset.zero);
+    text.rotate(math.pi / 6);
+    await tester.pump();
+    final order = controller.childOrder;
+    final originalPositions = [text.canvasPosition, code.canvasPosition, stroke.canvasPosition];
     final textPosition = tester.getTopLeft(textFinder);
     final codePosition = tester.getTopLeft(codeFinder);
     final strokePosition = tester.getTopLeft(strokeFinder);
@@ -1352,6 +1377,12 @@ void main() {
     expect(text.selected, isTrue);
     expect(code.selected, isTrue);
     expect(stroke.selected, isTrue);
+    expect(controller.childOrder, order);
+    for (var index = 0; index < 3; index++) {
+      final model = <CanvasElementModel>[text, code, stroke][index];
+      expect(model.canvasPosition, originalPositions[index] + delta / controller.scale);
+      expect(controller.getInfo(model.data.id).gsPosition, model.canvasPosition);
+    }
 
     FocusManager.instance.primaryFocus?.unfocus();
     await tester.pump(const Duration(milliseconds: 100));

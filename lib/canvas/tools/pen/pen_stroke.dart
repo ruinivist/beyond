@@ -7,7 +7,7 @@ part of 'pen_tool.dart';
 
 /// Renders and handles movement for a persisted freehand stroke.
 /// Used by the canvas element stack.
-class PenStroke extends StatelessWidget {
+class PenStroke extends StatefulWidget {
   const PenStroke({
     required this.model,
     required this.onMove,
@@ -18,26 +18,40 @@ class PenStroke extends StatelessWidget {
   final ValueChanged<Offset> onMove;
 
   @override
+  State<PenStroke> createState() => _PenStrokeState();
+}
+
+class _PenStrokeState extends State<PenStroke> {
+  Offset? _dragPosition;
+
+  @override
   Widget build(BuildContext context) {
     final accent = BTheme.of(context).colors.accent;
     return SizedBox.fromSize(
-      size: model.canvasSize,
+      size: widget.model.canvasSize,
       child: ListenableBuilder(
-        listenable: model,
+        listenable: widget.model,
         builder: (context, _) => Semantics(
           container: true,
           label: 'Drawing stroke',
-          selected: model.selected,
+          selected: widget.model.selected,
           child: GestureDetector(
-            onPanUpdate: (details) => onMove(details.delta),
+            onPanStart: (details) => _dragPosition = details.globalPosition,
+            onPanUpdate: (details) {
+              final previous = _dragPosition!;
+              _dragPosition = details.globalPosition;
+              widget.onMove(details.globalPosition - previous);
+            },
+            onPanEnd: (_) => _dragPosition = null,
+            onPanCancel: () => _dragPosition = null,
             child: CustomPaint(
               painter: _PenStrokePainter(
-                path: model.path,
-                points: model.data.points,
-                color: Color(model.data.color),
-                width: model.data.width,
-                hitSlop: model.data.hitSlop,
-                selected: model.selected,
+                path: widget.model.path,
+                points: widget.model.data.points,
+                color: Color(widget.model.data.color),
+                width: widget.model.data.width,
+                hitSlop: widget.model.data.hitSlop,
+                selected: widget.model.selected,
                 accent: accent,
               ),
             ),

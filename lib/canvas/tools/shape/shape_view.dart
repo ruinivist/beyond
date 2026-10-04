@@ -7,7 +7,7 @@ part of 'shape_tool.dart';
 
 /// Renders and handles movement and resizing for a persisted shape.
 /// Used by the canvas element stack.
-class Shape extends StatelessWidget {
+class Shape extends StatefulWidget {
   const Shape({
     required this.model,
     required this.onActivate,
@@ -22,36 +22,50 @@ class Shape extends StatelessWidget {
   final ValueChanged<Offset> onResize;
 
   @override
+  State<Shape> createState() => _ShapeState();
+}
+
+class _ShapeState extends State<Shape> {
+  Offset? _dragPosition;
+
+  @override
   Widget build(BuildContext context) {
     final colors = BTheme.of(context).colors;
     return ListenableBuilder(
-      listenable: model,
+      listenable: widget.model,
       builder: (context, _) => SizedBox.fromSize(
-        size: model.canvasSize,
+        size: widget.model.canvasSize,
         child: Semantics(
           container: true,
-          label: model.data.kind.label,
-          selected: model.selected,
+          label: widget.model.data.kind.label,
+          selected: widget.model.selected,
           child: GestureDetector(
             dragStartBehavior: DragStartBehavior.down,
-            onTap: onActivate,
-            onPanUpdate: (details) => onMove(details.delta),
+            onTap: widget.onActivate,
+            onPanStart: (details) => _dragPosition = details.globalPosition,
+            onPanUpdate: (details) {
+              final previous = _dragPosition!;
+              _dragPosition = details.globalPosition;
+              widget.onMove(details.globalPosition - previous);
+            },
+            onPanEnd: (_) => _dragPosition = null,
+            onPanCancel: () => _dragPosition = null,
             child: Stack(
               children: [
                 Positioned.fill(
                   child: CustomPaint(
                     painter: _ShapePainter(
                       path: shapePath(
-                        model.data.kind,
-                        Offset.zero & model.canvasSize,
+                        widget.model.data.kind,
+                        Offset.zero & widget.model.canvasSize,
                       ),
-                      color: model.selected ? colors.accent : Color(model.data.strokeColor),
-                      fillColor: model.data.fillColor == null ? null : Color(model.data.fillColor!),
-                      strokeWidth: model.data.strokeWidth,
+                      color: widget.model.selected ? colors.accent : Color(widget.model.data.strokeColor),
+                      fillColor: widget.model.data.fillColor == null ? null : Color(widget.model.data.fillColor!),
+                      strokeWidth: widget.model.data.strokeWidth,
                     ),
                   ),
                 ),
-                if (model.active)
+                if (widget.model.active)
                   Positioned(
                     right: 0,
                     bottom: 0,
@@ -59,7 +73,9 @@ class Shape extends StatelessWidget {
                       key: const ValueKey('shape-resize-handle'),
                       semanticLabel: 'Resize shape',
                       gestures: {
-                        ImmediateMultiDragGestureRecognizer: immediateDragGestureFactory((_) => CallbackDrag(onResize)),
+                        ImmediateMultiDragGestureRecognizer: immediateDragGestureFactory(
+                          (_) => CallbackDrag(widget.onResize),
+                        ),
                       },
                     ),
                   ),
